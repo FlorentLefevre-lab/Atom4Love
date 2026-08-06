@@ -7,7 +7,6 @@
 /captures
 .externalNativeBuild
 .cxx
-local.properties
 *.apk
 *.aab
 *.keystore
