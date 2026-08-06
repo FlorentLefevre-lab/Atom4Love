@@ -2,46 +2,29 @@ package com.florentlefevre.atom4love
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.graphics.toArgb
+import com.florentlefevre.atom4love.ui.A4LApp
+import com.florentlefevre.atom4love.ui.theme.A4L
 import com.florentlefevre.atom4love.ui.theme.Atom4LoveTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // La station est toujours sombre : barres transparentes, icônes claires.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(A4L.Void.toArgb()),
+            navigationBarStyle = SystemBarStyle.dark(A4L.Void.toArgb()),
+        )
         setContent {
             Atom4LoveTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                A4LApp(Modifier.fillMaxSize().background(A4L.Deep))
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    Atom4LoveTheme {
-        Greeting("Android")
     }
 }
