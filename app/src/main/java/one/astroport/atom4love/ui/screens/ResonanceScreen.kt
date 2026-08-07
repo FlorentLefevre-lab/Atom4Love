@@ -1,4 +1,4 @@
-package com.florentlefevre.atom4love.ui.screens
+package one.astroport.atom4love.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -25,13 +25,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.florentlefevre.atom4love.ui.components.DataBadge
-import com.florentlefevre.atom4love.ui.components.SectionLabel
-import com.florentlefevre.atom4love.ui.components.glass
-import com.florentlefevre.atom4love.ui.components.screenBackground
-import com.florentlefevre.atom4love.ui.theme.A4L
-import com.florentlefevre.atom4love.ui.theme.A4LText
-import com.florentlefevre.atom4love.ui.theme.tint
+import one.astroport.atom4love.ui.components.DataBadge
+import one.astroport.atom4love.ui.components.SectionLabel
+import one.astroport.atom4love.ui.components.glass
+import one.astroport.atom4love.ui.components.screenBackground
+import one.astroport.atom4love.ui.theme.A4L
+import one.astroport.atom4love.ui.theme.A4LText
+import one.astroport.atom4love.ui.theme.tint
 
 /** État d'une liaison entre deux noyaux. */
 private enum class BondState(val label: String, val color: Color) {

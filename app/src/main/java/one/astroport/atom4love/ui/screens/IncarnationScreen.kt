@@ -1,4 +1,4 @@
-package com.florentlefevre.atom4love.ui.screens
+package one.astroport.atom4love.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -52,17 +52,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.round
-import com.florentlefevre.atom4love.domain.BirthData
-import com.florentlefevre.atom4love.domain.LoveKey
-import com.florentlefevre.atom4love.domain.Wave
-import com.florentlefevre.atom4love.ui.components.ComputedRow
-import com.florentlefevre.atom4love.ui.components.SectionLabel
-import com.florentlefevre.atom4love.ui.components.StatusDot
-import com.florentlefevre.atom4love.ui.components.glass
-import com.florentlefevre.atom4love.ui.components.screenBackground
-import com.florentlefevre.atom4love.ui.theme.A4L
-import com.florentlefevre.atom4love.ui.theme.A4LText
-import com.florentlefevre.atom4love.ui.theme.tint
+import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.domain.LoveKey
+import one.astroport.atom4love.domain.Wave
+import one.astroport.atom4love.ui.components.ComputedRow
+import one.astroport.atom4love.ui.components.SectionLabel
+import one.astroport.atom4love.ui.components.StatusDot
+import one.astroport.atom4love.ui.components.glass
+import one.astroport.atom4love.ui.components.screenBackground
+import one.astroport.atom4love.ui.theme.A4L
+import one.astroport.atom4love.ui.theme.A4LText
+import one.astroport.atom4love.ui.theme.tint
 
 private const val WEIGHT_MIN = 2.5f
 private const val WEIGHT_MAX = 4.5f

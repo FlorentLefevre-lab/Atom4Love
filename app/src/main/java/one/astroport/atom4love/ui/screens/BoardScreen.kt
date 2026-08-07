@@ -1,4 +1,4 @@
-package com.florentlefevre.atom4love.ui.screens
+package one.astroport.atom4love.ui.screens
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -40,17 +40,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.florentlefevre.atom4love.domain.AtomCard
-import com.florentlefevre.atom4love.domain.Wave
-import com.florentlefevre.atom4love.domain.resonanceBetween
-import com.florentlefevre.atom4love.ui.components.A4LChip
-import com.florentlefevre.atom4love.ui.components.SectionLabel
-import com.florentlefevre.atom4love.ui.components.dashedGlass
-import com.florentlefevre.atom4love.ui.components.glass
-import com.florentlefevre.atom4love.ui.components.screenBackground
-import com.florentlefevre.atom4love.ui.theme.A4L
-import com.florentlefevre.atom4love.ui.theme.A4LText
-import com.florentlefevre.atom4love.ui.theme.tint
+import one.astroport.atom4love.domain.AtomCard
+import one.astroport.atom4love.domain.Wave
+import one.astroport.atom4love.domain.resonanceBetween
+import one.astroport.atom4love.ui.components.A4LChip
+import one.astroport.atom4love.ui.components.SectionLabel
+import one.astroport.atom4love.ui.components.dashedGlass
+import one.astroport.atom4love.ui.components.glass
+import one.astroport.atom4love.ui.components.screenBackground
+import one.astroport.atom4love.ui.theme.A4L
+import one.astroport.atom4love.ui.theme.A4LText
+import one.astroport.atom4love.ui.theme.tint
 
 /** Une carte en main : le noyau plus la teinte qui le distingue sur le plateau. */
 private data class DealtCard(val card: AtomCard, val accent: Color)

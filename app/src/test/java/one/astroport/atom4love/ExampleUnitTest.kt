@@ -1,4 +1,4 @@
-package com.florentlefevre.atom4love
+package one.astroport.atom4love
 
 import org.junit.Test
 

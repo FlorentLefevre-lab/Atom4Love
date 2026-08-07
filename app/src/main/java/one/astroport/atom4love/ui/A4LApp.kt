@@ -1,4 +1,4 @@
-package com.florentlefevre.atom4love.ui
+package one.astroport.atom4love.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,13 +26,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.florentlefevre.atom4love.domain.BirthData
-import com.florentlefevre.atom4love.ui.screens.BoardScreen
-import com.florentlefevre.atom4love.ui.screens.IncarnationScreen
-import com.florentlefevre.atom4love.ui.screens.RadarScreen
-import com.florentlefevre.atom4love.ui.screens.ResonanceScreen
-import com.florentlefevre.atom4love.ui.theme.A4L
-import com.florentlefevre.atom4love.ui.theme.A4LText
+import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.ui.screens.BoardScreen
+import one.astroport.atom4love.ui.screens.IncarnationScreen
+import one.astroport.atom4love.ui.screens.RadarScreen
+import one.astroport.atom4love.ui.screens.ResonanceScreen
+import one.astroport.atom4love.ui.theme.A4L
+import one.astroport.atom4love.ui.theme.A4LText
 
 /** Les quatre destinations de la barre du bas. */
 enum class A4LTab(val icon: String, val label: String, val accent: Color) {

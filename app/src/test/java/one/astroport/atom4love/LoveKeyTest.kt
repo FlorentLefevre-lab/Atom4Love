@@ -1,8 +1,8 @@
-package com.florentlefevre.atom4love
+package one.astroport.atom4love
 
-import com.florentlefevre.atom4love.domain.BirthData
-import com.florentlefevre.atom4love.domain.LoveKey
-import com.florentlefevre.atom4love.domain.Wave
+import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.domain.LoveKey
+import one.astroport.atom4love.domain.Wave
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.TimeZone

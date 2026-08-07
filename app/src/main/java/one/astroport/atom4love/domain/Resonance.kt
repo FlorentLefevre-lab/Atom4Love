@@ -1,4 +1,4 @@
-package com.florentlefevre.atom4love.domain
+package one.astroport.atom4love.domain
 
 import kotlin.math.abs
 import kotlin.math.min

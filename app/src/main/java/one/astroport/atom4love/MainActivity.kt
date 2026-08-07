@@ -1,4 +1,4 @@
-package com.florentlefevre.atom4love
+package one.astroport.atom4love
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,9 +9,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
-import com.florentlefevre.atom4love.ui.A4LApp
-import com.florentlefevre.atom4love.ui.theme.A4L
-import com.florentlefevre.atom4love.ui.theme.Atom4LoveTheme
+import one.astroport.atom4love.ui.A4LApp
+import one.astroport.atom4love.ui.theme.A4L
+import one.astroport.atom4love.ui.theme.Atom4LoveTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

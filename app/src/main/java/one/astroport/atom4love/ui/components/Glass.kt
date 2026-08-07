@@ -1,4 +1,4 @@
-package com.florentlefevre.atom4love.ui.components
+package one.astroport.atom4love.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,9 +31,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.florentlefevre.atom4love.ui.theme.A4L
-import com.florentlefevre.atom4love.ui.theme.A4LText
-import com.florentlefevre.atom4love.ui.theme.tint
+import one.astroport.atom4love.ui.theme.A4L
+import one.astroport.atom4love.ui.theme.A4LText
+import one.astroport.atom4love.ui.theme.tint
 
 /**
  * Surface vitrée : un fond translucide + un liseré d'un blanc à peine visible.

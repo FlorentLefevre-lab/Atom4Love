@@ -1,4 +1,4 @@
-package com.florentlefevre.atom4love.ui.screens
+package one.astroport.atom4love.ui.screens
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -48,15 +48,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.florentlefevre.atom4love.ui.components.HexagonShape
-import com.florentlefevre.atom4love.ui.components.hexagonPath
-import com.florentlefevre.atom4love.ui.components.StatusDot
-import com.florentlefevre.atom4love.ui.components.dashedGlass
-import com.florentlefevre.atom4love.ui.components.glass
-import com.florentlefevre.atom4love.ui.components.screenBackground
-import com.florentlefevre.atom4love.ui.theme.A4L
-import com.florentlefevre.atom4love.ui.theme.A4LText
-import com.florentlefevre.atom4love.ui.theme.tint
+import one.astroport.atom4love.ui.components.HexagonShape
+import one.astroport.atom4love.ui.components.hexagonPath
+import one.astroport.atom4love.ui.components.StatusDot
+import one.astroport.atom4love.ui.components.dashedGlass
+import one.astroport.atom4love.ui.components.glass
+import one.astroport.atom4love.ui.components.screenBackground
+import one.astroport.atom4love.ui.theme.A4L
+import one.astroport.atom4love.ui.theme.A4LText
+import one.astroport.atom4love.ui.theme.tint
 import kotlin.math.ceil
 
 /** Le rituel de cabine dure 33 secondes d'immobilité (cf. CONTEXTE). */

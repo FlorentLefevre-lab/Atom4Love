@@ -1,4 +1,4 @@
-package com.florentlefevre.atom4love.domain
+package one.astroport.atom4love.domain
 
 import java.text.SimpleDateFormat
 import java.util.Calendar

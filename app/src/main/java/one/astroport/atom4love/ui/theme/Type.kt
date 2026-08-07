@@ -1,4 +1,4 @@
-package com.florentlefevre.atom4love.ui.theme
+package one.astroport.atom4love.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
