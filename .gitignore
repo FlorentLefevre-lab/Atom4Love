@@ -1,12 +1,37 @@
-*.iml
+# --- Gradle ---
 .gradle/
-/local.properties
-/.idea/
-.DS_Store
+build/
 /build
 /captures
 .externalNativeBuild
 .cxx
+.kotlin/
+
+# --- IDE ---
+*.iml
+/.idea/
+!/.idea/codeStyles/
+!/.idea/inspectionProfiles/
+.DS_Store
+
+# --- Local (spécifique machine) ---
+local.properties
+
+# --- SECRETS : ne jamais versionner ---
+keystore.properties
+*.keystore
+*.jks
+google-services.json
+/secrets.properties
+
+# --- Artefacts de build ---
 *.apk
 *.aab
-*.keystore
+*.aar
+*.ap_
+*.dex
+/release/
+/debug/
+
+# --- Logs ---
+*.log
