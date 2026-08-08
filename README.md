@@ -183,7 +183,7 @@ réalisables sans connaître l'ensemble du système.
      écran de réglages, thème sombre, tests unitaires sur l'encodeur H3, écran d'onboarding,
      localisation EN. -->
 
-**Discussion.** <!-- À COMPLÉTER : salon Matrix / forum / contact -->
+**Discussion.** : Salons dédiés sur WhatsApp et Telegram ...
 
 ---
 
