@@ -8,7 +8,10 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.x-7F52FF.svg)](https://kotlinlang.org/)
 [![Statut](https://img.shields.io/badge/statut-alpha%20pr%C3%A9coce-orange.svg)]()
 
----
+--- Ecrans
+
+<img width="2862" height="4212" alt="image" src="https://github.com/user-attachments/assets/19243fbf-1f71-4bf6-a295-212b0dffde45" />
+
 
 ## ⚠️ État du projet
 
