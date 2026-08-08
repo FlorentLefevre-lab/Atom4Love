@@ -141,7 +141,7 @@ Atom4Love implémente principalement D1, D2 et D5.
 
 ## Projets connexes
 
-### Écosystème UPlanet / G1FabLab
+### Écosystème UPlanet / G1FabLab (Fred R.)
 
 - **[Astroport.ONE](https://github.com/papiche/Astroport.ONE)** — la station décentralisée
   (NOSTR, IPFS, Duniter/Ğ1, MULTIPASS). AGPL-3.0. Atom4Love en est un client : il dialogue
