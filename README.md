@@ -1,4 +1,5 @@
 <img width="240" height="240" alt="atome-coeur-transparent-240" src="https://github.com/user-attachments/assets/663bee21-ba78-4f4b-bf05-3211b5cdd080" />
+
 # Atom4Love
 
 **Client Android natif pour la rencontre de proximité sans serveur central, sans biométrie et sans traçage de position.**
