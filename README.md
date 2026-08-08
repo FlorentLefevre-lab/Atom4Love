@@ -1,6 +1,3 @@
-[ATOM4LOVE Android.html](https://github.com/user-attachments/files/30850817/ATOM4LOVE.Android.html)
-
-
 # Atom4Love
 
 **Client Android natif pour la rencontre de proximité sans serveur central, sans biométrie et sans traçage de position.**
