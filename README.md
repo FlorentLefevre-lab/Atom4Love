@@ -1,17 +1,37 @@
-<img width="240" height="240" alt="atome-coeur-transparent-240" align-text="center" src="https://github.com/user-attachments/assets/663bee21-ba78-4f4b-bf05-3211b5cdd080" />
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/663bee21-ba78-4f4b-bf05-3211b5cdd080"
+       alt="Atom4Love" width="240" />
+</p>
 
-# Atom4Love
+<h1 align="center">Atom4Love</h1>
 
-**Client Android natif pour la rencontre de proximité sans serveur central, sans biométrie et sans traçage de position.**
+<p align="center">
+  <strong>Client Android natif pour la rencontre de proximité<br />
+  sans serveur central, sans biométrie et sans traçage de position.</strong>
+</p>
 
-[![Licence: AGPL v3](https://img.shields.io/badge/Licence-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.x-7F52FF.svg)](https://kotlinlang.org/)
-[![Statut](https://img.shields.io/badge/statut-alpha%20pr%C3%A9coce-orange.svg)]()
+<p align="center">
+  <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/Licence-AGPL%20v3-blue.svg" alt="Licence AGPL v3" /></a>
+  <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/Kotlin-2.x-7F52FF.svg" alt="Kotlin" /></a>
+  <img src="https://img.shields.io/badge/statut-alpha%20pr%C3%A9coce-orange.svg" alt="Statut : alpha précoce" />
+</p>
 
---- Ecrans
+---
 
-<img width="2862" height="4212" alt="image" src="https://github.com/user-attachments/assets/19243fbf-1f71-4bf6-a295-212b0dffde45" />
+## Maquettes
 
+> **Maquettes d'intention.** Ces écrans illustrent le parcours visé. Ils ne correspondent pas
+> à une application existante — voir « État du projet » juste en dessous.
+
+<details>
+  <summary>Voir le parcours Android complet</summary>
+  <p align="center">
+    <img src="https://github.com/user-attachments/assets/19243fbf-1f71-4bf6-a295-212b0dffde45"
+         alt="Parcours Android — maquettes" width="720" />
+  </p>
+</details>
+
+---
 
 ## ⚠️ État du projet
 
@@ -148,7 +168,7 @@ Atom4Love implémente principalement D1, D2 et D5.
 ## Contribuer
 
 Les contributions sont bienvenues, y compris de la part de personnes qui découvrent NOSTR ou
-Compose.
+Compose. Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour le détail.
 
 **Signature des commits.** Le projet utilise le [Developer Certificate of
 Origin](https://developercertificate.org/). Signez vos commits avec `git commit -s`, ce qui
