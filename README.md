@@ -1,4 +1,4 @@
-<img width="240" height="240" alt="atome-coeur-transparent-240" align="center" src="https://github.com/user-attachments/assets/663bee21-ba78-4f4b-bf05-3211b5cdd080" />
+<img width="240" height="240" alt="atome-coeur-transparent-240" align-text="center" src="https://github.com/user-attachments/assets/663bee21-ba78-4f4b-bf05-3211b5cdd080" />
 
 # Atom4Love
 
