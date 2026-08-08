@@ -35,3 +35,7 @@ google-services.json
 
 # --- Logs ---
 *.log
+
+# Enregistrements OBS
+*.mkv
+*.mp4
