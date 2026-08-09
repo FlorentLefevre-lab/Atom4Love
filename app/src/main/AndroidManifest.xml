@@ -2,6 +2,30 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- POC diag/WifiConcurrencyProbe : AP local + scan simultanés.
+         ACCESS_FINE_LOCATION est exigé par l'API de scan Wi-Fi — à retirer avec
+         le package diag si le concept est abandonné (contradiction assumée avec
+         le principe « pas de traçage de position » : ce POC ne sort pas du device). -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission
+        android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation" />
+
+    <!-- POC diag/BleConcurrencyProbe : annonce BLE « phix2 » + scan simultanés.
+         Permissions runtime à partir d'API 31, d'installation avant. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -23,6 +47,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- POC : écran de diagnostic AP+scan, hors navigation de l'app.
+             Lancement : adb shell am start -n <applicationId>/one.astroport.atom4love.diag.WifiProbeActivity -->
+        <activity
+            android:name=".diag.WifiProbeActivity"
+            android:exported="true"
+            android:label="Sonde Wi-Fi (POC)"
+            android:theme="@style/Theme.Atom4Love" />
     </application>
 
 </manifest>
