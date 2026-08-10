@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A4L.Void — le fond de la station (ui/theme/Color.kt). -->
+    <color name="ic_launcher_background">#05050C</color>
+</resources>

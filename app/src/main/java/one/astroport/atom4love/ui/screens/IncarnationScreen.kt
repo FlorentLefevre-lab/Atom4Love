@@ -47,6 +47,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -310,6 +311,14 @@ fun IncarnationScreen(
                 overflow = TextOverflow.Ellipsis,
             )
             ForgeButton(forged = forged, onClick = onForge)
+            // Le launcher garde le nom court ; la filiation s'affiche ici.
+            Text(
+                "Atom4Love · by AstroPort.ONE",
+                style = A4LText.Data.copy(fontSize = 9.sp),
+                color = A4L.TextGhost,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 
