@@ -58,6 +58,12 @@ class IncarnationStore(private val context: Context) {
         return SavedIncarnation(birth = birth, forged = p[Keys.Forged] ?: false)
     }
 
+    /** Dissolution du noyau : la station oublie tout — la fiche se redérive
+     *  à l'identique si les cinq mêmes données sont ressaisies un jour. */
+    suspend fun clear() {
+        context.incarnationDataStore.edit { it.clear() }
+    }
+
     suspend fun save(birth: BirthData, forged: Boolean) {
         context.incarnationDataStore.edit { p ->
             fun <T> set(key: androidx.datastore.preferences.core.Preferences.Key<T>, value: T?) {

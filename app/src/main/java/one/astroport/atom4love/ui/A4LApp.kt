@@ -169,6 +169,13 @@ private fun Station(
                                 forged = true,
                                 onForge = {},
                                 npub = keys?.npub,
+                                onDissolve = {
+                                    // La station oublie tout : fiche vierge, retour à la forge.
+                                    birth = BirthData.Empty
+                                    forged = false
+                                    tab = A4LTab.Radar
+                                    scope.launch { store.clear() }
+                                },
                             )
                         }
                     }

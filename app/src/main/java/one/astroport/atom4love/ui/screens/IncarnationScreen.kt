@@ -104,10 +104,13 @@ fun IncarnationScreen(
     onForge: () -> Unit,
     modifier: Modifier = Modifier,
     npub: String? = null,
+    onDissolve: (() -> Unit)? = null,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showForgeConfirm by remember { mutableStateOf(false) }
+    var showDissolveWarning by remember { mutableStateOf(false) }
+    var showDissolveFinal by remember { mutableStateOf(false) }
     val editable = !forged
 
     // ── Lieu de naissance : autocomplétion data.gouv.fr + repérage GPS ────
@@ -518,6 +521,28 @@ fun IncarnationScreen(
                 complete = birth.complete,
                 onClick = { showForgeConfirm = true },
             )
+            // La porte de sortie propre : dissoudre le noyau plutôt que
+            // désinstaller l'app quand on s'est trompé dans sa fiche.
+            if (forged && onDissolve != null) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .glass(
+                            radius = 12.dp,
+                            background = A4L.Red.tint(0.06f),
+                            border = A4L.Red.tint(0.30f),
+                        )
+                        .clickable { showDissolveWarning = true },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Dissoudre le noyau",
+                        style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                        color = A4L.Red.copy(alpha = 0.85f),
+                    )
+                }
+            }
             // Le launcher garde le nom court ; la filiation s'affiche ici.
             Text(
                 "Atom4Love · by AstroPort.ONE",
@@ -571,6 +596,67 @@ fun IncarnationScreen(
             dismissButton = {
                 TextButton(onClick = { showForgeConfirm = false }) {
                     Text("Vérifier encore", color = A4L.TextBody)
+                }
+            },
+        )
+    }
+
+    // ── Dissolution : deux verrous avant l'oubli ─────────────────────────
+    if (showDissolveWarning) {
+        AlertDialog(
+            onDismissRequest = { showDissolveWarning = false },
+            title = { Text("Dissoudre le noyau ?", style = A4LText.Title) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text(
+                        "Votre fiche d'incarnation et la clé LOVE seront effacées de " +
+                            "cette station. Rien ne part sur le réseau : en ressaisissant " +
+                            "exactement les cinq mêmes données, la même clé renaîtra.",
+                        style = A4LText.Body,
+                        color = A4L.TextBody,
+                    )
+                    Text(
+                        "⚠ Une seule donnée différente produira une clé entièrement différente.",
+                        style = A4LText.Caption,
+                        color = A4L.Amber.copy(alpha = 0.85f),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDissolveWarning = false
+                    showDissolveFinal = true
+                }) { Text("Continuer", color = A4L.Red.copy(alpha = 0.85f)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDissolveWarning = false }) {
+                    Text("Annuler", color = A4L.TextBody)
+                }
+            },
+        )
+    }
+
+    if (showDissolveFinal) {
+        AlertDialog(
+            onDismissRequest = { showDissolveFinal = false },
+            title = { Text("Dernière confirmation", style = A4LText.Title) },
+            text = {
+                Text(
+                    "La station va oublier votre noyau, immédiatement et sans retour " +
+                        "en arrière. Vous reviendrez à l'écran de forge, fiche vierge.",
+                    style = A4LText.Body,
+                    color = A4L.TextBody,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDissolveFinal = false
+                    onDissolve?.invoke()
+                }) { Text("Dissoudre définitivement", color = A4L.Red) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDissolveFinal = false }) {
+                    Text("Annuler", color = A4L.TextBody)
                 }
             },
         )
