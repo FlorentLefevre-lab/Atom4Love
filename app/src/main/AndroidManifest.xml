@@ -2,12 +2,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- POC diag/WifiConcurrencyProbe : AP local + scan simultanés.
-         ACCESS_FINE_LOCATION est exigé par l'API de scan Wi-Fi — à retirer avec
-         le package diag si le concept est abandonné (contradiction assumée avec
-         le principe « pas de traçage de position » : ce POC ne sort pas du device). -->
+    <!-- POC diag/WifiConcurrencyProbe : AP local + scan simultanés — à retirer
+         avec le package diag maintenant que la question BLE/Wi-Fi est tranchée. -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+
+    <!-- Exigée par le scan Wi-Fi du POC, et par proximity/CellLocator pour calculer
+         la cellule H3 — sur l'appareil uniquement : la position ne sort jamais du
+         device, seule l'adresse 4D (D2) est diffusée (« pas de traçage de position »). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission
         android:name="android.permission.NEARBY_WIFI_DEVICES"
@@ -25,6 +27,15 @@
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation" />
+
+    <!-- Module proximité : balise BLE continue portée par un service foreground.
+         Le type location permet à CellLocator de résoudre la cellule H3 même
+         app en arrière-plan (le type n'est déclaré au startForeground que si la
+         permission de localisation est accordée). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -50,6 +61,13 @@
 
         <!-- POC : écran de diagnostic AP+scan, hors navigation de l'app.
              Lancement : adb shell am start -n <applicationId>/one.astroport.atom4love.diag.WifiProbeActivity -->
+        <!-- Balise de proximité : annonce l'adresse 4D et scanne les pairs en continu.
+             Démarrée/coupée depuis l'écran Radar (ProximityService.start/stop). -->
+        <service
+            android:name=".proximity.ProximityService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice|location" />
+
         <activity
             android:name=".diag.WifiProbeActivity"
             android:exported="true"

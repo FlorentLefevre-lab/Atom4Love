@@ -1,5 +1,7 @@
 package one.astroport.atom4love.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -44,10 +46,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import one.astroport.atom4love.proximity.ProximityService
 import one.astroport.atom4love.ui.components.HexagonShape
 import one.astroport.atom4love.ui.components.hexagonPath
 import one.astroport.atom4love.ui.components.StatusDot
@@ -74,6 +79,19 @@ fun RadarScreen(modifier: Modifier = Modifier) {
     var elapsed by remember { mutableFloatStateOf(0f) }
     var attempt by remember { mutableIntStateOf(0) }
     val unlocked = elapsed >= RITUAL_SECONDS
+
+    // ── Balise de proximité : premier morceau réel de l'écran ─────────────
+    val context = LocalContext.current
+    val beaconRunning by ProximityService.running.collectAsStateWithLifecycle()
+    val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) {
+        // Localisation et notifications sont optionnelles ; seul le Bluetooth bloque.
+        if (ProximityService.corePermissionsGranted(context)) {
+            ProximityService.start(context)
+        }
+    }
 
     LaunchedEffect(attempt) {
         val start = withFrameNanos { it }
@@ -193,7 +211,42 @@ fun RadarScreen(modifier: Modifier = Modifier) {
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                 CabinStat("12", "pensées ici", Modifier.weight(1f))
                 CabinStat("3", "dans le portail", Modifier.weight(1f))
-                CabinStat("4", "noyaux proches", Modifier.weight(1f), accent = A4L.Mint)
+                CabinStat(
+                    if (beaconRunning) neighbors.size.toString() else "—",
+                    "noyaux proches",
+                    Modifier.weight(1f),
+                    accent = A4L.Mint,
+                )
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .dashedGlass(
+                        12.dp,
+                        A4L.GlassFaint,
+                        (if (beaconRunning) A4L.Mint else A4L.Stroke).copy(alpha = 0.2f),
+                    )
+                    .clickable {
+                        if (beaconRunning) {
+                            ProximityService.stop(context)
+                        } else {
+                            permissionLauncher.launch(ProximityService.runtimePermissions())
+                        }
+                    }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StatusDot(if (beaconRunning) A4L.Mint else A4L.TextDim)
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    if (beaconRunning) {
+                        "Balise active — toucher pour couper"
+                    } else {
+                        "Activer la balise de proximité"
+                    },
+                    style = A4LText.Caption,
+                    color = if (beaconRunning) A4L.Mint else A4L.TextMuted,
+                )
             }
             Row(
                 Modifier
