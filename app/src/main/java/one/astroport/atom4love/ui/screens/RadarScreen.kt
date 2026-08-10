@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +44,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import android.hardware.Sensor
@@ -58,7 +60,10 @@ import androidx.compose.runtime.key
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import one.astroport.atom4love.domain.GoldbergPortal
+import one.astroport.atom4love.nostr.CabinSalon
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.proximity.CellLocator
 import one.astroport.atom4love.proximity.NeighborRegistry
@@ -100,7 +105,11 @@ private fun cellHex(cell: Long): String =
  * devra réinitialiser le compteur dès que l'utilisateur s'éloigne du centre).
  */
 @Composable
-fun RadarScreen(modifier: Modifier = Modifier, relay: RelayStation.Status? = null) {
+fun RadarScreen(
+    modifier: Modifier = Modifier,
+    relay: RelayStation.Status? = null,
+    salon: CabinSalon? = null,
+) {
     var elapsed by remember { mutableFloatStateOf(0f) }
     var attempt by remember { mutableIntStateOf(0) }
     val unlocked = elapsed >= RITUAL_SECONDS
@@ -272,13 +281,26 @@ fun RadarScreen(modifier: Modifier = Modifier, relay: RelayStation.Status? = nul
         }
 
         // ── Compteurs de la cabine ────────────────────────────────────────
+        // Le salon de cabine ne vit que sur le relais local d'une station.
+        val salonActive = relay?.local == true && relay.online
+        val pensees = salon?.pensees?.collectAsStateWithLifecycle()?.value.orEmpty()
+        var salonOpen by remember { mutableStateOf(false) }
+        LaunchedEffect(fix?.cell) {
+            fix?.let { salon?.setCell(cellHex(it.cell)) }
+        }
         Column(
             Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                // « Pensées ici » attend la synchro NOSTR : muet plutôt que faux.
-                CabinStat("—", "pensées ici", Modifier.weight(1f))
+                CabinStat(
+                    if (salonActive) pensees.size.toString() else "—",
+                    "pensées ici",
+                    Modifier
+                        .weight(1f)
+                        .clickable { salonOpen = !salonOpen },
+                    accent = if (salonOpen) A4L.Green else null,
+                )
                 // Approximation en attendant la logique de portail D2 : les noyaux
                 // qui annoncent la même cellule que la nôtre.
                 CabinStat(
@@ -296,6 +318,9 @@ fun RadarScreen(modifier: Modifier = Modifier, relay: RelayStation.Status? = nul
                     Modifier.weight(1f),
                     accent = A4L.Mint,
                 )
+            }
+            if (salonOpen && salon != null) {
+                CabinSalonPanel(salon = salon, pensees = pensees, active = salonActive)
             }
             Row(
                 Modifier
@@ -510,3 +535,96 @@ private fun CabinStat(
         )
     }
 }
+
+/**
+ * Le salon de cabine, déplié sous les compteurs : les pensées éphémères du
+ * lieu, et un champ pour y déposer la sienne. Fermé (message explicatif)
+ * tant que l'antenne n'est pas accrochée au relais local d'une station.
+ */
+@Composable
+private fun CabinSalonPanel(
+    salon: CabinSalon,
+    pensees: List<CabinSalon.Pensee>,
+    active: Boolean,
+) {
+    val scope = rememberCoroutineScope()
+    var draft by remember { mutableStateOf("") }
+    var sending by remember { mutableStateOf(false) }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .glass(12.dp, background = A4L.GlassFaint, border = A4L.Green.copy(alpha = 0.18f))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            "SALON DE CABINE",
+            style = A4LText.Data.copy(fontSize = 10.sp, letterSpacing = 1.7.sp),
+            color = A4L.Green.copy(alpha = 0.75f),
+        )
+        if (!active) {
+            Text(
+                "Salon fermé — il s'ouvre quand la station du lieu est à portée " +
+                    "(pastille « relais local »). Rien ne part sur Internet.",
+                style = A4LText.Caption,
+                color = A4L.TextMuted,
+            )
+            return@Column
+        }
+        if (pensees.isEmpty()) {
+            Text(
+                "Personne n'a encore rien déposé ici. Les pensées sont éphémères : " +
+                    "elles vivent le temps du salon, rien n'est archivé.",
+                style = A4LText.Caption,
+                color = A4L.TextMuted,
+            )
+        }
+        pensees.takeLast(SALON_VISIBLE_PENSEES).forEach { pensee ->
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    if (pensee.mine) "moi · ${pensee.author}" else pensee.author,
+                    style = A4LText.Data.copy(fontSize = 9.sp),
+                    color = if (pensee.mine) A4L.Mint.copy(alpha = 0.8f) else A4L.TextDim,
+                )
+                Text(pensee.text, style = A4LText.Caption, color = A4L.TextBody)
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BasicTextField(
+                value = draft,
+                onValueChange = { draft = it },
+                modifier = Modifier
+                    .weight(1f)
+                    .glass(8.dp, background = A4L.GlassSoft, border = A4L.StrokeSoft)
+                    .padding(horizontal = 10.dp, vertical = 9.dp),
+                textStyle = A4LText.Caption.copy(color = A4L.TextHigh),
+                cursorBrush = SolidColor(A4L.Mint),
+                decorationBox = { inner ->
+                    if (draft.isEmpty()) {
+                        Text("une pensée pour ce lieu…", style = A4LText.Caption, color = A4L.TextGhost)
+                    }
+                    inner()
+                },
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                if (sending) "…" else "déposer",
+                style = A4LText.Caption,
+                color = if (draft.isBlank() || sending) A4L.TextGhost else A4L.Mint,
+                modifier = Modifier
+                    .clickable(enabled = draft.isNotBlank() && !sending) {
+                        scope.launch {
+                            sending = true
+                            if (salon.send(draft)) draft = ""
+                            sending = false
+                        }
+                    }
+                    .padding(horizontal = 6.dp, vertical = 9.dp),
+            )
+        }
+    }
+}
+
+/** Le salon montre les dernières pensées sans envahir l'écran du Radar. */
+private const val SALON_VISIBLE_PENSEES = 12

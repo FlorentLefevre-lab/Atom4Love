@@ -50,6 +50,14 @@ class RelayStation(
     private val _status = MutableStateFlow(Status(0, defaultUrls.size))
     val status: StateFlow<Status> = _status.asStateFlow()
 
+    /**
+     * Le client du relais local quand l'antenne y est accrochée, null sinon.
+     * C'est la porte du salon de cabine : tout ce qui se publie passe par
+     * lui, jamais par les relais par défaut.
+     */
+    private val _localRelay = MutableStateFlow<RelayClient?>(null)
+    val localRelay: StateFlow<RelayClient?> = _localRelay.asStateFlow()
+
     private var clients: List<RelayClient> = emptyList()
     private var watchers: List<Job> = emptyList()
     private var currentUrls: List<String> = emptyList()
@@ -130,11 +138,13 @@ class RelayStation(
             )
             client.connect()
         }
+        _localRelay.value = if (usingLocal) clients.firstOrNull() else null
         refresh()
         Log.d(TAG, "à l'écoute : ${urls.joinToString()}" + if (usingLocal) " (relais local)" else "")
     }
 
     private fun teardown() {
+        _localRelay.value = null
         watchers.forEach { it.cancel() }
         clients.forEach { it.close() }
         clients = emptyList()

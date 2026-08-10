@@ -1,5 +1,6 @@
 package one.astroport.atom4love.nostr
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -19,6 +20,8 @@ data class NostrFilter(
     val ids: List<String>? = null,
     val authors: List<String>? = null,
     val kinds: List<Int>? = null,
+    /** Tag `h` (NIP-01 `#h`) : la cellule H3 du salon de cabine. */
+    @SerialName("#h") val hexagons: List<String>? = null,
     val since: Long? = null,
     val until: Long? = null,
     val limit: Int? = null,

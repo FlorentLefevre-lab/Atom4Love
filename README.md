@@ -222,7 +222,7 @@ réalisables sans connaître l'ensemble du système.
 
 Ce projet est distribué sous licence **GNU Affero General Public License v3.0**
 (voir [`LICENSE`](LICENSE)).
-
+  
 Concrètement : vous pouvez utiliser, étudier, modifier et redistribuer ce code. Si vous le
 modifiez et le proposez comme service accessible par le réseau, vous devez publier vos
 modifications sous la même licence. Il n'y aura jamais de version propriétaire d'Atom4Love,

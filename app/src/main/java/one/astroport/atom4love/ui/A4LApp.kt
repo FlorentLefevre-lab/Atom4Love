@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import one.astroport.atom4love.data.IncarnationStore
 import one.astroport.atom4love.data.SavedIncarnation
 import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.nostr.CabinSalon
 import one.astroport.atom4love.nostr.LocalRelayScout
 import one.astroport.atom4love.nostr.LoveKeyForge
 import one.astroport.atom4love.nostr.RelayStation
@@ -129,11 +130,23 @@ private fun Station(
     val context = LocalContext.current
     val scout = remember { LocalRelayScout(context.applicationContext) }
     val relay = remember { RelayStation(scope, scout = scout) }
+    // Le salon de cabine suit la même vie que l'antenne : il n'échange que
+    // par le relais local, jamais par les relais publics.
+    val salon = remember { CabinSalon(scope, relay.localRelay) }
     LaunchedEffect(keys) {
-        if (keys != null) relay.start(keys) else relay.stop()
+        if (keys != null) {
+            relay.start(keys)
+            salon.start(keys)
+        } else {
+            salon.stop()
+            relay.stop()
+        }
     }
     DisposableEffect(Unit) {
-        onDispose { relay.stop() }
+        onDispose {
+            salon.stop()
+            relay.stop()
+        }
     }
     val relayStatus by relay.status.collectAsState()
 
@@ -189,7 +202,7 @@ private fun Station(
                         label = "tab",
                     ) { t ->
                         when (t) {
-                            A4LTab.Radar -> RadarScreen(relay = relayStatus)
+                            A4LTab.Radar -> RadarScreen(relay = relayStatus, salon = salon)
                             A4LTab.Board -> BoardScreen(npub = keys?.npubShort)
                             A4LTab.Bonds -> ResonanceScreen()
                             A4LTab.Nucleus -> IncarnationScreen(
