@@ -46,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -124,6 +125,10 @@ fun IncarnationScreen(
     // true tant que le nom affiché ne vient pas d'une frappe (restauration,
     // sélection dans la liste, GPS) : pas de recherche dans ce cas.
     var placeSettled by remember { mutableStateOf(true) }
+    // La fiche vue par les retours asynchrones (géocodage, GPS) : toujours la
+    // version À JOUR. Sans cela, un résultat qui arrive après coup écraserait
+    // les champs saisis entre-temps — l'heure notamment — avec sa copie périmée.
+    val currentBirth by rememberUpdatedState(birth)
 
     // Anti-rebond : la liste des communes se rafraîchit 350 ms après la
     // dernière frappe, jamais pendant qu'on tape.
@@ -140,7 +145,7 @@ fun IncarnationScreen(
         placeSettled = true
         suggestions = emptyList()
         focusManager.clearFocus()
-        onBirthChange(birth.copy(placeName = c.placeName, lat = c.lat, lon = c.lon))
+        onBirthChange(currentBirth.copy(placeName = c.placeName, lat = c.lat, lon = c.lon))
     }
 
     // Repli hors France : géocodeur Android au « Terminé » du clavier.
@@ -149,7 +154,7 @@ fun IncarnationScreen(
         placeSettled = true
         scope.launch {
             PlaceResolver.search(context, query)?.let { p ->
-                onBirthChange(birth.copy(placeName = p.name, lat = p.lat, lon = p.lon))
+                onBirthChange(currentBirth.copy(placeName = p.name, lat = p.lat, lon = p.lon))
             }
         }
     }
@@ -161,7 +166,7 @@ fun IncarnationScreen(
         scope.launch {
             PlaceResolver.current(context)?.let { p ->
                 placeSettled = true
-                onBirthChange(birth.copy(placeName = p.name, lat = p.lat, lon = p.lon))
+                onBirthChange(currentBirth.copy(placeName = p.name, lat = p.lat, lon = p.lon))
             }
             locating = false
         }
