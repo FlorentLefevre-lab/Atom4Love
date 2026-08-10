@@ -54,9 +54,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.key
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlinx.coroutines.delay
 import one.astroport.atom4love.domain.GoldbergPortal
 import one.astroport.atom4love.proximity.CellLocator
+import one.astroport.atom4love.proximity.NeighborRegistry
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -244,10 +248,12 @@ fun RadarScreen(modifier: Modifier = Modifier) {
                 )
             }
 
-            // Noyaux voisins qui respirent
-            PulsingDot(A4L.Mint, 9.dp, 2400, Alignment.TopStart, x = 96.dp, y = 78.dp)
-            PulsingDot(A4L.Amber, 7.dp, 3100, Alignment.TopEnd, x = (-84).dp, y = 128.dp)
-            PulsingDot(A4L.Indigo, 7.dp, 2800, Alignment.BottomStart, x = 128.dp, y = (-62).dp)
+            // Noyaux voisins qui respirent — les vrais, vus par la balise BLE.
+            neighbors.take(MAX_NEIGHBOR_DOTS).forEach { neighbor ->
+                key(neighbor.address) {
+                    NeighborDot(neighbor = neighbor, ownCell4d = ownCell4d)
+                }
+            }
         }
 
         // ── Compteurs de la cabine ────────────────────────────────────────
@@ -407,16 +413,38 @@ private fun RadarRings(progress: Float) {
     }
 }
 
-/** Un noyau voisin : une pastille qui respire. */
+/** Au-delà, le radar deviendrait une nuée : les compteurs du bas font le total. */
+private const val MAX_NEIGHBOR_DOTS = 12
+
+/**
+ * Un vrai noyau voisin sur le radar.
+ *
+ * L'angle est dérivé de l'adresse radio (stable le temps de sa rotation ~15 min :
+ * la pastille ne saute pas à chaque scan) — le BLE ne donne aucune direction,
+ * c'est un placement de constellation, pas un cap. La distance au centre suit le
+ * RSSI : signal fort = proche. La couleur dit la cellule : menthe = le même
+ * hexagone que nous, ambre = un autre, indigo = cellule inconnue.
+ */
 @Composable
-private fun BoxScope.PulsingDot(
-    color: Color,
-    dotSize: Dp,
-    periodMillis: Int,
-    align: Alignment,
-    x: Dp,
-    y: Dp,
+private fun BoxScope.NeighborDot(
+    neighbor: NeighborRegistry.Neighbor,
+    ownCell4d: Long?,
 ) {
+    val hash = neighbor.address.hashCode()
+    val angleRad = Math.toRadians(((hash % 360 + 360) % 360).toDouble())
+
+    // RSSI −55 dBm (très proche) → bord du hexagone central ; −95 dBm → bord du radar.
+    val fraction = ((-55 - neighbor.rssi).toFloat() / 40f).coerceIn(0f, 1f)
+    val radius = 52.dp + 88.dp * fraction
+
+    val color = when {
+        neighbor.cell4d == null -> A4L.Indigo
+        neighbor.cell4d == ownCell4d && ownCell4d != null -> A4L.Mint
+        else -> A4L.Amber
+    }
+    // Période de respiration propre à chaque noyau, pour désynchroniser la nuée.
+    val periodMillis = 2400 + ((hash ushr 16) % 800)
+
     val transition = rememberInfiniteTransition(label = "pulse")
     val t by transition.animateFloat(
         initialValue = 0f,
@@ -429,9 +457,12 @@ private fun BoxScope.PulsingDot(
     )
     Box(
         Modifier
-            .align(align)
-            .offset(x = x, y = y)
-            .size(dotSize)
+            .align(Alignment.Center)
+            .offset(
+                x = radius * cos(angleRad).toFloat(),
+                y = radius * sin(angleRad).toFloat(),
+            )
+            .size(if (neighbor.cell4d != null && neighbor.cell4d == ownCell4d) 9.dp else 7.dp)
             .alpha(0.25f + 0.45f * t)
             .scale(1f + 0.06f * t)
             .background(color, CircleShape),
