@@ -28,6 +28,8 @@ google-services.json
 *.apk
 *.aab
 *.aar
+# Exception : dépendances embarquées volontairement (AAR h3 patché libm)
+!app/libs/*.aar
 *.ap_
 *.dex
 /release/

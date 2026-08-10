@@ -171,7 +171,12 @@ dependencies {
     implementation(libs.androidx.security.crypto)
 
     // --- Géographie : pavage hexagonal icosaédrique ---
-    implementation(libs.h3.android)
+    // AAR local patché : le libh3-java.so de com.uber:h3-android:4.4.0 omet libm
+    // de ses DT_NEEDED → UnsatisfiedLinkError (« cannot locate symbol "cos" »)
+    // au dlopen sur appareil. Corrigé via patchelf --add-needed libm.so sur les
+    // deux ABI. À remplacer par libs.h3.android dès qu'une version upstream
+    // corrigée existe (> 4.4.0).
+    implementation(files("libs/h3-android-4.4.0-libm.aar"))
     implementation(libs.play.services.location)
 
     // --- Tâches de fond (dérive φ, synchro relais) ---
