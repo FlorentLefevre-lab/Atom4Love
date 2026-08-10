@@ -7,4 +7,6 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!-- A4L.Void — le noir de la station, pour le fond de fenêtre. -->
+    <color name="a4l_void">#FF05050C</color>
 </resources>

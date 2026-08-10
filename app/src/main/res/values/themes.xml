@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Atom4Love" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Fond de fenêtre sombre : évite le flash blanc entre le lancement
+         et le premier rendu Compose (le splash prend ensuite le relais). -->
+    <style name="Theme.Atom4Love" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/a4l_void</item>
+    </style>
 </resources>
