@@ -48,6 +48,7 @@ import one.astroport.atom4love.nostr.LoveKeyForge
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.screens.BoardScreen
+import one.astroport.atom4love.ui.screens.HelpScreen
 import one.astroport.atom4love.ui.screens.IncarnationScreen
 import one.astroport.atom4love.ui.screens.RadarScreen
 import one.astroport.atom4love.ui.screens.ResonanceScreen
@@ -56,12 +57,13 @@ import one.astroport.atom4love.ui.screens.SplashScreen
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 
-/** Les quatre destinations de la barre du bas. */
+/** Les cinq destinations de la barre du bas. */
 enum class A4LTab(val icon: String, val label: String, val accent: Color) {
     Radar("🌀", "Radar", A4L.Cyan),
     Board("🎴", "Plateau", A4L.Cyan),
     Bonds("💜", "Résonance", A4L.Mint),
     Nucleus("⚛", "Noyau", A4L.Cyan),
+    Help("❓", "Aide", A4L.Indigo),
 }
 
 /**
@@ -148,14 +150,22 @@ private fun Station(
         label = "forge",
     ) { isForged ->
         if (!isForged) {
-            IncarnationScreen(
-                birth = birth,
-                onBirthChange = ::updateBirth,
-                forged = false,
-                onForge = ::forge,
-                modifier = modifier,
-                relay = relayStatus,
-            )
+            // Avant la forge il n'y a pas encore de barre de menus : l'aide
+            // s'ouvre par le « ? » de l'en-tête, en plein écran.
+            var showHelp by rememberSaveable { mutableStateOf(false) }
+            if (showHelp) {
+                HelpScreen(modifier = modifier, onClose = { showHelp = false })
+            } else {
+                IncarnationScreen(
+                    birth = birth,
+                    onBirthChange = ::updateBirth,
+                    forged = false,
+                    onForge = ::forge,
+                    modifier = modifier,
+                    relay = relayStatus,
+                    onHelp = { showHelp = true },
+                )
+            }
         } else {
             Column(modifier.fillMaxSize().background(A4L.Deep)) {
                 Box(Modifier.weight(1f)) {
@@ -193,6 +203,7 @@ private fun Station(
                                     scope.launch { store.clear() }
                                 },
                             )
+                            A4LTab.Help -> HelpScreen()
                         }
                     }
                     ElectronSweep(trigger = tab)

@@ -108,6 +108,7 @@ fun IncarnationScreen(
     npub: String? = null,
     onDissolve: (() -> Unit)? = null,
     relay: RelayStation.Status? = null,
+    onHelp: (() -> Unit)? = null,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -205,6 +206,20 @@ fun IncarnationScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 StatusDot(if (relay?.online == true) A4L.Green else A4L.TextGhost)
                 Text(relay?.label ?: "relay · —", style = A4LText.Data, color = A4L.TextDim)
+                // Avant la forge, la barre de menus n'existe pas encore :
+                // l'aide se glisse ici.
+                if (onHelp != null) {
+                    Spacer(Modifier.width(10.dp))
+                    Box(
+                        Modifier
+                            .size(24.dp)
+                            .background(Color.White.copy(alpha = 0.08f), CircleShape)
+                            .clickable(onClick = onHelp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("?", style = A4LText.Data.copy(fontSize = 12.sp), color = A4L.Indigo)
+                    }
+                }
             }
         }
 
