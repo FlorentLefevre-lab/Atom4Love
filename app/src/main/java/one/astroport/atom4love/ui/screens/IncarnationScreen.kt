@@ -41,6 +41,7 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,8 +68,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import kotlin.math.round
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.geo.CommuneApi
 import one.astroport.atom4love.geo.PlaceResolver
 import one.astroport.atom4love.domain.LoveKey
 import one.astroport.atom4love.domain.Wave
@@ -106,15 +109,38 @@ fun IncarnationScreen(
     var showTimePicker by remember { mutableStateOf(false) }
     val editable = !forged
 
-    // ── Lieu de naissance : saisie libre + repérage GPS ───────────────────
+    // ── Lieu de naissance : autocomplétion data.gouv.fr + repérage GPS ────
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     var locating by remember { mutableStateOf(false) }
+    var suggestions by remember { mutableStateOf<List<CommuneApi.Commune>>(emptyList()) }
+    // true tant que le nom affiché ne vient pas d'une frappe (restauration,
+    // sélection dans la liste, GPS) : pas de recherche dans ce cas.
+    var placeSettled by remember { mutableStateOf(true) }
 
-    // Nom saisi → coordonnées (au « Terminé » du clavier).
+    // Anti-rebond : la liste des communes se rafraîchit 350 ms après la
+    // dernière frappe, jamais pendant qu'on tape.
+    LaunchedEffect(birth.placeName, placeSettled, editable) {
+        if (!editable || placeSettled) {
+            suggestions = emptyList()
+            return@LaunchedEffect
+        }
+        delay(350)
+        suggestions = CommuneApi.search(birth.placeName)
+    }
+
+    fun chooseCommune(c: CommuneApi.Commune) {
+        placeSettled = true
+        suggestions = emptyList()
+        focusManager.clearFocus()
+        onBirthChange(birth.copy(placeName = c.placeName, lat = c.lat, lon = c.lon))
+    }
+
+    // Repli hors France : géocodeur Android au « Terminé » du clavier.
     fun resolveTypedPlace() {
         val query = birth.placeName
+        placeSettled = true
         scope.launch {
             PlaceResolver.search(context, query)?.let { p ->
                 onBirthChange(birth.copy(placeName = p.name, lat = p.lat, lon = p.lon))
@@ -128,6 +154,7 @@ fun IncarnationScreen(
         locating = true
         scope.launch {
             PlaceResolver.current(context)?.let { p ->
+                placeSettled = true
                 onBirthChange(birth.copy(placeName = p.name, lat = p.lat, lon = p.lon))
             }
             locating = false
@@ -195,15 +222,15 @@ fun IncarnationScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     SectionLabel("Date et heure de naissance")
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        DigitBox("%02d".format(birth.day), 42.dp, enabled = editable) {
+                        DigitBox(birth.day?.let { "%02d".format(it) } ?: "--", 42.dp, enabled = editable) {
                             showDatePicker = true
                         }
                         Spacer(Modifier.width(6.dp))
-                        DigitBox("%02d".format(birth.month), 42.dp, enabled = editable) {
+                        DigitBox(birth.month?.let { "%02d".format(it) } ?: "--", 42.dp, enabled = editable) {
                             showDatePicker = true
                         }
                         Spacer(Modifier.width(6.dp))
-                        DigitBox(birth.year.toString(), 60.dp, enabled = editable) {
+                        DigitBox(birth.year?.toString() ?: "----", 60.dp, enabled = editable) {
                             showDatePicker = true
                         }
                         Text(
@@ -212,7 +239,7 @@ fun IncarnationScreen(
                             fontSize = 15.sp,
                             modifier = Modifier.padding(horizontal = 8.dp),
                         )
-                        DigitBox("%02d".format(birth.hour), 42.dp, accent = true, enabled = editable) {
+                        DigitBox(birth.hour?.let { "%02d".format(it) } ?: "--", 42.dp, accent = true, enabled = editable) {
                             showTimePicker = true
                         }
                         Text(
@@ -221,7 +248,7 @@ fun IncarnationScreen(
                             color = A4L.TextGhost,
                             modifier = Modifier.padding(horizontal = 4.dp),
                         )
-                        DigitBox("%02d".format(birth.minute), 42.dp, accent = true, enabled = editable) {
+                        DigitBox(birth.minute?.let { "%02d".format(it) } ?: "--", 42.dp, accent = true, enabled = editable) {
                             showTimePicker = true
                         }
                     }
@@ -242,7 +269,10 @@ fun IncarnationScreen(
                         // validation clavier. Verrouillée une fois la clé forgée.
                         BasicTextField(
                             value = birth.placeName,
-                            onValueChange = { onBirthChange(birth.copy(placeName = it)) },
+                            onValueChange = {
+                                placeSettled = false
+                                onBirthChange(birth.copy(placeName = it))
+                            },
                             enabled = editable,
                             singleLine = true,
                             textStyle = A4LText.Body.copy(fontSize = 14.sp, color = A4L.TextHigh),
@@ -303,6 +333,39 @@ fun IncarnationScreen(
                             }
                         }
                     }
+
+                    // Propositions data.gouv.fr : villes et villages de France.
+                    if (suggestions.isNotEmpty()) {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .glass(11.dp, A4L.Glass, A4L.Cyan.tint(0.20f)),
+                        ) {
+                            suggestions.forEach { commune ->
+                                Column(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable { chooseCommune(commune) }
+                                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                                ) {
+                                    Text(
+                                        commune.name,
+                                        style = A4LText.Body.copy(fontSize = 13.sp),
+                                        color = A4L.TextHigh,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        commune.context,
+                                        style = A4LText.Data.copy(fontSize = 9.sp),
+                                        color = A4L.TextMuted,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // ── Onde biologique ───────────────────────────────────────
@@ -358,8 +421,16 @@ fun IncarnationScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     SectionLabel("Calculé pour vous", color = A4L.Cyan.copy(alpha = 0.6f))
-                    ComputedRow("Conception", LoveKey.formatDate(LoveKey.conception(birth)))
-                    ComputedRow("Gestation", LoveKey.formatDays(LoveKey.gestationDays(birth.weightKg)))
+                    ComputedRow(
+                        "Conception",
+                        if (birth.dateComplete && birth.timeComplete && birth.weightKg != null) {
+                            LoveKey.formatDate(LoveKey.conception(birth))
+                        } else "—",
+                    )
+                    ComputedRow(
+                        "Gestation",
+                        birth.weightKg?.let { LoveKey.formatDays(LoveKey.gestationDays(it)) } ?: "—",
+                    )
                     // TODO : projeter (lat, lon) sur le polyèdre de Goldberg pour obtenir
                     // la vraie tuile. En attendant, le portail est celui de la maquette.
                     ComputedRow("Portail Goldberg", "a4l:P02 · Sirius", valueColor = A4L.Cyan)
@@ -393,7 +464,7 @@ fun IncarnationScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                "salt ${LoveKey.salt(birth)}",
+                if (birth.complete) "salt ${LoveKey.salt(birth)}" else "salt — fiche incomplète",
                 style = A4LText.Data.copy(fontSize = 9.sp),
                 color = A4L.TextGhost,
                 maxLines = 1,
@@ -409,7 +480,7 @@ fun IncarnationScreen(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            ForgeButton(forged = forged, onClick = onForge)
+            ForgeButton(forged = forged, complete = birth.complete, onClick = onForge)
             // Le launcher garde le nom court ; la filiation s'affiche ici.
             Text(
                 "Atom4Love · by AstroPort.ONE",
@@ -445,8 +516,8 @@ fun IncarnationScreen(
 
     if (showTimePicker) {
         val state = rememberTimePickerState(
-            initialHour = birth.hour,
-            initialMinute = birth.minute,
+            initialHour = birth.hour ?: 12,
+            initialMinute = birth.minute ?: 0,
             is24Hour = true,
         )
         AlertDialog(
@@ -533,14 +604,18 @@ private fun WaveCard(
     }
 }
 
-/** Curseur du poids de naissance — rail de 3 px, pastille cyan halonée. */
+/**
+ * Curseur du poids de naissance — rail de 3 px, pastille cyan halonée.
+ * Tant qu'aucun poids n'est saisi (value null), le rail reste vide : le premier
+ * toucher fixe la valeur.
+ */
 @Composable
 private fun WeightSlider(
-    value: Float,
+    value: Float?,
     enabled: Boolean,
     onValueChange: (Float) -> Unit,
 ) {
-    val fraction = ((value - WEIGHT_MIN) / (WEIGHT_MAX - WEIGHT_MIN)).coerceIn(0f, 1f)
+    val fraction = value?.let { ((it - WEIGHT_MIN) / (WEIGHT_MAX - WEIGHT_MIN)).coerceIn(0f, 1f) }
 
     // Le poids entre dans le SALT au dixième de kilo près : on arrondit à la saisie.
     fun updateFromFraction(f: Float) {
@@ -554,7 +629,8 @@ private fun WeightSlider(
             .height(20.dp)
             .semantics {
                 contentDescription = "Poids de naissance"
-                progressBarRangeInfo = ProgressBarRangeInfo(value, WEIGHT_MIN..WEIGHT_MAX)
+                progressBarRangeInfo =
+                    ProgressBarRangeInfo(value ?: WEIGHT_MIN, WEIGHT_MIN..WEIGHT_MAX)
             }
             .pointerInput(enabled) {
                 if (!enabled) return@pointerInput
@@ -576,46 +652,56 @@ private fun WeightSlider(
                 .height(3.dp)
                 .background(A4L.Stroke.copy(alpha = 0.10f), RoundedCornerShape(2.dp)),
         )
-        Box(
-            Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth(fraction)
-                .height(3.dp)
-                .background(
-                    Brush.horizontalGradient(listOf(A4L.Cyan.tint(0.30f), A4L.Cyan)),
-                    RoundedCornerShape(2.dp),
-                ),
-        )
-        Box(
-            Modifier
-                .align(Alignment.CenterStart)
-                .offset(x = trackWidth * fraction - 7.5.dp)
-                .size(15.dp)
-                .background(A4L.Cyan, CircleShape),
-        )
+        if (fraction != null) {
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .fillMaxWidth(fraction)
+                    .height(3.dp)
+                    .background(
+                        Brush.horizontalGradient(listOf(A4L.Cyan.tint(0.30f), A4L.Cyan)),
+                        RoundedCornerShape(2.dp),
+                    ),
+            )
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .offset(x = trackWidth * fraction - 7.5.dp)
+                    .size(15.dp)
+                    .background(A4L.Cyan, CircleShape),
+            )
+        }
     }
 }
 
-/** Bouton primaire — or tant que la clé n'est pas forgée, menthe une fois scellée. */
+/**
+ * Bouton primaire — éteint tant que la fiche est incomplète, or quand la clé
+ * peut être forgée, menthe une fois scellée.
+ */
 @Composable
-private fun ForgeButton(forged: Boolean, onClick: () -> Unit) {
+private fun ForgeButton(forged: Boolean, complete: Boolean, onClick: () -> Unit) {
     val accent = if (forged) A4L.Mint else A4L.Gold
+    val ready = forged || complete
     Box(
         Modifier
             .fillMaxWidth()
             .height(52.dp)
             .glass(
                 radius = 14.dp,
-                background = accent.tint(if (forged) 0.12f else 0.18f),
-                border = accent.tint(0.55f),
+                background = accent.tint(if (!ready) 0.05f else if (forged) 0.12f else 0.18f),
+                border = accent.tint(if (ready) 0.55f else 0.18f),
             )
-            .clickable(enabled = !forged, onClick = onClick),
+            .clickable(enabled = !forged && complete, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            if (forged) "Clé LOVE scellée" else "Forger ma clé LOVE",
+            when {
+                forged -> "Clé LOVE scellée"
+                complete -> "Forger ma clé LOVE"
+                else -> "Complétez votre fiche pour forger"
+            },
             style = A4LText.Body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
-            color = accent,
+            color = if (ready) accent else accent.copy(alpha = 0.45f),
         )
     }
 }

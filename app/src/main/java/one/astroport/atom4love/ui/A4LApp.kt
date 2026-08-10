@@ -108,7 +108,8 @@ private fun Station(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
-    var birth by remember { mutableStateOf(restored?.birth ?: BirthData.Sample) }
+    // Premier lancement : fiche entièrement vierge — aucune donnée d'exemple.
+    var birth by remember { mutableStateOf(restored?.birth ?: BirthData.Empty) }
     var forged by remember { mutableStateOf(restored?.forged ?: false) }
     var tab by rememberSaveable { mutableStateOf(A4LTab.Radar) }
 

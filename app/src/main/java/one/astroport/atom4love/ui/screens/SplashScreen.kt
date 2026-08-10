@@ -1,6 +1,5 @@
 package one.astroport.atom4love.ui.screens
 
-import android.os.Build
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -9,49 +8,30 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.ImageLoader
-import coil3.compose.AsyncImage
-import coil3.gif.AnimatedImageDecoder
-import coil3.gif.GifDecoder
-import coil3.request.ImageRequest
-import one.astroport.atom4love.R
+import one.astroport.atom4love.ui.components.AtomLogo
 import one.astroport.atom4love.ui.components.screenBackground
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 
-/** Durée d'affichage minimale du splash, le temps d'un tour d'électrons. */
+/** Durée d'affichage minimale du splash, le temps d'admirer une orbite. */
 const val SPLASH_HOLD_MS = 2400L
 
+/** Le bleu du titre, repris du logo d'origine. */
+private val TitleBlue = Color(0xFF5B8AFB)
+
 /**
- * 00 · Splash — le logo animé complet (atome, électrons, titre : tout est dans
- * le GIF), le temps que la station restaure l'incarnation depuis le DataStore.
- * Le GIF embarqué est ré-encodé à 120 ms/trame (boucle de 4,8 s) : Android
- * respecte les délais encodés à la lettre, l'original en 50 ms tournait trop vite.
+ * 00 · Splash — l'atome au cœur battant dessiné en vectoriel ([AtomLogo] :
+ * cadence et nombre d'électrons maîtrisés, rendu net à toute taille), le temps
+ * que la station restaure l'incarnation depuis le DataStore.
  */
 @Composable
 fun SplashScreen(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-
-    // Le décodeur animé n'existe qu'à partir d'API 28 ; avant, le GifDecoder
-    // logiciel de Coil prend le relais (minSdk 26).
-    val gifLoader = remember {
-        ImageLoader.Builder(context)
-            .components {
-                if (Build.VERSION.SDK_INT >= 28) {
-                    add(AnimatedImageDecoder.Factory())
-                } else {
-                    add(GifDecoder.Factory())
-                }
-            }
-            .build()
-    }
-
     Box(
         modifier
             .fillMaxSize()
@@ -59,15 +39,18 @@ fun SplashScreen(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data("android.resource://${context.packageName}/${R.raw.atome_coeur}")
-                    .build(),
-                imageLoader = gifLoader,
-                contentDescription = "Atome ATOM4LOVE, électrons en orbite",
-                modifier = Modifier.size(210.dp),
+            AtomLogo(Modifier.size(220.dp))
+            Spacer(Modifier.height(18.dp))
+            Text(
+                "ATOM4LOVE",
+                style = A4LText.Data.copy(
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 5.2.sp,
+                ),
+                color = TitleBlue,
             )
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 "by AstroPort.ONE",
                 style = A4LText.Data.copy(fontSize = 9.sp),

@@ -41,39 +41,38 @@ class IncarnationStore(private val context: Context) {
     /** null tant que rien n'a jamais été saisi sur cet appareil. */
     suspend fun load(): SavedIncarnation? {
         val p = context.incarnationDataStore.data.first()
-        val year = p[Keys.Year] ?: return null
-        val wave = p[Keys.Wave]?.let { name ->
-            Wave.entries.firstOrNull { it.name == name }
-        } ?: return null
-        return SavedIncarnation(
-            birth = BirthData(
-                year = year,
-                month = p[Keys.Month] ?: return null,
-                day = p[Keys.Day] ?: return null,
-                hour = p[Keys.Hour] ?: return null,
-                minute = p[Keys.Minute] ?: return null,
-                placeName = p[Keys.PlaceName] ?: return null,
-                lat = p[Keys.Lat] ?: return null,
-                lon = p[Keys.Lon] ?: return null,
-                wave = wave,
-                weightKg = p[Keys.WeightKg] ?: return null,
-            ),
-            forged = p[Keys.Forged] ?: false,
+        val birth = BirthData(
+            year = p[Keys.Year],
+            month = p[Keys.Month],
+            day = p[Keys.Day],
+            hour = p[Keys.Hour],
+            minute = p[Keys.Minute],
+            placeName = p[Keys.PlaceName] ?: "",
+            lat = p[Keys.Lat],
+            lon = p[Keys.Lon],
+            wave = p[Keys.Wave]?.let { name -> Wave.entries.firstOrNull { it.name == name } },
+            weightKg = p[Keys.WeightKg],
         )
+        // Une fiche même partielle se restaure — on ne perd jamais une saisie en cours.
+        if (birth == BirthData.Empty) return null
+        return SavedIncarnation(birth = birth, forged = p[Keys.Forged] ?: false)
     }
 
     suspend fun save(birth: BirthData, forged: Boolean) {
         context.incarnationDataStore.edit { p ->
-            p[Keys.Year] = birth.year
-            p[Keys.Month] = birth.month
-            p[Keys.Day] = birth.day
-            p[Keys.Hour] = birth.hour
-            p[Keys.Minute] = birth.minute
+            fun <T> set(key: androidx.datastore.preferences.core.Preferences.Key<T>, value: T?) {
+                if (value == null) p.remove(key) else p[key] = value
+            }
+            set(Keys.Year, birth.year)
+            set(Keys.Month, birth.month)
+            set(Keys.Day, birth.day)
+            set(Keys.Hour, birth.hour)
+            set(Keys.Minute, birth.minute)
             p[Keys.PlaceName] = birth.placeName
-            p[Keys.Lat] = birth.lat
-            p[Keys.Lon] = birth.lon
-            p[Keys.Wave] = birth.wave.name
-            p[Keys.WeightKg] = birth.weightKg
+            set(Keys.Lat, birth.lat)
+            set(Keys.Lon, birth.lon)
+            set(Keys.Wave, birth.wave?.name)
+            set(Keys.WeightKg, birth.weightKg)
             p[Keys.Forged] = forged
         }
     }

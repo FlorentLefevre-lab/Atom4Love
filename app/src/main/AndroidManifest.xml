@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Autocomplétion des communes (API Adresse data.gouv.fr), géocodage du
+         lieu de naissance, et bientôt les relais NOSTR. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- POC diag/WifiConcurrencyProbe : AP local + scan simultanés — à retirer
          avec le package diag maintenant que la question BLE/Wi-Fi est tranchée. -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
