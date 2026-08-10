@@ -37,12 +37,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.data.IncarnationStore
 import one.astroport.atom4love.data.SavedIncarnation
 import one.astroport.atom4love.domain.BirthData
 import one.astroport.atom4love.nostr.LoveKeyForge
+import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.screens.BoardScreen
 import one.astroport.atom4love.ui.screens.IncarnationScreen
@@ -117,6 +120,17 @@ private fun Station(
     // c'est le principe de la clé LOVE : seule la fiche est persistée, jamais la clé.
     val keys = remember(birth, forged) { if (forged) LoveKeyForge.forge(birth) else null }
 
+    // L'antenne suit le noyau : allumée dès que la clé existe, coupée à la
+    // dissolution, et avec la station quand l'activité disparaît.
+    val relay = remember { RelayStation(scope) }
+    LaunchedEffect(keys) {
+        if (keys != null) relay.start(keys) else relay.stop()
+    }
+    DisposableEffect(Unit) {
+        onDispose { relay.stop() }
+    }
+    val relayStatus by relay.status.collectAsState()
+
     fun updateBirth(b: BirthData) {
         birth = b
         scope.launch { store.save(b, forged) }
@@ -140,6 +154,7 @@ private fun Station(
                 forged = false,
                 onForge = ::forge,
                 modifier = modifier,
+                relay = relayStatus,
             )
         } else {
             Column(modifier.fillMaxSize().background(A4L.Deep)) {
@@ -169,6 +184,7 @@ private fun Station(
                                 forged = true,
                                 onForge = {},
                                 npub = keys?.npub,
+                                relay = relayStatus,
                                 onDissolve = {
                                     // La station oublie tout : fiche vierge, retour à la forge.
                                     birth = BirthData.Empty

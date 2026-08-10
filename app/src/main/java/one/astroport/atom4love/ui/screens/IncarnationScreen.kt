@@ -73,6 +73,7 @@ import kotlinx.coroutines.launch
 import one.astroport.atom4love.domain.BirthData
 import one.astroport.atom4love.geo.CommuneApi
 import one.astroport.atom4love.geo.PlaceResolver
+import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.domain.LoveKey
 import one.astroport.atom4love.domain.Wave
 import one.astroport.atom4love.ui.components.ComputedRow
@@ -105,6 +106,7 @@ fun IncarnationScreen(
     modifier: Modifier = Modifier,
     npub: String? = null,
     onDissolve: (() -> Unit)? = null,
+    relay: RelayStation.Status? = null,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -193,9 +195,11 @@ fun IncarnationScreen(
                     color = A4L.TextMuted,
                 )
             }
+            // L'état réel de l'antenne : vert dès qu'un relais répond,
+            // éteint tant que le noyau n'est pas forgé ou que rien ne passe.
             Row(verticalAlignment = Alignment.CenterVertically) {
-                StatusDot(A4L.Green)
-                Text("relay · 1 / 3", style = A4LText.Data, color = A4L.TextDim)
+                StatusDot(if (relay?.online == true) A4L.Green else A4L.TextGhost)
+                Text(relay?.label ?: "relay · —", style = A4LText.Data, color = A4L.TextDim)
             }
         }
 
