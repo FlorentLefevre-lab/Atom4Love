@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import one.astroport.atom4love.data.IncarnationStore
 import one.astroport.atom4love.data.SavedIncarnation
 import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.nostr.LocalRelayScout
 import one.astroport.atom4love.nostr.LoveKeyForge
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.ui.components.ElectronSweep
@@ -123,8 +124,11 @@ private fun Station(
     val keys = remember(birth, forged) { if (forged) LoveKeyForge.forge(birth) else null }
 
     // L'antenne suit le noyau : allumée dès que la clé existe, coupée à la
-    // dissolution, et avec la station quand l'activité disparaît.
-    val relay = remember { RelayStation(scope) }
+    // dissolution, et avec la station quand l'activité disparaît. L'éclaireur
+    // lui fait préférer le relais local du hot-spot quand il y en a un.
+    val context = LocalContext.current
+    val scout = remember { LocalRelayScout(context.applicationContext) }
+    val relay = remember { RelayStation(scope, scout = scout) }
     LaunchedEffect(keys) {
         if (keys != null) relay.start(keys) else relay.stop()
     }

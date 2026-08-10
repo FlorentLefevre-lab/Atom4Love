@@ -51,7 +51,7 @@ class RelayStationTest {
         server.enqueue(MockResponse.Builder().webSocketUpgrade(fakeRelayListener()).build())
         server.start()
 
-        val station = RelayStation(scope, urls = listOf(server.url("/").toString()))
+        val station = RelayStation(scope, defaultUrls = listOf(server.url("/").toString()))
         assertEquals(RelayStation.Status(0, 1), station.status.value)
         assertFalse(station.status.value.online)
 

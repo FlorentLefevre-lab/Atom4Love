@@ -6,6 +6,10 @@
          lieu de naissance, et bientôt les relais NOSTR. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Découverte du relais NOSTR local : suivre le réseau Wi-Fi pour sonder
+         sa passerelle (nostr/LocalRelayScout). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- POC diag/WifiConcurrencyProbe : AP local + scan simultanés — à retirer
          avec le package diag maintenant que la question BLE/Wi-Fi est tranchée. -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -41,7 +45,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- usesCleartextTraffic : le relais NOSTR local d'une station Astroport est
+         servi en ws:// sur la passerelle du hot-spot (IP dynamique, donc pas de
+         domain-config possible). Les relais publics restent en wss:// (TLS). -->
     <application
+        android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"

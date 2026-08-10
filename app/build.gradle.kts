@@ -43,6 +43,9 @@ android {
         buildConfigField("double", "PHI_DRIFT_HOURS", "14.83")
         buildConfigField("int", "GOLDBERG_PORTAL_COUNT", "12")
         buildConfigField("int", "H3_RESOLUTION", "8")
+        // Port sondé sur la passerelle du Wi-Fi pour trouver le relais NOSTR
+        // d'une station Astroport locale (LocalRelayScout).
+        buildConfigField("int", "NOSTR_LOCAL_RELAY_PORT", "9999")
     }
 
     signingConfigs {
