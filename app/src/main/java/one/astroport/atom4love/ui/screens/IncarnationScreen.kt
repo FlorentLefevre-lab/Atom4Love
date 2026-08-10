@@ -107,6 +107,7 @@ fun IncarnationScreen(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showForgeConfirm by remember { mutableStateOf(false) }
     val editable = !forged
 
     // ── Lieu de naissance : autocomplétion data.gouv.fr + repérage GPS ────
@@ -222,35 +223,42 @@ fun IncarnationScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     SectionLabel("Date et heure de naissance")
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        DigitBox(birth.day?.let { "%02d".format(it) } ?: "--", 42.dp, enabled = editable) {
-                            showDatePicker = true
-                        }
+                        // Les cases vides s'affichent en fantôme « JJ MM AAAA » :
+                        // l'utilisateur voit d'un coup d'œil ce qui reste à définir.
+                        DigitBox(
+                            birth.day?.let { "%02d".format(it) } ?: "JJ",
+                            42.dp, enabled = editable, placeholder = birth.day == null,
+                        ) { showDatePicker = true }
                         Spacer(Modifier.width(6.dp))
-                        DigitBox(birth.month?.let { "%02d".format(it) } ?: "--", 42.dp, enabled = editable) {
-                            showDatePicker = true
-                        }
+                        DigitBox(
+                            birth.month?.let { "%02d".format(it) } ?: "MM",
+                            42.dp, enabled = editable, placeholder = birth.month == null,
+                        ) { showDatePicker = true }
                         Spacer(Modifier.width(6.dp))
-                        DigitBox(birth.year?.toString() ?: "----", 60.dp, enabled = editable) {
-                            showDatePicker = true
-                        }
+                        DigitBox(
+                            birth.year?.toString() ?: "AAAA",
+                            60.dp, enabled = editable, placeholder = birth.year == null,
+                        ) { showDatePicker = true }
                         Text(
                             "·",
                             color = A4L.TextGhost,
                             fontSize = 15.sp,
                             modifier = Modifier.padding(horizontal = 8.dp),
                         )
-                        DigitBox(birth.hour?.let { "%02d".format(it) } ?: "--", 42.dp, accent = true, enabled = editable) {
-                            showTimePicker = true
-                        }
+                        DigitBox(
+                            birth.hour?.let { "%02d".format(it) } ?: "HH",
+                            42.dp, accent = true, enabled = editable, placeholder = birth.hour == null,
+                        ) { showTimePicker = true }
                         Text(
                             ":",
                             style = A4LText.Data,
                             color = A4L.TextGhost,
                             modifier = Modifier.padding(horizontal = 4.dp),
                         )
-                        DigitBox(birth.minute?.let { "%02d".format(it) } ?: "--", 42.dp, accent = true, enabled = editable) {
-                            showTimePicker = true
-                        }
+                        DigitBox(
+                            birth.minute?.let { "%02d".format(it) } ?: "MN",
+                            42.dp, accent = true, enabled = editable, placeholder = birth.minute == null,
+                        ) { showTimePicker = true }
                     }
                 }
 
@@ -480,7 +488,36 @@ fun IncarnationScreen(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            ForgeButton(forged = forged, complete = birth.complete, onClick = onForge)
+            // Info-bulle : tant que la fiche est incomplète, la liste exacte de
+            // ce qui manque — le bouton reste éteint, l'utilisateur sait pourquoi.
+            if (!forged && !birth.complete) {
+                val missing = buildList {
+                    if (!birth.dateComplete) add("date")
+                    if (!birth.timeComplete) add("heure")
+                    if (birth.lat == null || birth.lon == null) {
+                        add(
+                            if (birth.placeName.isBlank()) "lieu"
+                            else "lieu (choisissez dans la liste ou 📍)",
+                        )
+                    }
+                    if (birth.wave == null) add("onde")
+                    if (birth.weightKg == null) add("poids")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("ⓘ", fontSize = 11.sp, color = A4L.Cyan.copy(alpha = 0.7f))
+                    Spacer(Modifier.width(7.dp))
+                    Text(
+                        "À renseigner : ${missing.joinToString(" · ")}",
+                        style = A4LText.Caption,
+                        color = A4L.TextMuted,
+                    )
+                }
+            }
+            ForgeButton(
+                forged = forged,
+                complete = birth.complete,
+                onClick = { showForgeConfirm = true },
+            )
             // Le launcher garde le nom court ; la filiation s'affiche ici.
             Text(
                 "Atom4Love · by AstroPort.ONE",
@@ -490,6 +527,53 @@ fun IncarnationScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+
+    // ── Confirmation de forge : dernier regard avant l'irréversible ──────
+    if (showForgeConfirm && birth.complete) {
+        AlertDialog(
+            onDismissRequest = { showForgeConfirm = false },
+            title = { Text("Vérifiez votre incarnation", style = A4LText.Title) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text(
+                        "La clé LOVE va être forgée avec ces cinq données. " +
+                            "Après, plus rien n'est modifiable.",
+                        style = A4LText.Body,
+                        color = A4L.TextBody,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    ComputedRow(
+                        "Naissance",
+                        "%02d/%02d/%04d à %02d:%02d".format(
+                            birth.day, birth.month, birth.year, birth.hour, birth.minute,
+                        ),
+                    )
+                    ComputedRow("Lieu", birth.placeName.ifBlank { "—" })
+                    ComputedRow("Coordonnées", LoveKey.formatCoords(birth))
+                    ComputedRow("Onde", "${birth.wave?.symbol} ${birth.wave?.label}")
+                    ComputedRow("Poids", LoveKey.formatWeight(birth.weightKg))
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "⚠ Une erreur ici, et la clé dérivée ne sera jamais la vôtre. " +
+                            "Prenez le temps de relire chaque ligne.",
+                        style = A4LText.Caption,
+                        color = A4L.Amber.copy(alpha = 0.85f),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showForgeConfirm = false
+                    onForge()
+                }) { Text("Forger définitivement", color = A4L.Gold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgeConfirm = false }) {
+                    Text("Vérifier encore", color = A4L.TextBody)
+                }
+            },
+        )
     }
 
     // ── Sélecteurs ────────────────────────────────────────────────────────
@@ -537,13 +621,17 @@ fun IncarnationScreen(
     }
 }
 
-/** Une case de la ligne date/heure. Les cases d'heure sont cyan. */
+/**
+ * Une case de la ligne date/heure. Les cases d'heure sont cyan ; une case
+ * [placeholder] (champ pas encore défini) s'affiche en fantôme.
+ */
 @Composable
 private fun DigitBox(
     text: String,
     width: Dp,
     accent: Boolean = false,
     enabled: Boolean = true,
+    placeholder: Boolean = false,
     onClick: () -> Unit,
 ) {
     Box(
@@ -560,8 +648,13 @@ private fun DigitBox(
     ) {
         Text(
             text,
-            style = A4LText.Data.copy(fontSize = 15.sp),
-            color = if (accent) A4L.Cyan else A4L.TextHigh,
+            style = A4LText.Data.copy(fontSize = if (placeholder) 11.sp else 15.sp),
+            color = when {
+                placeholder && accent -> A4L.Cyan.copy(alpha = 0.30f)
+                placeholder -> A4L.TextGhost
+                accent -> A4L.Cyan
+                else -> A4L.TextHigh
+            },
         )
     }
 }
