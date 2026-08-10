@@ -20,8 +20,8 @@
 
 ## Maquettes
 
-> **Maquettes d'intention.** Ces écrans illustrent le parcours visé. Ils ne correspondent pas
-> à une application existante — voir « État du projet » juste en dessous.
+> **Maquettes d'intention.** Ces écrans illustrent le parcours visé. L'application réelle en
+> implémente aujourd'hui une partie — voir « État du projet » juste en dessous.
 
 <details>
   <summary>Voir le parcours Android complet</summary>
@@ -35,12 +35,42 @@
 
 ## ⚠️ État du projet
 
-**Stade : amorçage.** Le dépôt contient aujourd'hui le squelette Gradle et la configuration
-Jetpack Compose. Il n'y a pas encore d'application utilisable, pas de release, pas d'APK.
+**Stade : alpha fonctionnelle.** L'application compile, se lance et le parcours de bout en
+bout fonctionne sur appareil réel : forger son identité, dériver ses clés NOSTR, diffuser son
+adresse de cellule en BLE et voir apparaître les voisins physiques sur le radar. La détection
+de proximité a été **validée en croisé sur deux téléphones** (août 2026). Il n'y a pas encore
+de release ni d'APK publié.
 
-Si vous cherchez un projet mûr à essayer, revenez plus tard. Si vous cherchez un projet où
-les décisions d'architecture sont encore ouvertes et où vos choix compteront réellement,
-c'est maintenant.
+### Ce qui fonctionne aujourd'hui
+
+- **Forge de l'identité** (onglet Noyau) : saisie de la date, de l'heure et du lieu de
+  naissance avec autocomplétion des communes, récapitulatif avant validation, persistance
+  locale, et « dissolution du noyau » derrière une double confirmation pour tout effacer.
+- **Clés NOSTR déterministes** : dérivation secp256k1 depuis les paramètres de naissance,
+  npub affiché, et connexion à un relais NOSTR (en écoute seule pour l'instant — aucun
+  événement n'est publié).
+- **Adressage géographique réel** : cellule H3 calculée depuis la position, portail Goldberg
+  dérivé du lieu de naissance.
+- **Proximité BLE continue** : diffusion et scan du beacon d'adresse 4D en tâche de fond,
+  registre des voisins détectés.
+- **Radar en données réelles** : les pastilles sont les voisins BLE effectivement détectés
+  (distance estimée par RSSI), avec le cap et la distance vers le portail.
+- **Habillage** : splash animé (atome vectoriel), navigation à cinq onglets (Radar, Tableau,
+  Liens, Noyau, Aide) avec transitions, écran d'aide et aide contextuelle avant la forge.
+
+### Ce qui reste ouvert
+
+- **Rotation temporelle D2** : la v0 diffuse l'index H3 statique, sans rotation
+  (`CellRotation.None`). Assumé tant que la formule D2 n'est pas arrêtée : la portée BLE
+  (~10–100 m) borne l'information révélée à des appareils déjà physiquement voisins.
+- **Échange NOSTR** : le npub n'est pas encore inclus dans le payload de proximité ; aucun
+  premier échange chiffré n'est implémenté. Les questions de protocole ouvertes sont
+  consignées dans [`docs/note-protocole-questions.md`](docs/note-protocole-questions.md).
+- **Synthèse sonore collective (D5)** : pas encore commencée.
+- Caractérisation de la portée RSSI en conditions réelles.
+
+Les décisions d'architecture les plus structurantes (rotation D2, protocole d'échange) sont
+encore ouvertes : c'est le bon moment pour peser sur elles.
 
 ---
 
@@ -88,15 +118,14 @@ des participants — le retour social passe par le son plutôt que par un score.
 | Interface | Jetpack Compose (Material 3) |
 | Cryptographie | [secp256k1-kmp](https://github.com/ACINQ/secp256k1-kmp) (ACINQ) |
 | Messagerie | NOSTR — NIP-01, NIP-17 (gift wrap), NIP-44 (ChaCha20-Poly1305) |
-| Géographie | [H3](https://h3geo.org/) (Uber) pour le pavage hexagonal statique |
-| Build | Gradle KTS, module unique `:app` |
+| Géographie | [H3](https://h3geo.org/) (Uber) pour le pavage hexagonal statique (AAR patché vendorisé) |
+| Proximité | BLE advertising + scan (beacon d'adresse 4D, service continu) |
+| Build | Gradle KTS, module unique `:app` — minSdk 26, targetSdk 36, JDK 17 |
 
 > **Note d'implémentation.** H3 fournit le pavage hexagonal de référence ; la couche de
-> rotation temporelle décrite en D2 s'applique par-dessus, à l'encodage et au décodage.
-> C'est le point d'architecture le plus délicat du projet et il est encore ouvert à la
-> discussion — voir les tickets.
-
-<!-- À COMPLÉTER : minSdk / targetSdk / version du JDK une fois figés -->
+> rotation temporelle décrite en D2 s'applique par-dessus, à l'encodage et au décodage
+> (interface `CellRotation`, actuellement en v0 identité). C'est le point d'architecture le
+> plus délicat du projet et il est encore ouvert à la discussion — voir les tickets.
 
 ---
 
@@ -108,11 +137,13 @@ cd Atom4Love
 ./gradlew assembleDebug
 ```
 
-Prérequis : JDK 17+, Android SDK. Aucune clé d'API, aucun compte, aucun relais NOSTR à
-configurer pour compiler et lancer le mode démo.
+Prérequis : JDK 17+, Android SDK. Aucune clé d'API, aucun compte, aucune configuration à
+fournir : les clés sont dérivées localement des paramètres de naissance saisis au premier
+lancement.
 
-<!-- À COMPLÉTER : si un mode démo avec données bouchonnées existe, décrire ici comment
-     le lancer. C'est le point qui décide si un contributeur reste ou part. -->
+Pour voir la proximité fonctionner, il faut **deux appareils physiques** avec le Bluetooth
+activé : chacun diffuse son adresse de cellule et voit l'autre apparaître sur le radar.
+L'émulateur suffit pour tout le reste (forge, clés, radar sans voisins).
 
 ---
 
