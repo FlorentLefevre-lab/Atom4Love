@@ -206,20 +206,6 @@ fun IncarnationScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 StatusDot(if (relay?.online == true) A4L.Green else A4L.TextGhost)
                 Text(relay?.label ?: "relay · —", style = A4LText.Data, color = A4L.TextDim)
-                // Avant la forge, la barre de menus n'existe pas encore :
-                // l'aide se glisse ici.
-                if (onHelp != null) {
-                    Spacer(Modifier.width(10.dp))
-                    Box(
-                        Modifier
-                            .size(24.dp)
-                            .background(Color.White.copy(alpha = 0.08f), CircleShape)
-                            .clickable(onClick = onHelp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("?", style = A4LText.Data.copy(fontSize = 12.sp), color = A4L.Indigo)
-                    }
-                }
             }
         }
 
@@ -231,7 +217,38 @@ fun IncarnationScreen(
 
             // ── Titre ─────────────────────────────────────────────────────
             Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp)) {
-                Text("Forger votre noyau", style = A4LText.H1, color = A4L.TextHigh)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Forger votre noyau",
+                        style = A4LText.H1,
+                        color = A4L.TextHigh,
+                        modifier = Modifier.weight(1f),
+                    )
+                    // Avant la forge, la barre de menus n'existe pas encore :
+                    // l'aide vit à côté du titre, là où le regard se pose.
+                    if (onHelp != null) {
+                        Box(
+                            Modifier
+                                .size(36.dp)
+                                .glass(
+                                    radius = 18.dp,
+                                    background = A4L.Indigo.tint(0.10f),
+                                    border = A4L.Indigo.tint(0.40f),
+                                )
+                                .clickable(onClick = onHelp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "?",
+                                style = A4LText.Body.copy(
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                ),
+                                color = A4L.Indigo,
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "Votre clé LOVE se dérive de l'instant où vous êtes né. Le même " +
