@@ -59,6 +59,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 import one.astroport.atom4love.domain.GoldbergPortal
+import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.proximity.CellLocator
 import one.astroport.atom4love.proximity.NeighborRegistry
 import androidx.compose.ui.text.font.FontWeight
@@ -99,7 +100,7 @@ private fun cellHex(cell: Long): String =
  * devra réinitialiser le compteur dès que l'utilisateur s'éloigne du centre).
  */
 @Composable
-fun RadarScreen(modifier: Modifier = Modifier) {
+fun RadarScreen(modifier: Modifier = Modifier, relay: RelayStation.Status? = null) {
     var elapsed by remember { mutableFloatStateOf(0f) }
     var attempt by remember { mutableIntStateOf(0) }
     val unlocked = elapsed >= RITUAL_SECONDS
@@ -168,11 +169,25 @@ fun RadarScreen(modifier: Modifier = Modifier) {
                     color = A4L.TextBody,
                 )
             }
-            Text(
-                heading?.let { "↑ %d°".format(it) } ?: "↑ —",
-                style = A4LText.Data.copy(fontSize = 10.sp),
-                color = A4L.TextDim,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Même témoin que sur l'écran Noyau : pendant une démo on vit
+                // sur le Radar, la bascule « relais local » doit s'y voir.
+                relay?.let {
+                    StatusDot(if (it.online) A4L.Green else A4L.TextGhost)
+                    Spacer(Modifier.width(2.dp))
+                    Text(
+                        it.label,
+                        style = A4LText.Data.copy(fontSize = 10.sp),
+                        color = A4L.TextDim,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                }
+                Text(
+                    heading?.let { "↑ %d°".format(it) } ?: "↑ —",
+                    style = A4LText.Data.copy(fontSize = 10.sp),
+                    color = A4L.TextDim,
+                )
+            }
         }
 
         // ── Titre ─────────────────────────────────────────────────────────
