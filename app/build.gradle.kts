@@ -188,6 +188,9 @@ dependencies {
     // --- Tests unitaires ---
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Crypto NOSTR testée sur JVM (la variante Android de la lib native ne s'y charge pas).
+    testImplementation(libs.secp256k1.kmp.jni.jvm)
+    testImplementation(libs.mockwebserver)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.androidx.room.testing)

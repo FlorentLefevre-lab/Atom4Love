@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.nostr.LoveKeyForge
 import one.astroport.atom4love.ui.screens.BoardScreen
 import one.astroport.atom4love.ui.screens.IncarnationScreen
 import one.astroport.atom4love.ui.screens.RadarScreen
@@ -54,6 +55,10 @@ fun A4LApp(modifier: Modifier = Modifier) {
     var forged by rememberSaveable { mutableStateOf(false) }
     var tab by rememberSaveable { mutableStateOf(A4LTab.Radar) }
 
+    // Les clés NOSTR se redérivent des données d'incarnation à chaque forge —
+    // c'est le principe de la clé LOVE, rien à persister.
+    val keys = remember(birth, forged) { if (forged) LoveKeyForge.forge(birth) else null }
+
     if (!forged) {
         IncarnationScreen(
             birth = birth,
@@ -69,13 +74,14 @@ fun A4LApp(modifier: Modifier = Modifier) {
         Box(Modifier.weight(1f)) {
             when (tab) {
                 A4LTab.Radar -> RadarScreen()
-                A4LTab.Board -> BoardScreen()
+                A4LTab.Board -> BoardScreen(npub = keys?.npubShort)
                 A4LTab.Bonds -> ResonanceScreen()
                 A4LTab.Nucleus -> IncarnationScreen(
                     birth = birth,
                     onBirthChange = { birth = it },
                     forged = true,
                     onForge = {},
+                    npub = keys?.npub,
                 )
             }
         }

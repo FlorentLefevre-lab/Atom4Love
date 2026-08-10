@@ -84,6 +84,7 @@ fun IncarnationScreen(
     forged: Boolean,
     onForge: () -> Unit,
     modifier: Modifier = Modifier,
+    npub: String? = null,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -310,6 +311,16 @@ fun IncarnationScreen(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            // L'identité NOSTR réelle, dès que la clé est forgée.
+            if (npub != null) {
+                Text(
+                    npub,
+                    style = A4LText.Data.copy(fontSize = 9.sp),
+                    color = A4L.TextGhost,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             ForgeButton(forged = forged, onClick = onForge)
             // Le launcher garde le nom court ; la filiation s'affiche ici.
             Text(

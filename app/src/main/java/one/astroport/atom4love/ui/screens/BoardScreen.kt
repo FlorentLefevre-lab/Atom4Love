@@ -65,9 +65,12 @@ private val BOARD_FILTERS = listOf("🌀 Pentagone", "📍 Proche", "🤝 Contac
  * Toucher la carte déposée la reprend en main.
  */
 @Composable
-fun BoardScreen(modifier: Modifier = Modifier) {
+fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
 
-    val you = remember { AtomCard(kin = 168, wave = Wave.Phi, holder = "Vous", npub = "npub1q4v…7f6c") }
+    // Le npub réel (tronqué) une fois la clé forgée ; celui de la maquette sinon.
+    val you = remember(npub) {
+        AtomCard(kin = 168, wave = Wave.Phi, holder = "Vous", npub = npub ?: "npub1q4v…7f6c")
+    }
     val hand = remember {
         mutableStateListOf(
             DealtCard(AtomCard(44, Wave.Octave, npub = "npub1h8p…2a19"), A4L.Mint),
