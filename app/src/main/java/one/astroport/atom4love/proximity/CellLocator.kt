@@ -36,9 +36,26 @@ class CellLocator(private val context: Context) {
     // du classpath) : il jette UnsatisfiedLinkError sur appareil.
     private val h3: H3Core by lazy { H3Core.newSystemInstance() }
 
+    /**
+     * Une résolution complète : la cellule, et ce qu'il faut à l'écran Radar —
+     * position, centre géométrique de l'hexagone, distance à ce centre.
+     * Comme la cellule, tout reste sur l'appareil.
+     */
+    data class Fix(
+        val lat: Double,
+        val lon: Double,
+        val cell: Long,
+        val centerLat: Double,
+        val centerLon: Double,
+        val distanceToCenterM: Double,
+    )
+
+    /** null si la permission de localisation manque ou qu'aucune position n'arrive. */
+    suspend fun currentCell(): Long? = currentFix()?.cell
+
     /** null si la permission de localisation manque ou qu'aucune position n'arrive. */
     @SuppressLint("MissingPermission")
-    suspend fun currentCell(): Long? {
+    suspend fun currentFix(): Fix? {
         val granted = ContextCompat.checkSelfPermission(
             context, Manifest.permission.ACCESS_FINE_LOCATION,
         ) == PackageManager.PERMISSION_GRANTED
@@ -64,7 +81,21 @@ class CellLocator(private val context: Context) {
 
         Log.d(TAG, "position obtenue (précision ${location.accuracy} m)")
         return runCatching {
-            h3.latLngToCell(location.latitude, location.longitude, BuildConfig.H3_RESOLUTION)
+            val cell = h3.latLngToCell(location.latitude, location.longitude, BuildConfig.H3_RESOLUTION)
+            val center = h3.cellToLatLng(cell)
+            val distance = FloatArray(1)
+            Location.distanceBetween(
+                location.latitude, location.longitude,
+                center.lat, center.lng, distance,
+            )
+            Fix(
+                lat = location.latitude,
+                lon = location.longitude,
+                cell = cell,
+                centerLat = center.lat,
+                centerLon = center.lng,
+                distanceToCenterM = distance[0].toDouble(),
+            )
         }.onFailure { Log.w(TAG, "indexation H3 impossible", it) }.getOrNull()
     }
 }

@@ -45,9 +45,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
+import one.astroport.atom4love.domain.GoldbergPortal
+import one.astroport.atom4love.proximity.CellLocator
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -66,6 +75,17 @@ import kotlin.math.ceil
 
 /** Le rituel de cabine dure 33 secondes d'immobilité (cf. CONTEXTE). */
 private const val RITUAL_SECONDS = 33f
+
+/** La cellule bouge peu : un rafraîchissement du fix toutes les 30 s suffit. */
+private const val FIX_REFRESH_MS = 30_000L
+
+/**
+ * Identifiant lisible d'une cellule H3 : l'index en hexadécimal, débarrassé de
+ * la traîne de « f » des chiffres inutilisés. Affichage uniquement — jamais
+ * reparsé.
+ */
+private fun cellHex(cell: Long): String =
+    cell.toULong().toString(16).uppercase().trimEnd('F')
 
 /**
  * 02 · Radar Phi2X — la cabine à portée et le rituel de phase.
@@ -102,6 +122,20 @@ fun RadarScreen(modifier: Modifier = Modifier) {
         }
     }
 
+    // ── Le vrai fix : cellule H3, distance au centre, portail Goldberg ────
+    val locator = remember { CellLocator(context.applicationContext) }
+    var fix by remember { mutableStateOf<CellLocator.Fix?>(null) }
+    // Re-résout quand la balise change d'état (la permission de localisation
+    // vient peut-être d'être accordée), puis toutes les 30 s.
+    LaunchedEffect(beaconRunning) {
+        while (true) {
+            fix = locator.currentFix()
+            delay(FIX_REFRESH_MS)
+        }
+    }
+    val portal = fix?.let { GoldbergPortal.nearest(it.lat, it.lon) }
+    val heading = rememberHeadingDegrees()
+
     Column(
         modifier
             .fillMaxSize()
@@ -119,15 +153,22 @@ fun RadarScreen(modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                StatusDot(A4L.Green)
+                StatusDot(if (fix != null) A4L.Green else A4L.TextGhost)
                 Spacer(Modifier.width(2.dp))
                 Text(
-                    "a4l:P02H820B7F6C",
+                    // L'adresse réelle : portail Goldberg + cellule H3 du lieu.
+                    if (fix != null && portal != null) {
+                        "${portal.code}H${cellHex(fix!!.cell)}"
+                    } else "a4l:—",
                     style = A4LText.Data.copy(fontSize = 10.sp),
                     color = A4L.TextBody,
                 )
             }
-            Text("↑ 214°", style = A4LText.Data.copy(fontSize = 10.sp), color = A4L.TextDim)
+            Text(
+                heading?.let { "↑ %d°".format(it) } ?: "↑ —",
+                style = A4LText.Data.copy(fontSize = 10.sp),
+                color = A4L.TextDim,
+            )
         }
 
         // ── Titre ─────────────────────────────────────────────────────────
@@ -139,10 +180,15 @@ fun RadarScreen(modifier: Modifier = Modifier) {
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                if (unlocked) {
-                    "Hexagone 820B·7F6C — abonnement au flux de la cabine actif."
-                } else {
-                    "Hexagone 820B·7F6C — vous êtes à 38 m du centre géométrique."
+                when {
+                    fix == null ->
+                        "Hexagone inconnu — accordez la localisation (via la balise) " +
+                            "pour résoudre votre cellule."
+                    unlocked ->
+                        "Hexagone ${cellHex(fix!!.cell)} — abonnement au flux de la cabine actif."
+                    else ->
+                        "Hexagone ${cellHex(fix!!.cell)} — vous êtes à %.0f m du centre géométrique."
+                            .format(fix!!.distanceToCenterM)
                 },
                 style = A4LText.Body,
                 color = A4L.TextBody.copy(alpha = 0.45f),
@@ -279,6 +325,40 @@ fun RadarScreen(modifier: Modifier = Modifier) {
 
         Spacer(Modifier.height(20.dp))
     }
+}
+
+/**
+ * Le cap de l'appareil en degrés (0 = nord), via le capteur de rotation.
+ * null tant qu'aucune mesure n'est arrivée ou que l'appareil n'a pas de capteur.
+ * Arrondi au degré pour ne recomposer qu'au changement visible.
+ */
+@Composable
+private fun rememberHeadingDegrees(): Int? {
+    val context = LocalContext.current
+    var heading by remember { mutableStateOf<Int?>(null) }
+    DisposableEffect(Unit) {
+        val manager = context.getSystemService(SensorManager::class.java)
+        val sensor = manager?.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+        val listener = object : SensorEventListener {
+            private val rotation = FloatArray(9)
+            private val orientation = FloatArray(3)
+            override fun onSensorChanged(event: SensorEvent) {
+                SensorManager.getRotationMatrixFromVector(rotation, event.values)
+                SensorManager.getOrientation(rotation, orientation)
+                val degrees = (Math.toDegrees(orientation[0].toDouble()) + 360.0) % 360.0
+                heading = degrees.toInt()
+            }
+
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+        }
+        if (sensor != null) {
+            manager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_UI)
+        }
+        onDispose {
+            if (sensor != null) manager.unregisterListener(listener)
+        }
+    }
+    return heading
 }
 
 /** Cercles concentriques, balayage conique et anneau de progression du rituel. */
