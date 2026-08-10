@@ -84,6 +84,7 @@ fun RadarScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val beaconRunning by ProximityService.running.collectAsStateWithLifecycle()
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
+    val ownCell4d by ProximityService.advertisedCell4d.collectAsStateWithLifecycle()
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) {
@@ -209,8 +210,19 @@ fun RadarScreen(modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                CabinStat("12", "pensées ici", Modifier.weight(1f))
-                CabinStat("3", "dans le portail", Modifier.weight(1f))
+                // « Pensées ici » attend la synchro NOSTR : muet plutôt que faux.
+                CabinStat("—", "pensées ici", Modifier.weight(1f))
+                // Approximation en attendant la logique de portail D2 : les noyaux
+                // qui annoncent la même cellule que la nôtre.
+                CabinStat(
+                    if (beaconRunning && ownCell4d != null) {
+                        neighbors.count { it.cell4d == ownCell4d }.toString()
+                    } else {
+                        "—"
+                    },
+                    "dans le portail",
+                    Modifier.weight(1f),
+                )
                 CabinStat(
                     if (beaconRunning) neighbors.size.toString() else "—",
                     "noyaux proches",

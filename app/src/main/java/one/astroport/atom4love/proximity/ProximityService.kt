@@ -48,6 +48,10 @@ class ProximityService : Service() {
         /** Noyaux à portée — vidé quand la balise se coupe. */
         val neighbors: StateFlow<List<NeighborRegistry.Neighbor>> = _neighbors.asStateFlow()
 
+        private val _advertisedCell4d = MutableStateFlow<Long?>(null)
+        /** Adresse 4D que la balise annonce (null = cellule non résolue ou balise coupée). */
+        val advertisedCell4d: StateFlow<Long?> = _advertisedCell4d.asStateFlow()
+
         /** Sans elles, ni l'annonce ni le scan ne peuvent démarrer (runtime dès API 31). */
         fun corePermissionsGranted(context: Context): Boolean =
             Build.VERSION.SDK_INT < Build.VERSION_CODES.S || listOf(
@@ -126,6 +130,9 @@ class ProximityService : Service() {
             val engine = ProximityEngine(this, registry, CellLocator(this))
             scope.launch { engine.run() }
             scope.launch {
+                engine.state.collect { _advertisedCell4d.value = it.advertisedCell4d }
+            }
+            scope.launch {
                 registry.neighbors.collect { list ->
                     _neighbors.value = list
                     runCatching {
@@ -143,6 +150,7 @@ class ProximityService : Service() {
         scope.cancel()
         _running.value = false
         _neighbors.value = emptyList()
+        _advertisedCell4d.value = null
         engineStarted = false
         super.onDestroy()
     }
