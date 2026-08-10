@@ -72,6 +72,7 @@ import kotlin.math.round
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.domain.GoldbergPortal
 import one.astroport.atom4love.geo.CommuneApi
 import one.astroport.atom4love.geo.PlaceResolver
 import one.astroport.atom4love.nostr.RelayStation
@@ -483,9 +484,15 @@ fun IncarnationScreen(
                         "Gestation",
                         birth.weightKg?.let { LoveKey.formatDays(LoveKey.gestationDays(it)) } ?: "—",
                     )
-                    // TODO : projeter (lat, lon) sur le polyèdre de Goldberg pour obtenir
-                    // la vraie tuile. En attendant, le portail est celui de la maquette.
-                    ComputedRow("Portail Goldberg", "a4l:P02 · Sirius", valueColor = A4L.Cyan)
+                    // Le vrai portail : le sommet du polyèdre de Goldberg le plus
+                    // proche du lieu de naissance (les 12 pentagones de la grille H3).
+                    ComputedRow(
+                        "Portail Goldberg",
+                        if (birth.lat != null && birth.lon != null) {
+                            GoldbergPortal.nearest(birth.lat, birth.lon).label
+                        } else "—",
+                        valueColor = A4L.Cyan,
+                    )
                 }
 
                 // ── Avertissement ─────────────────────────────────────────

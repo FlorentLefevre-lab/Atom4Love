@@ -105,6 +105,9 @@ secp256k1-kmp-jni-jvm = { group = "fr.acinq.secp256k1", name = "secp256k1-kmp-jn
 
 # --- Géographie hexagonale (pavage icosaédrique H3) ---
 h3-android = { group = "com.uber", name = "h3-android", version.ref = "h3" }
+# Variante desktop (natives extraites du classpath) : tests JVM uniquement —
+# valide les constantes des portails Goldberg contre la vraie grille H3.
+h3-jvm = { group = "com.uber", name = "h3", version = "4.1.1" }
 
 # --- Localisation ---
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
