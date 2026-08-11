@@ -32,6 +32,8 @@
         android:name="android.permission.BLUETOOTH_ADMIN"
         android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <!-- Connexions GATT (POC causerie BLE diag/BleChatProbe, puis handshake Noise). -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation" />
@@ -84,6 +86,14 @@
             android:name=".diag.WifiProbeActivity"
             android:exported="true"
             android:label="Sonde Wi-Fi (POC)"
+            android:theme="@style/Theme.Atom4Love" />
+
+        <!-- POC : causerie texte en BLE pur (GATT), en clair — socle du futur Noise.
+             Lancement : adb shell am start -n <applicationId>/one.astroport.atom4love.diag.BleChatProbeActivity -->
+        <activity
+            android:name=".diag.BleChatProbeActivity"
+            android:exported="true"
+            android:label="Causerie BLE (POC)"
             android:theme="@style/Theme.Atom4Love" />
     </application>
 
