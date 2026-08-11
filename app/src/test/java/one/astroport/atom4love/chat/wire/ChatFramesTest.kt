@@ -2,6 +2,7 @@ package one.astroport.atom4love.chat.wire
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -71,11 +72,16 @@ class ChatFramesTest {
 
     @Test
     fun `budget des fragments selon le MTU, plafond ATT de 512 compris`() {
+        // MTU plancher : trop court pour le handshake, donc jamais scellé —
+        // rien à réserver, le fragment garde toute la place
         assertEquals(20, ChatFrames.attPayload(23))
+        assertFalse(ChatFrames.canSeal(23))
         assertEquals(12, ChatFrames.dataChunk(23))
         // MTU 517 : l'espace MTU−3 (514) dépasse le plafond spec de 512
         assertEquals(512, ChatFrames.attPayload(517))
-        assertEquals(504, ChatFrames.dataChunk(517))
+        assertTrue(ChatFrames.canSeal(517))
+        // 512 − 17 de scellement réservé − 8 d'en-tête DATA
+        assertEquals(487, ChatFrames.dataChunk(517))
     }
 
     @Test

@@ -60,6 +60,11 @@ sealed interface ChatFrame {
         val step: Int,
         val message: ByteArray,
     ) : ChatFrame
+
+    /** Une trame quelconque scellée par la session Noise du lien. */
+    class Sealed(
+        val ciphertext: ByteArray,
+    ) : ChatFrame
 }
 
 object ChatFrames {
@@ -76,11 +81,23 @@ object ChatFrames {
     private const val TYPE_DATA = 0x02
     private const val TYPE_ACK = 0x03
     private const val TYPE_HANDSHAKE = 0x04
+    private const val TYPE_SEALED = 0x05
 
     /** [type][étape] — le reste de la trame est le message Noise. */
     const val HANDSHAKE_HEADER = 2
 
     const val HANDSHAKE_STEPS = 3
+
+    /** Authentificateur ChaCha20-Poly1305 ajouté à chaque scellement. */
+    private const val MAC_LENGTH = 16
+
+    /**
+     * Ce qu'un scellement coûte : l'octet de type de la trame SEALED plus le
+     * MAC. Toujours réservé, même sur un lien encore en clair — un handshake
+     * peut aboutir au milieu d'un transfert, et les fragments déjà dimensionnés
+     * deviendraient alors trop grands pour l'ATT une fois scellés.
+     */
+    const val SEAL_OVERHEAD = 1 + MAC_LENGTH
 
     /** En-tête ATT d'une écriture/notification. */
     private const val ATT_HEADER = 3
@@ -104,8 +121,28 @@ object ChatFrames {
     /** Octets utiles d'une écriture ATT pour un MTU donné, plafond spec inclus. */
     fun attPayload(mtu: Int): Int = minOf(mtu - ATT_HEADER, ATT_MAX_VALUE)
 
+    /** Le plus court message XX : le premier, réduit à la clé éphémère. */
+    private const val MIN_HANDSHAKE_BYTES = 32
+
+    /**
+     * Un lien ne peut chiffrer que si son ATT porte déjà le premier message du
+     * handshake. Au MTU plancher (23 → 20 octets utiles) c'est impossible : ce
+     * lien restera en clair, et n'a donc rien à réserver.
+     */
+    fun canSeal(mtu: Int): Boolean =
+        attPayload(mtu) >= HANDSHAKE_HEADER + MIN_HANDSHAKE_BYTES
+
+    /**
+     * Place pour une trame ordinaire, le scellement Noise déduit. Sert de
+     * budget à START comme à DATA, que le lien chiffre **déjà** ou non : un
+     * handshake peut aboutir au milieu d'un transfert, et des fragments
+     * dimensionnés sans la réserve déborderaient alors de l'ATT.
+     */
+    fun framePayload(mtu: Int): Int =
+        attPayload(mtu) - if (canSeal(mtu)) SEAL_OVERHEAD else 0
+
     /** Octets de contenu par trame DATA pour un MTU donné. */
-    fun dataChunk(mtu: Int): Int = attPayload(mtu) - DATA_HEADER
+    fun dataChunk(mtu: Int): Int = framePayload(mtu) - DATA_HEADER
 
     fun crc32(bytes: ByteArray): Int = CRC32().apply { update(bytes) }.value.toInt()
 
@@ -159,6 +196,24 @@ object ChatFrames {
             .array()
     }
 
+    /**
+     * Une trame de handshake ne se scelle jamais : elle établit la session.
+     *
+     * Le cas qui mord : l'initiateur devient établi **en écrivant** le 3e
+     * message XX. Si ce message attend son tour dans la file du lien, il
+     * partirait scellé alors que le pair l'attend en clair — le handshake se
+     * saborderait au dernier pas.
+     */
+    fun isHandshake(frame: ByteArray): Boolean =
+        frame.isNotEmpty() && frame[0].toInt() == TYPE_HANDSHAKE
+
+    /** Enveloppe un chiffré produit par la session Noise du lien. */
+    fun encodeSealed(ciphertext: ByteArray): ByteArray =
+        ByteArray(1 + ciphertext.size).also {
+            it[0] = TYPE_SEALED.toByte()
+            ciphertext.copyInto(it, 1)
+        }
+
     fun encodeAck(msgId: Int, status: Int): ByteArray =
         ByteBuffer.allocate(6)
             .put(TYPE_ACK.toByte())
@@ -168,12 +223,18 @@ object ChatFrames {
 
     /** null si la trame est malformée — on ignore, on ne plante pas. */
     fun decode(bytes: ByteArray): ChatFrame? {
-        // HELLO est la seule trame courte : les autres ont au moins type + id + 1
+        // HELLO et SEALED sont les trames courtes : les autres ont au moins
+        // type + id + 1, et leur longueur minimale est vérifiée plus bas
         if (bytes.isNotEmpty() && bytes[0].toInt() == TYPE_HANDSHAKE) {
             if (bytes.size <= HANDSHAKE_HEADER) return null
             val step = bytes[1].toInt() and 0xFF
             if (step !in 1..HANDSHAKE_STEPS) return null
             return ChatFrame.Handshake(step, bytes.copyOfRange(HANDSHAKE_HEADER, bytes.size))
+        }
+        if (bytes.isNotEmpty() && bytes[0].toInt() == TYPE_SEALED) {
+            // un chiffré vaut au moins son MAC, sinon il n'y a rien à ouvrir
+            if (bytes.size <= MAC_LENGTH) return null
+            return ChatFrame.Sealed(bytes.copyOfRange(1, bytes.size))
         }
         if (bytes.size < 6) return null
         val buffer = ByteBuffer.wrap(bytes)

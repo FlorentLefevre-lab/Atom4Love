@@ -273,6 +273,9 @@ class BleChatProbe(context: Context) {
         /** Évite de re-journaliser un handshake déjà annoncé. */
         var noiseAnnounced = false
 
+        /** Idem pour la première trame scellée du lien. */
+        var sealingAnnounced = false
+
         val ready: Boolean get() = kind == LinkKind.SERVER || characteristic != null
 
         fun failPending() {
@@ -611,6 +614,11 @@ class BleChatProbe(context: Context) {
      */
     private fun beginHandshake(link: Link) {
         if (link.kind != LinkKind.CLIENT || link.noise != null) return
+        if (!ChatFrames.canSeal(link.mtu)) {
+            // MTU refusé par le pair : le premier message XX ne passerait pas
+            Log.w(TAG, "handshake impossible vers ${link.address} : mtu=${link.mtu}")
+            return
+        }
         val session = NoiseSession.initiator(noiseStaticKey)
         link.noise = session
         if (!sendHandshake(link, session, step = 1)) {
@@ -689,6 +697,57 @@ class BleChatProbe(context: Context) {
         }
     }
 
+    /**
+     * Fil protocole. Scelle une trame si la session du lien est établie.
+     *
+     * Le scellement est **explicite** (trame SEALED) plutôt que déduit de
+     * l'état : l'initiateur devient établi en écrivant le 3e message, le
+     * répondeur seulement en le lisant. Entre les deux, une trame déjà en vol
+     * serait lue avec la mauvaise convention. Le type porté par la trame lève
+     * toute ambiguïté, quel que soit l'ordre d'arrivée.
+     *
+     * Les trames HELLO ne passent pas par ici : elles précèdent la session.
+     */
+    private fun seal(link: Link, plain: ByteArray): ByteArray? {
+        if (ChatFrames.isHandshake(plain)) return plain
+        val session = link.noise?.takeIf { it.established } ?: return plain
+        return runCatching { ChatFrames.encodeSealed(session.encrypt(plain)) }
+            .onSuccess {
+                // sans cette trace, un lien resté en clair serait indiscernable
+                // d'un lien chiffré : tout fonctionne pareil dans les deux cas
+                if (!link.sealingAnnounced) {
+                    link.sealingAnnounced = true
+                    Log.i(TAG, "trafic scellé sur ${link.kind} ${link.address}")
+                }
+            }
+            .getOrElse { error ->
+                Log.w(TAG, "scellement impossible vers ${link.address} — $error")
+                null
+            }
+    }
+
+    /**
+     * Fil protocole. Ouvre une trame scellée.
+     *
+     * Un échec n'est pas récupérable : le compteur de ChaCha20-Poly1305 exige
+     * une séquence stricte, donc une trame perdue désaccorde la session pour
+     * de bon. On jette le lien plutôt que d'entretenir un canal sourd — le
+     * scan en reformera un, avec un handshake neuf.
+     */
+    private fun unseal(link: Link, frame: ChatFrame.Sealed): ByteArray? {
+        val session = link.noise?.takeIf { it.established }
+        if (session == null) {
+            Log.w(TAG, "trame scellée de ${link.address} sans session établie")
+            failLink(link)
+            return null
+        }
+        return runCatching { session.decrypt(frame.ciphertext) }.getOrElse { error ->
+            Log.w(TAG, "ouverture impossible depuis ${link.address} — $error")
+            failLink(link)
+            null
+        }
+    }
+
     private fun failHandshake(link: Link) {
         link.noise?.destroy()
         link.noise = null
@@ -718,7 +777,8 @@ class BleChatProbe(context: Context) {
     }
 
     private suspend fun runTransferInner(link: Link, out: Outgoing) {
-        val att = ChatFrames.attPayload(link.mtu)
+        // budget d'une trame ordinaire, scellement Noise déjà déduit
+        val att = ChatFrames.framePayload(link.mtu)
         val start = ChatFrames.encodeStart(
             ChatFrame.Start(out.msgId, out.kind, out.content.size, ChatFrames.crc32(out.content), out.name, out.mime),
             att,
@@ -851,7 +911,8 @@ class BleChatProbe(context: Context) {
      * l'aveugle (elle a pu partir : le récepteur verrait un doublon) — seule
      * la pile occupée (écriture non démarrée) se retente, avec repli.
      */
-    private suspend fun writeFrame(link: Link, frame: ByteArray, withResponse: Boolean = false): Boolean {
+    private suspend fun writeFrame(link: Link, plain: ByteArray, withResponse: Boolean = false): Boolean {
+        val frame = seal(link, plain) ?: return false
         val deadline = SystemClock.elapsedRealtime() + BUSY_DEADLINE_MS
         var attempt = 0
         while (true) {
@@ -948,6 +1009,22 @@ class BleChatProbe(context: Context) {
         when (val frame = ChatFrames.decode(bytes)) {
             null -> Log.w(TAG, "trame illisible de $from (${bytes.size} o)")
             is ChatFrame.Handshake -> onHandshakeFrame(kind, from, frame)
+            is ChatFrame.Sealed -> {
+                val link = links[key(kind, from)]
+                if (link == null) Log.w(TAG, "trame scellée d'un lien inconnu : $from")
+                else unseal(link, frame)?.let { handlePlainFrame(kind, from, it) }
+            }
+            else -> handlePlainFrame(kind, from, bytes)
+        }
+    }
+
+    /** Fil protocole. Une trame en clair, scellée à l'origine ou non. */
+    private fun handlePlainFrame(kind: LinkKind, from: String, bytes: ByteArray) {
+        when (val frame = ChatFrames.decode(bytes)) {
+            null -> Log.w(TAG, "trame illisible de $from (${bytes.size} o)")
+            // une trame ouverte ne peut pas en contenir une autre
+            is ChatFrame.Sealed, is ChatFrame.Handshake ->
+                Log.w(TAG, "trame ${frame::class.simpleName} imbriquée de $from : ignorée")
             is ChatFrame.Ack -> onAck(frame)
             else -> when (val event = reassembler.onFrame(from, frame)) {
                 is Reassembler.Event.Started -> onIncomingStarted(event)

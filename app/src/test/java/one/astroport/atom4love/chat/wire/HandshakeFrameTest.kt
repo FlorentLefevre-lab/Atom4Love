@@ -3,6 +3,7 @@ package one.astroport.atom4love.chat.wire
 import one.astroport.atom4love.noise.NoiseSession
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -82,6 +83,52 @@ class HandshakeFrameTest {
             "le premier message XX dépasse l'ATT plancher",
             messages[0].size + ChatFrames.HANDSHAKE_HEADER > floor,
         )
+    }
+
+    @Test
+    fun `une trame de handshake se reconnait pour ne jamais etre scellee`() {
+        val hello = ChatFrames.encodeHandshake(3, ByteArray(64), att)!!
+        assertTrue(ChatFrames.isHandshake(hello))
+        // tout le reste doit être scellable
+        assertFalse(ChatFrames.isHandshake(ChatFrames.encodeAck(1, 0)))
+        assertFalse(ChatFrames.isHandshake(ChatFrames.encodeData(1, 0, ByteArray(8), 0, 8)))
+        assertFalse(ChatFrames.isHandshake(ByteArray(0)))
+    }
+
+    @Test
+    fun `une trame scellee fait l'aller-retour`() {
+        val initiator = NoiseSession.initiator(ByteArray(32) { 1 })
+        val responder = NoiseSession.responder(ByteArray(32) { 2 })
+        responder.readHandshake(initiator.writeHandshake())
+        initiator.readHandshake(responder.writeHandshake())
+        responder.readHandshake(initiator.writeHandshake())
+
+        val inner = ChatFrames.encodeAck(0x1234, ChatFrames.ACK_OK)
+        val sealed = ChatFrames.encodeSealed(initiator.encrypt(inner))
+        assertTrue(sealed.size <= att)
+
+        val frame = ChatFrames.decode(sealed) as ChatFrame.Sealed
+        val opened = responder.decrypt(frame.ciphertext)
+        val ack = ChatFrames.decode(opened) as ChatFrame.Ack
+        assertEquals(0x1234, ack.msgId)
+        assertEquals(ChatFrames.ACK_OK, ack.status)
+    }
+
+    @Test
+    fun `le budget d'une trame reserve toujours le scellement`() {
+        val att517 = ChatFrames.attPayload(517)
+        assertEquals(att517 - ChatFrames.SEAL_OVERHEAD, ChatFrames.framePayload(517))
+        // un fragment scellé doit tenir dans l'écriture ATT
+        val chunk = ChatFrames.dataChunk(517)
+        val data = ChatFrames.encodeData(1, 0, ByteArray(chunk), 0, chunk)
+        assertEquals(att517, data.size + ChatFrames.SEAL_OVERHEAD)
+    }
+
+    @Test
+    fun `un chiffre tronque est ignore plutot que de faire planter`() {
+        assertNull(ChatFrames.decode(byteArrayOf(0x05)))
+        assertNull(ChatFrames.decode(ByteArray(16) { if (it == 0) 0x05 else 0 }))
+        assertNotNull(ChatFrames.decode(ByteArray(18) { if (it == 0) 0x05 else 0 }))
     }
 
     @Test
