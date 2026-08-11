@@ -240,8 +240,31 @@ class BleChatEngine(context: Context) {
         val scanning: Boolean = false,
         /** Liens utilisables (clients prêts à écrire + centraux abonnés). */
         val links: Int = 0,
+        /**
+         * Liens prêts dont le pair n'a pas signé d'attestation — il n'a pas de
+         * noyau incarné. Compté ici parce qu'une personne attestée tient
+         * souvent deux liens : `links - peers.size` mentirait.
+         */
+        val unattestedLinks: Int = 0,
         val lastError: String? = null,
     )
+
+    /**
+     * Un noyau présent dans la cabine, identifié par l'attestation qu'il a
+     * signée pendant le handshake — pas par son adresse radio, qui tourne.
+     *
+     * Une même personne tient souvent DEUX liens avec nous (le sien vers nous,
+     * le nôtre vers elle) : c'est le npub qui les réunit en une seule présence.
+     */
+    data class Peer(val nostrKey: ByteArray, val npub: String) {
+        /** `npub1u9v…eqx2` — de quoi reconnaître sans étaler la clé. */
+        val short: String get() = "${npub.take(8)}…${npub.takeLast(4)}"
+
+        override fun equals(other: Any?) =
+            this === other || (other is Peer && nostrKey.contentEquals(other.nostrKey))
+
+        override fun hashCode() = nostrKey.contentHashCode()
+    }
 
     private val appContext = context.applicationContext
     private val manager =
@@ -250,6 +273,10 @@ class BleChatEngine(context: Context) {
 
     private val _status = MutableStateFlow(Status())
     val status: StateFlow<Status> = _status.asStateFlow()
+
+    /** Qui est là, une entrée par noyau attesté — jamais par lien. */
+    private val _peers = MutableStateFlow<List<Peer>>(emptyList())
+    val peers: StateFlow<List<Peer>> = _peers.asStateFlow()
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
@@ -770,6 +797,9 @@ class BleChatEngine(context: Context) {
         link.peerNostrKey = attested
         val npub = Bech32.encode("npub", attested)
         Log.i(TAG, "pair attesté sur ${link.address} : ${npub.take(12)}…${npub.takeLast(4)}")
+        // l'attestation arrive APRÈS que le lien soit prêt : sans ça, la
+        // présence n'apparaîtrait jamais dans la cabine
+        refreshLinks()
     }
 
     private fun onHandshakeDone(link: Link, session: NoiseSession) {
@@ -1602,6 +1632,19 @@ class BleChatEngine(context: Context) {
     }
 
     private fun refreshLinks() {
-        _status.update { status -> status.copy(links = links.values.count { it.ready }) }
+        val ready = links.values.filter { it.ready }
+        _status.update { status ->
+            status.copy(
+                links = ready.size,
+                unattestedLinks = ready.count { it.peerNostrKey == null },
+            )
+        }
+        // dédoublonné par npub : les deux liens croisés d'une même personne ne
+        // font qu'une présence, et une adresse radio qui tourne n'en crée pas
+        // une nouvelle
+        _peers.value = ready
+            .mapNotNull { it.peerNostrKey }
+            .map { Peer(it, Bech32.encode("npub", it)) }
+            .distinctBy { it.npub }
     }
 }

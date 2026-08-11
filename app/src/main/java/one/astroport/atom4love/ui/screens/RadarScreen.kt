@@ -700,21 +700,56 @@ private fun CabinDirectPanel(chat: BleChatEngine) {
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        val peers by chat.peers.collectAsStateWithLifecycle()
         Text(
             buildString {
-                append(if (status.links > 0) "${status.links} lien(s) ✓" else "personne à portée")
+                when {
+                    peers.isNotEmpty() -> append("${peers.size} ici")
+                    // un pair sans noyau incarné n'a rien à attester : il est
+                    // bien là, mais il n'y a pas d'identité à montrer
+                    status.links > 0 -> append("quelqu'un est là, sans identité déclarée")
+                    else -> append("personne à portée")
+                }
                 status.lastError?.let { append("  ·  $it") }
             },
             style = A4LText.Caption,
             color = if (status.links > 0) A4L.Mint else A4L.TextMuted,
         )
+        peers.forEach { peer ->
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StatusDot(A4L.Mint)
+                Spacer(Modifier.width(8.dp))
+                Text(peer.short, style = A4LText.Data, color = A4L.TextHigh)
+            }
+        }
+        // un lien vivant sans attestation : le pair n'a pas de noyau incarné,
+        // donc rien à afficher de lui — mais il est bien là, et le taire
+        // laisserait croire qu'on est seul
+        if (status.unattestedLinks > 0 && peers.isNotEmpty()) {
+            Text(
+                "et ${status.unattestedLinks} lien(s) sans identité déclarée",
+                style = A4LText.Caption,
+                color = A4L.TextMuted,
+            )
+        }
         ChatPanel(
             messages = messages,
             canSend = status.links > 0,
             placeholder = "ici, chiffré…",
-            emptyHint = "Personne à portée pour l'instant. La cabine trouve seule " +
-                "les noyaux proches dont la cabine est ouverte. Rien de ce qui se dit " +
-                "ici ne part sur un relais, et tout s'efface en fermant.",
+            // le vide n'a pas le même sens selon qu'on est seul ou pas : dire
+            // « personne à portée » alors que quelqu'un est là se contredirait
+            // avec la présence affichée juste au-dessus
+            emptyHint = if (status.links > 0) {
+                "Personne n'a encore rien dit. Ce qui se dira ici ne partira sur " +
+                    "aucun relais, et s'effacera en fermant la cabine."
+            } else {
+                "Personne à portée pour l'instant. La cabine trouve seule les noyaux " +
+                    "proches dont la cabine est ouverte. Rien de ce qui se dit ici ne " +
+                    "part sur un relais, et tout s'efface en fermant."
+            },
             onSendText = { text -> chat.sendText(text) },
             onSendImage = { uri -> chat.sendImage(uri) },
             onSendFile = { uri -> chat.sendFile(uri) },
