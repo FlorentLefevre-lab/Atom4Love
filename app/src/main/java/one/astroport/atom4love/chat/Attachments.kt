@@ -1,5 +1,6 @@
 package one.astroport.atom4love.chat
 
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -7,6 +8,7 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
+import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
 import java.io.ByteArrayOutputStream
@@ -70,6 +72,27 @@ object Attachments {
         val file = File(dir, "${System.currentTimeMillis().toString(36)}-$safe")
         file.writeBytes(bytes)
         return file
+    }
+
+    /**
+     * Copie une pièce reçue vers Téléchargements (MediaStore, API 29+) pour
+     * la sortir du stockage privé de l'appli. false si échec ou API < 29.
+     */
+    fun saveToDownloads(context: Context, file: File, name: String, mime: String): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+        return runCatching {
+            val resolver = context.contentResolver
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, name.ifBlank { file.name })
+                put(MediaStore.Downloads.MIME_TYPE, mime.ifBlank { "application/octet-stream" })
+            }
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: return false
+            resolver.openOutputStream(uri)?.use { output ->
+                file.inputStream().use { it.copyTo(output) }
+            } ?: return false
+            true
+        }.getOrDefault(false)
     }
 
     /** Ouverture par la visionneuse système, via FileProvider. */

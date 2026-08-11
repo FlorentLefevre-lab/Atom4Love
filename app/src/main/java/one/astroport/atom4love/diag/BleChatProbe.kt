@@ -129,8 +129,8 @@ class BleChatProbe(context: Context) {
          * Le dernier fragment acquitté garantit aussi qu'« émis » = intégralement
          * remis à la pile d'en face (fin des queues de transfert perdues).
          */
-        private const val ACK_WINDOW = 16
-        private const val NOTIFY_WINDOW_PAUSE_MS = 15L
+        private const val ACK_WINDOW = 32
+        private const val NOTIFY_WINDOW_PAUSE_MS = 8L
 
         /**
          * Délais de grâce avant de retenter une connexion sortante — sans
@@ -248,6 +248,9 @@ class BleChatProbe(context: Context) {
     private var activeOutgoing = 0
     private var lastConnectMs = 0L
 
+    /** Scan et annonce suspendus pendant un transfert — l'antenne au débit. */
+    private var radioPaused = false
+
     private fun key(kind: LinkKind, address: String) =
         if (kind == LinkKind.CLIENT) "c:$address" else "s:$address"
 
@@ -267,6 +270,7 @@ class BleChatProbe(context: Context) {
                     progressPct.remove(failed.msgId)
                     updateMessage(failed.msgId) { it.copy(status = ChatStatus.FAILED) }
                 }
+                maybeResumeRadio()
             }
         }
     }
@@ -479,11 +483,39 @@ class BleChatProbe(context: Context) {
 
     private suspend fun runTransfer(link: Link, out: Outgoing) {
         activeOutgoing++
+        pauseRadioForTransfer()
+        // certains empilements relâchent la priorité au fil du temps :
+        // on la redemande au début de chaque transfert
+        runCatching {
+            link.gatt?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+        }
         try {
             runTransferInner(link, out)
         } finally {
             activeOutgoing--
+            maybeResumeRadio()
         }
+    }
+
+    /** Fil protocole. Coupe scan + annonce le temps des transferts. */
+    private fun pauseRadioForTransfer() {
+        if (radioPaused) return
+        radioPaused = true
+        runCatching { scanCallback?.let { adapter?.bluetoothLeScanner?.stopScan(it) } }
+        runCatching { advertiseCallback?.let { adapter?.bluetoothLeAdvertiser?.stopAdvertising(it) } }
+        scanCallback = null
+        advertiseCallback = null
+        Log.i(TAG, "radio en pause : transfert en cours")
+    }
+
+    /** Fil protocole. Relance scan + annonce quand plus rien ne transite. */
+    private fun maybeResumeRadio() {
+        if (!radioPaused) return
+        if (activeOutgoing > 0 || reassembler.activeStreams() > 0) return
+        radioPaused = false
+        startAdvertising()
+        startScan()
+        Log.i(TAG, "radio relancée : transferts terminés")
     }
 
     private suspend fun runTransferInner(link: Link, out: Outgoing) {
@@ -670,6 +702,7 @@ class BleChatProbe(context: Context) {
     private fun onIncomingStarted(event: Reassembler.Event.Started) {
         val start = event.start
         Log.i(TAG, "réception de ${start.totalBytes} o (genre ${start.kind}) depuis ${event.from}")
+        pauseRadioForTransfer()
         addMessage(
             ChatMessage(
                 id = start.msgId, mine = false, from = event.from.takeLast(5),
@@ -704,6 +737,7 @@ class BleChatProbe(context: Context) {
         Log.i(TAG, "message ${start.msgId} reçu au complet (${event.bytes.size} o)")
         _chimes.tryEmit(Chime.RECEIVED)
         broadcastControl(ChatFrames.encodeAck(start.msgId, ChatFrames.ACK_OK))
+        maybeResumeRadio()
     }
 
     private fun onIncomingFailed(event: Reassembler.Event.Failed) {
@@ -711,6 +745,7 @@ class BleChatProbe(context: Context) {
         progressPct.remove(event.msgId)
         updateMessage(event.msgId) { it.copy(status = ChatStatus.FAILED) }
         event.ackStatus?.let { broadcastControl(ChatFrames.encodeAck(event.msgId, it)) }
+        maybeResumeRadio()
     }
 
     private fun onAck(ack: ChatFrame.Ack) {

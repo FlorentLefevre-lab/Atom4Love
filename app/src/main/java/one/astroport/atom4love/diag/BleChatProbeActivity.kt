@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -131,6 +132,16 @@ private fun BleChatScreen(probe: BleChatProbe) {
                     runCatching {
                         context.startActivity(Attachments.viewIntent(context, file, message.mime))
                     }
+                }
+            },
+            onDownload = { message ->
+                message.file?.let { file ->
+                    val ok = Attachments.saveToDownloads(context, file, message.name, message.mime)
+                    Toast.makeText(
+                        context,
+                        if (ok) "Enregistré dans Téléchargements" else "Échec de l'enregistrement",
+                        Toast.LENGTH_SHORT,
+                    ).show()
                 }
             },
             modifier = Modifier.weight(1f),

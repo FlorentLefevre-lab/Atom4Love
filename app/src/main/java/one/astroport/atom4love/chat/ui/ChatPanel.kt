@@ -1,5 +1,6 @@
 package one.astroport.atom4love.chat.ui
 
+import android.media.MediaPlayer
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -24,6 +25,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +71,7 @@ fun ChatPanel(
     onSendImage: (Uri) -> Unit,
     onSendFile: (Uri) -> Unit,
     onOpen: (ChatMessage) -> Unit,
+    onDownload: (ChatMessage) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var draft by rememberSaveable { mutableStateOf("") }
@@ -97,7 +100,7 @@ fun ChatPanel(
             if (messages.isEmpty()) {
                 item { Text(emptyHint, style = A4LText.Caption, color = A4L.TextMuted) }
             }
-            items(messages) { message -> MessageBubble(message, onOpen) }
+            items(messages) { message -> MessageBubble(message, onOpen, onDownload) }
         }
 
         if (emojiOpen) {
@@ -144,7 +147,11 @@ fun ChatPanel(
 private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
 @Composable
-private fun MessageBubble(message: ChatMessage, onOpen: (ChatMessage) -> Unit) {
+private fun MessageBubble(
+    message: ChatMessage,
+    onOpen: (ChatMessage) -> Unit,
+    onDownload: (ChatMessage) -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = if (message.mine) Arrangement.End else Arrangement.Start,
@@ -165,10 +172,27 @@ private fun MessageBubble(message: ChatMessage, onOpen: (ChatMessage) -> Unit) {
                 style = A4LText.Data,
                 color = if (message.mine) A4L.Mint else A4L.TextDim,
             )
-            when (message.kind) {
-                ChatKind.TEXT -> Text(message.text, style = A4LText.Body, color = A4L.TextHigh)
-                ChatKind.IMAGE -> ImageContent(message, onOpen)
-                ChatKind.FILE -> FileContent(message, onOpen)
+            // l'affichage suit le contenu réel (mime), pas le bouton utilisé
+            // pour l'envoyer : une photo envoyée « en fichier » reste une photo
+            when {
+                message.kind == ChatKind.TEXT ->
+                    Text(message.text, style = A4LText.Body, color = A4L.TextHigh)
+                message.kind == ChatKind.IMAGE || message.mime.startsWith("image/") ->
+                    ImageContent(message, onOpen)
+                message.mime.startsWith("audio/") && message.file != null ->
+                    AudioContent(message)
+                else -> FileContent(message, onOpen)
+            }
+            if (message.kind != ChatKind.TEXT && message.file != null) {
+                Text(
+                    "⬇ enregistrer",
+                    style = A4LText.Caption,
+                    color = A4L.Mint.tint(0.8f),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { onDownload(message) }
+                        .padding(vertical = 2.dp),
+                )
             }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -256,6 +280,61 @@ private fun FileContent(message: ChatMessage, onOpen: (ChatMessage) -> Unit) {
             if (message.status == ChatStatus.SENDING || message.status == ChatStatus.RECEIVING) {
                 TransferBar(message.progress)
             }
+        }
+    }
+}
+
+/** Mini-lecteur pour les pièces audio — un MediaPlayer par bulle visible. */
+@Composable
+private fun AudioContent(message: ChatMessage) {
+    val file = message.file ?: return
+    var playing by remember { mutableStateOf(false) }
+    var prepared by remember { mutableStateOf(false) }
+    val player = remember { MediaPlayer() }
+    DisposableEffect(Unit) {
+        onDispose { runCatching { player.release() } }
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            if (playing) "⏸" else "▶",
+            fontSize = 24.sp,
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable {
+                    runCatching {
+                        if (playing) {
+                            player.pause()
+                            playing = false
+                        } else {
+                            if (!prepared) {
+                                player.setDataSource(file.path)
+                                player.prepare()
+                                player.setOnCompletionListener { playing = false }
+                                prepared = true
+                            }
+                            player.start()
+                            playing = true
+                        }
+                    }
+                }
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                message.name.ifBlank { "audio" },
+                style = A4LText.ItemTitle,
+                color = A4L.TextHigh,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                Attachments.humanSize(message.sizeBytes),
+                style = A4LText.Caption,
+                color = A4L.TextMuted,
+            )
         }
     }
 }
