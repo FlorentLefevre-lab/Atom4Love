@@ -88,13 +88,30 @@
             android:label="Sonde Wi-Fi (POC)"
             android:theme="@style/Theme.Atom4Love" />
 
-        <!-- POC : causerie texte en BLE pur (GATT), en clair — socle du futur Noise.
+        <!-- POC : causerie en BLE pur (GATT), en clair — socle du futur Noise.
+             Texte, images et fichiers fragmentés (chat/wire).
              Lancement : adb shell am start -n <applicationId>/one.astroport.atom4love.diag.BleChatProbeActivity -->
+        <!-- configChanges : la sonde vit dans l'activité (pas de ViewModel en
+             diag) — une rotation la détruirait : liens coupés, causerie effacée. -->
         <activity
             android:name=".diag.BleChatProbeActivity"
             android:exported="true"
             android:label="Causerie BLE (POC)"
-            android:theme="@style/Theme.Atom4Love" />
+            android:theme="@style/Theme.Atom4Love"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|fontScale|density"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Ouvre les pièces jointes reçues (files/chat/) dans la visionneuse
+             système sans exposer le stockage interne. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pièces jointes de la causerie (copies locales dans files/chat/),
+     exposées à la visionneuse système via FileProvider. -->
+<paths>
+    <files-path name="chat" path="chat/" />
+</paths>
