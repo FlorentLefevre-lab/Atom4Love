@@ -133,6 +133,49 @@ class BleChatProbe(context: Context) {
         private const val NOTIFY_WINDOW_PAUSE_MS = 8L
 
         /**
+         * Le débit est entièrement dicté par l'intervalle de connexion, qu'aucune
+         * API Android n'expose. Journal HCI du 2026-08-11 : DLE et MTU sont bien
+         * négociés (251 o, 517), mais on dépense ~1,4 intervalle par fragment —
+         * écriture puis attente du callback, un seul fragment en vol. D'où
+         * 62 ms/fragment à 48,75 ms d'intervalle contre 22 ms à 15 ms, soit
+         * 8 Ko/s contre 23 Ko/s pour le même code. Une `latence` de 1 autorise
+         * en plus le pair à sauter un événement sur deux.
+         *
+         * Rien de tout cela n'est pilotable : requestConnectionPriority ne
+         * produit aucune mise à jour de paramètres quand la pile se croit déjà
+         * en HIGH — y compris en rebondissant par BALANCED pour l'y forcer,
+         * essayé sans le moindre gain. Le seul vrai levier serait de mettre
+         * plusieurs fragments en vol, ce qui écroule le serveur GATT de la
+         * tablette (voir [ACK_WINDOW]). On se contente donc de constater.
+         *
+         * Repère : à 15 ms et latence 0 on tourne autour de 20 ms/fragment ;
+         * à latence 1 on mesure ~32 ms.
+         */
+        private const val SLOW_FRAGMENT_MS = 25L
+        private const val PRIORITY_RETRY_AT_FRAGMENT = 64
+
+        /**
+         * Délai d'accusé sur le chemin notification. Une écriture confirme sa
+         * remise à la pile d'en face, pas une notification : elle part sans
+         * contrôle de flux ni signal d'échec. Banc du 2026-08-11 — 550 Ko en
+         * 1093 fragments évanouis sans qu'une seule trame arrive en face,
+         * l'émetteur rapportant un succès. Faute de retour, seul l'ACK de bout
+         * en bout prouve la remise ; sans lui le message est perdu.
+         *
+         * Le délai suit la taille : un forfait fixe ne peut pas marcher quand
+         * l'attente légitime va de 11 s pour 120 Ko à 63 s pour 550 Ko. Un
+         * plancher de 4 Ko/s laisse de la marge sous les 8,7 Ko/s les plus
+         * lents mesurés au banc. Mieux vaut un échec tardif qu'un faux échec —
+         * essayé à 20 s fixes le 2026-08-11 : le message basculait en échec
+         * 25 s avant que son accusé n'arrive.
+         */
+        private const val ACK_WAIT_BASE_MS = 15_000L
+        private const val ACK_WAIT_FLOOR_BPS = 4_000L
+
+        private fun ackWaitMs(bytes: Int): Long =
+            ACK_WAIT_BASE_MS + bytes * 1000L / ACK_WAIT_FLOOR_BPS
+
+        /**
          * Délais de grâce avant de retenter une connexion sortante — sans
          * eux, un annonceur FFF1 du voisinage qui refuse la connexion
          * (status 133) déclenche une tempête connexion/échec à ~0,5 Hz
@@ -240,6 +283,19 @@ class BleChatProbe(context: Context) {
 
     /** Dernier pourcentage publié par transfert — étrangle les recompositions. */
     private val progressPct = HashMap<Int, Int>()
+
+    /**
+     * Départ et taille des messages sortants, pour chiffrer le débit à
+     * l'arrivée de l'accusé. C'est la seule mesure honnête sur le chemin
+     * notification : là, writeFrame ne fait qu'empiler dans la pile
+     * Bluetooth, qui draine ensuite à son rythme — mesuré au banc le
+     * 2026-08-11, 240 notifications « émises » en 417 ms pour ~2,4 s de
+     * transmission réelle.
+     */
+    private val sentAtMs = HashMap<Int, Pair<Long, Int>>()
+
+    /** Guetteurs d'ACK armés sur le chemin notification — voir [ACK_WAIT_MS]. */
+    private val ackWatchdogs = HashMap<Int, Job>()
 
     /** Adresse → horodatage (elapsedRealtime) avant lequel on ne retente pas. */
     private val retryAfterMs = LinkedHashMap<String, Long>()
@@ -434,8 +490,17 @@ class BleChatProbe(context: Context) {
         // rafales parallèles sur les connexions croisées de la même paire
         // tuent la radio en ~20 s (banc 2026-08-11 : le seul transfert qui a
         // tenu 134 s roulait sur un lien unique), et le récepteur ignore de
-        // toute façon le flux jumeau. Préférence : lien client le plus
-        // récent (écritures acquittées, plus probablement vivant).
+        // toute façon le flux jumeau.
+        //
+        // Préférence : lien CLIENT le plus récent — ses écritures sont
+        // acquittées, donc il est plus probablement vivant. Préférer le lien
+        // serveur a été essayé au banc le 2026-08-11 pour gagner en débit
+        // (la notification n'attend aucun retour du pair) et rejeté : sur
+        // 1093 fragments, 550 Ko ont disparu en silence — aucune trame reçue
+        // en face — pendant que l'émetteur rapportait un succès. La file de
+        // notifications n'a ni contrôle de flux ni signal d'échec. Le gain
+        // n'était d'ailleurs pas au rendez-vous : 16 Ko/s de bout en bout,
+        // dans la fourchette de l'écriture.
         val targets = if (kind == ChatFrames.KIND_TEXT) {
             perAddress.values.toList()
         } else {
@@ -486,15 +551,22 @@ class BleChatProbe(context: Context) {
         pauseRadioForTransfer()
         // certains empilements relâchent la priorité au fil du temps :
         // on la redemande au début de chaque transfert
-        runCatching {
-            link.gatt?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
-        }
+        if (out.primary) sentAtMs[out.msgId] = SystemClock.elapsedRealtime() to out.content.size
+        requestHighPriority(link)
         try {
             runTransferInner(link, out)
         } finally {
             activeOutgoing--
             maybeResumeRadio()
         }
+    }
+
+    /**
+     * Demande l'intervalle court. Réservé au rôle client : côté serveur GATT,
+     * Android n'offre aucun moyen de peser sur les paramètres du lien.
+     */
+    private fun requestHighPriority(link: Link) {
+        runCatching { link.gatt?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH) }
     }
 
     /** Fil protocole. Coupe scan + annonce le temps des transferts. */
@@ -530,6 +602,8 @@ class BleChatProbe(context: Context) {
             return
         }
         val chunk = ChatFrames.dataChunk(link.mtu).coerceAtLeast(1)
+        val startedAt = SystemClock.elapsedRealtime()
+        var priorityRetried = false
         var offset = 0
         var index = 0
         while (offset < out.content.size) {
@@ -551,6 +625,18 @@ class BleChatProbe(context: Context) {
             if (windowEdge && link.kind == LinkKind.SERVER) delay(NOTIFY_WINDOW_PAUSE_MS)
             offset = end
             index++
+            // l'intervalle de connexion n'est pas lisible : on l'observe par le
+            // temps passé par fragment, seul reflet dont on dispose
+            if (!priorityRetried && index == PRIORITY_RETRY_AT_FRAGMENT) {
+                priorityRetried = true
+                val perFragment = (SystemClock.elapsedRealtime() - startedAt) / index
+                if (perFragment > SLOW_FRAGMENT_MS) {
+                    // constat seul : reposer la priorité ne sert à rien ici —
+                    // essayé au banc, y compris en rebondissant par BALANCED
+                    // pour forcer une mise à jour, sans le moindre gain
+                    Log.w(TAG, "lien lent ($perFragment ms/fragment)")
+                }
+            }
             if (out.primary) publishProgress(out.msgId, offset, out.content.size)
         }
         if (out.primary) {
@@ -560,14 +646,57 @@ class BleChatProbe(context: Context) {
                 if (it.status == ChatStatus.SENDING) it.copy(status = ChatStatus.SENT, progress = 1f)
                 else it.copy(progress = 1f)
             }
+            // ✓ vaut promesse de remise sur le chemin écriture seulement :
+            // côté notification, il faut l'ACK pour savoir, ou l'échec
+            if (link.kind == LinkKind.SERVER) {
+                armAckWatchdog(out.msgId, link.address, out.content.size)
+            }
         }
-        Log.i(TAG, "message ${out.msgId} émis (${out.content.size} o, $index fragment(s)) vers ${link.address}")
+        // ms/fragment journalisés : sans eux, un lien resté à 48 ms ressemble à
+        // un lien à 15 ms, en trois fois plus lent. Le chemin notification, lui,
+        // ne fait qu'empiler : son vrai débit se lit à l'accusé, pas ici.
+        val elapsed = (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(1)
+        val verb = if (link.kind == LinkKind.CLIENT) "émis" else "remis à la pile"
+        Log.i(
+            TAG,
+            "message ${out.msgId} $verb (${out.content.size} o, $index fragment(s)) " +
+                "vers ${link.address} — $elapsed ms, ${elapsed / maxOf(index, 1)} ms/fragment",
+        )
+    }
+
+    /**
+     * Fil protocole. Bascule le message en échec si aucun ACK ne revient : sur
+     * notification, c'est le seul aveu de perte qu'on puisse obtenir.
+     */
+    private fun armAckWatchdog(msgId: Int, address: String, bytes: Int) {
+        ackWatchdogs.remove(msgId)?.cancel()
+        val wait = ackWaitMs(bytes)
+        ackWatchdogs[msgId] = scope.launch {
+            delay(wait)
+            ackWatchdogs.remove(msgId)
+            sentAtMs.remove(msgId)
+            var lost = false
+            updateMessage(msgId) { message ->
+                // un ACK déjà arrivé a posé ✓✓ : plus rien à guetter
+                if (message.status != ChatStatus.SENT) message
+                else {
+                    lost = true
+                    message.copy(status = ChatStatus.FAILED)
+                }
+            }
+            if (lost) {
+                Log.w(TAG, "message $msgId sans accusé après ${wait / 1000} s : perdu")
+                _status.update { it.copy(lastError = "sans accusé de ${address.takeLast(5)}") }
+            }
+        }
     }
 
     private fun onTransferFailed(link: Link, out: Outgoing) {
         Log.w(TAG, "échec d'émission de ${out.msgId} vers ${link.address}")
         if (out.primary) {
             progressPct.remove(out.msgId)
+            sentAtMs.remove(out.msgId)
+            ackWatchdogs.remove(out.msgId)?.cancel()
             updateMessage(out.msgId) { it.copy(status = ChatStatus.FAILED) }
             _status.update { it.copy(lastError = "échec d'envoi vers ${link.address.takeLast(5)}") }
         }
@@ -749,10 +878,23 @@ class BleChatProbe(context: Context) {
     }
 
     private fun onAck(ack: ChatFrame.Ack) {
-        Log.i(TAG, "acquittement ${ack.msgId} statut ${ack.status}")
+        ackWatchdogs.remove(ack.msgId)?.cancel()
+        val sent = sentAtMs.remove(ack.msgId)
+        if (sent != null) {
+            val elapsed = (SystemClock.elapsedRealtime() - sent.first).coerceAtLeast(1)
+            Log.i(
+                TAG,
+                "acquittement ${ack.msgId} statut ${ack.status} — bout en bout $elapsed ms, " +
+                    "${sent.second / elapsed} Ko/s",
+            )
+        } else {
+            Log.i(TAG, "acquittement ${ack.msgId} statut ${ack.status}")
+        }
         updateMessage(ack.msgId) { message ->
             when {
                 !message.mine -> message
+                // un accusé prouve la remise quand qu'il arrive : il relève un
+                // message que le guetteur avait déjà donné pour perdu
                 ack.status == ChatFrames.ACK_OK ->
                     message.copy(status = ChatStatus.DELIVERED, progress = 1f)
                 else -> message.copy(status = ChatStatus.FAILED)
