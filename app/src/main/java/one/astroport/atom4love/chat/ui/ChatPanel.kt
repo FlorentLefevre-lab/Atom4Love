@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,6 +86,11 @@ fun ChatPanel(
         ActivityResultContracts.GetContent(),
     ) { uri -> uri?.let(onSendFile) }
 
+    // possédé par le panneau, pas par la bulle : celle-ci est oubliée dès
+    // qu'elle sort de l'écran, ce qui couperait le son en plein défilement
+    val audio = remember { AudioPlayback() }
+    DisposableEffect(Unit) { onDispose { audio.release() } }
+
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
     }
@@ -100,7 +106,7 @@ fun ChatPanel(
             if (messages.isEmpty()) {
                 item { Text(emptyHint, style = A4LText.Caption, color = A4L.TextMuted) }
             }
-            items(messages) { message -> MessageBubble(message, onOpen, onDownload) }
+            items(messages) { message -> MessageBubble(message, onOpen, onDownload, audio) }
         }
 
         if (emojiOpen) {
@@ -151,6 +157,7 @@ private fun MessageBubble(
     message: ChatMessage,
     onOpen: (ChatMessage) -> Unit,
     onDownload: (ChatMessage) -> Unit,
+    audio: AudioPlayback,
 ) {
     Row(
         Modifier.fillMaxWidth(),
@@ -180,7 +187,7 @@ private fun MessageBubble(
                 message.kind == ChatKind.IMAGE || message.mime.startsWith("image/") ->
                     ImageContent(message, onOpen)
                 message.mime.startsWith("audio/") && message.file != null ->
-                    AudioContent(message)
+                    AudioContent(message, audio)
                 else -> FileContent(message, onOpen)
             }
             if (message.kind != ChatKind.TEXT && message.file != null) {
@@ -284,16 +291,59 @@ private fun FileContent(message: ChatMessage, onOpen: (ChatMessage) -> Unit) {
     }
 }
 
-/** Mini-lecteur pour les pièces audio — un MediaPlayer par bulle visible. */
-@Composable
-private fun AudioContent(message: ChatMessage) {
-    val file = message.file ?: return
-    var playing by remember { mutableStateOf(false) }
-    var prepared by remember { mutableStateOf(false) }
-    val player = remember { MediaPlayer() }
-    DisposableEffect(Unit) {
-        onDispose { runCatching { player.release() } }
+/**
+ * Un seul lecteur pour tout le panneau : deux pièces audio ne doivent jamais
+ * jouer ensemble, et le lecteur survit au recyclage des bulles par la liste.
+ */
+@Stable
+private class AudioPlayback {
+    private var player: MediaPlayer? = null
+    private var loaded: String? = null
+
+    /** Chemin en cours de lecture, null si rien ne joue. */
+    var playing by mutableStateOf<String?>(null)
+        private set
+
+    /** Bascule lecture/pause ; démarrer une autre pièce arrête la première. */
+    fun toggle(path: String) {
+        if (playing == path) {
+            runCatching { player?.pause() }
+            playing = null
+            return
+        }
+        if (loaded != path) {
+            release()
+            val fresh = MediaPlayer()
+            val ready = runCatching {
+                fresh.setDataSource(path)
+                fresh.setOnCompletionListener { playing = null }
+                fresh.prepare()
+            }.isSuccess
+            if (!ready) {
+                runCatching { fresh.release() }
+                return
+            }
+            player = fresh
+            loaded = path
+        }
+        // même pièce déjà chargée : simple reprise après pause ou fin
+        runCatching { player?.start() }
+        playing = path
     }
+
+    fun release() {
+        runCatching { player?.release() }
+        player = null
+        loaded = null
+        playing = null
+    }
+}
+
+/** Mini-lecteur pour les pièces audio, adossé au lecteur unique du panneau. */
+@Composable
+private fun AudioContent(message: ChatMessage, audio: AudioPlayback) {
+    val file = message.file ?: return
+    val playing = audio.playing == file.path
     Row(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -303,23 +353,7 @@ private fun AudioContent(message: ChatMessage) {
             fontSize = 24.sp,
             modifier = Modifier
                 .clip(RoundedCornerShape(10.dp))
-                .clickable {
-                    runCatching {
-                        if (playing) {
-                            player.pause()
-                            playing = false
-                        } else {
-                            if (!prepared) {
-                                player.setDataSource(file.path)
-                                player.prepare()
-                                player.setOnCompletionListener { playing = false }
-                                prepared = true
-                            }
-                            player.start()
-                            playing = true
-                        }
-                    }
-                }
+                .clickable { audio.toggle(file.path) }
                 .padding(horizontal = 6.dp, vertical = 4.dp),
         )
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
