@@ -1,5 +1,7 @@
 package one.astroport.atom4love.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -47,6 +49,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.chat.CabinChat
 import one.astroport.atom4love.chat.Medium
+import one.astroport.atom4love.chat.net.P2pGroup
 import one.astroport.atom4love.data.IncarnationStore
 import one.astroport.atom4love.data.SavedIncarnation
 import one.astroport.atom4love.domain.BirthData
@@ -188,6 +191,21 @@ private fun Station(
         cabinOpen = false
         cabinSession++
     }
+    // Le Wi-Fi Direct est le seul médium qui demande une permission de plus.
+    // Elle se demande ICI, au moment d'accepter la montée — pas à l'ouverture
+    // de la cabine : parler à portée n'a jamais eu besoin de fabriquer un
+    // réseau, et faire payer cette permission à tout le monde serait le même
+    // contresens que le salon jadis adossé à la balise.
+    val nearbyLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { results -> if (results.values.all { it }) cabin.enable(Medium.WIFI_DIRECT) }
+    val upgrade: (Medium) -> Unit = { medium ->
+        if (medium == Medium.WIFI_DIRECT && !P2pGroup.permissionsGranted(context)) {
+            nearbyLauncher.launch(P2pGroup.RUNTIME_PERMISSIONS)
+        } else {
+            cabin.enable(medium)
+        }
+    }
 
     fun updateBirth(b: BirthData) {
         birth = b
@@ -229,7 +247,7 @@ private fun Station(
                 CabinLine(
                     cabin = cabin,
                     open = cabinOpen,
-                    onUpgrade = { cabin.enable(it) },
+                    onUpgrade = upgrade,
                 )
                 Box(Modifier.weight(1f)) {
                     AnimatedContent(

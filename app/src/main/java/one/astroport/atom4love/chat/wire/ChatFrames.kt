@@ -19,6 +19,7 @@ import java.util.zip.CRC32
  *   HELLO  [0x04][étape 1][message Noise…]
  *   SEALED [0x05][chiffré…]
  *   ADDR   [0x06][médium 1][port 2][lgHôte 1][hôte…]
+ *   GROUP  [0x07][port 2][lgNom 1][nom…][lgPasse 1][passe…]
  *
  * L'id est tiré au hasard par l'émetteur ; il sert aussi à dédoublonner les
  * flux jumeaux du double lien croisé (deux connexions entre les deux mêmes
@@ -82,6 +83,21 @@ sealed interface ChatFrame {
         val host: String,
         val port: Int,
     ) : ChatFrame
+
+    /**
+     * Un groupe Wi-Fi Direct ouvert par ce pair, et de quoi le rejoindre.
+     *
+     * Le Direct ne s'annonce pas par une adresse : il faut d'abord entrer dans
+     * le groupe, et son propriétaire est toujours en 192.168.49.1. D'où une
+     * trame à part, qui porte les identifiants — **jamais en clair, jamais à
+     * un pair non attesté** : donner de quoi rejoindre son groupe, c'est donner
+     * la clé d'un réseau.
+     */
+    data class Group(
+        val networkName: String,
+        val passphrase: String,
+        val port: Int,
+    ) : ChatFrame
 }
 
 object ChatFrames {
@@ -100,9 +116,13 @@ object ChatFrames {
     private const val TYPE_HANDSHAKE = 0x04
     private const val TYPE_SEALED = 0x05
     private const val TYPE_ADDRESS = 0x06
+    private const val TYPE_GROUP = 0x07
 
     /** [type][médium][port 2][longueur de l'hôte]. */
     private const val ADDRESS_FIXED = 5
+
+    /** [type][port 2][longueur du nom] — la longueur de la passe suit le nom. */
+    private const val GROUP_FIXED = 4
 
     /** [type][étape] — le reste de la trame est le message Noise. */
     const val HANDSHAKE_HEADER = 2
@@ -257,6 +277,20 @@ object ChatFrames {
             .array()
     }
 
+    /** Encode l'invitation à rejoindre un groupe Wi-Fi Direct. */
+    fun encodeGroup(networkName: String, passphrase: String, port: Int): ByteArray {
+        val name = fitUtf8(networkName, 255)
+        val pass = fitUtf8(passphrase, 255)
+        return ByteBuffer.allocate(GROUP_FIXED + 1 + name.size + pass.size)
+            .put(TYPE_GROUP.toByte())
+            .putShort(port.toShort())
+            .put(name.size.toByte())
+            .put(name)
+            .put(pass.size.toByte())
+            .put(pass)
+            .array()
+    }
+
     fun encodeAck(msgId: Int, status: Int): ByteArray =
         ByteBuffer.allocate(6)
             .put(TYPE_ACK.toByte())
@@ -290,6 +324,16 @@ object ChatFrames {
             val host = lengthPrefixed(buffer) ?: return null
             if (host.isEmpty() || port == 0) return null
             return ChatFrame.Address(medium, host, port)
+        }
+        if (bytes.isNotEmpty() && bytes[0].toInt() == TYPE_GROUP) {
+            if (bytes.size < GROUP_FIXED + 1) return null
+            val buffer = ByteBuffer.wrap(bytes)
+            buffer.get()
+            val port = buffer.short.toInt() and 0xFFFF
+            val name = lengthPrefixed(buffer) ?: return null
+            val passphrase = lengthPrefixed(buffer) ?: return null
+            if (name.isEmpty() || passphrase.isEmpty() || port == 0) return null
+            return ChatFrame.Group(name, passphrase, port)
         }
         if (bytes.size < 6) return null
         val buffer = ByteBuffer.wrap(bytes)

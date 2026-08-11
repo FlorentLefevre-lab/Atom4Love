@@ -69,6 +69,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import one.astroport.atom4love.chat.net.FramedSocket
+import one.astroport.atom4love.chat.net.P2pGroup
 import one.astroport.atom4love.chat.wire.ChatFrame
 import one.astroport.atom4love.chat.wire.ChatFrames
 import one.astroport.atom4love.chat.wire.Reassembler
@@ -251,6 +252,9 @@ class CabinChat(context: Context) {
          * doit pas retenir la montée pendant une minute.
          */
         private const val DIAL_TIMEOUT_MS = 4_000
+
+        /** Tout groupe Wi-Fi Direct vit dans ce sous-réseau, son maître en `.1`. */
+        private const val P2P_SUBNET = "192.168.49."
     }
 
     enum class Chime { SENT, RECEIVED }
@@ -470,6 +474,22 @@ class CabinChat(context: Context) {
      */
     private val offers = LinkedHashMap<String, MutableMap<Medium, Pair<String, Int>>>()
 
+    /**
+     * Groupes Wi-Fi Direct auxquels un pair nous a invités, par clé NOSTR, avec
+     * le port d'écoute du propriétaire. Séparé des [offers] parce qu'un groupe
+     * ne se joint pas par une adresse : il faut d'abord y entrer, et son
+     * propriétaire est toujours en `192.168.49.1`.
+     */
+    private val groupOffers = LinkedHashMap<String, Pair<P2pGroup.Credentials, Int>>()
+
+    /** Médiums dont une adresse annoncée s'est révélée injoignable. */
+    private val unreachable = linkedSetOf<Medium>()
+
+    private val p2p = P2pGroup(context)
+
+    /** Vrai dès qu'on tient un groupe ou qu'on en a rejoint un. */
+    private var inGroup = false
+
     /** MTU annoncés côté serveur, parfois avant l'abonnement CCCD. */
     private val serverMtus = HashMap<String, Int>()
 
@@ -577,6 +597,10 @@ class CabinChat(context: Context) {
         listener = null
         listenPort = 0
         releaseWifiLock()
+        // le groupe P2P ne survit pas à la cabine : l'interface resterait
+        // montée, et un groupe ouvert est un réseau que personne ne surveille
+        if (inGroup) runCatching { p2p.release() }
+        inGroup = false
         scope.cancel()
         // le démontage des liens passe par le fil protocole : l'executor FIFO
         // le sérialise derrière tout corps de coroutine encore en cours
@@ -590,6 +614,7 @@ class CabinChat(context: Context) {
                 links.clear()
                 serverMtus.clear()
                 offers.clear()
+                groupOffers.clear()
                 synchronized(subscribedAddresses) { subscribedAddresses.clear() }
             }.get()
         }
@@ -1384,6 +1409,7 @@ class CabinChat(context: Context) {
             is ChatFrame.Sealed, is ChatFrame.Handshake ->
                 Log.w(TAG, "trame ${frame::class.simpleName} imbriquée de $from : ignorée")
             is ChatFrame.Address -> onAddressFrame(links[key(medium, kind, from)], frame)
+            is ChatFrame.Group -> onGroupFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Ack -> onAck(frame)
             else -> when (val event = reassembler.onFrame(from, frame)) {
                 is Reassembler.Event.Started -> onIncomingStarted(medium, event)
@@ -1553,23 +1579,53 @@ class CabinChat(context: Context) {
             // Celui qui compose initie le handshake, comme le central en BLE :
             // le lien serveur répond. Reprendre exactement la convention du
             // BLE fait que toute la machine à états Noise resserve telle quelle.
-            adoptStream(Medium.WIFI_STATION, LinkKind.SERVER, accepted)
+            adoptStream(inboundMedium(accepted), LinkKind.SERVER, accepted)
         }
     }
+
+    /**
+     * Par quel médium une socket nous est arrivée. L'écoute est unique et ne
+     * distingue rien : c'est l'adresse **locale** de la socket acceptée qui le
+     * dit — le groupe P2P vit en 192.168.49.0/24, son propriétaire en .1.
+     *
+     * Sans ça, un lien P2P entrant se ferait passer pour un lien de station :
+     * l'indicateur annoncerait « par la station » à quelqu'un qui parle en
+     * pair à pair, et [followMedium] accepterait le mauvais médium.
+     */
+    private fun inboundMedium(socket: Socket): Medium =
+        if (socket.localAddress?.hostAddress?.startsWith(P2P_SUBNET) == true) {
+            Medium.WIFI_DIRECT
+        } else {
+            Medium.WIFI_STATION
+        }
 
     /** Compose vers un point d'entrée annoncé par un pair attesté. */
     private suspend fun dial(medium: Medium, host: String, port: Int) {
         if (links.values.any { it.medium == medium && it.address.startsWith("$host:") }) return
         val socket = withContext(Dispatchers.IO) {
             runCatching {
-                Socket().apply { connect(InetSocketAddress(host, port), DIAL_TIMEOUT_MS) }
+                // Une socket non liée part par le réseau PAR DÉFAUT — la
+                // station — et n'atteindrait jamais le 192.168.49.1 d'un
+                // propriétaire de groupe. Quand Android publie le réseau P2P,
+                // on s'y attache ; sinon la route ordinaire suffit souvent, et
+                // l'échec sera propre.
+                val bound = if (medium == Medium.WIFI_DIRECT) p2p.network() else null
+                val socket = bound?.socketFactory?.createSocket() ?: Socket()
+                socket.apply { connect(InetSocketAddress(host, port), DIAL_TIMEOUT_MS) }
             }.getOrNull()
         }
         if (socket == null) {
-            Log.w(TAG, "$medium : $host:$port injoignable")
+            Log.w(TAG, "${medium.short} : $host:$port injoignable")
+            // Une adresse annoncée n'est pas une adresse joignable : deux
+            // noyaux sur deux réseaux différents s'annoncent chacun la sienne
+            // en toute bonne foi. C'est l'échec qui fait descendre l'échelle
+            // d'un cran vers le Direct — pas l'absence d'annonce.
+            unreachable.add(medium)
             _status.update { it.copy(lastError = "${medium.short} injoignable") }
+            refreshLinks()
             return
         }
+        unreachable.remove(medium)
         adoptStream(medium, LinkKind.CLIENT, socket)
     }
 
@@ -1672,13 +1728,74 @@ class CabinChat(context: Context) {
     }
 
     /**
-     * Accepte un médium plus rapide. C'est le seul chemin : la cabine ne
-     * bascule jamais d'elle-même — elle s'établit en BLE, informe, et attend.
+     * Fil protocole. Un pair nous invite dans son groupe Wi-Fi Direct.
+     *
+     * Même règle que pour une adresse : sans attestation, on ne sait pas de qui
+     * vient l'invitation, et des identifiants de réseau ne se ramassent pas
+     * dans la nature.
+     */
+    private fun onGroupFrame(link: Link?, frame: ChatFrame.Group) {
+        val peer = link?.peerNostrKey ?: run {
+            Log.w(TAG, "groupe proposé par un pair non attesté : ignoré")
+            return
+        }
+        val who = Hex.encode(peer)
+        groupOffers[who] = P2pGroup.Credentials(frame.networkName, frame.passphrase) to frame.port
+        Log.i(TAG, "Wi-Fi Direct proposé par ${who.take(12)}… : ${frame.networkName}")
+        // Règle C : le pair a ouvert un groupe pour nous, il a engagé le médium.
+        if (Medium.WIFI_DIRECT in enabledMedia) scope.launch { joinGroup(who) }
+        refreshLinks()
+    }
+
+    /** Fil protocole. Entre dans le groupe d'un pair, puis compose vers lui. */
+    private suspend fun joinGroup(who: String) {
+        val (credentials, port) = groupOffers[who] ?: return
+        if (!p2p.join(credentials)) {
+            _status.update { it.copy(lastError = "groupe Wi-Fi Direct injoignable") }
+            return
+        }
+        inGroup = true
+        dial(Medium.WIFI_DIRECT, P2pGroup.OWNER_ADDRESS, port)
+    }
+
+    /**
+     * Fil protocole. Ouvre un groupe et invite les pairs attestés à le
+     * rejoindre. C'est l'équivalent Direct de [announceAddress] : on ne le fait
+     * qu'après attestation, et l'invitation part scellée.
+     */
+    private suspend fun hostGroup() {
+        if (listenPort == 0) return
+        val credentials = p2p.host() ?: run {
+            _status.update { it.copy(lastError = "groupe Wi-Fi Direct impossible") }
+            return
+        }
+        inGroup = true
+        val frame = ChatFrames.encodeGroup(credentials.networkName, credentials.passphrase, listenPort)
+        links.values.forEach { link ->
+            if (link.medium == Medium.BLE && link.ready && link.peerNostrKey != null) {
+                link.control.trySend(frame)
+                Log.i(TAG, "groupe ${credentials.networkName} proposé à ${link.address}")
+            }
+        }
+    }
+
+    /**
+     * Accepte un médium plus rapide. C'est le seul chemin par lequel la cabine
+     * change de voie de son propre chef — elle s'établit en BLE, informe, et
+     * attend. (Le pair qui a déjà engagé le médium, lui, est suivi : voir
+     * [followMedium].)
      */
     fun enable(medium: Medium) {
         scope.launch {
             if (!enabledMedia.add(medium)) return@launch
             Log.i(TAG, "médium accepté : ${medium.short}")
+            if (medium == Medium.WIFI_DIRECT) {
+                // Déjà invité : on entre chez le pair plutôt que d'ouvrir un
+                // second groupe, qui laisserait chacun maître du sien et
+                // personne chez l'autre.
+                val invitation = groupOffers.keys.firstOrNull()
+                if (invitation != null) joinGroup(invitation) else hostGroup()
+            }
             offers.values.forEach { byMedium ->
                 val entry = byMedium[medium] ?: return@forEach
                 scope.launch { dial(medium, entry.first, entry.second) }
@@ -2077,17 +2194,42 @@ class CabinChat(context: Context) {
         }
     }
 
+    /**
+     * Fil protocole. Le Wi-Fi Direct vaut-il d'être proposé ?
+     *
+     * Il est le dernier recours : on ne fabrique une station que si personne
+     * n'en a. Le test honnête est **qu'aucun pair n'ait annoncé d'adresse de
+     * station** — c'est la seule chose qu'on sache d'eux. Une invitation déjà
+     * reçue le justifie de toute façon : le pair a ouvert son groupe pour nous.
+     */
+    private fun directOffer(): List<Medium> {
+        // La permission ne se teste PAS ici : sans offre affichée, l'utilisateur
+        // n'aurait aucun endroit où l'accorder. C'est l'écran qui la demande au
+        // moment où l'on accepte.
+        if (!p2p.usable()) return emptyList()
+        if (links.values.none { it.ready && it.peerNostrKey != null }) return emptyList()
+        val stationUsable = offers.values.any { Medium.WIFI_STATION in it } &&
+            Medium.WIFI_STATION !in unreachable
+        return if (groupOffers.isNotEmpty() || !stationUsable) {
+            listOf(Medium.WIFI_DIRECT)
+        } else {
+            emptyList()
+        }
+    }
+
     private fun refreshLinks() {
         val ready = links.values.filter { it.ready }
         val routes = routes()
         // le médium réellement en service : celui du meilleur lien emprunté,
         // pas celui du meilleur lien ouvert
         val inUse = routes.maxByOrNull { it.medium.rank }?.medium
-        // une offre ne compte que si elle ferait mieux que ce qu'on emprunte
-        val offered = offers.values
-            .flatMap { it.keys }
+        // Une offre ne compte que si elle ferait mieux que ce qu'on emprunte, et
+        // c'est la PLUS BASSE qu'on propose : l'ordre de l'échelle est BLE puis
+        // station puis Direct — une station qui porte déjà les deux noyaux ne
+        // demande rien à personne, là où un groupe P2P doit être formé exprès.
+        val offered = (offers.values.flatMap { it.keys } + directOffer())
             .filter { it !in enabledMedia && (inUse == null || it.rank > inUse.rank) }
-            .maxByOrNull { it.rank }
+            .minByOrNull { it.rank }
         _status.update { status ->
             status.copy(
                 links = ready.size,

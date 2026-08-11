@@ -44,6 +44,7 @@ class Reassembler(
         is ChatFrame.Handshake -> null // le handshake appartient au lien, pas aux flux
         is ChatFrame.Sealed -> null // déjà ouvert par le lien avant d'arriver ici
         is ChatFrame.Address -> null // affaire de médium, pas de flux
+        is ChatFrame.Group -> null // idem : une invitation, pas du contenu
     }
 
     private fun onStart(from: String, start: ChatFrame.Start): Event? {

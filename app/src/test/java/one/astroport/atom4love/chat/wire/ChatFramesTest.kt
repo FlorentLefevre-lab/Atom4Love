@@ -59,6 +59,22 @@ class ChatFramesTest {
     }
 
     @Test
+    fun `aller-retour d'une trame GROUP`() {
+        val encoded = ChatFrames.encodeGroup("DIRECT-xY-Atom4Love", "kZ8p2qLm41vR", 41_237)
+        assertEquals(
+            ChatFrame.Group("DIRECT-xY-Atom4Love", "kZ8p2qLm41vR", 41_237),
+            ChatFrames.decode(encoded),
+        )
+    }
+
+    @Test
+    fun `GROUP sans nom, sans passe ou sans port est refusée`() {
+        assertNull(ChatFrames.decode(ChatFrames.encodeGroup("", "passe", 9_000)))
+        assertNull(ChatFrames.decode(ChatFrames.encodeGroup("DIRECT-ab", "", 9_000)))
+        assertNull(ChatFrames.decode(ChatFrames.encodeGroup("DIRECT-ab", "passe", 0)))
+    }
+
+    @Test
     fun `START tronque le nom à la frontière UTF-8 pour tenir dans l'ATT`() {
         val start = ChatFrame.Start(1, ChatFrames.KIND_FILE, 10, 0, "é".repeat(300), "application/pdf")
         val maxBytes = 64
