@@ -74,6 +74,7 @@ class NoiseSession private constructor(
         check(step == Step.WRITE) { "handshake : écriture demandée hors tour ($step)" }
         val buffer = ByteArray(Noise.MAX_PACKET_LEN)
         val length = handshake.writeMessage(buffer, 0, payload, 0, payload.size)
+        captureRemoteStatic()
         splitIfComplete()
         return buffer.copyOf(length)
     }
@@ -83,6 +84,10 @@ class NoiseSession private constructor(
         check(step == Step.READ) { "handshake : lecture demandée hors tour ($step)" }
         val payload = ByteArray(message.size)
         val length = handshake.readMessage(message, 0, message.size, payload, 0)
+        // capturée ici, et pas seulement à la scission : l'initiateur reçoit la
+        // clé du pair dans le 2e message et doit pouvoir vérifier dans la
+        // foulée l'attestation que ce même message transporte
+        captureRemoteStatic()
         splitIfComplete()
         return payload.copyOf(length)
     }
@@ -125,10 +130,15 @@ class NoiseSession private constructor(
      */
     private fun splitIfComplete() {
         if (ciphers != null || handshake.action != HandshakeState.SPLIT) return
+        ciphers = handshake.split()
+    }
+
+    /** Retient la clé statique du pair dès que le motif l'a transmise. */
+    private fun captureRemoteStatic() {
+        if (remoteStaticKey != null || !handshake.hasRemotePublicKey()) return
         remoteStaticKey = handshake.remotePublicKey?.let { remote ->
             ByteArray(remote.publicKeyLength).also { remote.getPublicKey(it, 0) }
         }
-        ciphers = handshake.split()
     }
 
     companion object {

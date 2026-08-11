@@ -30,14 +30,16 @@ import androidx.compose.ui.unit.dp
 import one.astroport.atom4love.chat.Attachments
 import one.astroport.atom4love.chat.ChatSounds
 import one.astroport.atom4love.chat.ui.ChatPanel
+import one.astroport.atom4love.data.IncarnationStore
+import one.astroport.atom4love.nostr.LoveKeyForge
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.Atom4LoveTheme
 
 /**
  * POC — causerie en BLE pur (GATT), sans AP ni relais : texte, images et
- * fichiers fragmentés (chat/wire). En clair : sonde de diagnostic, hors
- * navigation, à faire disparaître derrière Noise.
+ * fichiers fragmentés (chat/wire), chiffrés par Noise XX. Sonde de
+ * diagnostic, hors navigation.
  *
  *   adb shell am start -n one.astroport.atom4love.debug/one.astroport.atom4love.diag.BleChatProbeActivity
  */
@@ -70,7 +72,16 @@ class BleChatProbeActivity : ComponentActivity() {
                         granted = true
                     }
                 }
-                LaunchedEffect(granted) { if (granted) probe.start() }
+                LaunchedEffect(granted) {
+                    if (!granted) return@LaunchedEffect
+                    // l'identité doit être posée avant l'ouverture des liens :
+                    // un handshake déjà engagé garderait la clé de fortune
+                    val birth = IncarnationStore(applicationContext).load()?.birth
+                    if (birth != null && birth.complete) {
+                        probe.bindIdentity(LoveKeyForge.forge(birth))
+                    }
+                    probe.start()
+                }
                 DisposableEffect(Unit) { onDispose { probe.stop() } }
 
                 BleChatScreen(probe)
@@ -103,7 +114,7 @@ private fun BleChatScreen(probe: BleChatProbe) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("CAUSERIE BLE — POC (en clair)", style = A4LText.Data, color = A4L.Mint)
+        Text("CAUSERIE BLE — POC (Noise XX)", style = A4LText.Data, color = A4L.Mint)
         Text(
             buildString {
                 append(if (status.advertising) "annonce ✓" else "annonce —")
@@ -119,7 +130,7 @@ private fun BleChatScreen(probe: BleChatProbe) {
         ChatPanel(
             messages = messages,
             canSend = status.links > 0,
-            placeholder = "message en clair…",
+            placeholder = "message chiffré…",
             emptyHint = "En attente d'un pair… Lancez cette sonde sur les deux appareils, " +
                 "Bluetooth activé. La connexion est automatique. Images et fichiers " +
                 "jusqu'à ${Attachments.humanSize(BleChatProbe.MAX_TRANSFER_BYTES)} " +

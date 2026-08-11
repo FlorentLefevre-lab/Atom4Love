@@ -66,15 +66,20 @@ import one.astroport.atom4love.chat.wire.ChatFrames
 import one.astroport.atom4love.chat.wire.Reassembler
 import one.astroport.atom4love.noise.NoiseIdentity
 import one.astroport.atom4love.noise.NoiseSession
+import one.astroport.atom4love.noise.NoiseVouch
+import one.astroport.atom4love.nostr.Bech32
 import one.astroport.atom4love.nostr.Hex
+import one.astroport.atom4love.nostr.NostrKeys
 
 /**
  * POC : causerie en BLE pur, sans AP ni relais — la brique GATT
  * bidirectionnelle sur laquelle le handshake Noise (portage bitchat)
  * viendra se poser.
  *
- * ⚠ Sonde de diagnostic : l'échange est EN CLAIR dans les airs. Ne sort pas
- * du package diag tant que Noise n'est pas là.
+ * Le trafic est chiffré par Noise XX dès qu'un lien a mené son handshake :
+ * tout ce qui suit — START, DATA, ACK — voyage scellé. Restent en clair le
+ * premier message du handshake (il précède l'échange de clés) et les liens
+ * dont le MTU ne permet pas de handshake.
  *
  * Architecture symétrique : chaque appareil est à la fois périphérique
  * (annonce connectable + serveur GATT) et central (scan + connexion aux
@@ -276,6 +281,9 @@ class BleChatProbe(context: Context) {
         /** Idem pour la première trame scellée du lien. */
         var sealingAnnounced = false
 
+        /** Clé publique NOSTR du pair, une fois son attestation vérifiée. */
+        var peerNostrKey: ByteArray? = null
+
         val ready: Boolean get() = kind == LinkKind.SERVER || characteristic != null
 
         fun failPending() {
@@ -286,18 +294,38 @@ class BleChatProbe(context: Context) {
     }
 
     /**
-     * Clé statique Noise de cette instance de sonde.
+     * Clés NOSTR du noyau incarné sur cet appareil, si la fiche existe.
      *
-     * Tirée au sort à chaque lancement : le POC valide la mécanique du
-     * handshake, pas encore l'identité. La liaison à l'incarnation viendra par
-     * [NoiseIdentity.staticPrivateKey], et donnera la même clé statique aux
-     * deux appareils d'un même noyau.
+     * Sans elles la sonde reste utilisable, avec une identité de fortune : le
+     * handshake fonctionne, mais aucune attestation ne circule et rien ne
+     * rattache le canal à un noyau.
      */
-    private val noiseStaticKey: ByteArray =
+    private var nostrKeys: NostrKeys? = null
+
+    /**
+     * Clé statique Noise. Dérivée de la clé NOSTR quand un noyau est incarné —
+     * les deux appareils d'un même noyau présentent alors la même identité — et
+     * tirée au sort sinon, le temps d'une exécution.
+     */
+    private var noiseStaticKey: ByteArray =
         ByteArray(NoiseIdentity.KEY_LENGTH).also { SecureRandom().nextBytes(it) }
 
     /** Ce que le pair verra de nous — journalisé pour recouper les deux bancs. */
-    private val noisePublicKey: ByteArray = NoiseIdentity.staticPublicKey(noiseStaticKey)
+    private var noisePublicKey: ByteArray = NoiseIdentity.staticPublicKey(noiseStaticKey)
+
+    /** Notre attestation npub ↔ clé Noise, absente tant qu'aucun noyau n'est incarné. */
+    private var vouch: ByteArray? = null
+
+    /**
+     * Rattache la sonde à un noyau. À appeler avant [start] : les liens déjà
+     * ouverts garderaient l'identité précédente.
+     */
+    fun bindIdentity(keys: NostrKeys) {
+        nostrKeys = keys
+        noiseStaticKey = NoiseIdentity.staticPrivateKey(keys)
+        noisePublicKey = NoiseIdentity.staticPublicKey(noiseStaticKey)
+        vouch = NoiseVouch.sign(keys, noisePublicKey)
+    }
 
     /** clé = "c:<adresse>" (client sortant) ou "s:<adresse>" (central abonné). */
     private val links = LinkedHashMap<String, Link>()
@@ -350,7 +378,11 @@ class BleChatProbe(context: Context) {
         }
         // journalisée pour recouper les deux bancs : la clé que le pair
         // annoncera comme « pair … » doit être celle-ci
-        Log.i(TAG, "identité Noise de cette sonde : ${Hex.encode(noisePublicKey).take(16)}…")
+        Log.i(
+            TAG,
+            "identité Noise ${Hex.encode(noisePublicKey).take(16)}… — " +
+                (nostrKeys?.npubShort ?: "aucun noyau incarné : pas d'attestation"),
+        )
         registerStateReceiver()
         startRadio()
         scope.launch {
@@ -630,7 +662,10 @@ class BleChatProbe(context: Context) {
 
     /** Fil protocole. Produit et met en file le prochain message du handshake. */
     private fun sendHandshake(link: Link, session: NoiseSession, step: Int): Boolean {
-        val message = runCatching { session.writeHandshake() }.getOrElse { error ->
+        // le 1er message précède tout échange de clés : sa charge utile
+        // voyagerait en clair, notre attestation attend donc le 2e ou le 3e
+        val payload = if (step == 1) ByteArray(0) else vouch ?: ByteArray(0)
+        val message = runCatching { session.writeHandshake(payload) }.getOrElse { error ->
             Log.w(TAG, "handshake : écriture impossible vers ${link.address} — $error")
             return false
         }
@@ -667,6 +702,7 @@ class BleChatProbe(context: Context) {
             failHandshake(link)
             return
         }
+        checkVouch(link, session, read.getOrDefault(ByteArray(0)))
         when (session.step) {
             // écrire le 3e message établit l'initiateur sans qu'il ait à relire
             NoiseSession.Step.WRITE ->
@@ -682,6 +718,29 @@ class BleChatProbe(context: Context) {
             }
         }
         if (session.established) onHandshakeDone(link, session)
+    }
+
+    /**
+     * Fil protocole. Confronte l'attestation reçue à la clé statique tirée de
+     * NOTRE handshake — c'est ce recoupement, et lui seul, qui empêche de
+     * rejouer l'attestation d'un autre sur son propre canal.
+     *
+     * Une charge utile vide est légitime : le pair n'a pas de noyau incarné.
+     * Une attestation présente mais fausse ne l'est pas — on jette le lien.
+     */
+    private fun checkVouch(link: Link, session: NoiseSession, payload: ByteArray) {
+        if (payload.isEmpty() || link.peerNostrKey != null) return
+        val remote = session.remoteStaticKey ?: return
+        val attested = NoiseVouch.verify(payload, remote)
+        if (attested == null) {
+            Log.w(TAG, "attestation invalide de ${link.address} : lien rejeté")
+            failHandshake(link)
+            failLink(link)
+            return
+        }
+        link.peerNostrKey = attested
+        val npub = Bech32.encode("npub", attested)
+        Log.i(TAG, "pair attesté sur ${link.address} : ${npub.take(12)}…${npub.takeLast(4)}")
     }
 
     private fun onHandshakeDone(link: Link, session: NoiseSession) {
