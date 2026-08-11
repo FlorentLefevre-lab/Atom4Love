@@ -1,4 +1,4 @@
-package one.astroport.atom4love.diag
+package one.astroport.atom4love.chat.ble
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
@@ -64,6 +64,7 @@ import one.astroport.atom4love.chat.ChatStatus
 import one.astroport.atom4love.chat.wire.ChatFrame
 import one.astroport.atom4love.chat.wire.ChatFrames
 import one.astroport.atom4love.chat.wire.Reassembler
+import one.astroport.atom4love.nostr.CabinSalon
 import one.astroport.atom4love.noise.NoiseIdentity
 import one.astroport.atom4love.noise.NoiseSession
 import one.astroport.atom4love.noise.NoiseVouch
@@ -72,9 +73,13 @@ import one.astroport.atom4love.nostr.Hex
 import one.astroport.atom4love.nostr.NostrKeys
 
 /**
- * POC : causerie en BLE pur, sans AP ni relais — la brique GATT
- * bidirectionnelle sur laquelle le handshake Noise (portage bitchat)
- * viendra se poser.
+ * Causerie en BLE pur, sans AP ni relais : le canal direct de la cabine.
+ *
+ * C'est ce qui se dit **ici**, entre gens à portée radio. Rien de ce qui passe
+ * par ce moteur ne part sur un relais NOSTR ni ne sort de la portée : la
+ * cabine et l'hexagone sont deux mondes étanches, et cette étanchéité est le
+ * principe, pas un effet de bord. Le salon d'hexagone ([CabinSalon]) sert
+ * l'autre portée, celle qu'on n'atteint pas directement.
  *
  * Le trafic est chiffré par Noise XX dès qu'un lien a mené son handshake :
  * tout ce qui suit — START, DATA, ACK — voyage scellé. Restent en clair le
@@ -95,7 +100,7 @@ import one.astroport.atom4love.nostr.NostrKeys
  * les callbacks Binder n'y déposent que des `scope.launch`.
  */
 @SuppressLint("MissingPermission")
-class BleChatProbe(context: Context) {
+class BleChatEngine(context: Context) {
 
     companion object {
         private const val TAG = "BleChat"

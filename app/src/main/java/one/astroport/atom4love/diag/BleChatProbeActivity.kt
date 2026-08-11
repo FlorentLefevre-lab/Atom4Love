@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import one.astroport.atom4love.chat.Attachments
 import one.astroport.atom4love.chat.ChatSounds
+import one.astroport.atom4love.chat.ble.BleChatEngine
 import one.astroport.atom4love.chat.ui.ChatPanel
 import one.astroport.atom4love.data.IncarnationStore
 import one.astroport.atom4love.nostr.LoveKeyForge
@@ -50,7 +51,7 @@ class BleChatProbeActivity : ComponentActivity() {
         // Écran maintenu allumé : la mise en veille (ZUI surtout) étrangle le
         // traitement BLE et fait mourir les réceptions en volume — vu sur banc.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        val probe = BleChatProbe(applicationContext)
+        val probe = BleChatEngine(applicationContext)
 
         setContent {
             Atom4LoveTheme {
@@ -91,7 +92,7 @@ class BleChatProbeActivity : ComponentActivity() {
 }
 
 @Composable
-private fun BleChatScreen(probe: BleChatProbe) {
+private fun BleChatScreen(probe: BleChatEngine) {
     val context = LocalContext.current
     val status by probe.status.collectAsState()
     val messages by probe.messages.collectAsState()
@@ -100,8 +101,8 @@ private fun BleChatScreen(probe: BleChatProbe) {
     LaunchedEffect(Unit) {
         probe.chimes.collect { chime ->
             when (chime) {
-                BleChatProbe.Chime.SENT -> sounds.send()
-                BleChatProbe.Chime.RECEIVED -> sounds.receive()
+                BleChatEngine.Chime.SENT -> sounds.send()
+                BleChatEngine.Chime.RECEIVED -> sounds.receive()
             }
         }
     }
@@ -133,7 +134,7 @@ private fun BleChatScreen(probe: BleChatProbe) {
             placeholder = "message chiffré…",
             emptyHint = "En attente d'un pair… Lancez cette sonde sur les deux appareils, " +
                 "Bluetooth activé. La connexion est automatique. Images et fichiers " +
-                "jusqu'à ${Attachments.humanSize(BleChatProbe.MAX_TRANSFER_BYTES)} " +
+                "jusqu'à ${Attachments.humanSize(BleChatEngine.MAX_TRANSFER_BYTES)} " +
                 "(compter ~10 Ko/s).",
             onSendText = { text -> probe.sendText(text) },
             onSendImage = { uri -> probe.sendImage(uri) },
