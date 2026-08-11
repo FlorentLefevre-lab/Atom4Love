@@ -73,8 +73,6 @@
             </intent-filter>
         </activity>
 
-        <!-- POC : écran de diagnostic AP+scan, hors navigation de l'app.
-             Lancement : adb shell am start -n <applicationId>/one.astroport.atom4love.diag.WifiProbeActivity -->
         <!-- Balise de proximité : annonce l'adresse 4D et scanne les pairs en continu.
              Démarrée/coupée depuis l'écran Radar (ProximityService.start/stop). -->
         <service
@@ -82,24 +80,11 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice|location" />
 
-        <activity
-            android:name=".diag.WifiProbeActivity"
-            android:exported="true"
-            android:label="Sonde Wi-Fi (POC)"
-            android:theme="@style/Theme.Atom4Love" />
-
-        <!-- POC : causerie en BLE pur (GATT), en clair — socle du futur Noise.
-             Texte, images et fichiers fragmentés (chat/wire).
-             Lancement : adb shell am start -n <applicationId>/one.astroport.atom4love.diag.BleChatProbeActivity -->
-        <!-- configChanges : la sonde vit dans l'activité (pas de ViewModel en
-             diag) — une rotation la détruirait : liens coupés, causerie effacée. -->
-        <activity
-            android:name=".diag.BleChatProbeActivity"
-            android:exported="true"
-            android:label="Causerie BLE (POC)"
-            android:theme="@style/Theme.Atom4Love"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|fontScale|density"
-            android:windowSoftInputMode="adjustResize" />
+        <!-- Les écrans de diagnostic (diag/) sont déclarés dans le manifeste
+             debug seulement : ils s'exposent en android:exported pour être
+             lancés par adb, et la causerie BLE échange EN CLAIR dans les airs.
+             Exportés en release, ils offriraient à n'importe quelle appli
+             installée un point d'entrée sans permission vers cet échange. -->
 
         <!-- Ouvre les pièces jointes reçues (files/chat/) dans la visionneuse
              système sans exposer le stockage interne. -->

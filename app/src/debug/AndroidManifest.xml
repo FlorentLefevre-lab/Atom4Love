@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Écrans de diagnostic (package diag/), réservés aux builds debug.
+
+    Ils sont android:exported pour être lançables par adb, et la causerie BLE
+    échange EN CLAIR dans les airs tant que Noise n'est pas en place : livrés
+    en release, ils ouvriraient à n'importe quelle appli installée un point
+    d'entrée sans permission vers cet échange. Les déclarer ici les retire du
+    manifeste de release, et comme plus rien ne les référence, R8 les efface
+    du binaire.
+
+    Les sources restent dans src/main : elles se compilent avec le reste et
+    servent de socle au chat Noise (chat/wire, chat/ui).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+
+        <!-- POC : écran de diagnostic AP+scan, hors navigation de l'app.
+             Lancement : adb shell am start -n <applicationId>/one.astroport.atom4love.diag.WifiProbeActivity -->
+        <activity
+            android:name=".diag.WifiProbeActivity"
+            android:exported="true"
+            android:label="Sonde Wi-Fi (POC)"
+            android:theme="@style/Theme.Atom4Love" />
+
+        <!-- POC : causerie en BLE pur (GATT), en clair — socle du futur Noise.
+             Texte, images et fichiers fragmentés (chat/wire).
+             Lancement : adb shell am start -n <applicationId>/one.astroport.atom4love.diag.BleChatProbeActivity -->
+        <!-- configChanges : la sonde vit dans l'activité (pas de ViewModel en
+             diag) — une rotation la détruirait : liens coupés, causerie effacée. -->
+        <activity
+            android:name=".diag.BleChatProbeActivity"
+            android:exported="true"
+            android:label="Causerie BLE (POC)"
+            android:theme="@style/Theme.Atom4Love"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|fontScale|density"
+            android:windowSoftInputMode="adjustResize" />
+
+    </application>
+
+</manifest>
