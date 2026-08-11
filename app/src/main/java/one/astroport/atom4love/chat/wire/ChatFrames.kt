@@ -64,6 +64,14 @@ object ChatFrames {
     /** En-tête ATT d'une écriture/notification. */
     private const val ATT_HEADER = 3
 
+    /**
+     * Longueur maximale d'une valeur d'attribut (spec ATT), quel que soit le
+     * MTU : à 517, l'espace « MTU − 3 » (514 o) dépasse ce plafond et les
+     * framworks récents jettent IllegalArgumentException à chaque écriture
+     * (vu sur banc : Pixel/Android 16 refuse, ZUI/Android 14 laisse passer).
+     */
+    private const val ATT_MAX_VALUE = 512
+
     /** [type][id][index u24]. */
     const val DATA_HEADER = 8
 
@@ -72,8 +80,8 @@ object ChatFrames {
 
     private const val MAX_INDEX = 0xFFFFFF
 
-    /** Octets utiles d'une écriture ATT pour un MTU donné. */
-    fun attPayload(mtu: Int): Int = mtu - ATT_HEADER
+    /** Octets utiles d'une écriture ATT pour un MTU donné, plafond spec inclus. */
+    fun attPayload(mtu: Int): Int = minOf(mtu - ATT_HEADER, ATT_MAX_VALUE)
 
     /** Octets de contenu par trame DATA pour un MTU donné. */
     fun dataChunk(mtu: Int): Int = attPayload(mtu) - DATA_HEADER

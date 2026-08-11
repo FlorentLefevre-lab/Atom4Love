@@ -70,10 +70,12 @@ class ChatFramesTest {
     }
 
     @Test
-    fun `budget des fragments selon le MTU`() {
+    fun `budget des fragments selon le MTU, plafond ATT de 512 compris`() {
         assertEquals(20, ChatFrames.attPayload(23))
         assertEquals(12, ChatFrames.dataChunk(23))
-        assertEquals(506, ChatFrames.dataChunk(517))
+        // MTU 517 : l'espace MTU−3 (514) dépasse le plafond spec de 512
+        assertEquals(512, ChatFrames.attPayload(517))
+        assertEquals(504, ChatFrames.dataChunk(517))
     }
 
     @Test

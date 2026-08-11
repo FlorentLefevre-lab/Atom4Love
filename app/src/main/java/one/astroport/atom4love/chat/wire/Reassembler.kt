@@ -99,6 +99,9 @@ class Reassembler(
         }
     }
 
+    /** Nombre de flux en cours de réassemblage. */
+    fun activeStreams(): Int = streams.size
+
     /** Abandonne les flux muets depuis [staleAfterMs] — lien mort, pair parti. */
     fun prune(): List<Event.Failed> {
         val now = nowMs()

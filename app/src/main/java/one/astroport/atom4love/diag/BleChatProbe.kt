@@ -27,6 +27,7 @@ import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.os.ParcelUuid
+import android.os.SystemClock
 import android.util.Log
 import java.util.UUID
 import java.util.concurrent.Executors
@@ -106,8 +107,49 @@ class BleChatProbe(context: Context) {
         const val MAX_TRANSFER_BYTES = 2_000_000
 
         private const val WRITE_TIMEOUT_MS = 10_000L
-        private const val WRITE_RETRIES = 8
+
+        /**
+         * Fenêtre de contre-pression : une connexion morte (pair parti,
+         * appli relancée en face) retient les tampons du contrôleur jusqu'au
+         * timeout de supervision (~20 s) et fait refuser les écritures des
+         * liens VIVANTS (« busy »). Observé sur banc le 2026-08-11 : avec
+         * ~1 s de tolérance, une image échouait sur les trois liens à la
+         * fois. On patiente donc jusqu'à 20 s tant que la pile dit occupée.
+         */
+        private const val BUSY_DEADLINE_MS = 20_000L
+        private const val BUSY_DELAY_MAX_MS = 200L
         private const val PRUNE_PERIOD_MS = 5_000L
+
+        /**
+         * Fenêtre de contre-pression de bout en bout : 1 fragment sur
+         * [ACK_WINDOW] (et le dernier) part en écriture AVEC réponse ATT —
+         * le pair doit digérer la fenêtre avant la suivante. Observé sur
+         * banc (2026-08-11) : le serveur GATT de la tablette s'effondre en
+         * ~5 s sous un déluge d'écritures sans réponse, sans signal propre.
+         * Le dernier fragment acquitté garantit aussi qu'« émis » = intégralement
+         * remis à la pile d'en face (fin des queues de transfert perdues).
+         */
+        private const val ACK_WINDOW = 16
+        private const val NOTIFY_WINDOW_PAUSE_MS = 15L
+
+        /**
+         * Délais de grâce avant de retenter une connexion sortante — sans
+         * eux, un annonceur FFF1 du voisinage qui refuse la connexion
+         * (status 133) déclenche une tempête connexion/échec à ~0,5 Hz
+         * (observée sur banc le 2026-08-11).
+         */
+        private const val CONNECT_BACKOFF_FAILED_MS = 30_000L // jamais devenu prêt
+        private const val CONNECT_BACKOFF_LOST_MS = 2_000L    // lien prêt perdu
+        private const val BACKOFF_MAX_ENTRIES = 64
+
+        /**
+         * Espacement minimal entre deux tentatives de connexion sortante,
+         * TOUTES adresses confondues : un annonceur voisin qui tourne son
+         * adresse toutes les ~3 s (vu sur banc) rend le délai de grâce
+         * par adresse inopérant — chaque tentative monopolise la radio
+         * ~2 s et fait mourir les transferts en cours.
+         */
+        private const val CONNECT_SPACING_MS = 5_000L
     }
 
     enum class Chime { SENT, RECEIVED }
@@ -198,6 +240,13 @@ class BleChatProbe(context: Context) {
 
     /** Dernier pourcentage publié par transfert — étrangle les recompositions. */
     private val progressPct = HashMap<Int, Int>()
+
+    /** Adresse → horodatage (elapsedRealtime) avant lequel on ne retente pas. */
+    private val retryAfterMs = LinkedHashMap<String, Long>()
+
+    /** Fil protocole : transferts en cours d'émission et dernier connect sortant. */
+    private var activeOutgoing = 0
+    private var lastConnectMs = 0L
 
     private fun key(kind: LinkKind, address: String) =
         if (kind == LinkKind.CLIENT) "c:$address" else "s:$address"
@@ -377,12 +426,26 @@ class BleChatProbe(context: Context) {
             _status.update { it.copy(lastError = "aucun lien pour émettre") }
             return
         }
+        // Texte : tous les liens (léger). Image/fichier : UN seul lien — les
+        // rafales parallèles sur les connexions croisées de la même paire
+        // tuent la radio en ~20 s (banc 2026-08-11 : le seul transfert qui a
+        // tenu 134 s roulait sur un lien unique), et le récepteur ignore de
+        // toute façon le flux jumeau. Préférence : lien client le plus
+        // récent (écritures acquittées, plus probablement vivant).
+        val targets = if (kind == ChatFrames.KIND_TEXT) {
+            perAddress.values.toList()
+        } else {
+            listOf(
+                perAddress.values.lastOrNull { it.kind == LinkKind.CLIENT }
+                    ?: perAddress.values.last(),
+            )
+        }
         var primary = true
-        perAddress.values.forEach { link ->
+        targets.forEach { link ->
             link.transfers.trySend(Outgoing(msgId, kind, name, mime, content, primary))
             primary = false
         }
-        Log.i(TAG, "message $msgId (${content.size} o) mis en file vers ${perAddress.size} pair(s)")
+        Log.i(TAG, "message $msgId (${content.size} o) mis en file vers ${targets.size} lien(s)")
     }
 
     // ── Fil d'émission d'un lien ──────────────────────────────────────────
@@ -415,13 +478,23 @@ class BleChatProbe(context: Context) {
     }
 
     private suspend fun runTransfer(link: Link, out: Outgoing) {
+        activeOutgoing++
+        try {
+            runTransferInner(link, out)
+        } finally {
+            activeOutgoing--
+        }
+    }
+
+    private suspend fun runTransferInner(link: Link, out: Outgoing) {
         val att = ChatFrames.attPayload(link.mtu)
         val start = ChatFrames.encodeStart(
             ChatFrame.Start(out.msgId, out.kind, out.content.size, ChatFrames.crc32(out.content), out.name, out.mime),
             att,
         )
-        if (start == null || !writeFrame(link, start)) {
+        if (start == null || !writeFrame(link, start, withResponse = link.kind == LinkKind.CLIENT)) {
             onTransferFailed(link, out)
+            if (start != null) failLink(link)
             return
         }
         val chunk = ChatFrames.dataChunk(link.mtu).coerceAtLeast(1)
@@ -434,10 +507,16 @@ class BleChatProbe(context: Context) {
                 writeFrame(link, control)
             }
             val end = minOf(offset + chunk, out.content.size)
-            if (!writeFrame(link, ChatFrames.encodeData(out.msgId, index, out.content, offset, end))) {
+            val windowEdge = end == out.content.size || index % ACK_WINDOW == ACK_WINDOW - 1
+            val reliable = windowEdge && link.kind == LinkKind.CLIENT
+            if (!writeFrame(link, ChatFrames.encodeData(out.msgId, index, out.content, offset, end), reliable)) {
                 onTransferFailed(link, out)
+                failLink(link)
                 return
             }
+            // pas d'équivalent « avec réponse » pour une notification :
+            // on relâche la pression d'un souffle à chaque fenêtre
+            if (windowEdge && link.kind == LinkKind.SERVER) delay(NOTIFY_WINDOW_PAUSE_MS)
             offset = end
             index++
             if (out.primary) publishProgress(out.msgId, offset, out.content.size)
@@ -462,6 +541,18 @@ class BleChatProbe(context: Context) {
         }
     }
 
+    /**
+     * Fil protocole. Un lien dont les écritures échouent est un lien fantôme :
+     * observé sur banc (2026-08-11), l'ACL peut mourir SANS callback de
+     * déconnexion côté client — la pile refuse alors tout, indéfiniment. On
+     * coupe et on retire : le scan reformera une connexion fraîche (délai de
+     * grâce 2 s, le lien avait été prêt).
+     */
+    private fun failLink(link: Link) {
+        Log.w(TAG, "lien ${link.address} déclaré mort après échec d'écriture")
+        removeLink(link.kind, link.address)
+    }
+
     /** Sérialise les notifications : une seule en vol par serveur GATT. */
     private val notifyMutex = Mutex()
 
@@ -472,26 +563,34 @@ class BleChatProbe(context: Context) {
      * l'aveugle (elle a pu partir : le récepteur verrait un doublon) — seule
      * la pile occupée (écriture non démarrée) se retente, avec repli.
      */
-    private suspend fun writeFrame(link: Link, frame: ByteArray): Boolean {
-        repeat(WRITE_RETRIES) { attempt ->
+    private suspend fun writeFrame(link: Link, frame: ByteArray, withResponse: Boolean = false): Boolean {
+        val deadline = SystemClock.elapsedRealtime() + BUSY_DEADLINE_MS
+        var attempt = 0
+        while (true) {
             val outcome =
-                if (link.kind == LinkKind.SERVER) notifyMutex.withLock { attemptWrite(link, frame) }
-                else attemptWrite(link, frame)
+                if (link.kind == LinkKind.SERVER) notifyMutex.withLock { attemptWrite(link, frame, withResponse) }
+                else attemptWrite(link, frame, withResponse)
             when (outcome) {
                 WriteOutcome.OK -> return true
                 WriteOutcome.FAILED -> return false
-                WriteOutcome.BUSY -> delay(30L * (attempt + 1))
+                WriteOutcome.BUSY -> {
+                    if (SystemClock.elapsedRealtime() >= deadline) {
+                        Log.w(TAG, "pile occupée > ${BUSY_DEADLINE_MS / 1000} s vers ${link.address}")
+                        return false
+                    }
+                    attempt++
+                    delay(minOf(BUSY_DELAY_MAX_MS, 30L * attempt))
+                }
             }
         }
-        return false
     }
 
-    private suspend fun attemptWrite(link: Link, frame: ByteArray): WriteOutcome {
+    private suspend fun attemptWrite(link: Link, frame: ByteArray, withResponse: Boolean): WriteOutcome {
         val done = CompletableDeferred<Boolean>()
         link.pending.addLast(done)
         val started = runCatching {
             when (link.kind) {
-                LinkKind.CLIENT -> clientWrite(link, frame)
+                LinkKind.CLIENT -> clientWrite(link, frame, withResponse)
                 LinkKind.SERVER -> serverNotify(link, frame)
             }
         }.getOrDefault(false)
@@ -511,23 +610,29 @@ class BleChatProbe(context: Context) {
         }
     }
 
-    private fun clientWrite(link: Link, frame: ByteArray): Boolean = runCatching {
+    private fun clientWrite(link: Link, frame: ByteArray, withResponse: Boolean): Boolean = runCatching {
         val gatt = link.gatt ?: return false
         val characteristic = link.characteristic ?: return false
+        val writeType =
+            if (withResponse) BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            else BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            gatt.writeCharacteristic(
-                characteristic,
-                frame,
-                BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE,
-            ) == BluetoothStatusCodes.SUCCESS
+            val code = gatt.writeCharacteristic(characteristic, frame, writeType)
+            if (code != BluetoothStatusCodes.SUCCESS) {
+                Log.w(TAG, "écriture refusée code=$code vers ${link.address}")
+            }
+            code == BluetoothStatusCodes.SUCCESS
         } else {
             @Suppress("DEPRECATION")
             characteristic.value = frame
-            characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+            characteristic.writeType = writeType
             @Suppress("DEPRECATION")
             gatt.writeCharacteristic(characteristic)
         }
-    }.getOrDefault(false)
+    }.getOrElse { e ->
+        Log.w(TAG, "écriture : exception ${e.javaClass.simpleName} ${e.message} vers ${link.address}")
+        false
+    }
 
     private fun serverNotify(link: Link, frame: ByteArray): Boolean = runCatching {
         val server = this.server ?: return false
@@ -639,6 +744,7 @@ class BleChatProbe(context: Context) {
         val characteristic = BluetoothGattCharacteristic(
             CHAT_CHARACTERISTIC,
             BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE or
+                BluetoothGattCharacteristic.PROPERTY_WRITE or
                 BluetoothGattCharacteristic.PROPERTY_NOTIFY,
             BluetoothGattCharacteristic.PERMISSION_WRITE,
         ).apply {
@@ -767,6 +873,12 @@ class BleChatProbe(context: Context) {
             synchronized(subscribedAddresses) { subscribedAddresses.remove(address) }
         }
         val link = links.remove(key(kind, address)) ?: return
+        if (kind == LinkKind.CLIENT) {
+            backoff(
+                address,
+                if (link.ready) CONNECT_BACKOFF_LOST_MS else CONNECT_BACKOFF_FAILED_MS,
+            )
+        }
         link.job?.cancel()
         link.failPending()
         // les transferts encore en file ne partiront jamais par ce lien
@@ -797,7 +909,9 @@ class BleChatProbe(context: Context) {
         advertiseCallback = callback
         advertiser.startAdvertising(
             AdvertiseSettings.Builder()
-                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+                // BALANCED : LOW_LATENCY en continu dispute la radio aux
+                // transferts GATT (leçon du module proximité, revue sur banc)
+                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
                 .setConnectable(true)
                 .setTimeout(0)
                 .build(),
@@ -829,7 +943,7 @@ class BleChatProbe(context: Context) {
         scanCallback = callback
         scanner.startScan(
             listOf(ScanFilter.Builder().setServiceUuid(CHAT_SERVICE).build()),
-            ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(),
+            ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED).build(),
             callback,
         )
         _status.update { it.copy(scanning = true) }
@@ -841,6 +955,14 @@ class BleChatProbe(context: Context) {
         val address = result.device.address
         val k = key(LinkKind.CLIENT, address)
         if (links.containsKey(k)) return
+        // la radio reste au transfert : aucune connexion sortante pendant
+        // qu'on émet ou réassemble
+        if (activeOutgoing > 0 || reassembler.activeStreams() > 0) return
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastConnectMs < CONNECT_SPACING_MS) return
+        val notBefore = retryAfterMs[address]
+        if (notBefore != null && now < notBefore) return
+        lastConnectMs = now
         Log.i(TAG, "pair de causerie vu : $address rssi=${result.rssi}, connexion…")
         val link = Link(LinkKind.CLIENT, address)
         links[k] = link
@@ -854,10 +976,20 @@ class BleChatProbe(context: Context) {
             // Bluetooth en train de tomber ou interfaces saturées : sans ce
             // retrait, l'adresse resterait bloquée par le dédoublonnage
             links.remove(k)
+            backoff(address, CONNECT_BACKOFF_FAILED_MS)
             Log.w(TAG, "connectGatt null pour $address")
             return
         }
         link.gatt = gatt
+    }
+
+    /** Fil protocole. Pose le délai de grâce d'une adresse, map bornée. */
+    private fun backoff(address: String, delayMs: Long) {
+        retryAfterMs.remove(address)
+        retryAfterMs[address] = SystemClock.elapsedRealtime() + delayMs
+        while (retryAfterMs.size > BACKOFF_MAX_ENTRIES) {
+            retryAfterMs.remove(retryAfterMs.keys.first())
+        }
     }
 
     /** Lien client irrécupérable : on coupe pour que le scan retente. */
@@ -884,6 +1016,11 @@ class BleChatProbe(context: Context) {
                 val link = links[key(LinkKind.CLIENT, gatt.device.address)] ?: return@launch
                 link.mtu = if (status == BluetoothGatt.GATT_SUCCESS) mtu else DEFAULT_MTU
                 Log.d(TAG, "client : MTU ${link.mtu} vers ${gatt.device.address}")
+            }
+            // intervalle court pendant la causerie : stabilise le lien sous
+            // rafale d'écritures et augmente le débit (pratique type DFU)
+            runCatching {
+                gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
             }
             gatt.discoverServices()
         }
@@ -935,6 +1072,9 @@ class BleChatProbe(context: Context) {
             characteristic: BluetoothGattCharacteristic,
             status: Int,
         ) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.w(TAG, "callback d'écriture status=$status de ${gatt.device.address}")
+            }
             scope.launch {
                 links[key(LinkKind.CLIENT, gatt.device.address)]
                     ?.pending?.removeFirstOrNull()
