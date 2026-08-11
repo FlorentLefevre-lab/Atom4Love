@@ -101,7 +101,16 @@ class WifiProbeActivity : ComponentActivity() {
     }
 
     private fun requiredPermissions(): Array<String> =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION, // scan Wi-Fi
+                // startLocalOnlyHotspot lève SecurityException sans elle
+                // depuis l'API 33 — la sonde échouait avant même d'allumer l'AP
+                Manifest.permission.NEARBY_WIFI_DEVICES,
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_ADVERTISE,
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION, // scan Wi-Fi
                 Manifest.permission.BLUETOOTH_SCAN,
