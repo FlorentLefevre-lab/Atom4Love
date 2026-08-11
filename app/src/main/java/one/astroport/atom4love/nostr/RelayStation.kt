@@ -4,6 +4,7 @@ import android.util.Log
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,6 +40,14 @@ class RelayStation(
     companion object {
         private const val TAG = "Nostr"
         private const val SELF_SUBSCRIPTION = "a4l-self"
+
+        /**
+         * Tant qu'on n'est pas sur un relais local, on re-sonde la passerelle
+         * régulièrement : la sonde unique du changement de réseau peut rater
+         * (course avec la pile réseau), et une station peut s'allumer après
+         * l'arrivée du téléphone. Un SYN TCP toutes les 30 s ne coûte rien.
+         */
+        private const val REPROBE_MS = 30_000L
     }
 
     /** Ce que l'interface affiche : « relay · connectés / total ». */
@@ -64,6 +73,7 @@ class RelayStation(
     private var usingLocal = false
     private var keys: NostrKeys? = null
     private var wifiWatch: AutoCloseable? = null
+    private var reprobe: Job? = null
     private var generation = 0
 
     /** Allume l'antenne pour ce noyau. Sans effet si elle émet déjà. */
@@ -74,6 +84,14 @@ class RelayStation(
         // L'éclaireur d'abord : si un Wi-Fi est déjà connecté, son onAvailable
         // est rejoué à l'inscription et déclenche le premier réglage.
         wifiWatch = scout?.watchWifi { scope.launch { retune() } }
+        reprobe = scout?.let {
+            scope.launch {
+                while (true) {
+                    delay(REPROBE_MS)
+                    if (!usingLocal) retune()
+                }
+            }
+        }
         scope.launch { retune() }
         Log.d(TAG, "antenne allumée")
     }
@@ -85,6 +103,8 @@ class RelayStation(
         generation++
         wifiWatch?.close()
         wifiWatch = null
+        reprobe?.cancel()
+        reprobe = null
         teardown()
         currentUrls = emptyList()
         usingLocal = false
