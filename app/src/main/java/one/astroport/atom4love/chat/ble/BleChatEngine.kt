@@ -1,5 +1,8 @@
 package one.astroport.atom4love.chat.ble
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -119,6 +122,27 @@ class BleChatEngine(context: Context) {
 
         private const val MAX_TEXT_BYTES = 4096
         const val MAX_TRANSFER_BYTES = 2_000_000
+
+        /**
+         * Ce que l'UI doit demander avant [start]. Aucune localisation : le
+         * canal direct n'a pas à savoir où il est, et le scan est déclaré
+         * `neverForLocation` au manifeste.
+         */
+        val RUNTIME_PERMISSIONS: Array<String> =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                arrayOf(
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                )
+            } else {
+                // avant l'API 31, les permissions Bluetooth sont d'installation
+                emptyArray()
+            }
+
+        fun permissionsGranted(context: Context): Boolean = RUNTIME_PERMISSIONS.all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        }
 
         private const val WRITE_TIMEOUT_MS = 10_000L
 

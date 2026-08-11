@@ -65,6 +65,12 @@ import kotlinx.coroutines.delay
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.domain.GoldbergPortal
+import android.widget.Toast
+import one.astroport.atom4love.chat.Attachments
+import one.astroport.atom4love.chat.ChatSounds
+import one.astroport.atom4love.chat.ble.BleChatEngine
+import one.astroport.atom4love.chat.ui.ChatPanel
+import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.CabinSalon
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.proximity.CellLocator
@@ -90,6 +96,14 @@ private const val RITUAL_SECONDS = 33f
 
 /** La cellule bouge peu : un rafraîchissement du fix toutes les 30 s suffit. */
 private const val FIX_REFRESH_MS = 30_000L
+
+/**
+ * Quelle demande de permission est en vol. Un seul lanceur sert les trois :
+ * deux `rememberLauncherForActivityResult` du même contrat dans un même
+ * composable se sont disputé le résultat au banc, et le retour d'une demande
+ * de localisation a démarré la balise. L'intention est donc portée en état.
+ */
+private enum class PermissionIntent { NONE, BEACON, LOCATION, CABIN }
 
 /** Ce qu'il faut pour résoudre une cellule H3 — et rien de plus. */
 private val LOCATION_PERMISSIONS = arrayOf(
@@ -117,6 +131,7 @@ fun RadarScreen(
     modifier: Modifier = Modifier,
     relay: RelayStation.Status? = null,
     salon: CabinSalon? = null,
+    keys: NostrKeys? = null,
 ) {
     var elapsed by remember { mutableFloatStateOf(0f) }
     var attempt by remember { mutableIntStateOf(0) }
@@ -138,20 +153,24 @@ fun RadarScreen(
     // d'une demande de localisation seule a démarré la balise. L'intention est
     // donc portée explicitement, pas déduite du lanceur appelé.
     var locationAttempt by remember { mutableIntStateOf(0) }
-    var askingForBeacon by remember { mutableStateOf(false) }
+    var permissionFor by remember { mutableStateOf(PermissionIntent.NONE) }
+    var cabinOpen by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
-        if (askingForBeacon) {
-            askingForBeacon = false
-            // Localisation et notifications sont optionnelles ; seul le Bluetooth bloque.
-            if (ProximityService.corePermissionsGranted(context)) {
-                ProximityService.start(context)
-            }
-        } else if (results.values.any { it }) {
+        when (permissionFor) {
+            PermissionIntent.BEACON ->
+                // Localisation et notifications sont optionnelles ; seul le Bluetooth bloque.
+                if (ProximityService.corePermissionsGranted(context)) {
+                    ProximityService.start(context)
+                }
+            // sans Bluetooth, pas de cabine : on n'ouvre pas un panneau muet
+            PermissionIntent.CABIN -> cabinOpen = results.values.all { it }
             // accordée : on relance la résolution sans attendre le tour des 30 s
-            locationAttempt++
+            PermissionIntent.LOCATION -> if (results.values.any { it }) locationAttempt++
+            PermissionIntent.NONE -> Unit
         }
+        permissionFor = PermissionIntent.NONE
     }
 
     LaunchedEffect(attempt) {
@@ -265,7 +284,7 @@ fun RadarScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .clickable {
-                            askingForBeacon = false
+                            permissionFor = PermissionIntent.LOCATION
                             permissionLauncher.launch(LOCATION_PERMISSIONS)
                         }
                         .padding(vertical = 4.dp),
@@ -335,6 +354,29 @@ fun RadarScreen(
         val salonActive = relay?.local == true && relay.online
         val pensees = salon?.pensees?.collectAsStateWithLifecycle()?.value.orEmpty()
         var salonOpen by remember { mutableStateOf(false) }
+
+        // ── Cabine : ce qui se dit ici, entre gens à portée radio ─────────
+        // Une instance neuve à chaque ouverture. Le moteur ne se rallume pas
+        // après stop() (son scope est annulé), et surtout : ce qui s'est dit
+        // en cabine n'a pas à survivre à la sortie. Fermer la cabine efface
+        // la conversation, comme les pensées du salon à la fermeture.
+        var cabinSession by remember { mutableIntStateOf(0) }
+        val cabinChat = remember(cabinSession) { BleChatEngine(context.applicationContext) }
+        // L'effet n'entre en composition QUE cabine ouverte, et n'a que
+        // l'instance pour clé. Le piège évité : avec `cabinOpen` en clé, Compose
+        // dispose l'effet précédent — donc appelle stop() — AVANT d'exécuter le
+        // nouveau corps qui fait start(). Or stop() annule le scope et ferme le
+        // dispatcher : la radio démarrait (appels synchrones, logs présents)
+        // mais tout le protocole, qui vit dans scope.launch, était mort-né.
+        if (cabinOpen) {
+            DisposableEffect(cabinChat) {
+                // l'identité avant l'ouverture des liens : un handshake déjà
+                // engagé garderait la clé de fortune
+                keys?.let { cabinChat.bindIdentity(it) }
+                cabinChat.start()
+                onDispose { cabinChat.stop() }
+            }
+        }
         LaunchedEffect(fix?.cell) {
             fix?.let { salon?.setCell(cellHex(it.cell)) }
         }
@@ -345,7 +387,9 @@ fun RadarScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                 CabinStat(
                     if (salonActive) pensees.size.toString() else "—",
-                    "pensées ici",
+                    // « ici » appartient désormais à la cabine : l'hexagone,
+                    // c'est ce qu'on n'atteint que par un relais
+                    "dans l'hexagone",
                     Modifier
                         .weight(1f)
                         .clickable { salonOpen = !salonOpen },
@@ -378,13 +422,51 @@ fun RadarScreen(
                     .dashedGlass(
                         12.dp,
                         A4L.GlassFaint,
+                        (if (cabinOpen) A4L.Mint else A4L.Stroke).copy(alpha = 0.2f),
+                    )
+                    .clickable {
+                        if (cabinOpen) {
+                            cabinOpen = false
+                            // instance suivante : la conversation repart vierge
+                            cabinSession++
+                        } else if (BleChatEngine.permissionsGranted(context)) {
+                            cabinOpen = true
+                        } else {
+                            permissionFor = PermissionIntent.CABIN
+                            permissionLauncher.launch(BleChatEngine.RUNTIME_PERMISSIONS)
+                        }
+                    }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StatusDot(if (cabinOpen) A4L.Mint else A4L.TextDim)
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    if (cabinOpen) {
+                        "Cabine ouverte — toucher pour fermer et effacer"
+                    } else {
+                        "Parler à ceux qui sont ici — chiffré, sans relais"
+                    },
+                    style = A4LText.Caption,
+                    color = if (cabinOpen) A4L.Mint else A4L.TextMuted,
+                )
+            }
+            if (cabinOpen) {
+                CabinDirectPanel(chat = cabinChat)
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .dashedGlass(
+                        12.dp,
+                        A4L.GlassFaint,
                         (if (beaconRunning) A4L.Mint else A4L.Stroke).copy(alpha = 0.2f),
                     )
                     .clickable {
                         if (beaconRunning) {
                             ProximityService.stop(context)
                         } else {
-                            askingForBeacon = true
+                            permissionFor = PermissionIntent.BEACON
                             permissionLauncher.launch(ProximityService.runtimePermissions())
                         }
                     }
@@ -583,6 +665,77 @@ private fun CabinStat(
             label,
             style = A4LText.Caption.copy(fontSize = 11.sp),
             color = accent?.copy(alpha = 0.65f) ?: A4L.TextMuted,
+        )
+    }
+}
+
+/**
+ * Le canal direct de la cabine : ceux qui sont à portée radio, en Noise
+ * chiffré, sans relais. Rien de ce qui se dit ici n'en sort — c'est la
+ * contrepartie étanche du salon d'hexagone.
+ *
+ * Hauteur bornée : l'écran est déjà dans un `verticalScroll`, et une liste
+ * paresseuse ne se mesure pas dans une hauteur infinie.
+ */
+@Composable
+private fun CabinDirectPanel(chat: BleChatEngine) {
+    val context = LocalContext.current
+    val status by chat.status.collectAsStateWithLifecycle()
+    val messages by chat.messages.collectAsStateWithLifecycle()
+    val sounds = remember { ChatSounds() }
+
+    LaunchedEffect(chat) {
+        chat.chimes.collect { chime ->
+            when (chime) {
+                BleChatEngine.Chime.SENT -> sounds.send()
+                BleChatEngine.Chime.RECEIVED -> sounds.receive()
+            }
+        }
+    }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .glass(12.dp, background = A4L.GlassFaint, border = A4L.Mint.copy(alpha = 0.18f))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            buildString {
+                append(if (status.links > 0) "${status.links} lien(s) ✓" else "personne à portée")
+                status.lastError?.let { append("  ·  $it") }
+            },
+            style = A4LText.Caption,
+            color = if (status.links > 0) A4L.Mint else A4L.TextMuted,
+        )
+        ChatPanel(
+            messages = messages,
+            canSend = status.links > 0,
+            placeholder = "ici, chiffré…",
+            emptyHint = "Personne à portée pour l'instant. La cabine trouve seule " +
+                "les noyaux proches dont la cabine est ouverte. Rien de ce qui se dit " +
+                "ici ne part sur un relais, et tout s'efface en fermant.",
+            onSendText = { text -> chat.sendText(text) },
+            onSendImage = { uri -> chat.sendImage(uri) },
+            onSendFile = { uri -> chat.sendFile(uri) },
+            onOpen = { message ->
+                message.file?.let { file ->
+                    runCatching {
+                        context.startActivity(Attachments.viewIntent(context, file, message.mime))
+                    }
+                }
+            },
+            onDownload = { message ->
+                message.file?.let { file ->
+                    val ok = Attachments.saveToDownloads(context, file, message.name, message.mime)
+                    Toast.makeText(
+                        context,
+                        if (ok) "Enregistré dans Téléchargements" else "Échec de l'enregistrement",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            },
+            modifier = Modifier.height(400.dp),
         )
     }
 }

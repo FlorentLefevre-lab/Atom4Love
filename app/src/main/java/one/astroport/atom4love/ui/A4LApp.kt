@@ -202,7 +202,7 @@ private fun Station(
                         label = "tab",
                     ) { t ->
                         when (t) {
-                            A4LTab.Radar -> RadarScreen(relay = relayStatus, salon = salon)
+                            A4LTab.Radar -> RadarScreen(relay = relayStatus, salon = salon, keys = keys)
                             A4LTab.Board -> BoardScreen(npub = keys?.npubShort)
                             A4LTab.Bonds -> ResonanceScreen()
                             A4LTab.Nucleus -> IncarnationScreen(
