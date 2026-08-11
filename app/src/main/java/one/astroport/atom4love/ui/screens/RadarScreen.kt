@@ -139,11 +139,13 @@ fun RadarScreen(
     // ── Le vrai fix : cellule H3, distance au centre, portail Goldberg ────
     val locator = remember { CellLocator(context.applicationContext) }
     var fix by remember { mutableStateOf<CellLocator.Fix?>(null) }
+    var locationBlocker by remember { mutableStateOf<CellLocator.Blocker?>(null) }
     // Re-résout quand la balise change d'état (la permission de localisation
     // vient peut-être d'être accordée), puis toutes les 30 s.
     LaunchedEffect(beaconRunning) {
         while (true) {
             fix = locator.currentFix()
+            locationBlocker = if (fix == null) locator.blocker() else null
             delay(FIX_REFRESH_MS)
         }
     }
@@ -209,9 +211,16 @@ fun RadarScreen(
             Spacer(Modifier.height(6.dp))
             Text(
                 when {
-                    fix == null ->
-                        "Hexagone inconnu — accordez la localisation (via la balise) " +
-                            "pour résoudre votre cellule."
+                    fix == null -> when (locationBlocker) {
+                        CellLocator.Blocker.SERVICE_OFF ->
+                            "Hexagone inconnu — la Localisation du téléphone est coupée : " +
+                                "réactivez-la dans les réglages rapides."
+                        CellLocator.Blocker.PERMISSION ->
+                            "Hexagone inconnu — accordez la localisation (via la balise) " +
+                                "pour résoudre votre cellule."
+                        null ->
+                            "Hexagone inconnu — recherche de position en cours…"
+                    }
                     unlocked ->
                         "Hexagone ${cellHex(fix!!.cell)} — abonnement au flux de la cabine actif."
                     else ->

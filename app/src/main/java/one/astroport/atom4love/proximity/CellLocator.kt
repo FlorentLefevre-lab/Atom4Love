@@ -5,8 +5,10 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -49,6 +51,26 @@ class CellLocator(private val context: Context) {
         val centerLon: Double,
         val distanceToCenterM: Double,
     )
+
+    /**
+     * Ce qui empêche la résolution — deux réglages distincts qu'un écran ne
+     * doit pas confondre : la permission accordée à l'app, et l'interrupteur
+     * Localisation du téléphone (réglages rapides), qu'un effleurement suffit
+     * à couper sans que rien ne le signale.
+     */
+    enum class Blocker { PERMISSION, SERVICE_OFF }
+
+    fun blocker(): Blocker? {
+        val granted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) return Blocker.PERMISSION
+        val manager = context.getSystemService(LocationManager::class.java)
+        if (manager != null && !LocationManagerCompat.isLocationEnabled(manager)) {
+            return Blocker.SERVICE_OFF
+        }
+        return null
+    }
 
     /** null si la permission de localisation manque ou qu'aucune position n'arrive. */
     suspend fun currentCell(): Long? = currentFix()?.cell
