@@ -29,6 +29,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.wifi.WifiManager
 import android.net.Uri
 import android.os.Build
 import android.os.ParcelUuid
@@ -387,6 +388,24 @@ class CabinChat(context: Context) {
         /** Clé publique NOSTR du pair, une fois son attestation vérifiée. */
         var peerNostrKey: ByteArray? = null
 
+        /**
+         * Chronos d'un transfert, remis à zéro à chaque départ : temps passé à
+         * sceller (Noise, sur le fil protocole) et temps passé à remettre au
+         * transport. Les deux se mesurent séparément parce qu'ils se soignent
+         * différemment — l'un est du calcul, l'autre de la contre-pression.
+         */
+        var sealMs = 0L
+        var wireMs = 0L
+
+        /**
+         * Symétrique à la réception : temps passé à attendre des octets, et
+         * temps passé à les traiter (ouverture Noise, réassemblage). Si le
+         * traitement domine, c'est nous qui étranglons l'émetteur par
+         * contre-pression TCP ; si c'est l'attente, le tort est au réseau.
+         */
+        var readMs = 0L
+        var handleMs = 0L
+
         val ready: Boolean get() = when {
             medium != Medium.BLE -> stream != null
             kind == LinkKind.SERVER -> true
@@ -557,6 +576,7 @@ class CabinChat(context: Context) {
         runCatching { listener?.close() }
         listener = null
         listenPort = 0
+        releaseWifiLock()
         scope.cancel()
         // le démontage des liens passe par le fil protocole : l'executor FIFO
         // le sérialise derrière tout corps de coroutine encore en cours
@@ -592,9 +612,12 @@ class CabinChat(context: Context) {
             override fun onReceive(context: Context, intent: Intent) {
                 when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)) {
                     BluetoothAdapter.STATE_OFF -> scope.launch {
-                        Log.w(TAG, "Bluetooth coupé : liens fermés")
-                        links.keys.toList().forEach { k ->
-                            val link = links[k] ?: return@forEach
+                        Log.w(TAG, "Bluetooth coupé : liens radio fermés")
+                        // Les seuls liens BLE. Tout jeter emporterait les
+                        // sockets Wi-Fi, qui n'ont rien à voir avec la radio
+                        // qu'on vient d'éteindre — la cabine perdrait sa
+                        // liaison la plus rapide en coupant le Bluetooth.
+                        links.values.filter { it.medium == Medium.BLE }.toList().forEach { link ->
                             removeLink(link.medium, link.kind, link.address)
                         }
                         runCatching { server?.close() }
@@ -932,7 +955,31 @@ class CabinChat(context: Context) {
             // parade `isHandshake` ne protège que le handshake lui-même. Depuis
             // onHandshakeDone, la file contient déjà HELLO 3 : l'ordre tient.
             announceAddress(link)
+            followMedium(link)
             refreshLinks()
+        }
+    }
+
+    /**
+     * Fil protocole. La montée se **propose à qui l'engage** et se **suit pour
+     * qui la reçoit**.
+     *
+     * Un pair qui a composé vers nous sur ce médium et s'y est attesté nous y
+     * parle déjà : continuer d'émettre par la radio ne protégerait rien —
+     * l'adresse, c'est nous qui la lui avons annoncée — et laisserait la moitié
+     * de la conversation à la vitesse du BLE. C'est ce que Florent a vu au banc
+     * le 2026-08-11 : un côté passé en Wi-Fi, l'autre resté en direct, jusqu'à
+     * l'accusé de réception qui repartait par la radio.
+     *
+     * Le principe tient : personne ne bascule dans le dos de personne, puisque
+     * l'annonce d'adresse est mutuelle et qu'il faut un accord humain **d'un**
+     * côté pour que le premier lien s'ouvre.
+     */
+    private fun followMedium(link: Link) {
+        if (link.medium == Medium.BLE || link.kind != LinkKind.SERVER) return
+        if (link.peerNostrKey == null) return
+        if (enabledMedia.add(link.medium)) {
+            Log.i(TAG, "médium suivi : ${link.medium.short} — le pair l'a engagé")
         }
     }
 
@@ -994,7 +1041,25 @@ class CabinChat(context: Context) {
         refreshLinks()
     }
 
-    /** Fil protocole. Coupe scan + annonce le temps des transferts. */
+    /**
+     * Fil protocole. Fait taire la radio BLE le temps d'un transfert : scan,
+     * annonce, **et l'intervalle des liens déjà établis**.
+     *
+     * Ce dernier point est celui qui compte, et il a coûté une soirée de banc.
+     * Le 2026-08-11, même fichier, même chemin, en court-circuitant l'app
+     * (blast TCP depuis le PC vers la socket d'écoute) : **100 Ko/s Bluetooth
+     * allumé, 2 263 Ko/s Bluetooth coupé — 23×**. L'AP est sur le canal 1 en
+     * 2,4 GHz, avec un PHY négocié à 72–144 Mbit/s, un signal à −26 dBm et zéro
+     * retry : la radio va bien, c'est l'arbitre de coexistence qui donne le
+     * temps d'antenne au Bluetooth. Or nos liens client tournent à
+     * CONNECTION_PRIORITY_HIGH, soit un événement toutes les 15 ms sur la bande
+     * même du Wi-Fi. Couper scan et annonce ne suffisait donc pas — ce sont les
+     * liens **établis** qui mangent l'antenne, et c'est pourquoi les trois
+     * premières mesures n'ont rien donné.
+     *
+     * On ne ferme pas ces liens : le BLE reste la porte, et un pair perdu se
+     * rescanne. On les endort.
+     */
     private fun pauseRadioForTransfer() {
         if (radioPaused) return
         radioPaused = true
@@ -1002,6 +1067,7 @@ class CabinChat(context: Context) {
         runCatching { advertiseCallback?.let { adapter?.bluetoothLeAdvertiser?.stopAdvertising(it) } }
         scanCallback = null
         advertiseCallback = null
+        setBleInterval(BluetoothGatt.CONNECTION_PRIORITY_LOW_POWER)
         Log.i(TAG, "radio en pause : transfert en cours")
     }
 
@@ -1010,9 +1076,23 @@ class CabinChat(context: Context) {
         if (!radioPaused) return
         if (activeOutgoing > 0 || reassembler.activeStreams() > 0) return
         radioPaused = false
+        setBleInterval(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
         startAdvertising()
         startScan()
         Log.i(TAG, "radio relancée : transferts terminés")
+    }
+
+    /**
+     * Change l'intervalle de tous les liens BLE sortants. Seul le rôle client
+     * peut peser sur les paramètres du lien — côté serveur, Android n'offre
+     * rien. Un transfert BLE redemandera aussitôt HIGH pour SON lien.
+     */
+    private fun setBleInterval(priority: Int) {
+        links.values.forEach { link ->
+            if (link.medium == Medium.BLE) {
+                runCatching { link.gatt?.requestConnectionPriority(priority) }
+            }
+        }
     }
 
     private suspend fun runTransferInner(link: Link, out: Outgoing) {
@@ -1032,23 +1112,35 @@ class CabinChat(context: Context) {
         var priorityRetried = false
         var offset = 0
         var index = 0
+        // Où passe le temps d'un fragment : dans l'écriture (scellement +
+        // remise au transport, donc contre-pression du pair) ou dans le reste
+        // du tour de boucle (ordonnancement du fil protocole, progression).
+        // Sans cette découpe, un transport lent est indiscernable d'un moteur
+        // lent — c'est exactement la question ouverte du débit par la station.
+        var loopMs = 0L
+        link.sealMs = 0L
+        link.wireMs = 0L
         while (offset < out.content.size) {
             // les acquittements se glissent entre deux fragments
             while (true) {
                 val control = link.control.tryReceive().getOrNull() ?: break
                 writeFrame(link, control)
             }
+            val fragmentStart = SystemClock.elapsedRealtime()
             val end = minOf(offset + chunk, out.content.size)
             // La contre-pression est une affaire de radio : TCP a la sienne,
             // et une écriture sur socket ne rend la main que quand l'octet est
             // parti. Rien à cadencer hors du BLE.
             val windowEdge = end == out.content.size || index % ACK_WINDOW == ACK_WINDOW - 1
             val reliable = link.medium != Medium.BLE || (windowEdge && link.kind == LinkKind.CLIENT)
-            if (!writeFrame(link, ChatFrames.encodeData(out.msgId, index, out.content, offset, end), reliable)) {
+            val encoded = ChatFrames.encodeData(out.msgId, index, out.content, offset, end)
+            val encodedAt = SystemClock.elapsedRealtime()
+            if (!writeFrame(link, encoded, reliable)) {
                 onTransferFailed(link, out)
                 failLink(link)
                 return
             }
+            loopMs += encodedAt - fragmentStart
             // pas d'équivalent « avec réponse » pour une notification :
             // on relâche la pression d'un souffle à chaque fenêtre
             if (windowEdge && link.medium == Medium.BLE && link.kind == LinkKind.SERVER) {
@@ -1093,7 +1185,8 @@ class CabinChat(context: Context) {
         Log.i(
             TAG,
             "message ${out.msgId} $verb (${out.content.size} o, $index fragment(s)) " +
-                "vers ${link.address} — $elapsed ms, ${elapsed / maxOf(index, 1)} ms/fragment",
+                "vers ${link.address} — $elapsed ms, ${elapsed / maxOf(index, 1)} ms/fragment " +
+                "(scellement ${link.sealMs} ms, transport ${link.wireMs} ms, boucle $loopMs ms)",
         )
     }
 
@@ -1158,8 +1251,14 @@ class CabinChat(context: Context) {
      * la pile occupée (écriture non démarrée) se retente, avec repli.
      */
     private suspend fun writeFrame(link: Link, plain: ByteArray, withResponse: Boolean = false): Boolean {
+        val sealStart = SystemClock.elapsedRealtime()
         val frame = seal(link, plain) ?: return false
-        if (link.medium != Medium.BLE) return streamWrite(link, frame)
+        val sealed = SystemClock.elapsedRealtime()
+        link.sealMs += sealed - sealStart
+        if (link.medium != Medium.BLE) {
+            return streamWrite(link, frame)
+                .also { link.wireMs += SystemClock.elapsedRealtime() - sealed }
+        }
         val deadline = SystemClock.elapsedRealtime() + BUSY_DEADLINE_MS
         var attempt = 0
         while (true) {
@@ -1334,7 +1433,13 @@ class CabinChat(context: Context) {
                 }
             }
         }
-        Log.i(TAG, "message ${start.msgId} reçu au complet (${event.bytes.size} o)")
+        val by = links.values.firstOrNull { it.address == event.from }
+        Log.i(
+            TAG,
+            "message ${start.msgId} reçu au complet (${event.bytes.size} o)" +
+                (by?.let { " — attente ${it.readMs} ms, traitement ${it.handleMs} ms" } ?: ""),
+        )
+        by?.let { it.readMs = 0L; it.handleMs = 0L }
         _chimes.tryEmit(Chime.RECEIVED)
         broadcastControl(ChatFrames.encodeAck(start.msgId, ChatFrames.ACK_OK))
         maybeResumeRadio()
@@ -1382,6 +1487,19 @@ class CabinChat(context: Context) {
 
     private var listener: ServerSocket? = null
 
+    /**
+     * Verrou de latence Wi-Fi, tenu tant que la cabine est ouverte.
+     *
+     * Sans lui, Android laisse la puce Wi-Fi en économie d'énergie : elle ne se
+     * réveille qu'aux balises (~100 ms) et chaque aller-retour paie ce réveil.
+     * Symptôme au banc le 2026-08-11 — un handshake Noise de trois messages de
+     * cent octets prenait **5 à 10 secondes**, et chaque trame de 32 Ko
+     * attendait des centaines de millisecondes alors que le récepteur ne
+     * travaillait que 8 ms. Ce n'était pas du débit qui manquait, c'était du
+     * réveil.
+     */
+    private var wifiLock: WifiManager.WifiLock? = null
+
     /** Port de notre socket d'écoute, 0 tant qu'elle n'est pas ouverte. */
     private var listenPort = 0
 
@@ -1395,6 +1513,7 @@ class CabinChat(context: Context) {
      */
     private fun startListener() {
         if (listener != null) return
+        acquireWifiLock()
         runCatching { ServerSocket(0) }
             .onFailure { Log.w(TAG, "écoute TCP impossible — $it") }
             .onSuccess { socket ->
@@ -1403,6 +1522,27 @@ class CabinChat(context: Context) {
                 Log.i(TAG, "écoute des médiums Wi-Fi sur le port $listenPort")
                 scope.launch { acceptLoop(socket) }
             }
+    }
+
+    /** Le mode basse latence existe depuis l'API 29 ; avant, la haute perf. */
+    private fun acquireWifiLock() {
+        if (wifiLock != null) return
+        val manager = appContext.getSystemService(WifiManager::class.java) ?: return
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+        } else {
+            @Suppress("DEPRECATION")
+            WifiManager.WIFI_MODE_FULL_HIGH_PERF
+        }
+        wifiLock = runCatching {
+            manager.createWifiLock(mode, "atom4love:cabine").apply { acquire() }
+        }.onFailure { Log.w(TAG, "verrou Wi-Fi refusé — $it") }.getOrNull()
+        if (wifiLock != null) Log.i(TAG, "verrou Wi-Fi basse latence tenu")
+    }
+
+    private fun releaseWifiLock() {
+        runCatching { wifiLock?.takeIf { it.isHeld }?.release() }
+        wifiLock = null
     }
 
     private suspend fun acceptLoop(server: ServerSocket) {
@@ -1457,13 +1597,17 @@ class CabinChat(context: Context) {
      */
     private suspend fun readLoop(link: Link, stream: FramedSocket) {
         while (true) {
+            val waiting = SystemClock.elapsedRealtime()
             val frame = withContext(Dispatchers.IO) {
                 runCatching { stream.read() }.getOrElse { error ->
                     Log.w(TAG, "lecture ${link.address} interrompue — $error")
                     null
                 }
             } ?: break
+            val arrived = SystemClock.elapsedRealtime()
             handleFrame(link.medium, link.kind, link.address, frame)
+            link.readMs += arrived - waiting
+            link.handleMs += SystemClock.elapsedRealtime() - arrived
         }
         Log.i(TAG, "lien ${link.medium.short} ${link.address} fermé")
         removeLink(link.medium, link.kind, link.address)
