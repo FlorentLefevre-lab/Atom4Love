@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
@@ -89,6 +91,12 @@ private const val RITUAL_SECONDS = 33f
 /** La cellule bouge peu : un rafraîchissement du fix toutes les 30 s suffit. */
 private const val FIX_REFRESH_MS = 30_000L
 
+/** Ce qu'il faut pour résoudre une cellule H3 — et rien de plus. */
+private val LOCATION_PERMISSIONS = arrayOf(
+    android.Manifest.permission.ACCESS_FINE_LOCATION,
+    android.Manifest.permission.ACCESS_COARSE_LOCATION,
+)
+
 /**
  * Identifiant lisible d'une cellule H3 : l'index en hexadécimal, débarrassé de
  * la traîne de « f » des chiffres inutilisés. Affichage uniquement — jamais
@@ -119,12 +127,30 @@ fun RadarScreen(
     val beaconRunning by ProximityService.running.collectAsStateWithLifecycle()
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
     val ownCell4d by ProximityService.advertisedCell4d.collectAsStateWithLifecycle()
+    // La localisation se demande pour elle-même. Elle ne l'était auparavant que
+    // par le bouton balise, ce qui obligeait à diffuser son adresse 4D en
+    // continu pour obtenir un hexagone — donc pour entrer dans le salon de
+    // cabine, qui n'en a pourtant aucun besoin (vérifié au banc : balise
+    // coupée, le salon continue d'émettre et de recevoir).
+    //
+    // Un SEUL lanceur pour les deux demandes : deux lanceurs du même contrat
+    // dans un même composable se sont disputé le résultat au banc, et le retour
+    // d'une demande de localisation seule a démarré la balise. L'intention est
+    // donc portée explicitement, pas déduite du lanceur appelé.
+    var locationAttempt by remember { mutableIntStateOf(0) }
+    var askingForBeacon by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) {
-        // Localisation et notifications sont optionnelles ; seul le Bluetooth bloque.
-        if (ProximityService.corePermissionsGranted(context)) {
-            ProximityService.start(context)
+    ) { results ->
+        if (askingForBeacon) {
+            askingForBeacon = false
+            // Localisation et notifications sont optionnelles ; seul le Bluetooth bloque.
+            if (ProximityService.corePermissionsGranted(context)) {
+                ProximityService.start(context)
+            }
+        } else if (results.values.any { it }) {
+            // accordée : on relance la résolution sans attendre le tour des 30 s
+            locationAttempt++
         }
     }
 
@@ -140,9 +166,9 @@ fun RadarScreen(
     val locator = remember { CellLocator(context.applicationContext) }
     var fix by remember { mutableStateOf<CellLocator.Fix?>(null) }
     var locationBlocker by remember { mutableStateOf<CellLocator.Blocker?>(null) }
-    // Re-résout quand la balise change d'état (la permission de localisation
-    // vient peut-être d'être accordée), puis toutes les 30 s.
-    LaunchedEffect(beaconRunning) {
+    // Re-résout quand la balise change d'état ou quand la localisation vient
+    // d'être accordée, puis toutes les 30 s.
+    LaunchedEffect(beaconRunning, locationAttempt) {
         while (true) {
             fix = locator.currentFix()
             locationBlocker = if (fix == null) locator.blocker() else null
@@ -216,8 +242,8 @@ fun RadarScreen(
                             "Hexagone inconnu — la Localisation du téléphone est coupée : " +
                                 "réactivez-la dans les réglages rapides."
                         CellLocator.Blocker.PERMISSION ->
-                            "Hexagone inconnu — accordez la localisation (via la balise) " +
-                                "pour résoudre votre cellule."
+                            "Hexagone inconnu — la localisation résout votre cellule. " +
+                                "Elle n'allume aucune balise."
                         null ->
                             "Hexagone inconnu — recherche de position en cours…"
                     }
@@ -230,6 +256,21 @@ fun RadarScreen(
                 style = A4LText.Body,
                 color = A4L.TextBody.copy(alpha = 0.45f),
             )
+            if (fix == null && locationBlocker == CellLocator.Blocker.PERMISSION) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Accorder la localisation",
+                    style = A4LText.Caption,
+                    color = A4L.Mint,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            askingForBeacon = false
+                            permissionLauncher.launch(LOCATION_PERMISSIONS)
+                        }
+                        .padding(vertical = 4.dp),
+                )
+            }
         }
 
         // ── Radar ─────────────────────────────────────────────────────────
@@ -343,6 +384,7 @@ fun RadarScreen(
                         if (beaconRunning) {
                             ProximityService.stop(context)
                         } else {
+                            askingForBeacon = true
                             permissionLauncher.launch(ProximityService.runtimePermissions())
                         }
                     }
