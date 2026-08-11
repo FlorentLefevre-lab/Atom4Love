@@ -1206,7 +1206,14 @@ class CabinChat(context: Context) {
         // un lien à 15 ms, en trois fois plus lent. Le chemin notification, lui,
         // ne fait qu'empiler : son vrai débit se lit à l'accusé, pas ici.
         val elapsed = (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(1)
-        val verb = if (link.kind == LinkKind.CLIENT) "émis" else "remis à la pile"
+        // « remis à la pile » ne vaut que pour une notification GATT, qui part
+        // sans retour : une écriture de socket qui rend la main a bel et bien
+        // remis ses octets, quel que soit le rôle du lien.
+        val verb = if (link.medium != Medium.BLE || link.kind == LinkKind.CLIENT) {
+            "émis"
+        } else {
+            "remis à la pile"
+        }
         Log.i(
             TAG,
             "message ${out.msgId} $verb (${out.content.size} o, $index fragment(s)) " +
