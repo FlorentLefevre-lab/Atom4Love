@@ -19,6 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -97,9 +98,22 @@ class ProximityEngine(
         var advertiseCallback: AdvertiseCallback? = null
         var scanCallback: ScanCallback? = null
         try {
-            scanCallback = startScan(scanner)
-
             while (currentCoroutineContext().isActive) {
+                // Silence demandé : la cabine transfère, et la même puce porte
+                // les deux. On se tait entièrement plutôt que de lui disputer
+                // l'antenne — la balise n'a rien d'urgent à dire.
+                if (RadioSilence.requested.value) {
+                    advertiseCallback?.let { runCatching { advertiser.stopAdvertising(it) } }
+                    advertiseCallback = null
+                    scanCallback?.let { runCatching { scanner.stopScan(it) } }
+                    scanCallback = null
+                    _state.update { it.copy(advertising = false, scanning = false) }
+                    Log.d(TAG, "balise en silence : transfert en cours")
+                    RadioSilence.requested.first { !it }
+                    Log.d(TAG, "balise relancée : antenne rendue")
+                    continue
+                }
+                if (scanCallback == null) scanCallback = startScan(scanner)
                 val h3Cell = locator.currentCell()
                 Log.d(TAG, "cellule H3 résolue : ${h3Cell?.toString(16) ?: "échec (pas de position)"}")
                 val cell4d = h3Cell?.let { rotation.apply(it, System.currentTimeMillis()) }
@@ -111,7 +125,10 @@ class ProximityEngine(
 
                 var waited = 0L
                 val refreshMs = if (cell4d == null) CELL_RETRY_MS else CELL_REFRESH_MS
-                while (waited < refreshMs) {
+                // l'attente se rompt sur demande de silence : attendre les 30 s
+                // du prochain rafraîchissement laisserait l'antenne occupée
+                // pendant tout le transfert
+                while (waited < refreshMs && !RadioSilence.requested.value) {
                     delay(SWEEP_INTERVAL_MS)
                     waited += SWEEP_INTERVAL_MS
                     registry.sweep()

@@ -74,6 +74,7 @@ import one.astroport.atom4love.chat.wire.ChatFrame
 import one.astroport.atom4love.chat.wire.ChatFrames
 import one.astroport.atom4love.chat.wire.Reassembler
 import one.astroport.atom4love.nostr.CabinSalon
+import one.astroport.atom4love.proximity.RadioSilence
 import one.astroport.atom4love.noise.NoiseIdentity
 import one.astroport.atom4love.noise.NoiseSession
 import one.astroport.atom4love.noise.NoiseVouch
@@ -621,6 +622,9 @@ class CabinChat(context: Context) {
         runCatching { server?.close() }
         server = null
         dispatcher.close()
+        // fermer la cabine en plein transfert laisserait la balise muette pour
+        // toujours : le silence était le nôtre, il part avec nous
+        RadioSilence.request(false)
         _status.value = Status()
     }
 
@@ -1093,6 +1097,10 @@ class CabinChat(context: Context) {
         scanCallback = null
         advertiseCallback = null
         setBleInterval(BluetoothGatt.CONNECTION_PRIORITY_LOW_POWER)
+        // La balise vit dans son propre service et tourne en permanence : elle
+        // n'entend rien de la cabine sans qu'on le lui demande, et son annonce
+        // continue coûterait à ce transfert le même prix que nos propres liens.
+        RadioSilence.request(true)
         Log.i(TAG, "radio en pause : transfert en cours")
     }
 
@@ -1102,6 +1110,7 @@ class CabinChat(context: Context) {
         if (activeOutgoing > 0 || reassembler.activeStreams() > 0) return
         radioPaused = false
         setBleInterval(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
+        RadioSilence.request(false)
         startAdvertising()
         startScan()
         Log.i(TAG, "radio relancée : transferts terminés")

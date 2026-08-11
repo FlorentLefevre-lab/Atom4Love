@@ -213,11 +213,10 @@ fun RadarScreen(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
         when (permissionFor) {
-            PermissionIntent.BEACON ->
-                // Localisation et notifications sont optionnelles ; seul le Bluetooth bloque.
-                if (ProximityService.corePermissionsGranted(context)) {
-                    ProximityService.start(context)
-                }
+            // Rien à faire : l'effet qui veille sur `permissionFor` démarre la
+            // balise dès que le Bluetooth est là. Localisation et notifications
+            // restent optionnelles — sans elles, présence sans position.
+            PermissionIntent.BEACON -> Unit
             // sans Bluetooth, pas de cabine : on n'ouvre pas un panneau muet
             PermissionIntent.CABIN -> if (results.values.all { it }) onOpenCabin()
             // accordée : on relance la résolution sans attendre le tour des 30 s
@@ -239,6 +238,16 @@ fun RadarScreen(
     val settingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { locationAttempt++ }
+
+    // La balise est le socle : elle démarre d'elle-même dès que le Bluetooth
+    // est accordé, et ne se coupe plus. Elle n'annonce une cellule que si la
+    // localisation l'est aussi — présence sans position, sinon. `permissionFor`
+    // sert de clé : tout retour de demande de permission repasse par ici.
+    LaunchedEffect(beaconRunning, permissionFor) {
+        if (!beaconRunning && ProximityService.corePermissionsGranted(context)) {
+            ProximityService.start(context)
+        }
+    }
 
     LaunchedEffect(attempt) {
         val start = withFrameNanos { it }
@@ -537,13 +546,12 @@ fun RadarScreen(
                         A4L.GlassFaint,
                         (if (beaconRunning) A4L.Mint else A4L.Stroke).copy(alpha = 0.2f),
                     )
-                    .clickable {
-                        if (beaconRunning) {
-                            ProximityService.stop(context)
-                        } else {
-                            permissionFor = PermissionIntent.BEACON
-                            permissionLauncher.launch(ProximityService.runtimePermissions())
-                        }
+                    // Plus d'interrupteur : la balise est le socle, elle tourne
+                    // dès qu'elle le peut. Ne reste à toucher que ce qui manque
+                    // pour qu'elle le puisse.
+                    .clickable(enabled = !beaconRunning) {
+                        permissionFor = PermissionIntent.BEACON
+                        permissionLauncher.launch(ProximityService.runtimePermissions())
                     }
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -551,10 +559,15 @@ fun RadarScreen(
                 StatusDot(if (beaconRunning) A4L.Mint else A4L.TextDim)
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    if (beaconRunning) {
-                        "Balise active — toucher pour couper"
-                    } else {
-                        "Activer la balise de proximité"
+                    when {
+                        // La cellule ne part QUE si la localisation est
+                        // accordée : sans elle la balise annonce une présence,
+                        // jamais une position (charge utile « cellule inconnue »).
+                        beaconRunning && ownCell4d != null ->
+                            "Balise active — annonce l'hexagone ${cellHex(ownCell4d!!)}"
+                        beaconRunning ->
+                            "Balise active — présence seule, sans position"
+                        else -> "Balise de proximité — Bluetooth requis"
                     },
                     style = A4LText.Caption,
                     color = if (beaconRunning) A4L.Mint else A4L.TextMuted,
