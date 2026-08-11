@@ -29,6 +29,7 @@ import android.os.Build
 import android.os.ParcelUuid
 import android.os.SystemClock
 import android.util.Log
+import java.security.SecureRandom
 import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.random.Random
@@ -63,6 +64,9 @@ import one.astroport.atom4love.chat.ChatStatus
 import one.astroport.atom4love.chat.wire.ChatFrame
 import one.astroport.atom4love.chat.wire.ChatFrames
 import one.astroport.atom4love.chat.wire.Reassembler
+import one.astroport.atom4love.noise.NoiseIdentity
+import one.astroport.atom4love.noise.NoiseSession
+import one.astroport.atom4love.nostr.Hex
 
 /**
  * POC : causerie en BLE pur, sans AP ni relais — la brique GATT
@@ -258,6 +262,17 @@ class BleChatProbe(context: Context) {
         val control = Channel<ByteArray>(Channel.UNLIMITED)
         var job: Job? = null
 
+        /**
+         * Session Noise du lien. Le client initie, le serveur répond : le lien
+         * client de A parle au lien serveur de B, ces deux-là forment le canal.
+         * Une session par lien, donc deux par paire d'appareils — le double
+         * lien croisé porte deux canaux indépendants.
+         */
+        var noise: NoiseSession? = null
+
+        /** Évite de re-journaliser un handshake déjà annoncé. */
+        var noiseAnnounced = false
+
         val ready: Boolean get() = kind == LinkKind.SERVER || characteristic != null
 
         fun failPending() {
@@ -266,6 +281,20 @@ class BleChatProbe(context: Context) {
             }
         }
     }
+
+    /**
+     * Clé statique Noise de cette instance de sonde.
+     *
+     * Tirée au sort à chaque lancement : le POC valide la mécanique du
+     * handshake, pas encore l'identité. La liaison à l'incarnation viendra par
+     * [NoiseIdentity.staticPrivateKey], et donnera la même clé statique aux
+     * deux appareils d'un même noyau.
+     */
+    private val noiseStaticKey: ByteArray =
+        ByteArray(NoiseIdentity.KEY_LENGTH).also { SecureRandom().nextBytes(it) }
+
+    /** Ce que le pair verra de nous — journalisé pour recouper les deux bancs. */
+    private val noisePublicKey: ByteArray = NoiseIdentity.staticPublicKey(noiseStaticKey)
 
     /** clé = "c:<adresse>" (client sortant) ou "s:<adresse>" (central abonné). */
     private val links = LinkedHashMap<String, Link>()
@@ -316,6 +345,9 @@ class BleChatProbe(context: Context) {
             _status.update { it.copy(lastError = "Bluetooth désactivé") }
             return
         }
+        // journalisée pour recouper les deux bancs : la clé que le pair
+        // annoncera comme « pair … » doit être celle-ci
+        Log.i(TAG, "identité Noise de cette sonde : ${Hex.encode(noisePublicKey).take(16)}…")
         registerStateReceiver()
         startRadio()
         scope.launch {
@@ -569,6 +601,101 @@ class BleChatProbe(context: Context) {
         runCatching { link.gatt?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH) }
     }
 
+    // ── Handshake Noise ───────────────────────────────────────────────────
+
+    /**
+     * Fil protocole. Ouvre le handshake sur un lien client fraîchement prêt.
+     *
+     * Le premier message XX ne porte **aucune charge utile** : il précède tout
+     * échange de clés et voyagerait en clair. Le npub attendra le deuxième.
+     */
+    private fun beginHandshake(link: Link) {
+        if (link.kind != LinkKind.CLIENT || link.noise != null) return
+        val session = NoiseSession.initiator(noiseStaticKey)
+        link.noise = session
+        if (!sendHandshake(link, session, step = 1)) {
+            Log.w(TAG, "handshake : premier message impossible vers ${link.address}")
+            link.noise = null
+            session.destroy()
+        }
+    }
+
+    /** Fil protocole. Produit et met en file le prochain message du handshake. */
+    private fun sendHandshake(link: Link, session: NoiseSession, step: Int): Boolean {
+        val message = runCatching { session.writeHandshake() }.getOrElse { error ->
+            Log.w(TAG, "handshake : écriture impossible vers ${link.address} — $error")
+            return false
+        }
+        val frame = ChatFrames.encodeHandshake(step, message, ChatFrames.attPayload(link.mtu))
+        if (frame == null) {
+            // au MTU plancher (23) le premier message XX ne passe pas : le
+            // handshake exige un MTU négocié, il n'y a pas de repli
+            Log.w(TAG, "handshake : message $step trop long pour l'ATT de ${link.address}")
+            return false
+        }
+        link.control.trySend(frame)
+        return true
+    }
+
+    /**
+     * Fil protocole. Un message de handshake arrive : le lien client l'a
+     * reçu en notification, le lien serveur en écriture du pair.
+     */
+    private fun onHandshakeFrame(kind: LinkKind, from: String, frame: ChatFrame.Handshake) {
+        val link = links[key(kind, from)] ?: return
+        val session = link.noise ?: when (kind) {
+            // le répondeur ne crée sa session qu'à l'arrivée du premier message
+            LinkKind.SERVER -> NoiseSession.responder(noiseStaticKey).also { link.noise = it }
+            LinkKind.CLIENT -> {
+                Log.w(TAG, "handshake : message ${frame.step} sans session côté client de $from")
+                return
+            }
+        }
+        val read = runCatching { session.readHandshake(frame.message) }
+        if (read.isFailure) {
+            // message hors séquence, altéré, ou pair qui reprend un handshake
+            // sur une session déjà engagée : rien de récupérable ici
+            Log.w(TAG, "handshake : message ${frame.step} refusé de $from — ${read.exceptionOrNull()}")
+            failHandshake(link)
+            return
+        }
+        when (session.step) {
+            // écrire le 3e message établit l'initiateur sans qu'il ait à relire
+            NoiseSession.Step.WRITE ->
+                if (!sendHandshake(link, session, frame.step + 1)) {
+                    failHandshake(link)
+                    return
+                }
+            NoiseSession.Step.READ -> Unit // au pair de parler
+            NoiseSession.Step.DONE -> Unit
+            NoiseSession.Step.FAILED -> {
+                failHandshake(link)
+                return
+            }
+        }
+        if (session.established) onHandshakeDone(link, session)
+    }
+
+    private fun onHandshakeDone(link: Link, session: NoiseSession) {
+        val remote = session.remoteStaticKey ?: return
+        if (!link.noiseAnnounced) {
+            link.noiseAnnounced = true
+            Log.i(
+                TAG,
+                "handshake Noise abouti sur ${link.kind} ${link.address} — " +
+                    "pair ${Hex.encode(remote).take(16)}…",
+            )
+            refreshLinks()
+        }
+    }
+
+    private fun failHandshake(link: Link) {
+        link.noise?.destroy()
+        link.noise = null
+        link.noiseAnnounced = false
+        refreshLinks()
+    }
+
     /** Fil protocole. Coupe scan + annonce le temps des transferts. */
     private fun pauseRadioForTransfer() {
         if (radioPaused) return
@@ -812,10 +939,15 @@ class BleChatProbe(context: Context) {
 
     // ── Réception ─────────────────────────────────────────────────────────
 
-    /** Fil protocole. */
-    private fun handleFrame(from: String, bytes: ByteArray) {
+    /**
+     * Fil protocole. [kind] désigne le lien qui a reçu : notification pour un
+     * lien client, écriture du pair pour un lien serveur. Le handshake en
+     * dépend — le lien client de A répond au lien serveur de B, pas l'inverse.
+     */
+    private fun handleFrame(kind: LinkKind, from: String, bytes: ByteArray) {
         when (val frame = ChatFrames.decode(bytes)) {
             null -> Log.w(TAG, "trame illisible de $from (${bytes.size} o)")
+            is ChatFrame.Handshake -> onHandshakeFrame(kind, from, frame)
             is ChatFrame.Ack -> onAck(frame)
             else -> when (val event = reassembler.onFrame(from, frame)) {
                 is Reassembler.Event.Started -> onIncomingStarted(event)
@@ -973,7 +1105,7 @@ class BleChatProbe(context: Context) {
                 server?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, null)
             }
             val bytes = value.copyOf()
-            scope.launch { handleFrame(device.address, bytes) }
+            scope.launch { handleFrame(LinkKind.SERVER, device.address, bytes) }
         }
 
         override fun onDescriptorWriteRequest(
@@ -1056,6 +1188,9 @@ class BleChatProbe(context: Context) {
                 if (link.ready) CONNECT_BACKOFF_LOST_MS else CONNECT_BACKOFF_FAILED_MS,
             )
         }
+        // les secrets meurent avec le lien : une session Noise ne se rejoue pas
+        link.noise?.destroy()
+        link.noise = null
         link.job?.cancel()
         link.failPending()
         // les transferts encore en file ne partiront jamais par ce lien
@@ -1240,6 +1375,7 @@ class BleChatProbe(context: Context) {
                 link.characteristic = characteristic
                 startLinkJob(link)
                 Log.i(TAG, "lien client prêt vers ${gatt.device.address} (mtu=${link.mtu})")
+                beginHandshake(link)
                 refreshLinks()
             }
         }
@@ -1262,7 +1398,7 @@ class BleChatProbe(context: Context) {
         @Suppress("DEPRECATION")
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
             val bytes = characteristic.value?.copyOf() ?: return
-            scope.launch { handleFrame(gatt.device.address, bytes) }
+            scope.launch { handleFrame(LinkKind.CLIENT, gatt.device.address, bytes) }
         }
 
         override fun onCharacteristicChanged(
@@ -1271,7 +1407,7 @@ class BleChatProbe(context: Context) {
             value: ByteArray,
         ) {
             val bytes = value.copyOf()
-            scope.launch { handleFrame(gatt.device.address, bytes) }
+            scope.launch { handleFrame(LinkKind.CLIENT, gatt.device.address, bytes) }
         }
     }
 

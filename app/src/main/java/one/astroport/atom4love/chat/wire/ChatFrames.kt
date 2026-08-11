@@ -16,17 +16,22 @@ import java.util.zip.CRC32
  *   START  [0x01][id 4][genre 1][taille 4][crc32 4][lgNom 1][nom…][lgMime 1][mime…]
  *   DATA   [0x02][id 4][index 3][fragment…]
  *   ACK    [0x03][id 4][statut 1]
+ *   HELLO  [0x04][étape 1][message Noise…]
  *
  * L'id est tiré au hasard par l'émetteur ; il sert aussi à dédoublonner les
  * flux jumeaux du double lien croisé (deux connexions entre les deux mêmes
  * appareils). L'index sur 3 octets couvre 16,7 M de fragments : même au MTU
  * plancher (23 → fragments de 12 o), le plafond de transfert tient large.
+ *
+ * HELLO porte le handshake Noise XX et n'a pas d'id : il précède tout message,
+ * et un lien n'a qu'un handshake à la fois. Les trois messages XX tiennent
+ * chacun dans une trame (32, ~96 et ~64 octets contre 512 disponibles), donc
+ * aucune fragmentation à prévoir de ce côté.
  */
 sealed interface ChatFrame {
-    val msgId: Int
 
     data class Start(
-        override val msgId: Int,
+        val msgId: Int,
         val kind: Int,
         val totalBytes: Int,
         val crc32: Int,
@@ -36,14 +41,24 @@ sealed interface ChatFrame {
 
     /** Fragment de contenu — égalité par identité, le tableau n'est pas comparé. */
     class Data(
-        override val msgId: Int,
+        val msgId: Int,
         val index: Int,
         val chunk: ByteArray,
     ) : ChatFrame
 
     data class Ack(
-        override val msgId: Int,
+        val msgId: Int,
         val status: Int,
+    ) : ChatFrame
+
+    /**
+     * Un des trois messages du handshake Noise XX. [step] vaut 1, 2 ou 3 : il
+     * ne sert qu'à repérer une trame hors séquence, la machine de Noise étant
+     * seule juge de ce qui est acceptable.
+     */
+    class Handshake(
+        val step: Int,
+        val message: ByteArray,
     ) : ChatFrame
 }
 
@@ -60,6 +75,12 @@ object ChatFrames {
     private const val TYPE_START = 0x01
     private const val TYPE_DATA = 0x02
     private const val TYPE_ACK = 0x03
+    private const val TYPE_HANDSHAKE = 0x04
+
+    /** [type][étape] — le reste de la trame est le message Noise. */
+    const val HANDSHAKE_HEADER = 2
+
+    const val HANDSHAKE_STEPS = 3
 
     /** En-tête ATT d'une écriture/notification. */
     private const val ATT_HEADER = 3
@@ -124,6 +145,20 @@ object ChatFrames {
             .array()
     }
 
+    /**
+     * Encode un message de handshake. null si le message ne tient pas dans une
+     * écriture ATT — le handshake ne se fragmente pas, et n'en a pas besoin.
+     */
+    fun encodeHandshake(step: Int, message: ByteArray, maxBytes: Int): ByteArray? {
+        require(step in 1..HANDSHAKE_STEPS) { "étape de handshake hors bornes : $step" }
+        if (HANDSHAKE_HEADER + message.size > maxBytes) return null
+        return ByteBuffer.allocate(HANDSHAKE_HEADER + message.size)
+            .put(TYPE_HANDSHAKE.toByte())
+            .put(step.toByte())
+            .put(message)
+            .array()
+    }
+
     fun encodeAck(msgId: Int, status: Int): ByteArray =
         ByteBuffer.allocate(6)
             .put(TYPE_ACK.toByte())
@@ -133,6 +168,13 @@ object ChatFrames {
 
     /** null si la trame est malformée — on ignore, on ne plante pas. */
     fun decode(bytes: ByteArray): ChatFrame? {
+        // HELLO est la seule trame courte : les autres ont au moins type + id + 1
+        if (bytes.isNotEmpty() && bytes[0].toInt() == TYPE_HANDSHAKE) {
+            if (bytes.size <= HANDSHAKE_HEADER) return null
+            val step = bytes[1].toInt() and 0xFF
+            if (step !in 1..HANDSHAKE_STEPS) return null
+            return ChatFrame.Handshake(step, bytes.copyOfRange(HANDSHAKE_HEADER, bytes.size))
+        }
         if (bytes.size < 6) return null
         val buffer = ByteBuffer.wrap(bytes)
         return when (buffer.get().toInt()) {
