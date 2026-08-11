@@ -29,6 +29,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -77,6 +78,7 @@ import android.widget.Toast
 import one.astroport.atom4love.chat.Attachments
 import one.astroport.atom4love.chat.ChatSounds
 import one.astroport.atom4love.chat.CabinChat
+import one.astroport.atom4love.chat.Medium
 import one.astroport.atom4love.chat.ui.ChatPanel
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.CabinSalon
@@ -775,6 +777,50 @@ private fun CabinDirectPanel(chat: CabinChat) {
     val status by chat.status.collectAsStateWithLifecycle()
     val messages by chat.messages.collectAsStateWithLifecycle()
     val sounds = remember { ChatSounds() }
+    val tooBig by chat.tooBig.collectAsStateWithLifecycle()
+
+    // Une pièce refusée mérite un dialogue : le sélecteur système vient de se
+    // refermer, et sans lui il ne se passerait visiblement rien.
+    tooBig?.let { refusal ->
+        AlertDialog(
+            onDismissRequest = { chat.dismissTooBig() },
+            confirmButton = {
+                Text(
+                    "Compris",
+                    style = A4LText.Caption,
+                    color = A4L.Mint,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { chat.dismissTooBig() }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            },
+            title = { Text("Pièce trop lourde", style = A4LText.H2, color = A4L.TextHigh) },
+            text = {
+                Text(
+                    buildString {
+                        append("« ${refusal.name} »")
+                        if (refusal.bytes > 0) append(" fait ${Attachments.humanSize(refusal.bytes)}")
+                        append(", au-delà des ${Attachments.humanSize(refusal.limit)} que porte la cabine ")
+                        append(
+                            when (refusal.medium) {
+                                // le plafond radio n'est pas une limite technique
+                                // mais une limite d'attente : 10 Mo en BLE, c'est
+                                // un quart d'heure
+                                Medium.BLE -> "en direct.\n\nLe BLE tient 14 Ko/s : la même pièce y prendrait un quart " +
+                                    "d'heure. Passez en Wi-Fi depuis l'indicateur du haut et la limite monte à " +
+                                    "${Attachments.humanSize(CabinChat.MAX_TRANSFER_STREAM)}."
+                                else -> "${refusal.medium.label}."
+                            },
+                        )
+                    },
+                    style = A4LText.Body,
+                    color = A4L.TextBody,
+                )
+            },
+            containerColor = A4L.Deep,
+        )
+    }
 
     LaunchedEffect(chat) {
         chat.chimes.collect { chime ->

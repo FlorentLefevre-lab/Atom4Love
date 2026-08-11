@@ -24,7 +24,14 @@ object Attachments {
 
     sealed interface Read {
         class Ok(val name: String, val mime: String, val bytes: ByteArray) : Read
-        data object TooBig : Read
+
+        /**
+         * Trop lourde pour le médium du moment. Porte le nom et la **vraie**
+         * taille : un refus qui ne dit pas de combien on dépasse ne vaut pas
+         * grand-chose pour celui qui vient de choisir son fichier.
+         * [bytes] vaut −1 quand le fournisseur ne déclare pas la taille.
+         */
+        data class TooBig(val name: String, val bytes: Long) : Read
         data object Unreadable : Read
     }
 
@@ -37,14 +44,30 @@ object Attachments {
     /** Lit une pièce jointe telle quelle, refusée au-delà de [maxBytes]. */
     fun read(context: Context, uri: Uri, maxBytes: Int): Read {
         val resolver = context.contentResolver
+        val name = displayName(context, uri) ?: "piece-jointe"
+        // La taille déclarée d'abord : refuser sur elle évite de charger
+        // cinquante mégaoctets en mémoire pour finalement dire non. Tous les
+        // fournisseurs ne la donnent pas — d'où le contrôle qui suit.
+        declaredSize(context, uri)?.let { size ->
+            if (size > maxBytes) return Read.TooBig(name, size)
+        }
         val bytes = runCatching {
             resolver.openInputStream(uri)?.use { readAtMost(it, maxBytes) }
         }.getOrNull() ?: return Read.Unreadable
-        if (bytes.size > maxBytes) return Read.TooBig
-        val name = displayName(context, uri) ?: "piece-jointe"
+        if (bytes.size > maxBytes) return Read.TooBig(name, -1L)
         val mime = resolver.getType(uri) ?: "application/octet-stream"
         return Read.Ok(name, mime, bytes)
     }
+
+    /** Taille annoncée par le fournisseur, null s'il ne la déclare pas. */
+    private fun declaredSize(context: Context, uri: Uri): Long? = runCatching {
+        context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)
+            ?.use { cursor ->
+                if (!cursor.moveToFirst()) return@use null
+                val column = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (column < 0 || cursor.isNull(column)) null else cursor.getLong(column)
+            }
+    }.getOrNull()
 
     /**
      * Prépare une image pour le lien BLE : orientation EXIF appliquée (API
@@ -101,6 +124,12 @@ object Attachments {
         return Intent(Intent.ACTION_VIEW)
             .setDataAndType(uri, mime.ifBlank { "*/*" })
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+
+    fun humanSize(bytes: Long): String = when {
+        bytes >= 999_500L -> "%.1f Mo".format(bytes / 1_000_000f)
+        bytes >= 1_000L -> "%.0f Ko".format(bytes / 1_000f)
+        else -> "$bytes o"
     }
 
     fun humanSize(bytes: Int): String = when {

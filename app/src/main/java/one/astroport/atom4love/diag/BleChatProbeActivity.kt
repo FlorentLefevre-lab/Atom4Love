@@ -134,7 +134,7 @@ private fun BleChatScreen(probe: CabinChat) {
             placeholder = "message chiffré…",
             emptyHint = "En attente d'un pair… Lancez cette sonde sur les deux appareils, " +
                 "Bluetooth activé. La connexion est automatique. Images et fichiers " +
-                "jusqu'à ${Attachments.humanSize(CabinChat.MAX_TRANSFER_BYTES)} " +
+                "jusqu'à ${Attachments.humanSize(CabinChat.MAX_TRANSFER_STREAM)} " +
                 "(compter ~10 Ko/s).",
             onSendText = { text -> probe.sendText(text) },
             onSendImage = { uri -> probe.sendImage(uri) },

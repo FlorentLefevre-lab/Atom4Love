@@ -136,7 +136,25 @@ class CabinChat(context: Context) {
         private const val DEFAULT_MTU = 23
 
         private const val MAX_TEXT_BYTES = 4096
-        const val MAX_TRANSFER_BYTES = 2_000_000
+        /**
+         * Plafond d'une pièce jointe **par médium**, parce que ce n'est pas la
+         * même expérience.
+         *
+         * En BLE, 14 Ko/s : 2 Mo tiennent déjà 2 min 20, et 10 Mo prendraient
+         * un quart d'heure — personne n'attend ça, et le moindre incident de
+         * lien perd tout. Par la station ou en pair à pair, le même fichier
+         * passe en quelques secondes (mesuré : 1,4 Mo en 1,3 s), donc 10 Mo
+         * sont un plafond honnête.
+         *
+         * Le plafond retenu est celui du **plus lent des liens visés** : si un
+         * pair n'est joignable qu'en radio, c'est lui qui décide, sinon la
+         * pièce partirait vers lui pour un quart d'heure.
+         */
+        const val MAX_TRANSFER_BLE = 2_000_000
+        const val MAX_TRANSFER_STREAM = 10_000_000
+
+        /** Ce qu'un récepteur accepte, quel que soit le médium d'arrivée. */
+        const val MAX_TRANSFER_BYTES = MAX_TRANSFER_STREAM
 
         /**
          * Ce que l'UI doit demander avant [start]. Aucune localisation : le
@@ -309,6 +327,58 @@ class CabinChat(context: Context) {
 
     private val _status = MutableStateFlow(Status())
     val status: StateFlow<Status> = _status.asStateFlow()
+
+    /**
+     * Une pièce refusée parce qu'elle dépasse le plafond du médium du moment.
+     *
+     * Portée en état (et non en simple message d'erreur) parce qu'elle appelle
+     * un dialogue : quelqu'un vient de choisir un fichier dans un sélecteur
+     * système, il doit apprendre pourquoi il ne part pas, et de combien.
+     */
+    data class TooBig(val name: String, val bytes: Long, val limit: Int, val medium: Medium)
+
+    private val _tooBig = MutableStateFlow<TooBig?>(null)
+    val tooBig: StateFlow<TooBig?> = _tooBig.asStateFlow()
+
+    fun dismissTooBig() {
+        _tooBig.value = null
+    }
+
+    /**
+     * Plafond courant : celui du plus lent des liens qu'on emprunterait. Sans
+     * lien du tout, on retient le plafond radio — c'est le pire cas, et
+     * promettre 10 Mo avant de savoir par où ça passe serait mentir.
+     */
+    fun transferLimit(): Int {
+        val media = attachmentTargets(routes()).map { it.medium }
+        return if (media.isEmpty() || media.any { it == Medium.BLE }) {
+            MAX_TRANSFER_BLE
+        } else {
+            MAX_TRANSFER_STREAM
+        }
+    }
+
+    /**
+     * Fil protocole. Qui reçoit une pièce jointe, parmi les routes ouvertes.
+     *
+     * La contrainte est celle de la RADIO, pas du protocole : les rafales
+     * parallèles sur les connexions BLE croisées tuent l'antenne en ~20 s (banc
+     * 2026-08-11 : le seul transfert qui a tenu 134 s roulait sur un lien
+     * unique). Un seul lien BLE, donc, mais autant de liens en flux qu'il y a
+     * de pairs — là, chaque transfert a sa socket.
+     *
+     * Les liens **non attestés** sont écartés dès qu'un pair attesté est
+     * joignable : personne n'est encore derrière eux, le va-et-vient du scan en
+     * fabrique sans cesse, et les laisser compter ferait osciller le plafond de
+     * pièce jointe entre 2 et 10 Mo sous les yeux de l'utilisateur.
+     */
+    private fun attachmentTargets(routes: List<Link>): List<Link> {
+        val attested = routes.filter { it.peerNostrKey != null }
+        val considered = attested.ifEmpty { routes }
+        val streamed = considered.filter { it.medium != Medium.BLE }
+        val radio = considered.lastOrNull { it.medium == Medium.BLE }
+        return streamed + listOfNotNull(radio)
+    }
 
     /** Qui est là, une entrée par noyau attesté — jamais par lien. */
     private val _peers = MutableStateFlow<List<Peer>>(emptyList())
@@ -695,16 +765,23 @@ class CabinChat(context: Context) {
         scope.launch(Dispatchers.IO) {
             val read = Attachments.prepareImage(appContext, uri)
             val copy = saveLocalCopy(read)
-            withContext(dispatcher) { dispatchAttachment(ChatKind.IMAGE, ChatFrames.KIND_IMAGE, read, copy) }
+            withContext(dispatcher) {
+                dispatchAttachment(ChatKind.IMAGE, ChatFrames.KIND_IMAGE, read, copy, transferLimit())
+            }
         }
     }
 
-    /** Envoie un fichier tel quel, plafonné à [MAX_TRANSFER_BYTES]. */
+    /** Envoie un fichier tel quel, plafonné selon le médium ([transferLimit]). */
     fun sendFile(uri: Uri) {
         scope.launch(Dispatchers.IO) {
-            val read = Attachments.read(appContext, uri, MAX_TRANSFER_BYTES)
+            // le plafond se lit AVANT la lecture : inutile de charger dix
+            // mégaoctets pour découvrir ensuite qu'ils ne passeront pas
+            val limit = withContext(dispatcher) { transferLimit() }
+            val read = Attachments.read(appContext, uri, limit)
             val copy = saveLocalCopy(read)
-            withContext(dispatcher) { dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, copy) }
+            withContext(dispatcher) {
+                dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, copy, limit)
+            }
         }
     }
 
@@ -716,19 +793,28 @@ class CabinChat(context: Context) {
         wireKind: Int,
         read: Attachments.Read,
         copy: java.io.File?,
+        limit: Int,
     ) {
         when (read) {
-            is Attachments.Read.TooBig -> _status.update {
-                it.copy(lastError = "pièce trop lourde (max ${Attachments.humanSize(MAX_TRANSFER_BYTES)})")
+            is Attachments.Read.TooBig -> {
+                // un dialogue, pas une ligne d'état : la personne vient de
+                // choisir ce fichier dans un sélecteur système, elle attend
+                // qu'il parte
+                _tooBig.value = TooBig(
+                    read.name, read.bytes, limit,
+                    routes().minByOrNull { it.medium.rank }?.medium ?: Medium.BLE,
+                )
+                Log.w(TAG, "pièce refusée : ${read.name} (${read.bytes} o > $limit)")
             }
             is Attachments.Read.Unreadable -> _status.update {
                 it.copy(lastError = "pièce illisible")
             }
             is Attachments.Read.Ok -> {
-                if (read.bytes.size > MAX_TRANSFER_BYTES) {
-                    _status.update {
-                        it.copy(lastError = "pièce trop lourde (max ${Attachments.humanSize(MAX_TRANSFER_BYTES)})")
-                    }
+                if (read.bytes.size > limit) {
+                    _tooBig.value = TooBig(
+                        read.name, read.bytes.size.toLong(), limit,
+                        routes().minByOrNull { it.medium.rank }?.medium ?: Medium.BLE,
+                    )
                     return
                 }
                 val msgId = Random.nextInt()
@@ -770,13 +856,7 @@ class CabinChat(context: Context) {
         // contrôle de flux ni signal d'échec. Le gain n'était d'ailleurs pas au
         // rendez-vous : 16 Ko/s de bout en bout, dans la fourchette de
         // l'écriture. [routes] applique déjà cette préférence.
-        val targets = if (kind == ChatFrames.KIND_TEXT) {
-            perAddress
-        } else {
-            val streamed = perAddress.filter { it.medium != Medium.BLE }
-            val radio = perAddress.lastOrNull { it.medium == Medium.BLE }
-            streamed + listOfNotNull(radio)
-        }
+        val targets = if (kind == ChatFrames.KIND_TEXT) perAddress else attachmentTargets(perAddress)
         var primary = true
         targets.forEach { link ->
             link.transfers.trySend(Outgoing(msgId, kind, name, mime, content, primary))

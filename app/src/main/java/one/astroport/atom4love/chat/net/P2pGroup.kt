@@ -13,6 +13,7 @@ import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.Looper
 import android.util.Log
+import java.security.SecureRandom
 import androidx.core.content.ContextCompat
 import kotlin.coroutines.resume
 import kotlinx.coroutines.delay
@@ -47,6 +48,9 @@ class P2pGroup(context: Context) {
         /** Formation d'un groupe : quelques secondes en pratique, jamais instantané. */
         private const val FORM_TIMEOUT_MS = 20_000L
         private const val POLL_MS = 400L
+
+        /** Sans caractères qu'on puisse confondre à l'oral ou à l'œil. */
+        private const val ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
 
         /**
          * Ce qu'Android exige pour toucher au Wi-Fi Direct. Depuis l'API 33 la
@@ -99,29 +103,47 @@ class P2pGroup(context: Context) {
         }
         existingGroup(manager, channel)?.let { group ->
             if (group.isGroupOwner) {
-                Log.i(TAG, "groupe Wi-Fi Direct déjà ouvert : ${group.networkName}")
+                Log.i(
+                    TAG,
+                    "groupe Wi-Fi Direct déjà ouvert : ${group.networkName} " +
+                        "sur ${group.frequency} MHz",
+                )
                 return Credentials(group.networkName, group.passphrase)
             }
         }
-        val created = runCatching {
-            suspendCancellableCoroutine { cont ->
-                manager.createGroup(channel, object : WifiP2pManager.ActionListener {
-                    override fun onSuccess() = cont.resume(true)
-                    override fun onFailure(reason: Int) {
-                        Log.w(TAG, "createGroup refusé (raison $reason)")
-                        cont.resume(false)
-                    }
-                })
-            }
-        }.getOrDefault(false)
-        if (!created) return null
-        // createGroup rend la main avant que le groupe existe : ses identifiants
-        // n'apparaissent qu'une fois l'interface montée.
+        // On DEMANDE la bande 5 GHz. C'est le seul endroit du projet où l'app
+        // choisit sa bande : par la station, elle subit celle du lieu. Or le
+        // Bluetooth ne vit qu'en 2,4 GHz — un groupe en 5 GHz sort de la
+        // dispute d'antenne mesurée le 2026-08-11 (2,2 Mo/s contre 100 Ko/s
+        // selon que le Bluetooth se taise ou non). Ce n'est qu'une préférence :
+        // réglementation, DFS ou un pair qui ne sait pas faire ramènent en
+        // 2,4 GHz, d'où les replis successifs.
+        //
+        // Choisir la bande OBLIGE à fournir nos propres identifiants : le
+        // constructeur refuse une configuration qui n'a ni adresse de pair ni
+        // nom+passe (« peer address must be set… », vu au banc). Tant mieux —
+        // on les connaît alors d'avance, au lieu de les découvrir après coup.
+        val chosen = newCredentials()
+        val opened =
+            createGroup(manager, channel, chosen, WifiP2pConfig.GROUP_OWNER_BAND_5GHZ) ||
+                createGroup(manager, channel, chosen, WifiP2pConfig.GROUP_OWNER_BAND_AUTO)
+        // Dernier repli : le groupe que le système compose lui-même, sans que
+        // nous choisissions rien. On perd la bande et les identifiants, pas la
+        // fonction.
+        val fallback = !opened && createSystemGroup(manager, channel)
+        if (!opened && !fallback) return null
+
         return withTimeoutOrNull(FORM_TIMEOUT_MS) {
             while (true) {
                 val group = existingGroup(manager, channel)
                 if (group != null && group.isGroupOwner && group.passphrase != null) {
-                    Log.i(TAG, "groupe Wi-Fi Direct ouvert : ${group.networkName}")
+                    // la fréquence dit la bande OBTENUE, pas celle demandée :
+                    // c'est la seule façon de savoir si le repli a joué
+                    Log.i(
+                        TAG,
+                        "groupe Wi-Fi Direct ouvert : ${group.networkName} sur " +
+                            "${group.frequency} MHz (${if (group.frequency > 3000) "5 GHz" else "2,4 GHz"})",
+                    )
                     return@withTimeoutOrNull Credentials(group.networkName, group.passphrase)
                 }
                 delay(POLL_MS)
@@ -129,6 +151,68 @@ class P2pGroup(context: Context) {
             @Suppress("UNREACHABLE_CODE") null
         }
     }
+
+    /**
+     * Un nom de réseau et une passe tirés au sort. Le nom doit commencer par
+     * `DIRECT-` (spec Wi-Fi Direct, et Android le vérifie) et tenir en 32
+     * caractères ; la passe entre 8 et 63.
+     */
+    private fun newCredentials(): Credentials {
+        val random = SecureRandom()
+        fun draw(n: Int) = String(CharArray(n) { ALPHABET[random.nextInt(ALPHABET.length)] })
+        return Credentials("DIRECT-${draw(2)}-A4L", draw(12))
+    }
+
+    /**
+     * Ouvre un groupe sur la bande demandée. `createGroup` sans configuration
+     * laisse le système choisir — et il choisit la 2,4 GHz par compatibilité.
+     */
+    @SuppressLint("MissingPermission")
+    private suspend fun createGroup(
+        manager: WifiP2pManager,
+        channel: WifiP2pManager.Channel,
+        credentials: Credentials,
+        band: Int,
+    ): Boolean {
+        val config = runCatching {
+            WifiP2pConfig.Builder()
+                .setNetworkName(credentials.networkName)
+                .setPassphrase(credentials.passphrase)
+                .setGroupOperatingBand(band)
+                .build()
+        }.getOrElse {
+            Log.w(TAG, "bande $band refusée à la construction — $it")
+            return false
+        }
+        return runCatching {
+            suspendCancellableCoroutine { cont ->
+                manager.createGroup(channel, config, object : WifiP2pManager.ActionListener {
+                    override fun onSuccess() = cont.resume(true)
+                    override fun onFailure(reason: Int) {
+                        Log.w(TAG, "createGroup bande $band refusé (raison $reason)")
+                        cont.resume(false)
+                    }
+                })
+            }
+        }.getOrDefault(false)
+    }
+
+    /** Le groupe que le système compose seul : ni bande ni identifiants choisis. */
+    @SuppressLint("MissingPermission")
+    private suspend fun createSystemGroup(
+        manager: WifiP2pManager,
+        channel: WifiP2pManager.Channel,
+    ): Boolean = runCatching {
+        suspendCancellableCoroutine { cont ->
+            manager.createGroup(channel, object : WifiP2pManager.ActionListener {
+                override fun onSuccess() = cont.resume(true)
+                override fun onFailure(reason: Int) {
+                    Log.w(TAG, "createGroup système refusé (raison $reason)")
+                    cont.resume(false)
+                }
+            })
+        }
+    }.getOrDefault(false)
 
     /**
      * Rejoint le groupe d'un pair. Rend vrai quand l'interface est montée et
