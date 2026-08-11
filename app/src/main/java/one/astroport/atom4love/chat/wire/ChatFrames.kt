@@ -17,6 +17,8 @@ import java.util.zip.CRC32
  *   DATA   [0x02][id 4][index 3][fragment…]
  *   ACK    [0x03][id 4][statut 1]
  *   HELLO  [0x04][étape 1][message Noise…]
+ *   SEALED [0x05][chiffré…]
+ *   ADDR   [0x06][médium 1][port 2][lgHôte 1][hôte…]
  *
  * L'id est tiré au hasard par l'émetteur ; il sert aussi à dédoublonner les
  * flux jumeaux du double lien croisé (deux connexions entre les deux mêmes
@@ -65,6 +67,21 @@ sealed interface ChatFrame {
     class Sealed(
         val ciphertext: ByteArray,
     ) : ChatFrame
+
+    /**
+     * Par où ce pair est joignable sur un autre médium.
+     *
+     * Ne circule **que scellée**, sur un canal dont le pair est déjà attesté :
+     * c'est ce qui remplace toute découverte réseau. Personne ne peut énumérer
+     * les cabines d'un LAN, et l'adresse n'est révélée qu'à quelqu'un qu'on a
+     * déjà reconnu. [mediumOrdinal] est laissé brut : une valeur inconnue vient
+     * d'une version plus récente et s'ignore sans casser la session.
+     */
+    data class Address(
+        val mediumOrdinal: Int,
+        val host: String,
+        val port: Int,
+    ) : ChatFrame
 }
 
 object ChatFrames {
@@ -82,6 +99,10 @@ object ChatFrames {
     private const val TYPE_ACK = 0x03
     private const val TYPE_HANDSHAKE = 0x04
     private const val TYPE_SEALED = 0x05
+    private const val TYPE_ADDRESS = 0x06
+
+    /** [type][médium][port 2][longueur de l'hôte]. */
+    private const val ADDRESS_FIXED = 5
 
     /** [type][étape] — le reste de la trame est le message Noise. */
     const val HANDSHAKE_HEADER = 2
@@ -214,6 +235,28 @@ object ChatFrames {
             ciphertext.copyInto(it, 1)
         }
 
+    /**
+     * Ce qu'une trame peut occuper sur un transport en flux (TCP), scellement
+     * compris. Rien n'oblige à fragmenter sur une socket — mais garder le même
+     * cadrage partout fait que réassemblage, CRC, progression et accusés
+     * servent à l'identique sur les trois médiums. 32 Ko tient largement sous
+     * le plafond d'un message Noise (65 535 o) et fait 65 fragments pour une
+     * image de 2 Mo, contre 4 000 en BLE.
+     */
+    const val STREAM_CAPACITY = 32 * 1024
+
+    /** Encode l'annonce d'un point d'entrée sur un autre médium. */
+    fun encodeAddress(mediumOrdinal: Int, host: String, port: Int): ByteArray {
+        val bytes = fitUtf8(host, 255)
+        return ByteBuffer.allocate(ADDRESS_FIXED + bytes.size)
+            .put(TYPE_ADDRESS.toByte())
+            .put(mediumOrdinal.toByte())
+            .putShort(port.toShort())
+            .put(bytes.size.toByte())
+            .put(bytes)
+            .array()
+    }
+
     fun encodeAck(msgId: Int, status: Int): ByteArray =
         ByteBuffer.allocate(6)
             .put(TYPE_ACK.toByte())
@@ -235,6 +278,18 @@ object ChatFrames {
             // un chiffré vaut au moins son MAC, sinon il n'y a rien à ouvrir
             if (bytes.size <= MAC_LENGTH) return null
             return ChatFrame.Sealed(bytes.copyOfRange(1, bytes.size))
+        }
+        // ADDR est court aussi : une adresse tient en 14 octets, sous le
+        // plancher des trames à identifiant vérifié juste après
+        if (bytes.isNotEmpty() && bytes[0].toInt() == TYPE_ADDRESS) {
+            if (bytes.size < ADDRESS_FIXED) return null
+            val buffer = ByteBuffer.wrap(bytes)
+            buffer.get()
+            val medium = buffer.get().toInt() and 0xFF
+            val port = buffer.short.toInt() and 0xFFFF
+            val host = lengthPrefixed(buffer) ?: return null
+            if (host.isEmpty() || port == 0) return null
+            return ChatFrame.Address(medium, host, port)
         }
         if (bytes.size < 6) return null
         val buffer = ByteBuffer.wrap(bytes)

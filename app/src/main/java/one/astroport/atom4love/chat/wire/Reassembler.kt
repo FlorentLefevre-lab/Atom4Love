@@ -43,6 +43,7 @@ class Reassembler(
         is ChatFrame.Ack -> null // l'acquittement se traite côté émetteur
         is ChatFrame.Handshake -> null // le handshake appartient au lien, pas aux flux
         is ChatFrame.Sealed -> null // déjà ouvert par le lien avant d'arriver ici
+        is ChatFrame.Address -> null // affaire de médium, pas de flux
     }
 
     private fun onStart(from: String, start: ChatFrame.Start): Event? {

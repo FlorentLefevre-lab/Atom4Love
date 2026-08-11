@@ -1,4 +1,4 @@
-package one.astroport.atom4love.chat.ble
+package one.astroport.atom4love.chat
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -27,11 +27,18 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.ParcelUuid
 import android.os.SystemClock
 import android.util.Log
+import java.io.IOException
+import java.net.Inet4Address
+import java.net.InetSocketAddress
+import java.net.ServerSocket
+import java.net.Socket
 import java.security.SecureRandom
 import java.util.UUID
 import java.util.concurrent.Executors
@@ -60,10 +67,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import one.astroport.atom4love.chat.Attachments
-import one.astroport.atom4love.chat.ChatKind
-import one.astroport.atom4love.chat.ChatMessage
-import one.astroport.atom4love.chat.ChatStatus
+import one.astroport.atom4love.chat.net.FramedSocket
 import one.astroport.atom4love.chat.wire.ChatFrame
 import one.astroport.atom4love.chat.wire.ChatFrames
 import one.astroport.atom4love.chat.wire.Reassembler
@@ -76,37 +80,45 @@ import one.astroport.atom4love.nostr.Hex
 import one.astroport.atom4love.nostr.NostrKeys
 
 /**
- * Causerie en BLE pur, sans AP ni relais : le canal direct de la cabine.
+ * Le canal direct de la cabine : ce qui se dit **ici**, entre gens à portée.
  *
- * C'est ce qui se dit **ici**, entre gens à portée radio. Rien de ce qui passe
- * par ce moteur ne part sur un relais NOSTR ni ne sort de la portée : la
- * cabine et l'hexagone sont deux mondes étanches, et cette étanchéité est le
- * principe, pas un effet de bord. Le salon d'hexagone ([CabinSalon]) sert
- * l'autre portée, celle qu'on n'atteint pas directement.
+ * Rien de ce qui passe par ce moteur ne part sur un relais NOSTR ni ne sort de
+ * la portée : la cabine et l'hexagone sont deux mondes étanches, et cette
+ * étanchéité est le principe, pas un effet de bord. Le salon d'hexagone
+ * ([CabinSalon]) sert l'autre portée, celle qu'on n'atteint pas directement.
  *
  * Le trafic est chiffré par Noise XX dès qu'un lien a mené son handshake :
- * tout ce qui suit — START, DATA, ACK — voyage scellé. Restent en clair le
- * premier message du handshake (il précède l'échange de clés) et les liens
+ * tout ce qui suit — START, DATA, ACK, ADDR — voyage scellé. Restent en clair
+ * le premier message du handshake (il précède l'échange de clés) et les liens
  * dont le MTU ne permet pas de handshake.
  *
- * Architecture symétrique : chaque appareil est à la fois périphérique
- * (annonce connectable + serveur GATT) et central (scan + connexion aux
- * pairs vus). Tout contenu — texte, image, fichier — passe par les trames
- * fragmentées de chat/wire : une trame START annonce l'id, le genre, la
- * taille et le CRC ; les fragments DATA suivent, cadencés par les callbacks
- * d'écriture ; le récepteur renvoie un ACK de bout en bout (✓✓). Un message
- * part une fois par adresse vue (lien client préféré au lien serveur) et le
- * réassembleur élit le premier flux : le double lien croisé n'affiche rien
- * en double.
+ * ## Trois médiums, une seule porte
+ *
+ * Le **BLE est la seule porte d'entrée** ([Medium]) : lui seul découvre un
+ * inconnu et l'atteste. Architecture symétrique — chaque appareil est à la fois
+ * périphérique (annonce connectable + serveur GATT) et central (scan +
+ * connexion aux pairs vus). Une fois le pair attesté, chacun lui annonce dans
+ * le canal scellé par où il est joignable en Wi-Fi (trame `ADDR`) : c'est tout
+ * ce qui remplace une découverte réseau, et personne ne peut énumérer les
+ * cabines d'un LAN. Le passage effectif au Wi-Fi n'a lieu que si l'utilisateur
+ * l'accepte ([enable]) — la cabine s'établit toujours d'elle-même en BLE.
+ *
+ * Ce qui est commun aux trois médiums : les trames de `chat/wire`, la session
+ * Noise, l'attestation, le réassemblage, la progression et l'accusé de bout en
+ * bout. Ce qui diffère tient dans [Link] — comment on écrit un paquet d'octets,
+ * et combien il en tient. Le routage choisit **par personne** (npub attesté) le
+ * lien du meilleur médium accepté : un pair joignable des deux côtés ne reçoit
+ * jamais deux fois le même message.
  *
  * Toute la machinerie protocolaire vit sur un fil unique ([dispatcher]) ;
- * les callbacks Binder n'y déposent que des `scope.launch`.
+ * les callbacks Binder et les fils de socket n'y déposent que des
+ * `scope.launch`.
  */
 @SuppressLint("MissingPermission")
-class BleChatEngine(context: Context) {
+class CabinChat(context: Context) {
 
     companion object {
-        private const val TAG = "BleChat"
+        private const val TAG = "CabinChat"
 
         /** UUID 16 bits vendor, distinct de la balise (fff0). */
         val CHAT_SERVICE: ParcelUuid =
@@ -231,6 +243,13 @@ class BleChatEngine(context: Context) {
          * ~2 s et fait mourir les transferts en cours.
          */
         private const val CONNECT_SPACING_MS = 5_000L
+
+        /**
+         * Composition TCP vers une adresse annoncée. Court : le pair est sur le
+         * même réseau local, et une adresse périmée (il a changé de station) ne
+         * doit pas retenir la montée pendant une minute.
+         */
+        private const val DIAL_TIMEOUT_MS = 4_000
     }
 
     enum class Chime { SENT, RECEIVED }
@@ -246,6 +265,17 @@ class BleChatEngine(context: Context) {
          * souvent deux liens : `links - peers.size` mentirait.
          */
         val unattestedLinks: Int = 0,
+        /**
+         * Le médium par lequel la cabine parle réellement — le meilleur en
+         * service, tous pairs confondus. null quand personne n'est là.
+         */
+        val medium: Medium? = null,
+        /**
+         * Un médium plus rapide qu'un pair nous a annoncé et que l'utilisateur
+         * n'a pas encore accepté. C'est de là que vient la proposition de
+         * montée : on ne bascule jamais dans son dos.
+         */
+        val offered: Medium? = null,
         val lastError: String? = null,
     )
 
@@ -307,11 +337,28 @@ class BleChatEngine(context: Context) {
         val primary: Boolean,
     )
 
-    private class Link(val kind: LinkKind, val address: String) {
+    private class Link(val medium: Medium, val kind: LinkKind, val address: String) {
         var mtu = DEFAULT_MTU
         var gatt: BluetoothGatt? = null                              // CLIENT
         var characteristic: BluetoothGattCharacteristic? = null      // CLIENT
         var device: BluetoothDevice? = null                          // SERVER
+        var stream: FramedSocket? = null                             // médiums Wi-Fi
+
+        /** Le BLE compte ses octets par écriture ATT ; TCP par trame. */
+        val capacity: Int
+            get() = if (medium == Medium.BLE) ChatFrames.attPayload(mtu) else ChatFrames.STREAM_CAPACITY
+
+        /** Sur TCP le handshake passe toujours : 32 Ko contre 96 octets. */
+        val sealCapable: Boolean
+            get() = medium != Medium.BLE || ChatFrames.canSeal(mtu)
+
+        /** Place d'une trame ordinaire, réserve de scellement déduite. */
+        val payload: Int
+            get() = if (medium == Medium.BLE) {
+                ChatFrames.framePayload(mtu)
+            } else {
+                ChatFrames.STREAM_CAPACITY - ChatFrames.SEAL_OVERHEAD
+            }
 
         /**
          * Écritures en vol, complétées par les callbacks dans l'ordre GATT
@@ -340,7 +387,11 @@ class BleChatEngine(context: Context) {
         /** Clé publique NOSTR du pair, une fois son attestation vérifiée. */
         var peerNostrKey: ByteArray? = null
 
-        val ready: Boolean get() = kind == LinkKind.SERVER || characteristic != null
+        val ready: Boolean get() = when {
+            medium != Medium.BLE -> stream != null
+            kind == LinkKind.SERVER -> true
+            else -> characteristic != null
+        }
 
         fun failPending() {
             while (true) {
@@ -383,8 +434,22 @@ class BleChatEngine(context: Context) {
         vouch = NoiseVouch.sign(keys, noisePublicKey)
     }
 
-    /** clé = "c:<adresse>" (client sortant) ou "s:<adresse>" (central abonné). */
+    /** clé = "<médium>:<rôle>:<adresse>" — `b:c:AA:BB:…` ou `w:s:10.42.0.99:41xxx`. */
     private val links = LinkedHashMap<String, Link>()
+
+    /**
+     * Médiums que l'utilisateur accepte d'emprunter. Le BLE y est d'office :
+     * c'est la porte d'entrée, et la cabine doit s'établir sans rien demander.
+     * Les autres n'entrent que par [enable].
+     */
+    private val enabledMedia = linkedSetOf(Medium.BLE)
+
+    /**
+     * Points d'entrée annoncés par les pairs et pas encore empruntés, par clé
+     * NOSTR du pair. On les garde même quand le médium est refusé : accepter
+     * plus tard doit pouvoir composer sans attendre une nouvelle annonce.
+     */
+    private val offers = LinkedHashMap<String, MutableMap<Medium, Pair<String, Int>>>()
 
     /** MTU annoncés côté serveur, parfois avant l'abonnement CCCD. */
     private val serverMtus = HashMap<String, Int>()
@@ -423,8 +488,36 @@ class BleChatEngine(context: Context) {
     /** Scan et annonce suspendus pendant un transfert — l'antenne au débit. */
     private var radioPaused = false
 
-    private fun key(kind: LinkKind, address: String) =
-        if (kind == LinkKind.CLIENT) "c:$address" else "s:$address"
+    private fun key(medium: Medium, kind: LinkKind, address: String) =
+        "${medium.tag}:${if (kind == LinkKind.CLIENT) 'c' else 's'}:$address"
+
+    /**
+     * Fil protocole. Un lien par **personne**, au meilleur médium accepté.
+     *
+     * C'est le cœur de l'harmonisation : le routage ne raisonne plus par
+     * adresse mais par npub attesté. Sans ça, un pair joignable en BLE *et* en
+     * Wi-Fi recevrait deux fois le même message — ses deux adresses n'ayant
+     * rien qui les rapproche. Un pair non attesté n'a que son adresse pour
+     * identité ; le double lien croisé du BLE se regroupe quand même, les deux
+     * liens portant la même adresse radio.
+     */
+    private fun routes(): List<Link> {
+        val best = LinkedHashMap<String, Link>()
+        links.values.forEach { link ->
+            if (!link.ready || link.medium !in enabledMedia) return@forEach
+            val who = link.peerNostrKey?.let { Hex.encode(it) } ?: "@${link.address}"
+            val current = best[who]
+            if (current == null || outranks(link, current)) best[who] = link
+        }
+        return best.values.toList()
+    }
+
+    /** Médium le plus haut d'abord ; à médium égal, le lien client (acquitté). */
+    private fun outranks(candidate: Link, current: Link): Boolean = when {
+        candidate.medium != current.medium -> candidate.medium.rank > current.medium.rank
+        candidate.kind != current.kind -> candidate.kind == LinkKind.CLIENT
+        else -> false
+    }
 
     fun start() {
         val adapter = this.adapter
@@ -441,6 +534,7 @@ class BleChatEngine(context: Context) {
         )
         registerStateReceiver()
         startRadio()
+        startListener()
         scope.launch {
             while (isActive) {
                 delay(PRUNE_PERIOD_MS)
@@ -459,6 +553,10 @@ class BleChatEngine(context: Context) {
         stateReceiver = null
         runCatching { scanCallback?.let { adapter?.bluetoothLeScanner?.stopScan(it) } }
         runCatching { advertiseCallback?.let { adapter?.bluetoothLeAdvertiser?.stopAdvertising(it) } }
+        // fermée avant l'annulation du scope : c'est ce qui débloque l'accept()
+        runCatching { listener?.close() }
+        listener = null
+        listenPort = 0
         scope.cancel()
         // le démontage des liens passe par le fil protocole : l'executor FIFO
         // le sérialise derrière tout corps de coroutine encore en cours
@@ -467,9 +565,11 @@ class BleChatEngine(context: Context) {
                 links.values.forEach { link ->
                     link.failPending()
                     runCatching { link.gatt?.close() }
+                    link.stream?.close()
                 }
                 links.clear()
                 serverMtus.clear()
+                offers.clear()
                 synchronized(subscribedAddresses) { subscribedAddresses.clear() }
             }.get()
         }
@@ -495,7 +595,7 @@ class BleChatEngine(context: Context) {
                         Log.w(TAG, "Bluetooth coupé : liens fermés")
                         links.keys.toList().forEach { k ->
                             val link = links[k] ?: return@forEach
-                            removeLink(link.kind, link.address)
+                            removeLink(link.medium, link.kind, link.address)
                         }
                         runCatching { server?.close() }
                         server = null
@@ -594,50 +694,53 @@ class BleChatEngine(context: Context) {
         }
     }
 
-    /** Fil protocole. Une émission par adresse vue, lien client préféré. */
+    /** Fil protocole. Une émission par personne, au meilleur médium accepté. */
     private fun dispatch(msgId: Int, kind: Int, name: String, mime: String, content: ByteArray) {
-        val perAddress = LinkedHashMap<String, Link>()
-        links.values.forEach { link ->
-            if (!link.ready) return@forEach
-            val current = perAddress[link.address]
-            if (current == null || (current.kind == LinkKind.SERVER && link.kind == LinkKind.CLIENT)) {
-                perAddress[link.address] = link
-            }
-        }
+        val perAddress = routes()
         if (perAddress.isEmpty()) {
             updateMessage(msgId) { it.copy(status = ChatStatus.FAILED) }
             _status.update { it.copy(lastError = "aucun lien pour émettre") }
             return
         }
-        // Texte : tous les liens (léger). Image/fichier : UN seul lien — les
-        // rafales parallèles sur les connexions croisées de la même paire
-        // tuent la radio en ~20 s (banc 2026-08-11 : le seul transfert qui a
-        // tenu 134 s roulait sur un lien unique), et le récepteur ignore de
-        // toute façon le flux jumeau.
+        // Texte : tout le monde (léger). Image/fichier : la contrainte est
+        // celle de la RADIO, pas du protocole — les rafales parallèles sur les
+        // connexions BLE croisées tuent l'antenne en ~20 s (banc 2026-08-11 :
+        // le seul transfert qui a tenu 134 s roulait sur un lien unique). Un
+        // seul lien BLE, donc, mais autant de liens Wi-Fi qu'il y a de pairs :
+        // là, chaque transfert a sa socket et rien ne se dispute une antenne.
         //
-        // Préférence : lien CLIENT le plus récent — ses écritures sont
-        // acquittées, donc il est plus probablement vivant. Préférer le lien
-        // serveur a été essayé au banc le 2026-08-11 pour gagner en débit
-        // (la notification n'attend aucun retour du pair) et rejeté : sur
-        // 1093 fragments, 550 Ko ont disparu en silence — aucune trame reçue
-        // en face — pendant que l'émetteur rapportait un succès. La file de
-        // notifications n'a ni contrôle de flux ni signal d'échec. Le gain
-        // n'était d'ailleurs pas au rendez-vous : 16 Ko/s de bout en bout,
-        // dans la fourchette de l'écriture.
+        // Préférence en BLE : lien CLIENT — ses écritures sont acquittées, donc
+        // il est plus probablement vivant. Préférer le lien serveur a été
+        // essayé au banc le 2026-08-11 pour gagner en débit (la notification
+        // n'attend aucun retour du pair) et rejeté : sur 1093 fragments,
+        // 550 Ko ont disparu en silence — aucune trame reçue en face — pendant
+        // que l'émetteur rapportait un succès. La file de notifications n'a ni
+        // contrôle de flux ni signal d'échec. Le gain n'était d'ailleurs pas au
+        // rendez-vous : 16 Ko/s de bout en bout, dans la fourchette de
+        // l'écriture. [routes] applique déjà cette préférence.
         val targets = if (kind == ChatFrames.KIND_TEXT) {
-            perAddress.values.toList()
+            perAddress
         } else {
-            listOf(
-                perAddress.values.lastOrNull { it.kind == LinkKind.CLIENT }
-                    ?: perAddress.values.last(),
-            )
+            val streamed = perAddress.filter { it.medium != Medium.BLE }
+            val radio = perAddress.lastOrNull { it.medium == Medium.BLE }
+            streamed + listOfNotNull(radio)
         }
         var primary = true
         targets.forEach { link ->
             link.transfers.trySend(Outgoing(msgId, kind, name, mime, content, primary))
             primary = false
         }
-        Log.i(TAG, "message $msgId (${content.size} o) mis en file vers ${targets.size} lien(s)")
+        // le médium retenu ET l'inventaire des liens : sans les deux, un message
+        // parti par la radio alors qu'une socket était ouverte ne s'explique pas
+        Log.i(
+            TAG,
+            "message $msgId (${content.size} o) par " +
+                targets.joinToString { "${it.medium.short}/${it.address}" } +
+                " — liens " +
+                links.values.joinToString {
+                    "${it.medium.tag}${if (it.ready) '+' else '-'}${it.address}"
+                },
+        )
     }
 
     // ── Fil d'émission d'un lien ──────────────────────────────────────────
@@ -670,12 +773,19 @@ class BleChatEngine(context: Context) {
     }
 
     private suspend fun runTransfer(link: Link, out: Outgoing) {
+        // On coupe annonce et scan pour TOUT transfert, y compris Wi-Fi.
+        // Raisonner « le Wi-Fi ne dispute pas l'antenne BLE » était faux : les
+        // deux partagent la même puce, et la coexistence se paie cher. Mesuré au
+        // banc le 2026-08-11 sur le même fichier de 1,4 Mo par la station, scan
+        // et annonce laissés tourner : 12,5 s puis 38 s d'un essai à l'autre
+        // (112 puis 32 Ko/s) — la variance venant du va-et-vient de connexions
+        // BLE que le scan relance sans cesse.
         activeOutgoing++
         pauseRadioForTransfer()
         // certains empilements relâchent la priorité au fil du temps :
         // on la redemande au début de chaque transfert
+        if (link.medium == Medium.BLE) requestHighPriority(link)
         if (out.primary) sentAtMs[out.msgId] = SystemClock.elapsedRealtime() to out.content.size
-        requestHighPriority(link)
         try {
             runTransferInner(link, out)
         } finally {
@@ -702,7 +812,7 @@ class BleChatEngine(context: Context) {
      */
     private fun beginHandshake(link: Link) {
         if (link.kind != LinkKind.CLIENT || link.noise != null) return
-        if (!ChatFrames.canSeal(link.mtu)) {
+        if (!link.sealCapable) {
             // MTU refusé par le pair : le premier message XX ne passerait pas
             Log.w(TAG, "handshake impossible vers ${link.address} : mtu=${link.mtu}")
             return
@@ -725,7 +835,7 @@ class BleChatEngine(context: Context) {
             Log.w(TAG, "handshake : écriture impossible vers ${link.address} — $error")
             return false
         }
-        val frame = ChatFrames.encodeHandshake(step, message, ChatFrames.attPayload(link.mtu))
+        val frame = ChatFrames.encodeHandshake(step, message, link.capacity)
         if (frame == null) {
             // au MTU plancher (23) le premier message XX ne passe pas : le
             // handshake exige un MTU négocié, il n'y a pas de repli
@@ -740,8 +850,8 @@ class BleChatEngine(context: Context) {
      * Fil protocole. Un message de handshake arrive : le lien client l'a
      * reçu en notification, le lien serveur en écriture du pair.
      */
-    private fun onHandshakeFrame(kind: LinkKind, from: String, frame: ChatFrame.Handshake) {
-        val link = links[key(kind, from)] ?: return
+    private fun onHandshakeFrame(medium: Medium, kind: LinkKind, from: String, frame: ChatFrame.Handshake) {
+        val link = links[key(medium, kind, from)] ?: return
         val session = link.noise ?: when (kind) {
             // le répondeur ne crée sa session qu'à l'arrivée du premier message
             LinkKind.SERVER -> NoiseSession.responder(noiseStaticKey).also { link.noise = it }
@@ -811,6 +921,17 @@ class BleChatEngine(context: Context) {
                 "handshake Noise abouti sur ${link.kind} ${link.address} — " +
                     "pair ${Hex.encode(remote).take(16)}…",
             )
+            // Ici, et pas plus tôt. Annoncer depuis checkVouch semblait naturel
+            // — le pair vient d'être reconnu — mais la trame se glissait dans
+            // la file de contrôle AVANT le 3e message du handshake : l'initiateur
+            // devenant établi en *écrivant* ce 3e message, l'adresse partait
+            // scellée vers un répondeur qui ne l'était pas encore. Le lien
+            // mourait sur « trame scellée sans session établie » (banc du
+            // 2026-08-11, les deux liens serveur tués à chaque fois). C'est le
+            // miroir exact du piège déjà connu sur HELLO 3, à ceci près que la
+            // parade `isHandshake` ne protège que le handshake lui-même. Depuis
+            // onHandshakeDone, la file contient déjà HELLO 3 : l'ordre tient.
+            announceAddress(link)
             refreshLinks()
         }
     }
@@ -896,7 +1017,7 @@ class BleChatEngine(context: Context) {
 
     private suspend fun runTransferInner(link: Link, out: Outgoing) {
         // budget d'une trame ordinaire, scellement Noise déjà déduit
-        val att = ChatFrames.framePayload(link.mtu)
+        val att = link.payload
         val start = ChatFrames.encodeStart(
             ChatFrame.Start(out.msgId, out.kind, out.content.size, ChatFrames.crc32(out.content), out.name, out.mime),
             att,
@@ -906,7 +1027,7 @@ class BleChatEngine(context: Context) {
             if (start != null) failLink(link)
             return
         }
-        val chunk = ChatFrames.dataChunk(link.mtu).coerceAtLeast(1)
+        val chunk = (att - ChatFrames.DATA_HEADER).coerceAtLeast(1)
         val startedAt = SystemClock.elapsedRealtime()
         var priorityRetried = false
         var offset = 0
@@ -918,8 +1039,11 @@ class BleChatEngine(context: Context) {
                 writeFrame(link, control)
             }
             val end = minOf(offset + chunk, out.content.size)
+            // La contre-pression est une affaire de radio : TCP a la sienne,
+            // et une écriture sur socket ne rend la main que quand l'octet est
+            // parti. Rien à cadencer hors du BLE.
             val windowEdge = end == out.content.size || index % ACK_WINDOW == ACK_WINDOW - 1
-            val reliable = windowEdge && link.kind == LinkKind.CLIENT
+            val reliable = link.medium != Medium.BLE || (windowEdge && link.kind == LinkKind.CLIENT)
             if (!writeFrame(link, ChatFrames.encodeData(out.msgId, index, out.content, offset, end), reliable)) {
                 onTransferFailed(link, out)
                 failLink(link)
@@ -927,7 +1051,9 @@ class BleChatEngine(context: Context) {
             }
             // pas d'équivalent « avec réponse » pour une notification :
             // on relâche la pression d'un souffle à chaque fenêtre
-            if (windowEdge && link.kind == LinkKind.SERVER) delay(NOTIFY_WINDOW_PAUSE_MS)
+            if (windowEdge && link.medium == Medium.BLE && link.kind == LinkKind.SERVER) {
+                delay(NOTIFY_WINDOW_PAUSE_MS)
+            }
             offset = end
             index++
             // l'intervalle de connexion n'est pas lisible : on l'observe par le
@@ -952,8 +1078,10 @@ class BleChatEngine(context: Context) {
                 else it.copy(progress = 1f)
             }
             // ✓ vaut promesse de remise sur le chemin écriture seulement :
-            // côté notification, il faut l'ACK pour savoir, ou l'échec
-            if (link.kind == LinkKind.SERVER) {
+            // côté notification, il faut l'ACK pour savoir, ou l'échec. Le
+            // guetteur ne concerne que ce chemin-là — une socket qui a écrit
+            // sans lever a bel et bien remis ses octets.
+            if (link.medium == Medium.BLE && link.kind == LinkKind.SERVER) {
                 armAckWatchdog(out.msgId, link.address, out.content.size)
             }
         }
@@ -1016,7 +1144,7 @@ class BleChatEngine(context: Context) {
      */
     private fun failLink(link: Link) {
         Log.w(TAG, "lien ${link.address} déclaré mort après échec d'écriture")
-        removeLink(link.kind, link.address)
+        removeLink(link.medium, link.kind, link.address)
     }
 
     /** Sérialise les notifications : une seule en vol par serveur GATT. */
@@ -1031,6 +1159,7 @@ class BleChatEngine(context: Context) {
      */
     private suspend fun writeFrame(link: Link, plain: ByteArray, withResponse: Boolean = false): Boolean {
         val frame = seal(link, plain) ?: return false
+        if (link.medium != Medium.BLE) return streamWrite(link, frame)
         val deadline = SystemClock.elapsedRealtime() + BUSY_DEADLINE_MS
         var attempt = 0
         while (true) {
@@ -1101,6 +1230,18 @@ class BleChatEngine(context: Context) {
         false
     }
 
+    /**
+     * Écriture sur un médium en flux. Bloquante, donc dépaysée sur [Dispatchers.IO] :
+     * le fil protocole est unique, et l'y retenir le temps d'un `flush` figerait
+     * tous les autres liens, radio comprise.
+     */
+    private suspend fun streamWrite(link: Link, frame: ByteArray): Boolean {
+        val stream = link.stream ?: return false
+        return withContext(Dispatchers.IO) {
+            runCatching { stream.write(frame) }.isSuccess
+        }
+    }
+
     private fun serverNotify(link: Link, frame: ByteArray): Boolean = runCatching {
         val server = this.server ?: return false
         val characteristic = serverCharacteristic ?: return false
@@ -1123,29 +1264,30 @@ class BleChatEngine(context: Context) {
      * lien client, écriture du pair pour un lien serveur. Le handshake en
      * dépend — le lien client de A répond au lien serveur de B, pas l'inverse.
      */
-    private fun handleFrame(kind: LinkKind, from: String, bytes: ByteArray) {
+    private fun handleFrame(medium: Medium, kind: LinkKind, from: String, bytes: ByteArray) {
         when (val frame = ChatFrames.decode(bytes)) {
             null -> Log.w(TAG, "trame illisible de $from (${bytes.size} o)")
-            is ChatFrame.Handshake -> onHandshakeFrame(kind, from, frame)
+            is ChatFrame.Handshake -> onHandshakeFrame(medium, kind, from, frame)
             is ChatFrame.Sealed -> {
-                val link = links[key(kind, from)]
+                val link = links[key(medium, kind, from)]
                 if (link == null) Log.w(TAG, "trame scellée d'un lien inconnu : $from")
-                else unseal(link, frame)?.let { handlePlainFrame(kind, from, it) }
+                else unseal(link, frame)?.let { handlePlainFrame(medium, kind, from, it) }
             }
-            else -> handlePlainFrame(kind, from, bytes)
+            else -> handlePlainFrame(medium, kind, from, bytes)
         }
     }
 
     /** Fil protocole. Une trame en clair, scellée à l'origine ou non. */
-    private fun handlePlainFrame(kind: LinkKind, from: String, bytes: ByteArray) {
+    private fun handlePlainFrame(medium: Medium, kind: LinkKind, from: String, bytes: ByteArray) {
         when (val frame = ChatFrames.decode(bytes)) {
             null -> Log.w(TAG, "trame illisible de $from (${bytes.size} o)")
             // une trame ouverte ne peut pas en contenir une autre
             is ChatFrame.Sealed, is ChatFrame.Handshake ->
                 Log.w(TAG, "trame ${frame::class.simpleName} imbriquée de $from : ignorée")
+            is ChatFrame.Address -> onAddressFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Ack -> onAck(frame)
             else -> when (val event = reassembler.onFrame(from, frame)) {
-                is Reassembler.Event.Started -> onIncomingStarted(event)
+                is Reassembler.Event.Started -> onIncomingStarted(medium, event)
                 is Reassembler.Event.Progress ->
                     publishProgress(event.msgId, event.receivedBytes, event.totalBytes)
                 is Reassembler.Event.Completed -> onIncomingCompleted(event)
@@ -1155,9 +1297,11 @@ class BleChatEngine(context: Context) {
         }
     }
 
-    private fun onIncomingStarted(event: Reassembler.Event.Started) {
+    private fun onIncomingStarted(medium: Medium, event: Reassembler.Event.Started) {
         val start = event.start
         Log.i(TAG, "réception de ${start.totalBytes} o (genre ${start.kind}) depuis ${event.from}")
+        // même règle qu'à l'émission : la coexistence Bluetooth/Wi-Fi se paie
+        // sur la même puce, quel que soit le médium qui porte le transfert
         pauseRadioForTransfer()
         addMessage(
             ChatMessage(
@@ -1229,17 +1373,174 @@ class BleChatEngine(context: Context) {
         }
     }
 
-    /** Diffuse une trame de contrôle sur un lien par adresse (client préféré). */
+    /** Diffuse une trame de contrôle sur un lien par personne. */
     private fun broadcastControl(frame: ByteArray) {
-        val perAddress = LinkedHashMap<String, Link>()
-        links.values.forEach { link ->
-            if (!link.ready) return@forEach
-            val current = perAddress[link.address]
-            if (current == null || (current.kind == LinkKind.SERVER && link.kind == LinkKind.CLIENT)) {
-                perAddress[link.address] = link
+        routes().forEach { it.control.trySend(frame) }
+    }
+
+    // ── Médiums Wi-Fi : une socket d'écoute, des adresses annoncées ───────
+
+    private var listener: ServerSocket? = null
+
+    /** Port de notre socket d'écoute, 0 tant qu'elle n'est pas ouverte. */
+    private var listenPort = 0
+
+    /**
+     * Ouvre l'écoute TCP sur un port éphémère, toutes interfaces.
+     *
+     * Le port n'a pas à être fixe ni connu : il voyage dans la trame `ADDR`,
+     * scellée, vers un pair déjà attesté. Écouter ne révèle donc rien — sans
+     * l'annonce, une socket ouverte sur un LAN n'est qu'un port muet parmi
+     * d'autres, et le handshake Noise refuse tout inconnu.
+     */
+    private fun startListener() {
+        if (listener != null) return
+        runCatching { ServerSocket(0) }
+            .onFailure { Log.w(TAG, "écoute TCP impossible — $it") }
+            .onSuccess { socket ->
+                listener = socket
+                listenPort = socket.localPort
+                Log.i(TAG, "écoute des médiums Wi-Fi sur le port $listenPort")
+                scope.launch { acceptLoop(socket) }
             }
+    }
+
+    private suspend fun acceptLoop(server: ServerSocket) {
+        while (true) {
+            val accepted = withContext(Dispatchers.IO) {
+                runCatching { server.accept() }.getOrNull()
+            } ?: return // socket fermée : l'écoute s'arrête avec le moteur
+            // Celui qui compose initie le handshake, comme le central en BLE :
+            // le lien serveur répond. Reprendre exactement la convention du
+            // BLE fait que toute la machine à états Noise resserve telle quelle.
+            adoptStream(Medium.WIFI_STATION, LinkKind.SERVER, accepted)
         }
-        perAddress.values.forEach { it.control.trySend(frame) }
+    }
+
+    /** Compose vers un point d'entrée annoncé par un pair attesté. */
+    private suspend fun dial(medium: Medium, host: String, port: Int) {
+        if (links.values.any { it.medium == medium && it.address.startsWith("$host:") }) return
+        val socket = withContext(Dispatchers.IO) {
+            runCatching {
+                Socket().apply { connect(InetSocketAddress(host, port), DIAL_TIMEOUT_MS) }
+            }.getOrNull()
+        }
+        if (socket == null) {
+            Log.w(TAG, "$medium : $host:$port injoignable")
+            _status.update { it.copy(lastError = "${medium.short} injoignable") }
+            return
+        }
+        adoptStream(medium, LinkKind.CLIENT, socket)
+    }
+
+    /** Fil protocole. Un lien neuf sur une socket, dans les deux sens. */
+    private suspend fun adoptStream(medium: Medium, kind: LinkKind, socket: Socket) {
+        val stream = runCatching { FramedSocket(socket) }.getOrElse {
+            runCatching { socket.close() }
+            return
+        }
+        val link = Link(medium, kind, stream.remote).apply { this.stream = stream }
+        val k = key(medium, kind, stream.remote)
+        links[k]?.let { removeLink(medium, kind, it.address) }
+        links[k] = link
+        startLinkJob(link)
+        scope.launch { readLoop(link, stream) }
+        Log.i(TAG, "lien ${medium.short} $kind ${stream.remote}")
+        if (kind == LinkKind.CLIENT) beginHandshake(link)
+        refreshLinks()
+    }
+
+    /**
+     * Lecture bloquante d'une socket, dépaysée hors du fil protocole. Les
+     * trames arrivent entières : le préfixe de longueur a déjà fait le travail
+     * que l'ATT fait en BLE.
+     */
+    private suspend fun readLoop(link: Link, stream: FramedSocket) {
+        while (true) {
+            val frame = withContext(Dispatchers.IO) {
+                runCatching { stream.read() }.getOrElse { error ->
+                    Log.w(TAG, "lecture ${link.address} interrompue — $error")
+                    null
+                }
+            } ?: break
+            handleFrame(link.medium, link.kind, link.address, frame)
+        }
+        Log.i(TAG, "lien ${link.medium.short} ${link.address} fermé")
+        removeLink(link.medium, link.kind, link.address)
+    }
+
+    /**
+     * Fil protocole. Notre adresse Wi-Fi courante, ou null si l'appareil n'est
+     * pas sur une station. Rien à annoncer dans ce cas — et donc aucune montée
+     * à proposer : la cabine reste en BLE sans que personne n'ait à choisir.
+     */
+    private fun localWifiHost(): String? {
+        val manager = appContext.getSystemService(ConnectivityManager::class.java) ?: return null
+        val network = manager.activeNetwork ?: return null
+        val caps = manager.getNetworkCapabilities(network) ?: return null
+        if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return null
+        return manager.getLinkProperties(network)
+            ?.linkAddresses
+            ?.map { it.address }
+            ?.filterIsInstance<Inet4Address>()
+            ?.firstOrNull { !it.isLoopbackAddress && !it.isLinkLocalAddress }
+            ?.hostAddress
+    }
+
+    /**
+     * Fil protocole. Dit au pair par où nous joindre plus vite.
+     *
+     * N'est appelé qu'une fois le pair **attesté**, et la trame part par la
+     * file de contrôle du lien — donc scellée. C'est toute la découverte
+     * réseau du projet : pas de mDNS, pas de balayage, rien qui traîne sur le
+     * LAN. Annoncer n'engage à rien : c'est le pair qui décidera de composer,
+     * et seulement si son porteur a accepté la montée.
+     */
+    private fun announceAddress(link: Link) {
+        if (link.medium != Medium.BLE || listenPort == 0) return
+        // une adresse ne se confie qu'à quelqu'un dont on sait qui il est : un
+        // pair sans noyau incarné a mené son handshake, mais n'a rien signé
+        if (link.peerNostrKey == null) return
+        val host = localWifiHost() ?: return
+        link.control.trySend(
+            ChatFrames.encodeAddress(Medium.WIFI_STATION.ordinal, host, listenPort),
+        )
+        Log.i(TAG, "adresse ${Medium.WIFI_STATION.short} annoncée à ${link.address} : $host:$listenPort")
+    }
+
+    /**
+     * Fil protocole. Un pair nous dit par où le joindre. On ne compose que si
+     * le médium est accepté ; sinon l'offre attend, et la cabine la propose.
+     */
+    private fun onAddressFrame(link: Link?, frame: ChatFrame.Address) {
+        val medium = Medium.entries.getOrNull(frame.mediumOrdinal) ?: return
+        if (medium == Medium.BLE) return // le BLE ne se compose pas par adresse IP
+        val peer = link?.peerNostrKey ?: run {
+            // sans attestation, rien ne dit de qui vient cette adresse
+            Log.w(TAG, "adresse annoncée par un pair non attesté : ignorée")
+            return
+        }
+        val who = Hex.encode(peer)
+        offers.getOrPut(who) { linkedMapOf() }[medium] = frame.host to frame.port
+        Log.i(TAG, "${medium.short} proposé par ${who.take(12)}… : ${frame.host}:${frame.port}")
+        if (medium in enabledMedia) scope.launch { dial(medium, frame.host, frame.port) }
+        refreshLinks()
+    }
+
+    /**
+     * Accepte un médium plus rapide. C'est le seul chemin : la cabine ne
+     * bascule jamais d'elle-même — elle s'établit en BLE, informe, et attend.
+     */
+    fun enable(medium: Medium) {
+        scope.launch {
+            if (!enabledMedia.add(medium)) return@launch
+            Log.i(TAG, "médium accepté : ${medium.short}")
+            offers.values.forEach { byMedium ->
+                val entry = byMedium[medium] ?: return@forEach
+                scope.launch { dial(medium, entry.first, entry.second) }
+            }
+            refreshLinks()
+        }
     }
 
     // ── Rôle périphérique : serveur GATT + annonce connectable ────────────
@@ -1275,14 +1576,14 @@ class BleChatEngine(context: Context) {
         override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
             Log.d(TAG, "serveur : ${device.address} ${if (newState == BluetoothProfile.STATE_CONNECTED) "connecté" else "parti"}")
             if (newState != BluetoothProfile.STATE_CONNECTED) {
-                scope.launch { removeLink(LinkKind.SERVER, device.address) }
+                scope.launch { removeLink(Medium.BLE, LinkKind.SERVER, device.address) }
             }
         }
 
         override fun onMtuChanged(device: BluetoothDevice, mtu: Int) {
             scope.launch {
                 serverMtus[device.address] = mtu
-                links[key(LinkKind.SERVER, device.address)]?.mtu = mtu
+                links[key(Medium.BLE, LinkKind.SERVER, device.address)]?.mtu = mtu
                 Log.d(TAG, "serveur : MTU $mtu pour ${device.address}")
             }
         }
@@ -1300,7 +1601,7 @@ class BleChatEngine(context: Context) {
                 server?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, null)
             }
             val bytes = value.copyOf()
-            scope.launch { handleFrame(LinkKind.SERVER, device.address, bytes) }
+            scope.launch { handleFrame(Medium.BLE, LinkKind.SERVER, device.address, bytes) }
         }
 
         override fun onDescriptorWriteRequest(
@@ -1315,7 +1616,7 @@ class BleChatEngine(context: Context) {
             if (descriptor.uuid == CCCD) {
                 val enable = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE.contentEquals(value)
                 scope.launch {
-                    if (enable) addServerLink(device) else removeLink(LinkKind.SERVER, device.address)
+                    if (enable) addServerLink(device) else removeLink(Medium.BLE, LinkKind.SERVER, device.address)
                 }
             }
             if (responseNeeded) {
@@ -1347,7 +1648,7 @@ class BleChatEngine(context: Context) {
 
         override fun onNotificationSent(device: BluetoothDevice, status: Int) {
             scope.launch {
-                links[key(LinkKind.SERVER, device.address)]
+                links[key(Medium.BLE, LinkKind.SERVER, device.address)]
                     ?.pending?.removeFirstOrNull()
                     ?.complete(status == BluetoothGatt.GATT_SUCCESS)
             }
@@ -1356,9 +1657,9 @@ class BleChatEngine(context: Context) {
 
     /** Fil protocole. */
     private fun addServerLink(device: BluetoothDevice) {
-        val k = key(LinkKind.SERVER, device.address)
+        val k = key(Medium.BLE, LinkKind.SERVER, device.address)
         if (links.containsKey(k)) return
-        val link = Link(LinkKind.SERVER, device.address).apply {
+        val link = Link(Medium.BLE, LinkKind.SERVER, device.address).apply {
             this.device = device
             mtu = serverMtus[device.address] ?: DEFAULT_MTU
         }
@@ -1370,14 +1671,15 @@ class BleChatEngine(context: Context) {
     }
 
     /** Fil protocole. */
-    private fun removeLink(kind: LinkKind, address: String) {
+    private fun removeLink(medium: Medium, kind: LinkKind, address: String) {
         // avant l'early-return : un central peut négocier le MTU sans jamais s'abonner
-        if (kind == LinkKind.SERVER) {
+        if (medium == Medium.BLE && kind == LinkKind.SERVER) {
             serverMtus.remove(address)
             synchronized(subscribedAddresses) { subscribedAddresses.remove(address) }
         }
-        val link = links.remove(key(kind, address)) ?: return
-        if (kind == LinkKind.CLIENT) {
+        val link = links.remove(key(medium, kind, address)) ?: return
+        link.stream?.close()
+        if (medium == Medium.BLE && kind == LinkKind.CLIENT) {
             backoff(
                 address,
                 if (link.ready) CONNECT_BACKOFF_LOST_MS else CONNECT_BACKOFF_FAILED_MS,
@@ -1460,7 +1762,7 @@ class BleChatEngine(context: Context) {
     /** Fil protocole. */
     private fun onPeer(result: ScanResult) {
         val address = result.device.address
-        val k = key(LinkKind.CLIENT, address)
+        val k = key(Medium.BLE, LinkKind.CLIENT, address)
         if (links.containsKey(k)) return
         // la radio reste au transfert : aucune connexion sortante pendant
         // qu'on émet ou réassemble
@@ -1471,7 +1773,7 @@ class BleChatEngine(context: Context) {
         if (notBefore != null && now < notBefore) return
         lastConnectMs = now
         Log.i(TAG, "pair de causerie vu : $address rssi=${result.rssi}, connexion…")
-        val link = Link(LinkKind.CLIENT, address)
+        val link = Link(Medium.BLE, LinkKind.CLIENT, address)
         links[k] = link
         val gatt = result.device.connectGatt(
             appContext,
@@ -1503,7 +1805,7 @@ class BleChatEngine(context: Context) {
     private fun dropClient(gatt: BluetoothGatt, reason: String) {
         Log.w(TAG, "lien client ${gatt.device.address} abandonné : $reason")
         runCatching { gatt.disconnect() }
-        scope.launch { removeLink(LinkKind.CLIENT, gatt.device.address) }
+        scope.launch { removeLink(Medium.BLE, LinkKind.CLIENT, gatt.device.address) }
     }
 
     private val clientCallback = object : BluetoothGattCallback() {
@@ -1514,13 +1816,13 @@ class BleChatEngine(context: Context) {
                 if (!gatt.requestMtu(REQUESTED_MTU)) gatt.discoverServices()
             } else {
                 Log.d(TAG, "client : $address perdu (status=$status)")
-                scope.launch { removeLink(LinkKind.CLIENT, address) }
+                scope.launch { removeLink(Medium.BLE, LinkKind.CLIENT, address) }
             }
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
             scope.launch {
-                val link = links[key(LinkKind.CLIENT, gatt.device.address)] ?: return@launch
+                val link = links[key(Medium.BLE, LinkKind.CLIENT, gatt.device.address)] ?: return@launch
                 link.mtu = if (status == BluetoothGatt.GATT_SUCCESS) mtu else DEFAULT_MTU
                 Log.d(TAG, "client : MTU ${link.mtu} vers ${gatt.device.address}")
             }
@@ -1566,7 +1868,7 @@ class BleChatEngine(context: Context) {
             }
             val characteristic = descriptor.characteristic
             scope.launch {
-                val link = links[key(LinkKind.CLIENT, gatt.device.address)] ?: return@launch
+                val link = links[key(Medium.BLE, LinkKind.CLIENT, gatt.device.address)] ?: return@launch
                 link.characteristic = characteristic
                 startLinkJob(link)
                 Log.i(TAG, "lien client prêt vers ${gatt.device.address} (mtu=${link.mtu})")
@@ -1584,7 +1886,7 @@ class BleChatEngine(context: Context) {
                 Log.w(TAG, "callback d'écriture status=$status de ${gatt.device.address}")
             }
             scope.launch {
-                links[key(LinkKind.CLIENT, gatt.device.address)]
+                links[key(Medium.BLE, LinkKind.CLIENT, gatt.device.address)]
                     ?.pending?.removeFirstOrNull()
                     ?.complete(status == BluetoothGatt.GATT_SUCCESS)
             }
@@ -1593,7 +1895,7 @@ class BleChatEngine(context: Context) {
         @Suppress("DEPRECATION")
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
             val bytes = characteristic.value?.copyOf() ?: return
-            scope.launch { handleFrame(LinkKind.CLIENT, gatt.device.address, bytes) }
+            scope.launch { handleFrame(Medium.BLE, LinkKind.CLIENT, gatt.device.address, bytes) }
         }
 
         override fun onCharacteristicChanged(
@@ -1602,7 +1904,7 @@ class BleChatEngine(context: Context) {
             value: ByteArray,
         ) {
             val bytes = value.copyOf()
-            scope.launch { handleFrame(LinkKind.CLIENT, gatt.device.address, bytes) }
+            scope.launch { handleFrame(Medium.BLE, LinkKind.CLIENT, gatt.device.address, bytes) }
         }
     }
 
@@ -1633,10 +1935,21 @@ class BleChatEngine(context: Context) {
 
     private fun refreshLinks() {
         val ready = links.values.filter { it.ready }
+        val routes = routes()
+        // le médium réellement en service : celui du meilleur lien emprunté,
+        // pas celui du meilleur lien ouvert
+        val inUse = routes.maxByOrNull { it.medium.rank }?.medium
+        // une offre ne compte que si elle ferait mieux que ce qu'on emprunte
+        val offered = offers.values
+            .flatMap { it.keys }
+            .filter { it !in enabledMedia && (inUse == null || it.rank > inUse.rank) }
+            .maxByOrNull { it.rank }
         _status.update { status ->
             status.copy(
                 links = ready.size,
                 unattestedLinks = ready.count { it.peerNostrKey == null },
+                medium = inUse,
+                offered = offered,
             )
         }
         // dédoublonné par npub : les deux liens croisés d'une même personne ne

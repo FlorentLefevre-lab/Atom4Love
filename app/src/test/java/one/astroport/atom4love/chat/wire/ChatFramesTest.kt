@@ -40,6 +40,25 @@ class ChatFramesTest {
     }
 
     @Test
+    fun `aller-retour d'une trame ADDR`() {
+        val encoded = ChatFrames.encodeAddress(mediumOrdinal = 1, host = "10.42.0.208", port = 41_237)
+        assertEquals(ChatFrame.Address(1, "10.42.0.208", 41_237), ChatFrames.decode(encoded))
+    }
+
+    @Test
+    fun `ADDR porte les ports hauts sans passer par un entier signé`() {
+        // 60000 déborde d'un Short signé : encodé tel quel il reviendrait négatif
+        val encoded = ChatFrames.encodeAddress(1, "192.168.49.1", 60_000)
+        assertEquals(60_000, (ChatFrames.decode(encoded) as ChatFrame.Address).port)
+    }
+
+    @Test
+    fun `ADDR sans hôte ou sans port est refusée`() {
+        assertNull(ChatFrames.decode(ChatFrames.encodeAddress(1, "", 9_000)))
+        assertNull(ChatFrames.decode(ChatFrames.encodeAddress(1, "10.0.0.1", 0)))
+    }
+
+    @Test
     fun `START tronque le nom à la frontière UTF-8 pour tenir dans l'ATT`() {
         val start = ChatFrame.Start(1, ChatFrames.KIND_FILE, 10, 0, "é".repeat(300), "application/pdf")
         val maxBytes = 64

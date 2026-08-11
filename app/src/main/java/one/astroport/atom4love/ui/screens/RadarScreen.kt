@@ -49,10 +49,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.net.Uri
+import android.provider.Settings
+import androidx.core.app.ActivityCompat
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.withFrameNanos
@@ -62,13 +69,14 @@ import androidx.compose.runtime.key
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.domain.GoldbergPortal
 import android.widget.Toast
 import one.astroport.atom4love.chat.Attachments
 import one.astroport.atom4love.chat.ChatSounds
-import one.astroport.atom4love.chat.ble.BleChatEngine
+import one.astroport.atom4love.chat.CabinChat
 import one.astroport.atom4love.chat.ui.ChatPanel
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.CabinSalon
@@ -120,6 +128,37 @@ private fun cellHex(cell: Long): String =
     cell.toULong().toString(16).uppercase().trimEnd('F')
 
 /**
+ * L'Activity qui porte ce composable. `LocalContext` en Compose est un
+ * `ContextThemeWrapper` posé sur elle : on remonte la chaîne d'emballages.
+ */
+private fun Context.findActivity(): Activity? {
+    var current = this
+    while (current is ContextWrapper) {
+        if (current is Activity) return current
+        current = current.baseContext
+    }
+    return null
+}
+
+/**
+ * Une nouvelle demande montrerait-elle encore un dialogue ? Vrai tant qu'au
+ * moins une des permissions a droit à sa justification. À n'appeler qu'APRÈS un
+ * refus revenu du lanceur : avant la première demande, la réponse est faux sans
+ * qu'aucune impasse n'existe.
+ */
+private fun Context.canStillAskFor(permissions: Array<String>): Boolean {
+    val activity = findActivity() ?: return true
+    return permissions.any { ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
+}
+
+/** La page « Infos sur l'appli » du système, seul endroit où rouvrir une permission refusée. */
+private fun appSettingsIntent(context: Context): Intent =
+    Intent(
+        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+        Uri.fromParts("package", context.packageName, null),
+    )
+
+/**
  * 02 · Radar Phi2X — la cabine à portée et le rituel de phase.
  *
  * Le compteur tourne réellement : 33 s d'immobilité déverrouillent la cabine.
@@ -132,6 +171,15 @@ fun RadarScreen(
     relay: RelayStation.Status? = null,
     salon: CabinSalon? = null,
     keys: NostrKeys? = null,
+    /**
+     * La cabine vit au-dessus des onglets, dans la station : son indicateur se
+     * lit depuis n'importe quel écran, et changer d'onglet n'efface plus une
+     * conversation que personne n'a fermée. Fermer reste un geste, ici.
+     */
+    cabin: CabinChat? = null,
+    cabinOpen: Boolean = false,
+    onOpenCabin: () -> Unit = {},
+    onCloseCabin: () -> Unit = {},
 ) {
     var elapsed by remember { mutableFloatStateOf(0f) }
     var attempt by remember { mutableIntStateOf(0) }
@@ -154,7 +202,13 @@ fun RadarScreen(
     // donc portée explicitement, pas déduite du lanceur appelé.
     var locationAttempt by remember { mutableIntStateOf(0) }
     var permissionFor by remember { mutableStateOf(PermissionIntent.NONE) }
-    var cabinOpen by remember { mutableStateOf(false) }
+    // Au deuxième refus, Android ne montre plus de dialogue : la demande revient
+    // refusée dans la milliseconde et l'affordance devient un bouton mort, sans
+    // que rien ne bouge à l'écran. Le seul recours est la page de réglages de
+    // l'app. Impossible de le savoir d'avance — shouldShowRequestPermissionRationale
+    // est faux AUSSI avant la première demande : seul un refus revenu de NOTRE
+    // lanceur, sans rationale à montrer, prouve l'impasse.
+    var locationDeadEnd by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
@@ -165,13 +219,26 @@ fun RadarScreen(
                     ProximityService.start(context)
                 }
             // sans Bluetooth, pas de cabine : on n'ouvre pas un panneau muet
-            PermissionIntent.CABIN -> cabinOpen = results.values.all { it }
+            PermissionIntent.CABIN -> if (results.values.all { it }) onOpenCabin()
             // accordée : on relance la résolution sans attendre le tour des 30 s
-            PermissionIntent.LOCATION -> if (results.values.any { it }) locationAttempt++
+            // refusée : l'affordance mène-t-elle encore quelque part ?
+            PermissionIntent.LOCATION ->
+                if (results.values.any { it }) {
+                    locationDeadEnd = false
+                    locationAttempt++
+                } else {
+                    locationDeadEnd = !context.canStillAskFor(LOCATION_PERMISSIONS)
+                }
             PermissionIntent.NONE -> Unit
         }
         permissionFor = PermissionIntent.NONE
     }
+    // Le retour des réglages ne dit pas ce qui a été accordé : on re-sonde. Si
+    // la permission est là, l'affordance disparaît d'elle-même ; sinon elle
+    // continue de pointer vers les réglages, seul chemin qui reste.
+    val settingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { locationAttempt++ }
 
     LaunchedEffect(attempt) {
         val start = withFrameNanos { it }
@@ -191,6 +258,10 @@ fun RadarScreen(
         while (true) {
             fix = locator.currentFix()
             locationBlocker = if (fix == null) locator.blocker() else null
+            // La permission accordée efface l'impasse : si l'utilisateur la
+            // révoque ensuite depuis les réglages, Android remet son compteur
+            // à zéro et redonne droit au dialogue.
+            if (locationBlocker != CellLocator.Blocker.PERMISSION) locationDeadEnd = false
             delay(FIX_REFRESH_MS)
         }
     }
@@ -260,9 +331,14 @@ fun RadarScreen(
                         CellLocator.Blocker.SERVICE_OFF ->
                             "Hexagone inconnu — la Localisation du téléphone est coupée : " +
                                 "réactivez-la dans les réglages rapides."
-                        CellLocator.Blocker.PERMISSION ->
+                        CellLocator.Blocker.PERMISSION -> if (locationDeadEnd) {
+                            "Hexagone inconnu — la localisation a été refusée. Android " +
+                                "ne la redemandera plus : elle se rouvre depuis les " +
+                                "réglages de l'app. Elle n'allume aucune balise."
+                        } else {
                             "Hexagone inconnu — la localisation résout votre cellule. " +
                                 "Elle n'allume aucune balise."
+                        }
                         null ->
                             "Hexagone inconnu — recherche de position en cours…"
                     }
@@ -278,14 +354,18 @@ fun RadarScreen(
             if (fix == null && locationBlocker == CellLocator.Blocker.PERMISSION) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Accorder la localisation",
+                    if (locationDeadEnd) "Ouvrir les réglages de l'app" else "Accorder la localisation",
                     style = A4LText.Caption,
                     color = A4L.Mint,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .clickable {
-                            permissionFor = PermissionIntent.LOCATION
-                            permissionLauncher.launch(LOCATION_PERMISSIONS)
+                            if (locationDeadEnd) {
+                                settingsLauncher.launch(appSettingsIntent(context))
+                            } else {
+                                permissionFor = PermissionIntent.LOCATION
+                                permissionLauncher.launch(LOCATION_PERMISSIONS)
+                            }
                         }
                         .padding(vertical = 4.dp),
                 )
@@ -355,30 +435,27 @@ fun RadarScreen(
         val pensees = salon?.pensees?.collectAsStateWithLifecycle()?.value.orEmpty()
         var salonOpen by remember { mutableStateOf(false) }
 
-        // ── Cabine : ce qui se dit ici, entre gens à portée radio ─────────
-        // Une instance neuve à chaque ouverture. Le moteur ne se rallume pas
-        // après stop() (son scope est annulé), et surtout : ce qui s'est dit
-        // en cabine n'a pas à survivre à la sortie. Fermer la cabine efface
-        // la conversation, comme les pensées du salon à la fermeture.
-        var cabinSession by remember { mutableIntStateOf(0) }
-        val cabinChat = remember(cabinSession) { BleChatEngine(context.applicationContext) }
-        // L'effet n'entre en composition QUE cabine ouverte, et n'a que
-        // l'instance pour clé. Le piège évité : avec `cabinOpen` en clé, Compose
-        // dispose l'effet précédent — donc appelle stop() — AVANT d'exécuter le
-        // nouveau corps qui fait start(). Or stop() annule le scope et ferme le
-        // dispatcher : la radio démarrait (appels synchrones, logs présents)
-        // mais tout le protocole, qui vit dans scope.launch, était mort-né.
-        if (cabinOpen) {
-            DisposableEffect(cabinChat) {
-                // l'identité avant l'ouverture des liens : un handshake déjà
-                // engagé garderait la clé de fortune
-                keys?.let { cabinChat.bindIdentity(it) }
-                cabinChat.start()
-                onDispose { cabinChat.stop() }
-            }
-        }
+        // ── Cabine : ce qui se dit ici, entre gens à portée ───────────────
+        // Le moteur et son cycle de vie appartiennent à la station : c'est ce
+        // qui permet à l'indicateur du haut de dire le médium depuis n'importe
+        // quel onglet. Ne restent ici que le geste d'ouverture et les
+        // permissions, qui sont affaire d'écran.
+        val cabinPeers by (cabin?.peers ?: remember { MutableStateFlow(emptyList()) })
+            .collectAsStateWithLifecycle()
         LaunchedEffect(fix?.cell) {
             fix?.let { salon?.setCell(cellHex(it.cell)) }
+        }
+        // Un seul geste d'ouverture/fermeture, partagé par le compteur « ici »
+        // et par la rangée de la cabine : les deux désignent la même fenêtre.
+        val toggleCabin: () -> Unit = {
+            if (cabinOpen) {
+                onCloseCabin()
+            } else if (CabinChat.permissionsGranted(context)) {
+                onOpenCabin()
+            } else {
+                permissionFor = PermissionIntent.CABIN
+                permissionLauncher.launch(CabinChat.RUNTIME_PERMISSIONS)
+            }
         }
         Column(
             Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp),
@@ -406,11 +483,20 @@ fun RadarScreen(
                     "dans le portail",
                     Modifier.weight(1f),
                 )
+                // « Ici » se compte par la cabine, pas par la balise. Ce
+                // compteur lisait `neighbors` : il fallait donc diffuser une
+                // annonce continue pour savoir qui est à portée, alors que la
+                // balise ne sait dire que « une radio est là » quand la cabine,
+                // elle, nomme des noyaux attestés (un par npub, dédoublonné —
+                // voir CabinChat.peers). Chaque compteur tient désormais à
+                // une seule fenêtre : le relais, la balise, la cabine.
                 CabinStat(
-                    if (beaconRunning) neighbors.size.toString() else "—",
-                    "noyaux proches",
-                    Modifier.weight(1f),
-                    accent = A4L.Mint,
+                    if (cabinOpen) cabinPeers.size.toString() else "—",
+                    "ici, sans relais",
+                    Modifier
+                        .weight(1f)
+                        .clickable(onClick = toggleCabin),
+                    accent = if (cabinOpen) A4L.Mint else null,
                 )
             }
             if (salonOpen && salon != null) {
@@ -424,18 +510,7 @@ fun RadarScreen(
                         A4L.GlassFaint,
                         (if (cabinOpen) A4L.Mint else A4L.Stroke).copy(alpha = 0.2f),
                     )
-                    .clickable {
-                        if (cabinOpen) {
-                            cabinOpen = false
-                            // instance suivante : la conversation repart vierge
-                            cabinSession++
-                        } else if (BleChatEngine.permissionsGranted(context)) {
-                            cabinOpen = true
-                        } else {
-                            permissionFor = PermissionIntent.CABIN
-                            permissionLauncher.launch(BleChatEngine.RUNTIME_PERMISSIONS)
-                        }
-                    }
+                    .clickable(onClick = toggleCabin)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -452,7 +527,7 @@ fun RadarScreen(
                 )
             }
             if (cabinOpen) {
-                CabinDirectPanel(chat = cabinChat)
+                cabin?.let { CabinDirectPanel(chat = it) }
             }
             Row(
                 Modifier
@@ -586,7 +661,11 @@ private fun RadarRings(progress: Float) {
     }
 }
 
-/** Au-delà, le radar deviendrait une nuée : les compteurs du bas font le total. */
+/**
+ * Au-delà, le radar deviendrait une nuée. Aucun compteur du bas ne rattrape
+ * plus le débordement : ils tiennent chacun à une fenêtre nommée (relais,
+ * portail, cabine), et « toutes les radios vues à la ronde » n'en est pas une.
+ */
 private const val MAX_NEIGHBOR_DOTS = 12
 
 /**
@@ -678,7 +757,7 @@ private fun CabinStat(
  * paresseuse ne se mesure pas dans une hauteur infinie.
  */
 @Composable
-private fun CabinDirectPanel(chat: BleChatEngine) {
+private fun CabinDirectPanel(chat: CabinChat) {
     val context = LocalContext.current
     val status by chat.status.collectAsStateWithLifecycle()
     val messages by chat.messages.collectAsStateWithLifecycle()
@@ -687,8 +766,8 @@ private fun CabinDirectPanel(chat: BleChatEngine) {
     LaunchedEffect(chat) {
         chat.chimes.collect { chime ->
             when (chime) {
-                BleChatEngine.Chime.SENT -> sounds.send()
-                BleChatEngine.Chime.RECEIVED -> sounds.receive()
+                CabinChat.Chime.SENT -> sounds.send()
+                CabinChat.Chime.RECEIVED -> sounds.receive()
             }
         }
     }

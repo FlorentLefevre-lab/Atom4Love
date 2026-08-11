@@ -19,10 +19,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,6 +45,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import one.astroport.atom4love.chat.CabinChat
+import one.astroport.atom4love.chat.Medium
 import one.astroport.atom4love.data.IncarnationStore
 import one.astroport.atom4love.data.SavedIncarnation
 import one.astroport.atom4love.domain.BirthData
@@ -49,6 +55,7 @@ import one.astroport.atom4love.nostr.LocalRelayScout
 import one.astroport.atom4love.nostr.LoveKeyForge
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.ui.components.ElectronSweep
+import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.screens.BoardScreen
 import one.astroport.atom4love.ui.screens.HelpScreen
 import one.astroport.atom4love.ui.screens.IncarnationScreen
@@ -150,6 +157,38 @@ private fun Station(
     }
     val relayStatus by relay.status.collectAsState()
 
+    // ── La cabine, au-dessus des onglets ──────────────────────────────────
+    // Elle vivait dans l'écran Radar : changer d'onglet détruisait le moteur et
+    // effaçait la conversation sans que personne ne l'ait fermée. En la logeant
+    // ici, « fermer = effacer » redevient un geste — et l'indicateur du haut
+    // peut dire le médium depuis n'importe quel écran.
+    //
+    // Une instance neuve à chaque ouverture : le moteur ne se rallume pas après
+    // stop() (son scope est annulé), et ce qui s'est dit en cabine n'a pas à
+    // survivre à la sortie.
+    var cabinOpen by remember { mutableStateOf(false) }
+    var cabinSession by remember { mutableIntStateOf(0) }
+    val cabin = remember(cabinSession) { CabinChat(context.applicationContext) }
+    // L'effet n'entre en composition QUE cabine ouverte, et n'a que l'instance
+    // pour clé. Le piège évité : avec `cabinOpen` en clé, Compose dispose
+    // l'effet précédent — donc appelle stop() — AVANT d'exécuter le nouveau
+    // corps qui fait start(). Or stop() annule le scope et ferme le dispatcher :
+    // la radio démarrait (appels synchrones, logs présents) mais tout le
+    // protocole, qui vit dans scope.launch, était mort-né.
+    if (cabinOpen) {
+        DisposableEffect(cabin) {
+            // l'identité avant l'ouverture des liens : un handshake déjà engagé
+            // garderait la clé de fortune
+            keys?.let { cabin.bindIdentity(it) }
+            cabin.start()
+            onDispose { cabin.stop() }
+        }
+    }
+    val closeCabin: () -> Unit = {
+        cabinOpen = false
+        cabinSession++
+    }
+
     fun updateBirth(b: BirthData) {
         birth = b
         scope.launch { store.save(b, forged) }
@@ -184,7 +223,14 @@ private fun Station(
                 )
             }
         } else {
-            Column(modifier.fillMaxSize().background(A4L.Deep)) {
+            // `statusBarsPadding` consomme l'encoche pour ses enfants : celui
+            // que chaque écran pose déjà devient un no-op, sans double marge.
+            Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
+                CabinLine(
+                    cabin = cabin,
+                    open = cabinOpen,
+                    onUpgrade = { cabin.enable(it) },
+                )
                 Box(Modifier.weight(1f)) {
                     AnimatedContent(
                         targetState = tab,
@@ -202,7 +248,15 @@ private fun Station(
                         label = "tab",
                     ) { t ->
                         when (t) {
-                            A4LTab.Radar -> RadarScreen(relay = relayStatus, salon = salon, keys = keys)
+                            A4LTab.Radar -> RadarScreen(
+                                relay = relayStatus,
+                                salon = salon,
+                                keys = keys,
+                                cabin = cabin,
+                                cabinOpen = cabinOpen,
+                                onOpenCabin = { cabinOpen = true },
+                                onCloseCabin = closeCabin,
+                            )
                             A4LTab.Board -> BoardScreen(npub = keys?.npubShort)
                             A4LTab.Bonds -> ResonanceScreen()
                             A4LTab.Nucleus -> IncarnationScreen(
@@ -227,6 +281,71 @@ private fun Station(
                 }
                 A4LNavBar(current = tab, onSelect = { tab = it })
             }
+        }
+    }
+}
+
+/**
+ * L'indicateur de liaison, tout en haut, sous l'encoche — le même sur les cinq
+ * onglets.
+ *
+ * Il dit **par où** la cabine parle en ce moment, parce que ça change ce qu'on
+ * peut en attendre : 14 Ko/s en BLE contre 11,8 Mo/s par la station. Et quand un
+ * pair a annoncé une voie plus rapide, il la propose — sans jamais l'emprunter
+ * de lui-même. La cabine s'établit toujours seule en BLE ; la montée, elle, se
+ * décide.
+ */
+@Composable
+private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Unit) {
+    val status by cabin.status.collectAsState()
+    val peers by cabin.peers.collectAsState()
+    val medium = status.medium
+    val offered = status.offered
+
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(A4L.NavBackdrop)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StatusDot(
+            when {
+                !open -> A4L.TextGhost
+                medium != null -> A4L.Mint
+                else -> A4L.TextDim
+            },
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            when {
+                !open -> "cabine fermée"
+                // le médium ne se lit qu'une fois quelqu'un joint : dire « BLE »
+                // dans le vide ferait passer une antenne allumée pour un lien
+                medium == null -> "cabine ouverte — personne à portée"
+                else -> "${medium.label} · ${medium.short}"
+            },
+            style = A4LText.Data.copy(fontSize = 10.sp),
+            color = if (open && medium != null) A4L.Mint else A4L.TextMuted,
+        )
+        if (open && peers.isNotEmpty()) {
+            Spacer(Modifier.width(10.dp))
+            Text(
+                "${peers.size} ici",
+                style = A4LText.Data.copy(fontSize = 10.sp),
+                color = A4L.TextDim,
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        if (open && offered != null) {
+            Text(
+                "passer en ${offered.short}",
+                style = A4LText.Data.copy(fontSize = 10.sp),
+                color = A4L.Cyan,
+                modifier = Modifier
+                    .clickable { onUpgrade(offered) }
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+            )
         }
     }
 }
