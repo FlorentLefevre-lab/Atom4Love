@@ -52,11 +52,15 @@ class WifiProbeActivity : ComponentActivity() {
 
         val wifiProbe = WifiConcurrencyProbe(applicationContext)
         val bleProbe = BleConcurrencyProbe(applicationContext)
+        val directProbe = WifiDirectProbe(applicationContext)
 
         setContent {
             Atom4LoveTheme {
                 var wifiState by remember { mutableStateOf<ProbeUiState<ProbeResult>>(ProbeUiState.Idle()) }
                 var bleState by remember { mutableStateOf<ProbeUiState<BleProbeResult>>(ProbeUiState.Idle()) }
+                var directState by remember {
+                    mutableStateOf<ProbeUiState<WifiDirectProbe.ProbeResult>>(ProbeUiState.Idle())
+                }
                 val scope = rememberCoroutineScope()
 
                 // Les deux sondes partagent la même demande de permissions ;
@@ -77,11 +81,21 @@ class WifiProbeActivity : ComponentActivity() {
                 ProbeScreen(
                     wifiState = wifiState,
                     bleState = bleState,
+                    directState = directState,
                     onRunWifi = {
                         withPermissions {
                             wifiState = ProbeUiState.Running()
                             scope.launch {
                                 wifiState = runCatching { wifiProbe.run(apCode = "phix2") }
+                                    .fold({ ProbeUiState.Done(it) }, { ProbeUiState.Error(it.toString()) })
+                            }
+                        }
+                    },
+                    onRunDirect = {
+                        withPermissions {
+                            directState = ProbeUiState.Running()
+                            scope.launch {
+                                directState = runCatching { directProbe.run() }
                                     .fold({ ProbeUiState.Done(it) }, { ProbeUiState.Error(it.toString()) })
                             }
                         }
@@ -136,6 +150,8 @@ private fun ProbeScreen(
     bleState: ProbeUiState<BleProbeResult>,
     onRunWifi: () -> Unit,
     onRunBle: () -> Unit,
+    directState: ProbeUiState<WifiDirectProbe.ProbeResult>,
+    onRunDirect: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -165,6 +181,15 @@ private fun ProbeScreen(
             state = wifiState,
             onRun = onRunWifi,
         ) { WifiResultBlock(it) }
+
+        HorizontalDivider(color = A4L.StrokeSoft)
+
+        ProbeSection(
+            title = "Wi-Fi Direct — groupe P2P vs station",
+            buttonLabel = "Lancer la sonde Wi-Fi Direct",
+            state = directState,
+            onRun = onRunDirect,
+        ) { DirectResultBlock(it) }
 
         HorizontalDivider(color = A4L.StrokeSoft)
 
@@ -267,5 +292,18 @@ private fun Fact(label: String, value: String, valueColor: Color = A4L.TextHigh)
     Column {
         Text(label, style = MaterialTheme.typography.labelMedium, color = A4L.TextDim)
         Text(value, style = MaterialTheme.typography.bodyMedium, color = valueColor)
+    }
+}
+
+@Composable
+private fun DirectResultBlock(r: WifiDirectProbe.ProbeResult) {
+    ResultColumn(headline = r.verdict, ok = r.relayDuring, notes = r.notes) {
+        Fact("Groupe P2P ouvert", if (r.groupCreated) "oui" else "non")
+        r.groupSsid?.let { Fact("SSID du groupe", it) }
+        Fact("Station avant", r.stationSsidBefore ?: "—")
+        Fact("Station pendant le groupe", r.stationSsidDuring ?: "—")
+        Fact("Relais local avant", if (r.relayBefore) "joignable" else "non")
+        Fact("Relais local PENDANT le groupe", if (r.relayDuring) "joignable" else "non")
+        Fact("Relais local après fermeture", if (r.relayAfter) "joignable" else "non")
     }
 }
