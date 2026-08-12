@@ -407,10 +407,12 @@ fun RadarScreen(
             RadarRings(progress = elapsed / RITUAL_SECONDS)
 
             Box(Modifier.size(150.dp).background(A4L.Cyan.tint(0.07f), HexagonShape))
+            // le tracé se fait hors composition : la teinte se prend avant
+            val edge = A4L.Cyan.tint(0.45f)
             Canvas(Modifier.size(150.dp)) {
                 drawPath(
                     path = hexagonPath(size),
-                    color = A4L.Cyan.tint(0.45f),
+                    color = edge,
                     style = Stroke(width = 1.dp.toPx()),
                 )
             }
@@ -662,20 +664,23 @@ private fun rememberHeadingDegrees(): Int? {
 /** Cercles concentriques, balayage conique et anneau de progression du rituel. */
 @Composable
 private fun RadarRings(progress: Float) {
+    // tout ce Canvas dessine hors composition : la palette se lit ici
+    val cyan = A4L.Cyan
+    val faint = A4L.StrokeFaint
     Canvas(Modifier.size(290.dp)) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val stroke = Stroke(width = 1.dp.toPx())
 
         // Cercles de portée : 290 / 206 / 122 px
-        drawCircle(A4L.Cyan.tint(0.09f), radius = 145.dp.toPx(), center = center, style = stroke)
-        drawCircle(A4L.Cyan.tint(0.13f), radius = 103.dp.toPx(), center = center, style = stroke)
-        drawCircle(A4L.Cyan.tint(0.18f), radius = 61.dp.toPx(), center = center, style = stroke)
+        drawCircle(cyan.tint(0.09f), radius = 145.dp.toPx(), center = center, style = stroke)
+        drawCircle(cyan.tint(0.13f), radius = 103.dp.toPx(), center = center, style = stroke)
+        drawCircle(cyan.tint(0.18f), radius = 61.dp.toPx(), center = center, style = stroke)
 
         // Balayage conique, départ à 200° (le CSS compte depuis midi, le shader depuis 3 h)
         rotate(degrees = 200f - 90f, pivot = center) {
             drawCircle(
                 brush = Brush.sweepGradient(
-                    0f to A4L.Cyan.tint(0.16f),
+                    0f to cyan.tint(0.16f),
                     0.55f to Color.Transparent,
                     1f to Color.Transparent,
                     center = center,
@@ -691,12 +696,14 @@ private fun RadarRings(progress: Float) {
         val ringSize = Size(ringRadius * 2, ringRadius * 2)
         val ringTopLeft = Offset(center.x - ringRadius, center.y - ringRadius)
         drawArc(
-            color = Color.White.copy(alpha = 0.07f),
+            // le rail de l'anneau : un filet de la palette, pas un blanc en dur
+            // qui disparaîtrait sur fond clair
+            color = faint,
             startAngle = -90f, sweepAngle = 360f, useCenter = false,
             topLeft = ringTopLeft, size = ringSize, style = ringStroke,
         )
         drawArc(
-            color = A4L.Cyan,
+            color = cyan,
             startAngle = -90f,
             sweepAngle = 360f * progress.coerceIn(0f, 1f),
             useCenter = false,

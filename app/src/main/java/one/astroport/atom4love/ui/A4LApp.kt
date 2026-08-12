@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import android.util.Log
 import kotlinx.coroutines.delay
@@ -93,13 +94,25 @@ enum class A4LTab(
     /** L'emoji reste en dur : un pictogramme n'est d'aucune langue. */
     val icon: String,
     @StringRes val labelRes: Int,
-    val accent: Color,
 ) {
-    Radar("🌀", R.string.tab_radar, A4L.Cyan),
-    Board("🎴", R.string.tab_board, A4L.Cyan),
-    Bonds("💜", R.string.tab_bonds, A4L.Mint),
-    Nucleus("⚛", R.string.tab_nucleus, A4L.Cyan),
-    Help("❓", R.string.tab_help, A4L.Indigo),
+    Radar("🌀", R.string.tab_radar),
+    Board("🎴", R.string.tab_board),
+    Bonds("💜", R.string.tab_bonds),
+    Nucleus("⚛", R.string.tab_nucleus),
+    Help("❓", R.string.tab_help),
+    ;
+
+    /**
+     * La couleur de l'onglet une fois choisi. L'onglet dit **quel** accent lui
+     * revient, la palette dit de quelle couleur il est à cette heure-ci — comme
+     * [labelRes] dit quel mot et les ressources dans quelle langue.
+     */
+    val accent: Color
+        @Composable @ReadOnlyComposable get() = when (this) {
+            Radar, Board, Nucleus -> A4L.Cyan
+            Bonds -> A4L.Mint
+            Help -> A4L.Indigo
+        }
 }
 
 /**
@@ -443,11 +456,45 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             )
         }
+        Spacer(Modifier.width(8.dp))
+        ThemeToggle()
         if (AppLocale.selectable) {
             Spacer(Modifier.width(8.dp))
             LanguagePicker()
         }
     }
+}
+
+/**
+ * L'heure à laquelle on regarde la station : un glyphe, un appui.
+ *
+ * Il montre **où l'on va**, pas où l'on est — un soleil dans la nuit, une lune
+ * dans le jour. Un interrupteur qui afficherait son propre état ne dirait pas
+ * ce qu'il fait, et il n'y a ici qu'un seul geste possible ; les drapeaux d'à
+ * côté peuvent montrer l'état parce qu'ils sont trois et qu'on désigne celui
+ * qu'on veut.
+ */
+@Composable
+private fun ThemeToggle() {
+    val context = LocalContext.current
+    val dark = AppTheme.dark
+    Text(
+        // U+FE0E force la présentation texte : sans lui, la police rend le
+        // soleil en emoji coloré et la lune en glyphe, deux registres pour un
+        // seul interrupteur
+        if (dark) "☀︎" else "☾︎",
+        style = A4LText.Data.copy(fontSize = 13.sp),
+        color = A4L.TextMuted,
+        modifier = Modifier
+            .clip(RoundedCornerShape(5.dp))
+            .clickable { AppTheme.toggle(context) }
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .semantics {
+                contentDescription = context.getString(
+                    if (dark) R.string.theme_to_light else R.string.theme_to_dark,
+                )
+            },
+    )
 }
 
 /**
@@ -488,13 +535,15 @@ private fun LanguagePicker() {
 /** Barre de navigation — quatre onglets, l'actif prend la couleur de son espace. */
 @Composable
 private fun A4LNavBar(current: A4LTab, onSelect: (A4LTab) -> Unit) {
+    // le filet du haut se dessine hors composition : sa couleur se prend ici
+    val hairline = A4L.StrokeFaint
     Row(
         Modifier
             .fillMaxWidth()
             .background(A4L.NavBackdrop)
             .drawBehind {
                 drawRect(
-                    color = A4L.StrokeFaint,
+                    color = hairline,
                     size = androidx.compose.ui.geometry.Size(size.width, 1.dp.toPx()),
                 )
             }

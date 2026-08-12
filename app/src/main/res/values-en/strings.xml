@@ -139,6 +139,9 @@
     <string name="header_medium">%1$s · %2$s</string>
     <string name="header_upgrade">switch to %1$s</string>
 
+    <string name="theme_to_light">Switch to the light theme</string>
+    <string name="theme_to_dark">Switch to the dark theme</string>
+
     <!-- ─── 06 · MULTIPASS: the door onto Astroport.ONE ───────────────── -->
     <string name="mp_title_done">Account open</string>
     <string name="mp_title_existing">Your MULTIPASS</string>

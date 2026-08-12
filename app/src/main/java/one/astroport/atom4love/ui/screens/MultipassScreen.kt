@@ -120,7 +120,7 @@ fun MultipassScreen(
                 Box(
                     Modifier
                         .size(30.dp)
-                        .background(Color.White.copy(alpha = 0.08f), CircleShape)
+                        .background(A4L.Glass, CircleShape)
                         .clickable(onClick = onClose),
                     contentAlignment = Alignment.Center,
                 ) { Text("✕", fontSize = 13.sp, color = A4L.TextStrong) }

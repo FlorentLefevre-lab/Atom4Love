@@ -71,6 +71,9 @@ fun AtomLogo(modifier: Modifier = Modifier) {
         label = "atom-beat",
     )
 
+    // le Canvas dessine hors composition : la palette se lit ici, une fois
+    val cyan = A4L.Cyan
+
     Canvas(modifier) {
         val unit = size.minDimension
         val rx = unit * 0.47f
@@ -80,7 +83,7 @@ fun AtomLogo(modifier: Modifier = Modifier) {
         RingAngles.forEach { deg ->
             rotate(deg, center) {
                 drawOval(
-                    color = A4L.Cyan.copy(alpha = 0.30f),
+                    color = cyan.copy(alpha = 0.30f),
                     topLeft = Offset(center.x - rx, center.y - ry),
                     size = Size(rx * 2f, ry * 2f),
                     style = Stroke(width = 1.2.dp.toPx()),
@@ -122,7 +125,7 @@ fun AtomLogo(modifier: Modifier = Modifier) {
             val turns = orbit * e.speed + e.phase
             for (i in TRAIL_STEPS downTo 1) {
                 drawCircle(
-                    color = A4L.Cyan.copy(alpha = 0.14f * (1f - i / (TRAIL_STEPS + 1f))),
+                    color = cyan.copy(alpha = 0.14f * (1f - i / (TRAIL_STEPS + 1f))),
                     radius = r * (1f - i * 0.08f),
                     center = position(turns - i * 0.012f),
                 )
@@ -130,7 +133,7 @@ fun AtomLogo(modifier: Modifier = Modifier) {
             val p = position(turns)
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(A4L.Cyan.copy(alpha = 0.35f), Color.Transparent),
+                    colors = listOf(cyan.copy(alpha = 0.35f), Color.Transparent),
                     center = p,
                     radius = r * 4.5f,
                 ),
@@ -171,6 +174,8 @@ private fun DrawScope.drawHeart(h: Float) {
         ),
     )
     // Reflet : petite virgule claire sur le lobe gauche, comme sur le logo.
+    // Il reste blanc dans les deux thèmes — c'est la lumière sur un objet rose,
+    // pas une couleur d'interface.
     rotate(-28f, Offset(x(30f), y(18f))) {
         drawOval(
             color = Color.White.copy(alpha = 0.75f),

@@ -166,6 +166,10 @@
     <string name="header_medium">%1$s · %2$s</string>
     <string name="header_upgrade">passer en %1$s</string>
 
+    <!-- Le glyphe ☀/☾ ne se lit pas à voix haute : ces deux lignes disent le geste. -->
+    <string name="theme_to_light">Passer au thème clair</string>
+    <string name="theme_to_dark">Passer au thème sombre</string>
+
     <!-- ─── 06 · MULTIPASS : l'entrée sur Astroport.ONE ───────────────── -->
     <string name="mp_title_done">Compte ouvert</string>
     <string name="mp_title_existing">Votre MULTIPASS</string>

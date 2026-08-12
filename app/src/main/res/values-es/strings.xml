@@ -141,6 +141,9 @@
     <string name="header_medium">%1$s · %2$s</string>
     <string name="header_upgrade">pasar a %1$s</string>
 
+    <string name="theme_to_light">Cambiar al tema claro</string>
+    <string name="theme_to_dark">Cambiar al tema oscuro</string>
+
     <!-- ─── 06 · MULTIPASS: la entrada a Astroport.ONE ────────────────── -->
     <string name="mp_title_done">Cuenta abierta</string>
     <string name="mp_title_existing">Tu MULTIPASS</string>

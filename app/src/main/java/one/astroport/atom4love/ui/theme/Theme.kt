@@ -3,47 +3,81 @@ package one.astroport.atom4love.ui.theme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 /**
- * ATOM4LOVE n'a qu'un seul thème : le dark glassmorphique du bandeau NOSTR.
- * Pas de thème clair, pas de couleur dynamique — l'identité visuelle est la même
- * sur toutes les stations, c'est ce qui rend une cabine reconnaissable.
+ * ATOM4LOVE a deux lumières et une seule identité : le glassmorphisme du
+ * bandeau NOSTR, de nuit comme de jour. Pas de couleur dynamique — les accents
+ * sont les mêmes sur toutes les stations, c'est ce qui rend une cabine
+ * reconnaissable ; le thème ne fait que dire à quelle heure on la regarde.
  */
-private val A4LColorScheme = darkColorScheme(
-    primary = A4L.Cyan,
-    onPrimary = A4L.Void,
-    primaryContainer = A4L.Cyan.tint(0.10f),
-    onPrimaryContainer = A4L.Cyan,
-    secondary = A4L.Mint,
-    onSecondary = A4L.Void,
-    secondaryContainer = A4L.Mint.tint(0.10f),
-    onSecondaryContainer = A4L.Mint,
-    tertiary = A4L.Indigo,
-    onTertiary = A4L.Void,
-    background = A4L.Deep,
-    onBackground = A4L.TextHigh,
-    surface = A4L.Ink,
-    onSurface = A4L.TextHigh,
-    surfaceVariant = A4L.Glass,
-    onSurfaceVariant = A4L.TextBody,
-    outline = A4L.Stroke,
-    outlineVariant = A4L.StrokeFaint,
-    error = A4L.Red,
-    onError = A4L.Void,
-    scrim = Color.Black,
-)
+private fun schemeOf(p: A4LPalette) = if (p.dark) {
+    darkColorScheme(
+        primary = p.cyan,
+        onPrimary = p.void,
+        primaryContainer = p.cyan.tint(0.10f),
+        onPrimaryContainer = p.cyan,
+        secondary = p.mint,
+        onSecondary = p.void,
+        secondaryContainer = p.mint.tint(0.10f),
+        onSecondaryContainer = p.mint,
+        tertiary = p.indigo,
+        onTertiary = p.void,
+        background = p.deep,
+        onBackground = p.textHigh,
+        surface = p.ink,
+        onSurface = p.textHigh,
+        surfaceVariant = p.glass,
+        onSurfaceVariant = p.textBody,
+        outline = p.stroke,
+        outlineVariant = p.strokeFaint,
+        error = p.red,
+        onError = p.void,
+        scrim = Color.Black,
+    )
+} else {
+    lightColorScheme(
+        primary = p.cyan,
+        // un accent qui a descendu en luminosité porte du blanc, plus du fond
+        onPrimary = Color.White,
+        primaryContainer = p.cyan.tint(0.12f),
+        onPrimaryContainer = p.cyan,
+        secondary = p.mint,
+        onSecondary = Color.White,
+        secondaryContainer = p.mint.tint(0.12f),
+        onSecondaryContainer = p.mint,
+        tertiary = p.indigo,
+        onTertiary = Color.White,
+        background = p.deep,
+        onBackground = p.textHigh,
+        surface = p.ink,
+        onSurface = p.textHigh,
+        surfaceVariant = p.glass,
+        onSurfaceVariant = p.textBody,
+        outline = p.stroke,
+        outlineVariant = p.strokeFaint,
+        error = p.red,
+        onError = Color.White,
+        scrim = Color.Black,
+    )
+}
 
 @Composable
-fun Atom4LoveTheme(content: @Composable () -> Unit) {
+fun Atom4LoveTheme(dark: Boolean = true, content: @Composable () -> Unit) {
+    val palette = if (dark) A4LDark else A4LLight
     MaterialTheme(
-        colorScheme = A4LColorScheme,
+        colorScheme = schemeOf(palette),
         typography = Typography,
     ) {
         // Sans Surface englobante, LocalContentColor vaut noir : les glyphes
         // monochromes (⚛, Φ) disparaissent sur le fond de la station.
-        CompositionLocalProvider(LocalContentColor provides A4L.TextHigh, content = content)
+        CompositionLocalProvider(
+            LocalA4L provides palette,
+            LocalContentColor provides palette.textHigh,
+            content = content,
+        )
     }
 }

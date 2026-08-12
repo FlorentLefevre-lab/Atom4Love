@@ -28,7 +28,12 @@ private class ElectronSpec(
     val radius: Float,       // rayon du noyau de l'électron, en dp
 )
 
-private val Electrons = listOf(
+/**
+ * Les trois électrons du vol. Une fonction et non une constante : leurs
+ * couleurs viennent de la palette, qui change avec l'heure de la station.
+ */
+@Composable
+private fun electrons() = listOf(
     ElectronSpec(A4L.Cyan, delay = 0.00f, laneY = 0.30f, arc = +0.10f, radius = 3.2f),
     ElectronSpec(A4L.Mint, delay = 0.10f, laneY = 0.52f, arc = -0.13f, radius = 2.6f),
     ElectronSpec(A4L.Violet, delay = 0.20f, laneY = 0.72f, arc = +0.08f, radius = 2.2f),
@@ -60,9 +65,12 @@ fun ElectronSweep(trigger: Any, modifier: Modifier = Modifier) {
 
     if (progress.value >= 1f) return
 
+    // le Canvas dessine hors composition : la liste se construit avant
+    val electrons = electrons()
+
     Canvas(modifier.fillMaxSize()) {
         val t = progress.value
-        Electrons.forEach { e ->
+        electrons.forEach { e ->
             // Chaque électron vole sur sa propre fenêtre temporelle décalée.
             val local = ((t - e.delay) / (1f - e.delay)).coerceIn(0f, 1f)
             if (local <= 0f || local >= 1f) return@forEach

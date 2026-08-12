@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,10 +38,21 @@ import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.tint
 
 /** État d'une liaison entre deux noyaux. */
-private enum class BondState(@StringRes val labelRes: Int, val color: Color) {
-    Covalent(R.string.bond_covalent, A4L.Mint),
-    Network(R.string.bond_network, Color.White),
-    Ionised(R.string.bond_ionised, A4L.Orange),
+private enum class BondState(@StringRes val labelRes: Int) {
+    Covalent(R.string.bond_covalent),
+    Network(R.string.bond_network),
+    Ionised(R.string.bond_ionised),
+    ;
+
+    /** L'état dit lequel ; la palette dit de quelle couleur, à cette heure-ci. */
+    val color: Color
+        @Composable @ReadOnlyComposable get() = when (this) {
+            Covalent -> A4L.Mint
+            // le lien de réseau n'a pas de couleur à lui : il prend celle du
+            // texte le plus appuyé, blanc la nuit et noir le jour
+            Network -> A4L.TextHigh
+            Ionised -> A4L.Orange
+        }
 }
 
 /**
@@ -166,18 +178,21 @@ fun ResonanceScreen(modifier: Modifier = Modifier) {
 /** Jauge circulaire de valence — anneau menthe, score au centre. */
 @Composable
 private fun ValenceGauge(value: Int) {
+    // le Canvas dessine hors composition : les deux teintes se prennent avant
+    val mint = A4L.Mint
+    val rail = A4L.StrokeFaint
     Box(Modifier.size(54.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val ring = 6.dp.toPx()
             drawArc(
-                color = Color.White.copy(alpha = 0.08f),
+                color = rail,
                 startAngle = -90f, sweepAngle = 360f, useCenter = false,
                 style = Stroke(width = ring),
                 topLeft = androidx.compose.ui.geometry.Offset(ring / 2, ring / 2),
                 size = androidx.compose.ui.geometry.Size(size.width - ring, size.height - ring),
             )
             drawArc(
-                color = A4L.Mint,
+                color = mint,
                 startAngle = -90f, sweepAngle = 360f * (value / 100f), useCenter = false,
                 style = Stroke(width = ring),
                 topLeft = androidx.compose.ui.geometry.Offset(ring / 2, ring / 2),
@@ -235,7 +250,7 @@ private fun CovalentBondCard(bond: Bond) {
             )
             BondAction(
                 stringResource(R.string.resonance_open_channel),
-                Color.White,
+                A4L.TextHigh,
                 primary = false,
                 modifier = Modifier.weight(1f),
             )
@@ -279,7 +294,7 @@ private fun BondRow(bond: Bond) {
             else -> DataBadge(
                 stringResource(bond.state.labelRes),
                 A4L.TextBody.copy(alpha = 0.45f),
-                background = Color.White.copy(alpha = 0.06f),
+                background = A4L.Glass,
                 border = null,
                 radius = 7.dp,
             )

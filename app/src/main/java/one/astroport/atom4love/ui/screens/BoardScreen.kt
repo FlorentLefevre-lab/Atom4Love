@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -54,8 +55,25 @@ import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.tint
 
+/**
+ * La teinte d'une carte en main. Un cas et non une couleur : la main est
+ * mémorisée pour toute la partie, elle ne doit pas retenir la lumière qu'il
+ * faisait quand on l'a distribuée.
+ */
+private enum class CardAccent {
+    Mint, Amber, Indigo, Neutral;
+
+    val color: Color
+        @Composable @ReadOnlyComposable get() = when (this) {
+            Mint -> A4L.Mint
+            Amber -> A4L.Amber
+            Indigo -> A4L.Indigo
+            Neutral -> A4L.TextBody
+        }
+}
+
 /** Une carte en main : le noyau plus la teinte qui le distingue sur le plateau. */
-private data class DealtCard(val card: AtomCard, val accent: Color)
+private data class DealtCard(val card: AtomCard, val accent: CardAccent)
 
 private val BOARD_FILTERS = listOf(
     R.string.board_filter_pentagon,
@@ -81,10 +99,10 @@ fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
     }
     val hand = remember {
         mutableStateListOf(
-            DealtCard(AtomCard(44, Wave.Octave, npub = "npub1h8p…2a19"), A4L.Mint),
-            DealtCard(AtomCard(91, Wave.Phi, npub = "npub1t2m…5b80"), A4L.Amber),
-            DealtCard(AtomCard(12, Wave.Octave, npub = "npub1c7k…9d31"), A4L.Indigo),
-            DealtCard(AtomCard(7, Wave.Phi, npub = "npub1w9s…4e07"), Color.White.copy(alpha = 0.5f)),
+            DealtCard(AtomCard(44, Wave.Octave, npub = "npub1h8p…2a19"), CardAccent.Mint),
+            DealtCard(AtomCard(91, Wave.Phi, npub = "npub1t2m…5b80"), CardAccent.Amber),
+            DealtCard(AtomCard(12, Wave.Octave, npub = "npub1c7k…9d31"), CardAccent.Indigo),
+            DealtCard(AtomCard(7, Wave.Phi, npub = "npub1w9s…4e07"), CardAccent.Neutral),
         )
     }
     var placed by remember { mutableStateOf<DealtCard?>(null) }
@@ -176,7 +194,7 @@ fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
                 } else {
                     BoardCard(
                         card = onBoard.card,
-                        accent = onBoard.accent,
+                        accent = onBoard.accent.color,
                         title = stringResource(
                             if (revealed) {
                                 R.string.board_nucleus_revealed
@@ -382,7 +400,7 @@ private fun AnalysisBar(label: String, value: Int?, fraction: Float, accent: Col
             Modifier
                 .fillMaxWidth()
                 .height(6.dp)
-                .background(Color.White.copy(alpha = 0.07f), RoundedCornerShape(3.dp)),
+                .background(A4L.StrokeFaint, RoundedCornerShape(3.dp)),
         ) {
             Box(
                 Modifier
@@ -407,11 +425,11 @@ private fun HandCard(dealt: DealtCard, onClick: () -> Unit, modifier: Modifier =
             .height(74.dp)
             .background(
                 Brush.verticalGradient(
-                    listOf(dealt.accent.tint(0.14f), A4L.Ink.copy(alpha = 0.85f)),
+                    listOf(dealt.accent.color.tint(0.14f), A4L.Ink.copy(alpha = 0.85f)),
                 ),
                 RoundedCornerShape(11.dp),
             )
-            .border(1.dp, dealt.accent.tint(0.30f), RoundedCornerShape(11.dp))
+            .border(1.dp, dealt.accent.color.tint(0.30f), RoundedCornerShape(11.dp))
             .clickable(onClick = onClick)
             .padding(9.dp),
         verticalArrangement = Arrangement.SpaceBetween,
@@ -419,7 +437,7 @@ private fun HandCard(dealt: DealtCard, onClick: () -> Unit, modifier: Modifier =
         Text(
             dealt.card.wave.symbol,
             style = A4LText.Data.copy(fontSize = 14.sp),
-            color = dealt.accent,
+            color = dealt.accent.color,
         )
         Text(
             "KIN ${dealt.card.kin}",
@@ -435,7 +453,7 @@ private fun RevealButton(enabled: Boolean, revealed: Boolean, onClick: () -> Uni
     val accent = when {
         revealed -> A4L.Mint
         enabled -> A4L.Cyan
-        else -> Color.White
+        else -> A4L.TextHigh
     }
     Box(
         Modifier

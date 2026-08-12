@@ -1078,7 +1078,7 @@ private fun BirthPlaceSection(
             Box(
                 Modifier
                     .size(30.dp)
-                    .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                    .background(A4L.Glass, RoundedCornerShape(8.dp))
                     .clickable(enabled = editable && !locating, onClick = onLocate),
                 contentAlignment = Alignment.Center,
             ) {

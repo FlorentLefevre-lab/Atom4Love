@@ -39,6 +39,7 @@ import one.astroport.atom4love.ui.theme.tint
  * Surface vitrée : un fond translucide + un liseré d'un blanc à peine visible.
  * C'est la brique de base de toutes les cartes de la maquette.
  */
+@Composable
 fun Modifier.glass(
     radius: Dp,
     background: Color = A4L.GlassSoft,
@@ -52,6 +53,7 @@ fun Modifier.glass(
 }
 
 /** Variante en pointillés — emplacement vide, indice contextuel. */
+@Composable
 fun Modifier.dashedGlass(
     radius: Dp,
     background: Color = A4L.GlassFaint,
@@ -78,6 +80,7 @@ fun Modifier.dashedGlass(
  * Fond d'écran : un halo radial posé au-dessus du noir de la station.
  * `centerY` est exprimé en fraction de la hauteur, comme le `at 50% 0%` du CSS.
  */
+@Composable
 fun Modifier.screenBackground(
     glow: Color,
     base: Color = A4L.Deep,
