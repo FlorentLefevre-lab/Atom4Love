@@ -12,6 +12,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,9 +23,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -466,35 +469,43 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
 }
 
 /**
- * L'heure à laquelle on regarde la station : un glyphe, un appui.
+ * L'heure à laquelle on regarde la station : une pastille, un appui.
  *
- * Il montre **où l'on va**, pas où l'on est — un soleil dans la nuit, une lune
- * dans le jour. Un interrupteur qui afficherait son propre état ne dirait pas
- * ce qu'il fait, et il n'y a ici qu'un seul geste possible ; les drapeaux d'à
- * côté peuvent montrer l'état parce qu'ils sont trois et qu'on désigne celui
- * qu'on veut.
+ * Elle montre **où l'on est** — un croissant dans la nuit, un soleil dans le
+ * jour — comme les drapeaux d'à côté montrent la langue qui parle. Le geste,
+ * lui, se dit à voix haute : c'est le rôle du `contentDescription`.
+ *
+ * Et c'est une pastille, pas un caractère posé là : un glyphe seul au milieu
+ * d'une ligne de texte ne se donne pas pour un bouton. Le cercle vitré est
+ * celui des autres boutons ronds de la station.
  */
 @Composable
 private fun ThemeToggle() {
     val context = LocalContext.current
     val dark = AppTheme.dark
-    Text(
-        // U+FE0E force la présentation texte : sans lui, la police rend le
-        // soleil en emoji coloré et la lune en glyphe, deux registres pour un
-        // seul interrupteur
-        if (dark) "☀︎" else "☾︎",
-        style = A4LText.Data.copy(fontSize = 13.sp),
-        color = A4L.TextMuted,
-        modifier = Modifier
-            .clip(RoundedCornerShape(5.dp))
+    Box(
+        Modifier
+            .size(24.dp)
+            .clip(CircleShape)
+            .background(A4L.Glass)
+            .border(1.dp, A4L.StrokeSoft, CircleShape)
             .clickable { AppTheme.toggle(context) }
-            .padding(horizontal = 4.dp, vertical = 2.dp)
             .semantics {
                 contentDescription = context.getString(
                     if (dark) R.string.theme_to_light else R.string.theme_to_dark,
                 )
             },
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            // U+FE0E force la présentation texte : sans lui, la police rend le
+            // soleil en emoji coloré et la lune en glyphe, deux registres pour
+            // un seul interrupteur
+            if (dark) "☾︎" else "☀︎",
+            style = A4LText.Data.copy(fontSize = 12.sp),
+            color = A4L.TextStrong,
+        )
+    }
 }
 
 /**
