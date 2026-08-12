@@ -28,7 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -204,39 +204,14 @@ private fun Station(
     // ici, « fermer = effacer » redevient un geste — et l'indicateur du haut
     // peut dire le médium depuis n'importe quel écran.
     //
-    // Une instance neuve à chaque ouverture : le moteur ne se rallume pas après
-    // stop() (son scope est annulé), et ce qui s'est dit en cabine n'a pas à
-    // survivre à la sortie.
-    // Un groupe Wi-Fi Direct survit à l'application qui l'a formé : fermer la
-    // cabine le referme, mais un balayage dans les récents, un crash ou une
-    // mort par mémoire ne passent par aucun stop(). Restait alors un réseau
-    // ouvert que plus personne ne surveillait, jusqu'au redémarrage. On le
-    // ramasse ici, une fois par lancement, avant qu'une cabine puisse rouvrir.
-    LaunchedEffect(Unit) {
-        P2pGroup(context.applicationContext).reclaim()
-    }
-    var cabinOpen by remember { mutableStateOf(false) }
-    var cabinSession by remember { mutableIntStateOf(0) }
-    val cabin = remember(cabinSession) { CabinChat(context.applicationContext) }
-    // L'effet n'entre en composition QUE cabine ouverte, et n'a que l'instance
-    // pour clé. Le piège évité : avec `cabinOpen` en clé, Compose dispose
-    // l'effet précédent — donc appelle stop() — AVANT d'exécuter le nouveau
-    // corps qui fait start(). Or stop() annule le scope et ferme le dispatcher :
-    // la radio démarrait (appels synchrones, logs présents) mais tout le
-    // protocole, qui vit dans scope.launch, était mort-né.
-    if (cabinOpen) {
-        DisposableEffect(cabin) {
-            // l'identité avant l'ouverture des liens : un handshake déjà engagé
-            // garderait la clé de fortune
-            keys?.let { cabin.bindIdentity(it) }
-            cabin.start()
-            onDispose { cabin.stop() }
-        }
-    }
-    val closeCabin: () -> Unit = {
-        cabinOpen = false
-        cabinSession++
-    }
+    // Le moteur ne vit plus dans la composition : elle le fermait sans que
+    // personne ne l'ait demandé dès que l'activité se recréait (rotation,
+    // thème, langue, fenêtres partagées). C'est [CabinHost] qui le tient
+    // désormais, et l'ouverture comme la fermeture y sont des gestes.
+    val cabinHost: CabinHost = viewModel()
+    val cabin = cabinHost.chat
+    val cabinOpen = cabinHost.open
+    val closeCabin: () -> Unit = { cabinHost.close() }
     // Le Wi-Fi Direct est le seul médium qui demande une permission de plus.
     // Elle se demande ICI, au moment d'accepter la montée — pas à l'ouverture
     // de la cabine : parler à portée n'a jamais eu besoin de fabriquer un
@@ -352,7 +327,7 @@ private fun Station(
                                 keys = keys,
                                 cabin = cabin,
                                 cabinOpen = cabinOpen,
-                                onOpenCabin = { cabinOpen = true },
+                                onOpenCabin = { cabinHost.open(keys) },
                                 onCloseCabin = closeCabin,
                             )
                             A4LTab.Board -> BoardScreen(npub = keys?.npubShort)
