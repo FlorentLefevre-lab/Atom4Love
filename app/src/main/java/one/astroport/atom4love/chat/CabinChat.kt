@@ -247,23 +247,15 @@ class CabinChat(context: Context) {
             ACK_WAIT_BASE_MS + bytes * 1000L / ACK_WAIT_FLOOR_BPS
 
         /**
-         * Délais de grâce avant de retenter une connexion sortante — sans
-         * eux, un annonceur FFF1 du voisinage qui refuse la connexion
-         * (status 133) déclenche une tempête connexion/échec à ~0,5 Hz
-         * (observée sur banc le 2026-08-11).
+         * Délais de grâce et espacement des connexions sortantes : voir
+         * [DialPacing], qui les tient tous. Sans eux, un annonceur FFF1 du
+         * voisinage qui refuse la connexion (status 133) déclenche une tempête
+         * connexion/échec à ~0,5 Hz (observée sur banc le 2026-08-11), et un
+         * annonceur qui tourne son adresse rend le délai par adresse
+         * inopérant — chaque tentative monopolise la radio ~2 s et fait mourir
+         * les transferts en cours.
          */
-        private const val CONNECT_BACKOFF_FAILED_MS = 30_000L // jamais devenu prêt
-        private const val CONNECT_BACKOFF_LOST_MS = 2_000L    // lien prêt perdu
         private const val BACKOFF_MAX_ENTRIES = 64
-
-        /**
-         * Espacement minimal entre deux tentatives de connexion sortante,
-         * TOUTES adresses confondues : un annonceur voisin qui tourne son
-         * adresse toutes les ~3 s (vu sur banc) rend le délai de grâce
-         * par adresse inopérant — chaque tentative monopolise la radio
-         * ~2 s et fait mourir les transferts en cours.
-         */
-        private const val CONNECT_SPACING_MS = 5_000L
 
         /**
          * Composition TCP vers une adresse annoncée. Court : le pair est sur le
@@ -588,12 +580,11 @@ class CabinChat(context: Context) {
     /** Guetteurs d'ACK armés sur le chemin notification — voir [ACK_WAIT_MS]. */
     private val ackWatchdogs = HashMap<Int, Job>()
 
-    /** Adresse → horodatage (elapsedRealtime) avant lequel on ne retente pas. */
-    private val retryAfterMs = LinkedHashMap<String, Long>()
+    /** Fil protocole. À quel rythme on compose, et vers quelles adresses. */
+    private val pacing = DialPacing()
 
-    /** Fil protocole : transferts en cours d'émission et dernier connect sortant. */
+    /** Fil protocole : transferts en cours d'émission. */
     private var activeOutgoing = 0
-    private var lastConnectMs = 0L
 
     /** Fil protocole. Ce que le scan ne dit pas : qui annonce. */
     private val bleIdentities = BleIdentities()
@@ -2046,10 +2037,11 @@ class CabinChat(context: Context) {
         val link = links.remove(key(medium, kind, address)) ?: return
         link.stream?.close()
         if (medium == Medium.BLE && kind == LinkKind.CLIENT) {
-            backoff(
-                address,
-                if (link.ready) CONNECT_BACKOFF_LOST_MS else CONNECT_BACKOFF_FAILED_MS,
-            )
+            val now = SystemClock.elapsedRealtime()
+            // Un lien qui avait marché revient vite ; une adresse qui n'a
+            // jamais répondu s'éloigne davantage à chaque refus, au lieu
+            // d'être rappelée toutes les 30 s jusqu'à ce qu'elle disparaisse.
+            if (link.ready) pacing.lost(address, now) else pacing.failed(address, now)
         }
         // les secrets meurent avec le lien : une session Noise ne se rejoue pas
         link.noise?.destroy()
@@ -2148,10 +2140,13 @@ class CabinChat(context: Context) {
         }
         dialSkipped.remove(address)
         val now = SystemClock.elapsedRealtime()
-        if (now - lastConnectMs < CONNECT_SPACING_MS) return
-        val notBefore = retryAfterMs[address]
-        if (notBefore != null && now < notBefore) return
-        lastConnectMs = now
+        // Composer sert à rencontrer quelqu'un de nouveau. Quand la cabine
+        // tient déjà un pair attesté — fût-ce par le lien qu'il a composé vers
+        // nous —, la rencontre peut attendre : le banc du 2026-08-12 a compté
+        // 8 compositions mortes en status 133 pendant que l'entrant et le
+        // Wi-Fi portaient toute la conversation.
+        if (!pacing.allow(address, now, engaged = attestedPeerPresent())) return
+        pacing.dialed(now)
         Log.i(TAG, "pair de causerie vu : $address rssi=${result.rssi}, connexion…")
         val link = Link(Medium.BLE, LinkKind.CLIENT, address)
         links[k] = link
@@ -2165,11 +2160,16 @@ class CabinChat(context: Context) {
             // Bluetooth en train de tomber ou interfaces saturées : sans ce
             // retrait, l'adresse resterait bloquée par le dédoublonnage
             links.remove(k)
-            backoff(address, CONNECT_BACKOFF_FAILED_MS)
+            pacing.failed(address, now)
             Log.w(TAG, "connectGatt null pour $address")
             return
         }
         link.gatt = gatt
+    }
+
+    /** Fil protocole. Quelqu'un d'attesté est-il joignable, par n'importe quel lien ? */
+    private fun attestedPeerPresent(): Boolean = links.values.any {
+        it.ready && it.peerNostrKey != null && it.medium in enabledMedia
     }
 
     /**
@@ -2183,15 +2183,6 @@ class CabinChat(context: Context) {
         .filter { it.ready && it.medium.rank > Medium.BLE.rank && it.medium in enabledMedia }
         .mapNotNull { link -> link.peerNostrKey?.let { Hex.encode(it) } }
         .toSet()
-
-    /** Fil protocole. Pose le délai de grâce d'une adresse, map bornée. */
-    private fun backoff(address: String, delayMs: Long) {
-        retryAfterMs.remove(address)
-        retryAfterMs[address] = SystemClock.elapsedRealtime() + delayMs
-        while (retryAfterMs.size > BACKOFF_MAX_ENTRIES) {
-            retryAfterMs.remove(retryAfterMs.keys.first())
-        }
-    }
 
     /** Lien client irrécupérable : on coupe pour que le scan retente. */
     private fun dropClient(gatt: BluetoothGatt, reason: String) {
