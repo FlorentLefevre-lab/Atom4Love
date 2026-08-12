@@ -296,7 +296,16 @@ private fun Station(
             // s'ouvre par le « ? » de l'en-tête, en plein écran.
             var showHelp by rememberSaveable { mutableStateOf(false) }
             if (showHelp) {
-                HelpScreen(modifier = modifier, onClose = { showHelp = false })
+                // L'aide d'avant la forge s'ouvre par-dessus l'assistant : elle
+                // garde donc les mêmes réglages, sinon on les perdrait
+                // justement en allant chercher de quoi comprendre.
+                Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
+                    AppearanceLine()
+                    HelpScreen(
+                        modifier = Modifier.weight(1f),
+                        onClose = { showHelp = false },
+                    )
+                }
             } else {
                 // `statusBarsPadding` ici rend celui de l'écran inoffensif :
                 // la barre de réglages prend l'encoche, l'assistant se pose
