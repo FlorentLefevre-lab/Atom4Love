@@ -148,6 +148,7 @@
     <string name="mp_lead_new">An account on an Astroport.ONE station. The station makes everything: Atom4Love only passes the request on.</string>
 
     <string name="mp_email_label">Your email address</string>
+    <string name="mp_email_placeholder">you@example.org</string>
     <string name="mp_email_hint">It identifies the account and receives your PASS code. One address per account, on one station.</string>
 
     <string name="mp_pass_needed_title">This address already has a MULTIPASS</string>
