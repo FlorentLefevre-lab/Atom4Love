@@ -89,7 +89,7 @@ fun HelpScreen(
                 Text("Aide", style = A4LText.H1, color = A4L.TextHigh)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Comment fonctionne la station, en cinq réponses.",
+                    "Ce que fait la station, et pourquoi elle le fait ainsi.",
                     style = A4LText.Body,
                     color = A4L.TextBody,
                 )
@@ -99,13 +99,60 @@ fun HelpScreen(
                 Modifier.padding(top = 16.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(13.dp),
             ) {
+                // Le socle du discours vient d'ATOM4LOVE, l'interface web de
+                // Fred (u.copylaradio.com/earth/atomic.html) : mêmes notions,
+                // mêmes mots — une seule idée du monde des deux côtés.
+                HelpCard(
+                    accent = A4L.Violet,
+                    label = "Tout est vibration",
+                    body = "ATOM4LOVE n'est pas de l'astrologie. Au moment exact de votre " +
+                        "naissance, la Terre occupait une position précise dans " +
+                        "l'espace-temps. Vous en portez l'empreinte géométrique — et elle " +
+                        "se calcule, à la minute et au degré près.",
+                )
                 HelpCard(
                     accent = A4L.Cyan,
-                    label = "La clé LOVE",
-                    body = "Votre identité se dérive de l'instant où vous êtes né : " +
-                        "date, heure, lieu, onde et poids de naissance. Pas de compte, " +
-                        "pas de mot de passe, rien à retenir — les cinq mêmes données " +
-                        "produisent toujours la même clé, sur n'importe quelle station.",
+                    label = "Votre empreinte · l'accord fondamental",
+                    body = "Imaginez votre corps comme un instrument. Votre lieu et votre " +
+                        "heure de naissance déterminent la note que vous jouez en " +
+                        "permanence : votre phase personnelle. Votre poids et votre " +
+                        "polarité en donnent la fréquence — l'onde biologique.",
+                )
+                HelpCard(
+                    accent = A4L.Mint,
+                    label = "La résonance · quand deux ondes se croisent",
+                    body = "Rencontrer quelqu'un, c'est croiser deux phases. Si elles " +
+                        "s'emboîtent, c'est la super-cohérence : on se comprend sans " +
+                        "parler. Si elles se heurtent, c'est la friction créatrice : on " +
+                        "est faits pour inventer ensemble. Aucun des deux n'est un score, " +
+                        "et aucun n'est meilleur que l'autre.",
+                )
+                HelpCard(
+                    accent = A4L.Violet,
+                    label = "La singularité · l'esprit et la matière",
+                    body = "Votre conception est l'Esprit, votre naissance la Matière. " +
+                        "En les combinant, la station calcule votre archétype — la façon " +
+                        "dont vous transformez l'énergie autour de vous. Vous n'avez pas " +
+                        "à connaître cette date : elle se déduit de votre naissance.",
+                )
+                HelpCard(
+                    accent = A4L.Gold,
+                    label = "Votre clé temporaire",
+                    body = "Au premier lancement, la station se forge une clé à elle, " +
+                        "dérivée de vos cinq données. Elle suffit à tout ce qui se passe " +
+                        "à portée d'antenne : le radar, la cabine, les liens de proximité. " +
+                        "Elle est temporaire — c'est une station Astroport.ONE qui " +
+                        "dérivera un jour votre vraie clé LOVE.",
+                )
+                HelpCard(
+                    accent = A4L.Indigo,
+                    label = "Le MULTIPASS",
+                    body = "C'est votre identité décentralisée sur le réseau UPlanet : " +
+                        "une clé NOSTR publiée, un portefeuille Ğ1 / Ẑen, un espace de " +
+                        "stockage, et votre clé LOVE. Il s'ouvre depuis le bas de " +
+                        "l'onglet Noyau, avec une adresse email. UPlanet ORIGIN, où l'on " +
+                        "arrive, est un bac à sable : le Ẑen y vaut 0,1 Ğ1, et un compte " +
+                        "laissé à zéro sans mouvement y est supprimé après sept jours.",
                 )
                 HelpCard(
                     accent = A4L.Gold,
@@ -122,7 +169,11 @@ fun HelpScreen(
                     label = "Retrouver sa clé",
                     body = "Il n'y a pas de phrase de récupération à noter : vos proches " +
                         "la connaissent déjà. Ceux qui savent où et quand vous êtes né " +
-                        "peuvent vous redire vos cinq données — et la même clé renaîtra.",
+                        "peuvent vous redire vos cinq données — et la même clé renaîtra, " +
+                        "sur n'importe quelle station. Votre lieu de naissance compte à " +
+                        "1 km près : notez-le précieusement, c'est lui qui rouvre votre " +
+                        "clé LOVE si vous perdez cet appareil. Le compte lui-même, en " +
+                        "revanche, se récupère avec le code PASS reçu par mail.",
                 )
                 HelpCard(
                     accent = A4L.Red,

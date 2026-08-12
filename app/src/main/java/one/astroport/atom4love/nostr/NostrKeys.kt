@@ -36,13 +36,21 @@ class NostrKeys(val privateKey: ByteArray) {
 }
 
 /**
- * Forge de la clé LOVE — dérivation déterministe des clés NOSTR depuis les
- * cinq données d'incarnation.
+ * Forge du noyau **provisoire** — dérivation déterministe de clés NOSTR depuis
+ * les cinq données d'incarnation, pour que la station fonctionne seule.
  *
- * ⚠ v0 de démonstration : SHA-256 du SALT et du PEPPER de [LoveKey]. La formule
- * définitive doit être alignée avec la dérivation MULTIPASS d'Astroport.ONE
- * (à trancher avec Fred) pour que n'importe quelle station redérive la même
- * clé — seul ce fichier sera à modifier.
+ * ⚠ Ce n'est pas la clé LOVE. La clé LOVE est dérivée par une station
+ * Astroport.ONE, à l'activation d'ATOM4LOVE sur un MULTIPASS, et rendue au
+ * client (`love_nsec` — voir
+ * [one.astroport.atom4love.multipass.MultipassService.activateAtom4Love]).
+ * Toute la fabrication d'identité appartient à la station : le client ne
+ * redérive rien, c'est le choix d'architecture d'Astroport.ONE, et le client de
+ * référence (Ẑelkova) a retiré sa propre dérivation pour cette raison.
+ *
+ * Cette forge-ci ne sert donc qu'avant l'inscription, et seulement à ce qui
+ * reste à portée radio : proximité BLE, chat de cabine, identité Noise. Les
+ * clés changent le jour où la station rend les vraies — l'utilisateur doit en
+ * être prévenu explicitement avant de forger.
  */
 object LoveKeyForge {
 

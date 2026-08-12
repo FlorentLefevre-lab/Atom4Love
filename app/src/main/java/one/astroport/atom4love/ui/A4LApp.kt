@@ -45,23 +45,33 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
+import android.util.Log
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import one.astroport.atom4love.BuildConfig
 import one.astroport.atom4love.chat.CabinChat
 import one.astroport.atom4love.chat.Medium
 import one.astroport.atom4love.chat.net.P2pGroup
 import one.astroport.atom4love.data.IncarnationStore
+import one.astroport.atom4love.data.MultipassAccount
+import one.astroport.atom4love.data.MultipassStore
 import one.astroport.atom4love.data.SavedIncarnation
 import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.multipass.Enrollment
+import one.astroport.atom4love.multipass.MultipassService
+import one.astroport.atom4love.nostr.Bech32
 import one.astroport.atom4love.nostr.CabinSalon
 import one.astroport.atom4love.nostr.LocalRelayScout
 import one.astroport.atom4love.nostr.LoveKeyForge
+import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.RelayStation
+import one.astroport.atom4love.proximity.CellLocator
 import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.screens.BoardScreen
 import one.astroport.atom4love.ui.screens.HelpScreen
 import one.astroport.atom4love.ui.screens.IncarnationScreen
+import one.astroport.atom4love.ui.screens.MultipassScreen
 import one.astroport.atom4love.ui.screens.RadarScreen
 import one.astroport.atom4love.ui.screens.ResonanceScreen
 import one.astroport.atom4love.ui.screens.SPLASH_HOLD_MS
@@ -130,14 +140,40 @@ private fun Station(
     var forged by remember { mutableStateOf(restored?.forged ?: false) }
     var tab by rememberSaveable { mutableStateOf(A4LTab.Radar) }
 
-    // Les clés NOSTR se redérivent des données d'incarnation à chaque démarrage —
-    // c'est le principe de la clé LOVE : seule la fiche est persistée, jamais la clé.
-    val keys = remember(birth, forged) { if (forged) LoveKeyForge.forge(birth) else null }
+    // ── Le compte Astroport.ONE, s'il y en a un ───────────────────────────
+    val context = LocalContext.current
+    val multipassStore = remember { MultipassStore(context.applicationContext) }
+    val enrollment = remember {
+        Enrollment(scope, MultipassService(BuildConfig.ASTROPORT_USPOT), multipassStore)
+    }
+    val enrollStep by enrollment.step.collectAsState()
+    var account by remember { mutableStateOf<MultipassAccount?>(null) }
+    var showMultipass by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) { account = enrollment.restore() }
+    LaunchedEffect(enrollStep) {
+        (enrollStep as? Enrollment.Step.Done)?.let { account = it.account }
+    }
+
+    // L'identité de la station. Tant qu'aucune station ne l'a dérivée, c'est le
+    // noyau provisoire — redérivé des cinq données à chaque démarrage, jamais
+    // persisté. Dès qu'un MULTIPASS rend sa clé LOVE, celle-ci prend la place :
+    // c'est la station qui fait autorité sur qui l'on est.
+    val loveKeys = remember(account) {
+        account?.takeIf { it.loveActivated }?.let { saved ->
+            runCatching { NostrKeys(Bech32.decode(saved.loveNsec).second) }
+                .onFailure { Log.w("Multipass", "clé LOVE illisible, retour au provisoire", it) }
+                .getOrNull()
+        }
+    }
+    // Pas de noyau, pas d'identité : une clé LOVE au coffre ne rallume pas à
+    // elle seule une station dont la fiche a été dissoute.
+    val keys = remember(birth, forged, loveKeys) {
+        if (!forged) null else loveKeys ?: LoveKeyForge.forge(birth)
+    }
 
     // L'antenne suit le noyau : allumée dès que la clé existe, coupée à la
     // dissolution, et avec la station quand l'activité disparaît. L'éclaireur
     // lui fait préférer le relais local du hot-spot quand il y en a un.
-    val context = LocalContext.current
     val scout = remember { LocalRelayScout(context.applicationContext) }
     val relay = remember { RelayStation(scope, scout = scout) }
     // Le salon de cabine suit la même vie que l'antenne : il n'échange que
@@ -214,8 +250,22 @@ private fun Station(
 
     fun forge() {
         forged = true
-        tab = A4LTab.Radar
         scope.launch { store.save(birth, forged = true) }
+        // Le noyau vient d'être scellé : c'est le moment où la proposition
+        // d'ouvrir un compte a du sens. On atterrit derrière sur le Noyau, là
+        // où la porte se retrouve — refuser ne la fait pas revenir d'elle-même.
+        if (account == null) {
+            tab = A4LTab.Nucleus
+            showMultipass = true
+        } else {
+            tab = A4LTab.Radar
+        }
+    }
+
+    /** La position du moment, pour rattacher le compte à une UMAP. */
+    suspend fun currentCoords(): Pair<Double?, Double?> {
+        val fix = CellLocator(context.applicationContext).currentFix()
+        return fix?.lat to fix?.lon
     }
 
     Crossfade(
@@ -240,6 +290,26 @@ private fun Station(
                     onHelp = { showHelp = true },
                 )
             }
+        } else if (showMultipass) {
+            // Plein écran, comme l'aide avant la forge : ouvrir un compte n'est
+            // pas une manœuvre qu'on mène d'un œil, entre deux onglets.
+            MultipassScreen(
+                step = enrollStep,
+                account = account,
+                onSubmit = { email, passCode ->
+                    scope.launch {
+                        val (lat, lon) = currentCoords()
+                        enrollment.enroll(email, birth, lat, lon, passCode)
+                    }
+                },
+                onRetryActivation = { enrollment.retryActivation(birth) },
+                onReset = { enrollment.reset() },
+                onClose = {
+                    showMultipass = false
+                    enrollment.reset()
+                },
+                modifier = modifier,
+            )
         } else {
             // `statusBarsPadding` consomme l'encoche pour ses enfants : celui
             // que chaque écran pose déjà devient un no-op, sans double marge.
@@ -284,6 +354,8 @@ private fun Station(
                                 onForge = {},
                                 npub = keys?.npub,
                                 relay = relayStatus,
+                                onMultipass = { showMultipass = true },
+                                multipassActive = account?.loveActivated == true,
                                 onDissolve = {
                                     // La station oublie tout : fiche vierge, retour à la forge.
                                     birth = BirthData.Empty

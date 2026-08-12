@@ -46,6 +46,13 @@ android {
         // Port sondé sur la passerelle du Wi-Fi pour trouver le relais NOSTR
         // d'une station Astroport locale (LocalRelayScout).
         buildConfigField("int", "NOSTR_LOCAL_RELAY_PORT", "9999")
+        // Guichet de la station Astroport.ONE où se crée un MULTIPASS (API
+        // UPassport, dite « uSPOT »). UPlanet ORIGIN : le monde ouvert, celui
+        // que le README d'Astroport.ONE appelle lui-même un bac à sable —
+        // 1 Ẑen = 0,1 Ğ1, et un compte laissé à zéro y est purgé au bout de
+        // sept jours. Le passage en UPlanet ẐEN demande une station dédiée.
+        buildConfigField("String", "ASTROPORT_USPOT", "\"https://u.copylaradio.com\"")
+        buildConfigField("boolean", "ASTROPORT_ORIGIN", "true")
     }
 
     signingConfigs {
@@ -171,7 +178,6 @@ dependencies {
     // --- Crypto NOSTR : clés MULTIPASS, signatures Schnorr BIP-340 ---
     implementation(libs.secp256k1.kmp)
     implementation(libs.secp256k1.kmp.jni.android)
-    implementation(libs.androidx.security.crypto)
 
     // --- Géographie : pavage hexagonal icosaédrique ---
     // AAR local patché : le libh3-java.so de com.uber:h3-android:4.4.0 omet libm

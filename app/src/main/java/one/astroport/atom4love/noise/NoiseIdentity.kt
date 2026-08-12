@@ -20,10 +20,10 @@ import one.astroport.atom4love.nostr.NostrKeys
  * même clé statique — c'est voulu, c'est ce qui fait de la clé statique une
  * identité de noyau et non d'appareil.
  *
- * ⚠ Tant que la dérivation de [one.astroport.atom4love.nostr.LoveKeyForge]
- * reste une v0 non alignée avec la dérivation MULTIPASS d'Astroport.ONE, cette
- * clé statique bougera le jour où la formule changera. Sans gravité pour le
- * chat BLE, où rien ne sort de la portée radio.
+ * ⚠ Cette clé suit la clé NOSTR courante. Tant que le noyau n'est que le
+ * provisoire de [one.astroport.atom4love.nostr.LoveKeyForge], elle bougera le
+ * jour où la clé LOVE d'une station Astroport.ONE prendra le relais. Sans
+ * gravité pour le chat BLE, où rien ne sort de la portée radio.
  */
 object NoiseIdentity {
 
