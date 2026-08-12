@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import one.astroport.atom4love.BuildConfig
+import one.astroport.atom4love.R
 import one.astroport.atom4love.data.MultipassAccount
 import one.astroport.atom4love.multipass.Enrollment
 import one.astroport.atom4love.ui.components.SectionLabel
@@ -132,26 +134,25 @@ fun MultipassScreen(
         ) {
             Column(Modifier.padding(top = 18.dp)) {
                 Text(
-                    when {
-                        step is Enrollment.Step.Done -> "Compte ouvert"
-                        existing != null -> "Votre MULTIPASS"
-                        else -> "Ouvrir un MULTIPASS"
-                    },
+                    stringResource(
+                        when {
+                            step is Enrollment.Step.Done -> R.string.mp_title_done
+                            existing != null -> R.string.mp_title_existing
+                            else -> R.string.mp_title_new
+                        },
+                    ),
                     style = A4LText.H1,
                     color = A4L.TextHigh,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    when {
-                        step is Enrollment.Step.Done ->
-                            "La station a forgé votre identité et vous a rendu votre clé LOVE."
-                        existing != null ->
-                            "Votre identité décentralisée sur le réseau UPlanet, et la clé " +
-                                "LOVE que la station en a dérivée."
-                        else ->
-                            "Un compte sur une station Astroport.ONE. C'est elle qui " +
-                                "fabrique tout : Atom4Love ne fait que passer la demande."
-                    },
+                    stringResource(
+                        when {
+                            step is Enrollment.Step.Done -> R.string.mp_lead_done
+                            existing != null -> R.string.mp_lead_existing
+                            else -> R.string.mp_lead_new
+                        },
+                    ),
                     style = A4LText.Body,
                     color = A4L.TextMuted,
                 )
@@ -177,7 +178,7 @@ fun MultipassScreen(
                     Spacer(Modifier.height(16.dp))
 
                     // ── L'adresse ─────────────────────────────────────────
-                    SectionLabel("Votre adresse email")
+                    SectionLabel(stringResource(R.string.mp_email_label))
                     Spacer(Modifier.height(8.dp))
                     Row(
                         Modifier
@@ -204,7 +205,7 @@ fun MultipassScreen(
                             decorationBox = { inner ->
                                 if (email.isEmpty()) {
                                     Text(
-                                        "vous@exemple.org",
+                                        stringResource(R.string.mp_email_placeholder),
                                         style = A4LText.Body.copy(fontSize = 14.sp),
                                         color = A4L.TextGhost,
                                     )
@@ -216,8 +217,7 @@ fun MultipassScreen(
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Elle identifie le compte et reçoit votre code PASS. Une seule " +
-                            "adresse par compte, sur une seule station.",
+                        stringResource(R.string.mp_email_hint),
                         style = A4LText.Caption,
                         color = A4L.TextMuted,
                     )
@@ -233,7 +233,7 @@ fun MultipassScreen(
                             verticalArrangement = Arrangement.spacedBy(9.dp),
                         ) {
                             Text(
-                                "Cette adresse a déjà un MULTIPASS",
+                                stringResource(R.string.mp_pass_needed_title),
                                 style = A4LText.Body.copy(
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -241,8 +241,7 @@ fun MultipassScreen(
                                 color = A4L.Indigo,
                             )
                             Text(
-                                "Saisissez le code PASS reçu par mail à sa création : " +
-                                    "la station vous le rendra plutôt que d'en créer un second.",
+                                stringResource(R.string.mp_pass_needed_body),
                                 style = A4LText.Caption,
                                 color = A4L.TextMuted,
                             )
@@ -274,7 +273,7 @@ fun MultipassScreen(
                                     decorationBox = { inner ->
                                         if (passCode.isEmpty()) {
                                             Text(
-                                                "code PASS",
+                                                stringResource(R.string.mp_pass_placeholder),
                                                 style = A4LText.Data.copy(fontSize = 15.sp),
                                                 color = A4L.TextGhost,
                                             )
@@ -300,12 +299,13 @@ fun MultipassScreen(
                             Text("⚛", fontSize = 13.sp, color = A4L.Indigo)
                             Spacer(Modifier.width(10.dp))
                             Text(
-                                if (step is Enrollment.Step.Creating) {
-                                    "La station forge votre identité, vos portefeuilles et " +
-                                        "votre espace de stockage. Comptez une trentaine de secondes."
-                                } else {
-                                    "Votre naissance part chercher la clé LOVE."
-                                },
+                                stringResource(
+                                    if (step is Enrollment.Step.Creating) {
+                                        R.string.mp_busy_creating
+                                    } else {
+                                        R.string.mp_busy_activating
+                                    },
+                                ),
                                 style = A4LText.Caption,
                                 color = A4L.TextMuted,
                             )
@@ -323,14 +323,13 @@ fun MultipassScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                "La demande n'a pas abouti — ${step.reason}.",
+                                stringResource(R.string.mp_failed, step.reason),
                                 style = A4LText.Caption,
                                 color = A4L.Red.copy(alpha = 0.9f),
                             )
                             if (step.recoverable) {
                                 Text(
-                                    "Votre MULTIPASS, lui, existe bien : il ne manque que la " +
-                                        "clé LOVE. Rien ne sera recréé.",
+                                    stringResource(R.string.mp_failed_recoverable),
                                     style = A4LText.Caption,
                                     color = A4L.TextMuted,
                                 )
@@ -353,7 +352,7 @@ fun MultipassScreen(
         ) {
             when {
                 step is Enrollment.Step.Done -> ActionButton(
-                    label = "Revenir à la station",
+                    label = stringResource(R.string.mp_action_back),
                     accent = A4L.Mint,
                     enabled = true,
                     onClick = onClose,
@@ -361,11 +360,13 @@ fun MultipassScreen(
 
                 existing != null -> {
                     ActionButton(
-                        label = if (existing.loveActivated) {
-                            "Redériver ma clé LOVE"
-                        } else {
-                            "Obtenir ma clé LOVE"
-                        },
+                        label = stringResource(
+                            if (existing.loveActivated) {
+                                R.string.mp_action_rederive
+                            } else {
+                                R.string.mp_action_obtain
+                            },
+                        ),
                         accent = A4L.Indigo,
                         enabled = true,
                         onClick = onRetryActivation,
@@ -375,7 +376,13 @@ fun MultipassScreen(
 
                 step is Enrollment.Step.Failed -> {
                     ActionButton(
-                        label = if (step.recoverable) "Redemander la clé LOVE" else "Réessayer",
+                        label = stringResource(
+                            if (step.recoverable) {
+                                R.string.mp_action_ask_again
+                            } else {
+                                R.string.mp_action_retry
+                            },
+                        ),
                         accent = A4L.Indigo,
                         enabled = true,
                         onClick = {
@@ -387,11 +394,13 @@ fun MultipassScreen(
 
                 else -> {
                     ActionButton(
-                        label = when {
-                            busy -> "En cours…"
-                            needPass -> "Récupérer mon MULTIPASS"
-                            else -> "Créer mon MULTIPASS"
-                        },
+                        label = stringResource(
+                            when {
+                                busy -> R.string.mp_action_busy
+                                needPass -> R.string.mp_action_recover
+                                else -> R.string.mp_action_create
+                            },
+                        ),
                         accent = A4L.Indigo,
                         enabled = !busy && email.contains("@") && email.contains(".") &&
                             (!needPass || passCode.isNotEmpty()),
@@ -431,13 +440,16 @@ private fun Existing(
                 .padding(13.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp),
         ) {
-            Field("compte", account.email)
-            Field("station", account.station.removePrefix("https://"))
+            Field(stringResource(R.string.mp_field_account), account.email)
             Field(
-                "clé LOVE",
-                account.loveNpub.ifEmpty { "— pas encore dérivée" },
+                stringResource(R.string.mp_field_station),
+                account.station.removePrefix("https://"),
             )
-            Field("npub du compte", account.npub)
+            Field(
+                stringResource(R.string.mp_field_love_key),
+                account.loveNpub.ifEmpty { stringResource(R.string.mp_love_not_derived) },
+            )
+            Field(stringResource(R.string.mp_field_account_npub), account.npub)
         }
 
         Column(
@@ -448,16 +460,18 @@ private fun Existing(
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
-                if (account.loveActivated) "Redériver votre clé LOVE" else "Obtenir votre clé LOVE",
+                stringResource(
+                    if (account.loveActivated) {
+                        R.string.mp_rederive_title
+                    } else {
+                        R.string.mp_obtain_title
+                    },
+                ),
                 style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.Indigo,
             )
             Text(
-                "La station recalcule la clé depuis les cinq données de votre noyau " +
-                    "actuel. À faire si vous avez reforgé votre noyau avec d'autres " +
-                    "données — sinon elle redonnera exactement la même clé, ce qui ne " +
-                    "coûte rien. Votre compte, vos portefeuilles et votre code PASS ne " +
-                    "bougent pas.",
+                stringResource(R.string.mp_rederive_body),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -471,9 +485,9 @@ private fun Existing(
                 .padding(13.dp),
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
-            Field("code PASS", account.pass.ifEmpty { "—" })
+            Field(stringResource(R.string.mp_field_pass), account.pass.ifEmpty { "—" })
             Text(
-                if (revealNsec) account.nsec else "Afficher la clé du compte",
+                if (revealNsec) account.nsec else stringResource(R.string.mp_reveal_key),
                 style = if (revealNsec) {
                     A4LText.Data.copy(fontSize = 10.sp)
                 } else {
@@ -506,14 +520,12 @@ private fun Explanation() {
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
-                "Atom4Love fonctionne sans compte",
+                stringResource(R.string.mp_no_account_title),
                 style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.TextHigh,
             )
             Text(
-                "Votre noyau forgé suffit au radar, à la cabine et à tout ce qui se " +
-                    "passe à portée d'antenne. Rien ne vous oblige à ouvrir un compte, " +
-                    "ni maintenant ni jamais.",
+                stringResource(R.string.mp_no_account_body),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -528,14 +540,14 @@ private fun Explanation() {
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
-                "Ce qu'un MULTIPASS ajoute",
+                stringResource(R.string.mp_adds_title),
                 style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.Indigo,
             )
-            Bullet("Une identité NOSTR publiée, joignable au-delà de la portée radio.")
-            Bullet("Votre clé LOVE, dérivée de votre naissance par la station : c'est elle qui porte le canal LOVE et votre profil de résonance.")
-            Bullet("Un portefeuille Ğ1 / Ẑen et un espace de stockage personnel.")
-            Bullet("Une place dans la toile de confiance d'UPlanet.")
+            Bullet(stringResource(R.string.mp_adds_identity))
+            Bullet(stringResource(R.string.mp_adds_love))
+            Bullet(stringResource(R.string.mp_adds_wallet))
+            Bullet(stringResource(R.string.mp_adds_web))
         }
 
         // Où l'on met les pieds. Le mot « bac à sable » est celui d'Astroport.ONE.
@@ -551,7 +563,7 @@ private fun Explanation() {
                     Text("⚠", fontSize = 12.sp, color = A4L.Amber)
                     Spacer(Modifier.width(9.dp))
                     Text(
-                        "UPlanet ORIGIN est un bac à sable",
+                        stringResource(R.string.mp_sandbox_title),
                         style = A4LText.Body.copy(
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -560,16 +572,12 @@ private fun Explanation() {
                     )
                 }
                 Text(
-                    "C'est le mot d'Astroport.ONE, pas le nôtre : le monde ouvert où " +
-                        "l'on apprend. Le Ẑen y vaut 0,1 Ğ1 — une monnaie pour de faux. " +
-                        "Un compte laissé à zéro, sans le moindre mouvement, y est " +
-                        "supprimé au bout de sept jours.",
+                    stringResource(R.string.mp_sandbox_body),
                     style = A4LText.Caption,
                     color = A4L.Amber.copy(alpha = 0.85f),
                 )
                 Text(
-                    "Vos données de naissance, elles, ne s'effacent pas : les cinq mêmes " +
-                        "redonneront toujours la même clé LOVE, sur n'importe quelle station.",
+                    stringResource(R.string.mp_sandbox_keys),
                     style = A4LText.Caption,
                     color = A4L.TextMuted,
                 )
@@ -585,15 +593,12 @@ private fun Explanation() {
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
-                "Votre noyau actuel est provisoire",
+                stringResource(R.string.mp_provisional_title),
                 style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.Amber,
             )
             Text(
-                "Tant qu'aucune station ne vous connaît, Atom4Love se forge une clé de " +
-                    "proximité, la sienne. La station en dérivera une autre — la vraie. " +
-                    "Votre npub changera, et ceux qui vous ont croisé en cabine avant " +
-                    "aujourd'hui ne vous reconnaîtront plus.",
+                stringResource(R.string.mp_provisional_body),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -617,10 +622,15 @@ private fun Success(
                 .padding(13.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp),
         ) {
-            Field("compte", account.email)
-            Field("station", account.station.removePrefix("https://"))
-            if (account.loveNpub.isNotEmpty()) Field("clé LOVE", account.loveNpub)
-            Field("npub du compte", account.npub)
+            Field(stringResource(R.string.mp_field_account), account.email)
+            Field(
+                stringResource(R.string.mp_field_station),
+                account.station.removePrefix("https://"),
+            )
+            if (account.loveNpub.isNotEmpty()) {
+                Field(stringResource(R.string.mp_field_love_key), account.loveNpub)
+            }
+            Field(stringResource(R.string.mp_field_account_npub), account.npub)
         }
 
         // Le PASS : la seule chose que l'utilisateur doive vraiment recopier.
@@ -632,7 +642,7 @@ private fun Success(
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
-                "Notez votre code PASS",
+                stringResource(R.string.mp_note_pass_title),
                 style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.Amber,
             )
@@ -642,9 +652,7 @@ private fun Success(
                 color = A4L.TextHigh,
             )
             Text(
-                "Il récupère votre compte depuis n'importe quel terminal UPlanet, et " +
-                    "vous a aussi été envoyé par mail. La station est la seule à le " +
-                    "détenir : personne ne pourra vous le redonner ailleurs.",
+                stringResource(R.string.mp_note_pass_body),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -659,13 +667,12 @@ private fun Success(
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
-                "La clé de votre compte est rangée sur cet appareil, chiffrée. Elle " +
-                    "ouvre vos portefeuilles : ne la recopiez que dans un endroit sûr.",
+                stringResource(R.string.mp_key_vaulted),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
             Text(
-                if (revealNsec) account.nsec else "Afficher la clé du compte",
+                if (revealNsec) account.nsec else stringResource(R.string.mp_reveal_key),
                 style = if (revealNsec) {
                     A4LText.Data.copy(fontSize = 10.sp)
                 } else {
@@ -748,13 +755,13 @@ private fun LaterButton(onClose: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                "Plus tard",
+                stringResource(R.string.mp_later),
                 style = A4LText.Body.copy(fontSize = 13.sp),
                 color = A4L.TextMuted,
             )
         }
         Text(
-            "Vous retrouverez cette porte en bas de l'onglet Noyau.",
+            stringResource(R.string.mp_later_hint),
             style = A4LText.Caption,
             color = A4L.TextGhost,
             textAlign = TextAlign.Center,

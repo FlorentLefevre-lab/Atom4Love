@@ -1,6 +1,7 @@
 package one.astroport.atom4love.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
@@ -82,17 +83,23 @@ import one.astroport.atom4love.ui.screens.MultipassScreen
 import one.astroport.atom4love.ui.screens.RadarScreen
 import one.astroport.atom4love.ui.screens.ResonanceScreen
 import one.astroport.atom4love.ui.screens.SPLASH_HOLD_MS
+import one.astroport.atom4love.R
 import one.astroport.atom4love.ui.screens.SplashScreen
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 
 /** Les cinq destinations de la barre du bas. */
-enum class A4LTab(val icon: String, val label: String, val accent: Color) {
-    Radar("🌀", "Radar", A4L.Cyan),
-    Board("🎴", "Plateau", A4L.Cyan),
-    Bonds("💜", "Résonance", A4L.Mint),
-    Nucleus("⚛", "Noyau", A4L.Cyan),
-    Help("❓", "Aide", A4L.Indigo),
+enum class A4LTab(
+    /** L'emoji reste en dur : un pictogramme n'est d'aucune langue. */
+    val icon: String,
+    @StringRes val labelRes: Int,
+    val accent: Color,
+) {
+    Radar("🌀", R.string.tab_radar, A4L.Cyan),
+    Board("🎴", R.string.tab_board, A4L.Cyan),
+    Bonds("💜", R.string.tab_bonds, A4L.Mint),
+    Nucleus("⚛", R.string.tab_nucleus, A4L.Cyan),
+    Help("❓", R.string.tab_help, A4L.Indigo),
 }
 
 /**
@@ -404,11 +411,15 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
         Spacer(Modifier.width(8.dp))
         Text(
             when {
-                !open -> "cabine fermée"
+                !open -> stringResource(R.string.header_cabin_closed)
                 // le médium ne se lit qu'une fois quelqu'un joint : dire « BLE »
                 // dans le vide ferait passer une antenne allumée pour un lien
-                medium == null -> "cabine ouverte — personne à portée"
-                else -> "${stringResource(medium.labelRes)} · ${medium.short}"
+                medium == null -> stringResource(R.string.header_cabin_open_alone)
+                else -> stringResource(
+                    R.string.header_medium,
+                    stringResource(medium.labelRes),
+                    medium.short,
+                )
             },
             style = A4LText.Data.copy(fontSize = 10.sp),
             color = if (open && medium != null) A4L.Mint else A4L.TextMuted,
@@ -416,7 +427,7 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
         if (open && peers.isNotEmpty()) {
             Spacer(Modifier.width(10.dp))
             Text(
-                "${peers.size} ici",
+                stringResource(R.string.cabin_peers_here, peers.size),
                 style = A4LText.Data.copy(fontSize = 10.sp),
                 color = A4L.TextDim,
             )
@@ -424,7 +435,7 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
         Spacer(Modifier.weight(1f))
         if (open && offered != null) {
             Text(
-                "passer en ${offered.short}",
+                stringResource(R.string.header_upgrade, offered.short),
                 style = A4LText.Data.copy(fontSize = 10.sp),
                 color = A4L.Cyan,
                 modifier = Modifier
@@ -509,7 +520,7 @@ private fun A4LNavBar(current: A4LTab, onSelect: (A4LTab) -> Unit) {
                     color = if (selected) entry.accent else A4L.TextStrong,
                 )
                 Text(
-                    entry.label,
+                    stringResource(entry.labelRes),
                     style = A4LText.Tab.copy(
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     ),

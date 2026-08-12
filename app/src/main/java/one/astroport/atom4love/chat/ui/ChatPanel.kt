@@ -40,12 +40,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import java.text.SimpleDateFormat
 import java.util.Date
+import one.astroport.atom4love.R
 import one.astroport.atom4love.chat.Attachments
 import one.astroport.atom4love.chat.ChatKind
 import one.astroport.atom4love.chat.ChatMessage
@@ -143,7 +145,7 @@ fun ChatPanel(
             Button(
                 onClick = { if (onSendText(draft)) draft = "" },
                 enabled = canSend && draft.isNotBlank(),
-            ) { Text("Envoyer") }
+            ) { Text(stringResource(R.string.chat_send)) }
         }
     }
 }
@@ -184,7 +186,11 @@ private fun MessageBubble(
             verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             Text(
-                if (message.mine) "moi" else "pair ${message.from}",
+                if (message.mine) {
+                    stringResource(R.string.chat_from_me)
+                } else {
+                    stringResource(R.string.chat_from_peer, message.from)
+                },
                 style = A4LText.Data,
                 color = if (message.mine) A4L.Mint else A4L.TextDim,
             )
@@ -201,7 +207,7 @@ private fun MessageBubble(
             }
             if (message.kind != ChatKind.TEXT && message.file != null) {
                 Text(
-                    "⬇ enregistrer",
+                    stringResource(R.string.chat_save_attachment),
                     style = A4LText.Caption,
                     color = A4L.Mint.tint(0.8f),
                     modifier = Modifier
@@ -229,12 +235,24 @@ private fun MessageBubble(
 private fun StatusMark(message: ChatMessage) {
     val pct = (message.progress * 100).toInt()
     when (message.status) {
-        ChatStatus.SENDING -> Text("↑ $pct %", style = A4LText.Data, color = A4L.TextDim)
+        ChatStatus.SENDING -> Text(
+            stringResource(R.string.chat_sending_percent, pct),
+            style = A4LText.Data,
+            color = A4L.TextDim,
+        )
         ChatStatus.SENT -> Text("✓", style = A4LText.Data, color = A4L.TextDim)
         ChatStatus.DELIVERED -> Text("✓✓", style = A4LText.Data, color = A4L.Mint)
-        ChatStatus.RECEIVING -> Text("↓ $pct %", style = A4LText.Data, color = A4L.TextDim)
+        ChatStatus.RECEIVING -> Text(
+            stringResource(R.string.chat_receiving_percent, pct),
+            style = A4LText.Data,
+            color = A4L.TextDim,
+        )
         ChatStatus.RECEIVED -> Unit
-        ChatStatus.FAILED -> Text("échec", style = A4LText.Data, color = A4L.Red)
+        ChatStatus.FAILED -> Text(
+            stringResource(R.string.chat_failed),
+            style = A4LText.Data,
+            color = A4L.Red,
+        )
     }
 }
 
@@ -261,7 +279,13 @@ private fun ImageContent(message: ChatMessage, onOpen: (ChatMessage) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                if (message.mine) "image en envoi…" else "image en réception…",
+                stringResource(
+                    if (message.mine) {
+                        R.string.chat_image_sending
+                    } else {
+                        R.string.chat_image_receiving
+                    },
+                ),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -282,7 +306,7 @@ private fun FileContent(message: ChatMessage, onOpen: (ChatMessage) -> Unit) {
         Text("📎", fontSize = 20.sp)
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
-                message.name.ifBlank { "fichier" },
+                message.name.ifBlank { stringResource(R.string.chat_unnamed_file) },
                 style = A4LText.ItemTitle,
                 color = A4L.TextHigh,
                 maxLines = 1,
@@ -367,7 +391,7 @@ private fun AudioContent(message: ChatMessage, audio: AudioPlayback) {
         )
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
-                message.name.ifBlank { "audio" },
+                message.name.ifBlank { stringResource(R.string.chat_unnamed_audio) },
                 style = A4LText.ItemTitle,
                 color = A4L.TextHigh,
                 maxLines = 1,

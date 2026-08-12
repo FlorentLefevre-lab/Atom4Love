@@ -23,10 +23,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import one.astroport.atom4love.BuildConfig
+import one.astroport.atom4love.R
 import one.astroport.atom4love.ui.components.SectionLabel
 import one.astroport.atom4love.ui.components.glass
 import one.astroport.atom4love.ui.components.screenBackground
@@ -86,10 +88,14 @@ fun HelpScreen(
                 .padding(horizontal = 20.dp),
         ) {
             Column(Modifier.padding(top = 18.dp)) {
-                Text("Aide", style = A4LText.H1, color = A4L.TextHigh)
+                Text(
+                    stringResource(R.string.help_title),
+                    style = A4LText.H1,
+                    color = A4L.TextHigh,
+                )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Ce que fait la station, et pourquoi elle le fait ainsi.",
+                    stringResource(R.string.help_lead),
                     style = A4LText.Body,
                     color = A4L.TextBody,
                 )
@@ -104,100 +110,60 @@ fun HelpScreen(
                 // mêmes mots — une seule idée du monde des deux côtés.
                 HelpCard(
                     accent = A4L.Violet,
-                    label = "Tout est vibration",
-                    body = "ATOM4LOVE n'est pas de l'astrologie. Au moment exact de votre " +
-                        "naissance, la Terre occupait une position précise dans " +
-                        "l'espace-temps. Vous en portez l'empreinte géométrique — et elle " +
-                        "se calcule, à la minute et au degré près.",
+                    label = stringResource(R.string.help_vibration_label),
+                    body = stringResource(R.string.help_vibration_body),
                 )
                 HelpCard(
                     accent = A4L.Cyan,
-                    label = "Votre empreinte · l'accord fondamental",
-                    body = "Imaginez votre corps comme un instrument. Votre lieu et votre " +
-                        "heure de naissance déterminent la note que vous jouez en " +
-                        "permanence : votre phase personnelle. Votre poids et votre " +
-                        "polarité en donnent la fréquence — l'onde biologique.",
+                    label = stringResource(R.string.help_imprint_label),
+                    body = stringResource(R.string.help_imprint_body),
                 )
                 HelpCard(
                     accent = A4L.Mint,
-                    label = "La résonance · quand deux ondes se croisent",
-                    body = "Rencontrer quelqu'un, c'est croiser deux phases. Si elles " +
-                        "s'emboîtent, c'est la super-cohérence : on se comprend sans " +
-                        "parler. Si elles se heurtent, c'est la friction créatrice : on " +
-                        "est faits pour inventer ensemble. Aucun des deux n'est un score, " +
-                        "et aucun n'est meilleur que l'autre.",
+                    label = stringResource(R.string.help_resonance_label),
+                    body = stringResource(R.string.help_resonance_body),
                 )
                 HelpCard(
                     accent = A4L.Violet,
-                    label = "La singularité · l'esprit et la matière",
-                    body = "Votre conception est l'Esprit, votre naissance la Matière. " +
-                        "En les combinant, la station calcule votre archétype — la façon " +
-                        "dont vous transformez l'énergie autour de vous. Vous n'avez pas " +
-                        "à connaître cette date : elle se déduit de votre naissance.",
+                    label = stringResource(R.string.help_singularity_label),
+                    body = stringResource(R.string.help_singularity_body),
                 )
                 HelpCard(
                     accent = A4L.Gold,
-                    label = "Votre clé temporaire",
-                    body = "Au premier lancement, la station se forge une clé à elle, " +
-                        "dérivée de vos cinq données. Elle suffit à tout ce qui se passe " +
-                        "à portée d'antenne : le radar, la cabine, les liens de proximité. " +
-                        "Elle est temporaire — c'est une station Astroport.ONE qui " +
-                        "dérivera un jour votre vraie clé LOVE.",
+                    label = stringResource(R.string.help_temp_key_label),
+                    body = stringResource(R.string.help_temp_key_body),
                 )
                 HelpCard(
                     accent = A4L.Indigo,
-                    label = "Le MULTIPASS",
-                    body = "C'est votre identité décentralisée sur le réseau UPlanet : " +
-                        "une clé NOSTR publiée, un portefeuille Ğ1 / Ẑen, un espace de " +
-                        "stockage, et votre clé LOVE. Il s'ouvre depuis le bas de " +
-                        "l'onglet Noyau, avec une adresse email. UPlanet ORIGIN, où l'on " +
-                        "arrive, est un bac à sable : le Ẑen y vaut 0,1 Ğ1, et un compte " +
-                        "laissé à zéro sans mouvement y est supprimé après sept jours.",
+                    label = stringResource(R.string.help_multipass_label),
+                    body = stringResource(R.string.help_multipass_body),
                 )
                 HelpCard(
                     accent = A4L.Gold,
-                    label = "Forger son noyau",
-                    body = "Remplissez la fiche d'incarnation : la ligne « À renseigner » " +
-                        "vous dit ce qui manque. Pour le lieu, tapez trois lettres et " +
-                        "choisissez votre commune dans la liste, ou touchez 📍 pour " +
-                        "utiliser votre position. Avant de forger, un récapitulatif vous " +
-                        "demande une dernière relecture : après confirmation, plus rien " +
-                        "n'est modifiable.",
+                    label = stringResource(R.string.help_forge_label),
+                    body = stringResource(R.string.help_forge_body),
                 )
                 HelpCard(
                     accent = A4L.Amber,
-                    label = "Retrouver sa clé",
-                    body = "Il n'y a pas de phrase de récupération à noter : vos proches " +
-                        "la connaissent déjà. Ceux qui savent où et quand vous êtes né " +
-                        "peuvent vous redire vos cinq données — et la même clé renaîtra, " +
-                        "sur n'importe quelle station. Votre lieu de naissance compte à " +
-                        "1 km près : notez-le précieusement, c'est lui qui rouvre votre " +
-                        "clé LOVE si vous perdez cet appareil. Le compte lui-même, en " +
-                        "revanche, se récupère avec le code PASS reçu par mail.",
+                    label = stringResource(R.string.help_recover_label),
+                    body = stringResource(R.string.help_recover_body),
                 )
                 HelpCard(
                     accent = A4L.Red,
-                    label = "Se tromper, recommencer",
-                    body = "Une donnée fausse ? Dans l'onglet Noyau, « Dissoudre le " +
-                        "noyau » efface la fiche et la clé de cette station (deux " +
-                        "confirmations). Rien ne part sur le réseau : ressaisissez les " +
-                        "bonnes données et forgez à nouveau.",
+                    label = stringResource(R.string.help_redo_label),
+                    body = stringResource(R.string.help_redo_body),
                 )
                 HelpCard(
                     accent = A4L.Mint,
-                    label = "La station",
-                    body = "🌀 Radar : les cabines à portée, par proximité réelle. " +
-                        "🎴 Plateau : vos cartes. 💜 Résonance : vos liens. " +
-                        "⚛ Noyau : votre fiche scellée et votre npub. En haut, " +
-                        "« relay · x / y » indique combien de relais NOSTR répondent — " +
-                        "vert dès que la station est reliée au réseau.",
+                    label = stringResource(R.string.help_station_label),
+                    body = stringResource(R.string.help_station_body),
                 )
             }
         }
 
         // ── Pied ──────────────────────────────────────────────────────────
         Text(
-            "Atom4Love ${BuildConfig.VERSION_NAME} · by AstroPort.ONE",
+            stringResource(R.string.help_footer, BuildConfig.VERSION_NAME),
             style = A4LText.Data.copy(fontSize = 9.sp),
             color = A4L.TextGhost,
             textAlign = TextAlign.Center,
