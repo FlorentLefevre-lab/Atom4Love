@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,10 +38,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -425,6 +430,45 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
                 modifier = Modifier
                     .clickable { onUpgrade(offered) }
                     .padding(horizontal = 4.dp, vertical = 2.dp),
+            )
+        }
+        if (AppLocale.selectable) {
+            Spacer(Modifier.width(8.dp))
+            LanguagePicker()
+        }
+    }
+}
+
+/**
+ * Le choix de langue, dans l'en-tête : trois drapeaux, celle qui parle en
+ * pleine lumière et les autres en retrait.
+ *
+ * Pas de menu déroulant — trois langues tiennent dans la largeur, et le geste
+ * doit coûter un seul appui : on change de langue parce qu'on ne comprend pas
+ * ce qui est à l'écran, ce n'est pas le moment de demander de naviguer.
+ *
+ * L'état se lit dans la configuration, jamais dans une variable à nous : le
+ * système recrée l'activité après le choix, et il peut aussi avoir été changé
+ * depuis les réglages d'Android sans passer par ici.
+ */
+@Composable
+private fun LanguagePicker() {
+    val context = LocalContext.current
+    val current = AppLocale.shown(LocalResources.current.configuration.locales)
+    Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+        AppLanguage.entries.forEach { language ->
+            val active = language == current
+            Text(
+                language.flag,
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(5.dp))
+                    .clickable(enabled = !active) { AppLocale.choose(context, language) }
+                    .alpha(if (active) 1f else 0.32f)
+                    .padding(horizontal = 3.dp, vertical = 2.dp)
+                    // le drapeau ne se lit pas à voix haute : le nom de la
+                    // langue, dans cette langue, est ce qui a du sens
+                    .semantics { contentDescription = language.endonym },
             )
         }
     }
