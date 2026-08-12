@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,6 +78,13 @@ fun MultipassScreen(
     modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
+    // La page est plus haute que l'écran et le verdict s'écrit tout en bas :
+    // sans ça, une demande refusée laisse un formulaire d'apparence inchangée,
+    // et l'on croit que le bouton n'a rien fait.
+    val scroll = rememberScrollState()
+    LaunchedEffect(step) {
+        if (step is Enrollment.Step.Failed) scroll.animateScrollTo(scroll.maxValue)
+    }
     var email by rememberSaveable { mutableStateOf(account?.email ?: "") }
     var passCode by rememberSaveable { mutableStateOf("") }
     var revealNsec by remember { mutableStateOf(false) }
@@ -130,7 +138,7 @@ fun MultipassScreen(
         Column(
             Modifier
                 .weight(1f)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(horizontal = 20.dp),
         ) {
             Column(Modifier.padding(top = 18.dp)) {
@@ -324,7 +332,18 @@ fun MultipassScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                stringResource(R.string.mp_failed, reasonText(step.reason)),
+                                // Nos raisons sont des fragments — la phrase
+                                // leur fournit le point. Celle de la station est
+                                // une phrase entière, ponctuée par elle : lui en
+                                // ajouter un donnerait « ATOM4LOVE.. ».
+                                stringResource(
+                                    if (EnrollError.messageRes(step.reason) == null) {
+                                        R.string.mp_failed_verbatim
+                                    } else {
+                                        R.string.mp_failed
+                                    },
+                                    reasonText(step.reason),
+                                ),
                                 style = A4LText.Caption,
                                 color = A4L.Red.copy(alpha = 0.9f),
                             )

@@ -162,6 +162,7 @@
     <string name="mp_busy_activating">Your birth is on its way to fetch the LOVE key.</string>
 
     <string name="mp_failed">The request did not go through — %1$s.</string>
+    <string name="mp_failed_verbatim">The request did not go through — %1$s</string>
     <string name="mp_failed_recoverable">Your MULTIPASS does exist: only the LOVE key is missing. Nothing will be created again.</string>
 
     <string name="mp_action_back">Back to the station</string>

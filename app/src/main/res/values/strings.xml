@@ -190,6 +190,8 @@
     <string name="mp_busy_activating">Votre naissance part chercher la clé LOVE.</string>
 
     <string name="mp_failed">La demande n\'a pas abouti — %1$s.</string>
+    <!-- Même phrase, sans le point : la station ponctue déjà la sienne. -->
+    <string name="mp_failed_verbatim">La demande n\'a pas abouti — %1$s</string>
     <string name="mp_failed_recoverable">Votre MULTIPASS, lui, existe bien : il ne manque que la clé LOVE. Rien ne sera recréé.</string>
 
     <string name="mp_action_back">Revenir à la station</string>

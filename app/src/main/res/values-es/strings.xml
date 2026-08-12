@@ -164,6 +164,7 @@
     <string name="mp_busy_activating">Tu nacimiento va a buscar la clave LOVE.</string>
 
     <string name="mp_failed">La solicitud no ha prosperado — %1$s.</string>
+    <string name="mp_failed_verbatim">La solicitud no ha prosperado — %1$s</string>
     <string name="mp_failed_recoverable">Tu MULTIPASS sí existe: solo falta la clave LOVE. No se creará nada de nuevo.</string>
 
     <string name="mp_action_back">Volver a la estación</string>
