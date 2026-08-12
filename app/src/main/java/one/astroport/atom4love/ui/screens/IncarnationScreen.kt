@@ -40,6 +40,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -66,12 +67,17 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.util.Locale
 import kotlin.math.round
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -128,6 +134,7 @@ fun IncarnationScreen(
         maxOf(step, if (firstOpen < 0) ForgeStep.entries.lastIndex else firstOpen)
     }
 
+    var showCoordsEditor by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showForgeConfirm by remember { mutableStateOf(false) }
@@ -343,13 +350,26 @@ fun IncarnationScreen(
                                         )
                                     }
                                 },
+                                onEditCoords = { showCoordsEditor = true },
                             )
                             // L'avertissement qu'ATOM4LOVE porte à cette étape : ces
                             // coordonnées sont la seule chose à recopier quelque part.
+                            birth.dateProblem()?.let { problem ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("⚠", fontSize = 12.sp, color = A4L.Red)
+                                    Spacer(Modifier.width(9.dp))
+                                    Text(
+                                        problem.replaceFirstChar { it.uppercase() } + ".",
+                                        style = A4LText.Caption,
+                                        color = A4L.Red.copy(alpha = 0.9f),
+                                    )
+                                }
+                            }
                             Text(
                                 "Coordonnées de récupération, à noter précieusement : " +
                                     "précision 0,01° — environ 1 km. C'est ce couple de " +
-                                    "nombres qui rouvre votre clé si vous perdez cet appareil.",
+                                    "nombres qui rouvre votre clé si vous perdez cet " +
+                                    "appareil : touchez-les pour les saisir vous-même.",
                                 style = A4LText.Caption,
                                 color = A4L.Amber.copy(alpha = 0.75f),
                             )
@@ -569,10 +589,44 @@ fun IncarnationScreen(
         )
     }
 
+    // ── Saisie directe des coordonnées ───────────────────────────────────
+    // La contrepartie de l'avertissement ambre : ce qu'on demande de noter
+    // doit pouvoir se retaper. Ni la liste des communes ni le GPS ne visent le
+    // centième — un couple noté sur un carnet est le seul chemin fidèle vers
+    // une clé déjà forgée un jour.
+    if (showCoordsEditor) {
+        CoordinatesDialog(
+            lat = birth.lat,
+            lon = birth.lon,
+            onDismiss = { showCoordsEditor = false },
+            onConfirm = { lat, lon ->
+                showCoordsEditor = false
+                onBirthChange(birth.copy(lat = lat, lon = lon))
+            },
+        )
+    }
+
     // ── Sélecteurs ────────────────────────────────────────────────────────
     if (showDatePicker) {
+        val today = remember { LocalDate.now() }
+        val oldest = remember(today) { today.minusYears(BirthData.MAX_AGE_YEARS.toLong()) }
+        val youngest = remember(today) { today.minusYears(BirthData.MIN_AGE_YEARS.toLong()) }
+        val selectable = remember(oldest, youngest) {
+            object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val date = Instant.ofEpochMilli(utcTimeMillis)
+                        .atZone(ZoneOffset.UTC).toLocalDate()
+                    return !date.isBefore(oldest) && !date.isAfter(youngest)
+                }
+
+                override fun isSelectableYear(year: Int): Boolean =
+                    year in oldest.year..youngest.year
+            }
+        }
         val state = rememberDatePickerState(
             initialSelectedDateMillis = LoveKey.birthUtcMillis(birth),
+            yearRange = oldest.year..youngest.year,
+            selectableDates = selectable,
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -615,6 +669,141 @@ fun IncarnationScreen(
 }
 
 /**
+ * Saisie directe des coordonnées de naissance, au centième de degré.
+ *
+ * Les valeurs sont arrondies à deux décimales à la validation : c'est la
+ * précision qui entre dans le SALT, et ce que l'utilisateur tape doit être
+ * exactement ce que la clé verra — sans quoi « notez vos coordonnées » resterait
+ * un vœu pieux.
+ */
+@Composable
+private fun CoordinatesDialog(
+    lat: Double?,
+    lon: Double?,
+    onDismiss: () -> Unit,
+    onConfirm: (Double, Double) -> Unit,
+) {
+    // La virgule décimale française est acceptée à la saisie ; le point reste la
+    // seule forme qui entre dans le SALT (cf. LoveKey.salt, Locale.US).
+    fun parse(text: String): Double? = text.trim().replace(',', '.').toDoubleOrNull()
+
+    var latText by rememberSaveable {
+        mutableStateOf(lat?.let { String.format(Locale.US, "%.2f", it) } ?: "")
+    }
+    var lonText by rememberSaveable {
+        mutableStateOf(lon?.let { String.format(Locale.US, "%.2f", it) } ?: "")
+    }
+
+    val parsedLat = parse(latText)?.takeIf { it in -90.0..90.0 }
+    val parsedLon = parse(lonText)?.takeIf { it in -180.0..180.0 }
+    val valid = parsedLat != null && parsedLon != null
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Coordonnées de naissance", style = A4LText.Title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                Text(
+                    "Le couple que vous avez noté, tel quel. Deux décimales — " +
+                        "environ 1 km : c'est la précision qui entre dans votre clé.",
+                    style = A4LText.Body,
+                    color = A4L.TextBody,
+                )
+                CoordinateField(
+                    label = "Latitude",
+                    value = latText,
+                    hint = "48.86",
+                    invalid = latText.isNotBlank() && parsedLat == null,
+                    onValueChange = { latText = it },
+                )
+                CoordinateField(
+                    label = "Longitude",
+                    value = lonText,
+                    hint = "2.35",
+                    invalid = lonText.isNotBlank() && parsedLon == null,
+                    onValueChange = { lonText = it },
+                )
+                Text(
+                    "Sud et Ouest s'écrivent en négatif : −33.45, −70.67.",
+                    style = A4LText.Caption,
+                    color = A4L.TextMuted,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = valid,
+                onClick = {
+                    // Arrondi ici, pas seulement à l'affichage : la fiche garde
+                    // ce qui a été tapé, au centième près.
+                    onConfirm(
+                        round(parsedLat!! * 100.0) / 100.0,
+                        round(parsedLon!! * 100.0) / 100.0,
+                    )
+                },
+            ) { Text("Valider", color = if (valid) A4L.Cyan else A4L.TextGhost) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Annuler", color = A4L.TextBody) }
+        },
+    )
+}
+
+/** Un champ de coordonnée : chiffres, point ou virgule, signe moins. */
+@Composable
+private fun CoordinateField(
+    label: String,
+    value: String,
+    hint: String,
+    invalid: Boolean,
+    onValueChange: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        SectionLabel(label, color = if (invalid) A4L.Red else A4L.TextFaint)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+                .glass(
+                    radius = 11.dp,
+                    background = A4L.Glass,
+                    border = if (invalid) A4L.Red.tint(0.40f) else A4L.Stroke,
+                )
+                .padding(horizontal = 13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = { typed ->
+                    // On ne laisse entrer que ce qui peut former un nombre :
+                    // une frappe refusée vaut mieux qu'un « Valider » éteint
+                    // sans qu'on sache pourquoi.
+                    if (typed.all { it.isDigit() || it in "-,." }) onValueChange(typed)
+                },
+                singleLine = true,
+                textStyle = A4LText.Data.copy(fontSize = 15.sp, color = A4L.TextHigh),
+                cursorBrush = SolidColor(A4L.Cyan),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                ),
+                decorationBox = { inner ->
+                    if (value.isEmpty()) {
+                        Text(
+                            hint,
+                            style = A4LText.Data.copy(fontSize = 15.sp),
+                            color = A4L.TextGhost,
+                        )
+                    }
+                    inner()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/**
  * Les cinq stations de l'assistant, dans l'ordre d'ATOM4LOVE : on ne demande
  * qu'une chose à la fois, et chacune tient dans l'écran sans rien faire défiler.
  */
@@ -632,7 +821,8 @@ private enum class ForgeStep(
     /** Ce que l'étape exige pour qu'on ait le droit de passer à la suivante. */
     fun isSatisfied(b: BirthData): Boolean = when (this) {
         Identity, Singularity -> true
-        Anchor -> b.dateComplete && b.timeComplete && b.lat != null && b.lon != null
+        Anchor -> b.dateComplete && b.timeComplete && b.isPlausible() &&
+            b.lat != null && b.lon != null
         Vessel -> b.wave != null && b.weightKg != null
         Forge -> b.complete
     }
@@ -810,6 +1000,7 @@ private fun BirthPlaceSection(
     onChoose: (CommuneApi.Commune) -> Unit,
     onDone: () -> Unit,
     onLocate: () -> Unit,
+    onEditCoords: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
         SectionLabel("Lieu de naissance")
@@ -845,12 +1036,17 @@ private fun BirthPlaceSection(
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(8.dp))
+            // Le badge n'est pas qu'un affichage : c'est la seule façon de
+            // ressaisir un couple de coordonnées noté ailleurs. Sans lui, dire
+            // « notez-les, elles rouvrent votre clé » serait une promesse en
+            // l'air — ni la commune ni le GPS ne redonnent un centième précis.
             Text(
                 LoveKey.formatCoords(birth),
                 style = A4LText.Data.copy(fontSize = 10.sp),
-                color = A4L.TextMuted,
+                color = if (editable) A4L.Cyan.copy(alpha = 0.75f) else A4L.TextMuted,
                 modifier = Modifier
                     .background(A4L.Glass, RoundedCornerShape(7.dp))
+                    .clickable(enabled = editable, onClick = onEditCoords)
                     .padding(horizontal = 7.dp, vertical = 4.dp),
             )
             Spacer(Modifier.width(8.dp))

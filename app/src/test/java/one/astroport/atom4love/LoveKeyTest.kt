@@ -3,10 +3,14 @@ package one.astroport.atom4love
 import one.astroport.atom4love.domain.BirthData
 import one.astroport.atom4love.domain.LoveKey
 import one.astroport.atom4love.domain.Wave
+import java.time.LocalDate
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.TimeZone
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -44,6 +48,45 @@ class LoveKeyTest {
         assertEquals(1984, c.get(Calendar.YEAR))
         assertEquals(Calendar.JULY, c.get(Calendar.MONTH))
         assertEquals(12, c.get(Calendar.DAY_OF_MONTH))
+    }
+
+    // ── Plausibilité de la date de naissance ─────────────────────────────
+    // Le jour de référence est fixé : une règle qui dépend de « aujourd'hui »
+    // ne se teste pas autrement, et ces cas doivent tenir dans dix ans.
+    private val today: LocalDate = LocalDate.of(2026, 8, 12)
+
+    private fun born(y: Int, m: Int, d: Int) =
+        BirthData.Sample.copy(year = y, month = m, day = d)
+
+    @Test
+    fun `on ne nait pas demain`() {
+        assertFalse(born(2026, 8, 14).isPlausible(today))
+        assertEquals("cette date est dans l'avenir", born(2026, 8, 14).dateProblem(today))
+    }
+
+    @Test
+    fun `un mineur ne forge pas de noyau`() {
+        // La veille des 18 ans : refusé. Le jour même : accepté.
+        assertFalse(born(2008, 8, 13).isPlausible(today))
+        assertTrue(born(2008, 8, 12).isPlausible(today))
+    }
+
+    @Test
+    fun `au-dela de 120 ans, c'est une faute de frappe`() {
+        assertFalse(born(1906, 8, 11).isPlausible(today))
+        assertTrue(born(1906, 8, 12).isPlausible(today))
+    }
+
+    @Test
+    fun `une date impossible au calendrier n'est jamais plausible`() {
+        // 31 février : le sélecteur ne le propose pas, une fiche restaurée le peut.
+        assertFalse(born(1985, 2, 31).isPlausible(today))
+    }
+
+    @Test
+    fun `une date tenable ne signale aucun probleme`() {
+        assertTrue(BirthData.Sample.isPlausible(today))
+        assertNull(BirthData.Sample.dateProblem(today))
     }
 
     @Test
