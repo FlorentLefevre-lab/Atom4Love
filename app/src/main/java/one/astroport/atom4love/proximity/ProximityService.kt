@@ -106,9 +106,11 @@ class ProximityService : Service() {
     override fun onCreate() {
         super.onCreate()
         val channel = NotificationChannel(
-            CHANNEL_ID, "Balise de proximité", NotificationManager.IMPORTANCE_LOW,
+            CHANNEL_ID,
+            getString(R.string.beacon_channel_name),
+            NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = "Présence de la balise ATOM4LOVE et noyaux à portée"
+            description = getString(R.string.beacon_channel_description)
         }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
@@ -178,12 +180,19 @@ class ProximityService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_beacon)
-            .setContentTitle("Balise de proximité active")
+            .setContentTitle(getString(R.string.beacon_notification_title))
             .setContentText(
-                when (neighborCount) {
-                    0 -> "Aucun noyau à portée pour l'instant"
-                    1 -> "1 noyau à portée"
-                    else -> "$neighborCount noyaux à portée"
+                // Une notification déjà postée garde la langue du moment où
+                // elle a été construite ; celle-ci se reconstruit à chaque
+                // changement du voisinage, ce qui la rattrape vite.
+                if (neighborCount == 0) {
+                    getString(R.string.beacon_none_in_range)
+                } else {
+                    resources.getQuantityString(
+                        R.plurals.beacon_in_range,
+                        neighborCount,
+                        neighborCount,
+                    )
                 },
             )
             .setOngoing(true)

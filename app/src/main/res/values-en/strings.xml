@@ -233,9 +233,9 @@
     <string name="wave_octave">Octave wave</string>
     <string name="wave_sex">sex %1$d</string>
     <string name="date_problem_future">that date is in the future</string>
-    <string name="date_problem_minor">Atom4Love is for adults — %1$d years old and over</string>
-    <string name="date_problem_too_old">beyond %1$d years, the date is most likely a typo</string>
-    <string name="format_gestation">%1$d days</string>
+    <string name="date_problem_minor" tools:ignore="PluralsCandidate">Atom4Love is for adults — %1$d years old and over</string>
+    <string name="date_problem_too_old" tools:ignore="PluralsCandidate">beyond %1$d years, the date is most likely a typo</string>
+    <string name="format_gestation" tools:ignore="PluralsCandidate">%1$d days</string>
     <string name="format_weight">%1$.1f kg</string>
 
     <!-- ─── 01 · Incarnation: forging the nucleus ─────────────────────── -->
@@ -326,4 +326,36 @@
     <string name="inc_key_sealed">LOVE key sealed</string>
     <string name="inc_forge_action">Forge my nucleus</string>
     <string name="inc_forge_incomplete">Complete your form to forge</string>
+
+    <string name="cabin_err_bluetooth_off">Bluetooth off</string>
+    <string name="cabin_err_bluetooth_cut">Bluetooth switched off</string>
+    <string name="cabin_err_text_too_long">text too long (max %1$d B)</string>
+    <string name="cabin_err_unreadable_attachment">unreadable attachment</string>
+    <string name="cabin_err_no_link">no link to send on</string>
+    <string name="cabin_err_no_ack">no acknowledgement from %1$s</string>
+    <string name="cabin_err_send_failed">failed to send to %1$s</string>
+    <string name="cabin_err_medium_unreachable">%1$s unreachable</string>
+    <string name="cabin_err_p2p_unreachable">Wi-Fi Direct group unreachable</string>
+    <string name="cabin_err_p2p_impossible">Wi-Fi Direct group impossible</string>
+    <string name="cabin_err_advertise_unavailable">BLE advertising unavailable</string>
+    <string name="cabin_err_advertise_refused">advertising refused (%1$d)</string>
+    <string name="cabin_err_scan_refused">scan refused (%1$d)</string>
+
+    <string name="beacon_channel_name">Proximity beacon</string>
+    <string name="beacon_channel_description">Presence of the ATOM4LOVE beacon and nuclei in range</string>
+    <string name="beacon_notification_title">Proximity beacon on</string>
+    <string name="beacon_none_in_range">No nucleus in range for now</string>
+    <plurals name="beacon_in_range">
+        <item quantity="one">%1$d nucleus in range</item>
+        <item quantity="other">%1$d nuclei in range</item>
+    </plurals>
+
+    <string name="enroll_err_no_account">no account registered on this device</string>
+    <string name="enroll_err_incomplete">incarnation form incomplete</string>
+    <string name="enroll_err_account_missing">account not found when storing the key</string>
+    <string name="enroll_err_already_bound">this data is already bound to another account</string>
+    <string name="enroll_err_no_pass">this station does not hold the PASS code for this account</string>
+    <string name="enroll_err_no_multipass">no MULTIPASS behind this address</string>
+    <string name="enroll_err_station_refused">the station refused the request</string>
+    <string name="enroll_err_station_unreachable">station unreachable</string>
 </resources>

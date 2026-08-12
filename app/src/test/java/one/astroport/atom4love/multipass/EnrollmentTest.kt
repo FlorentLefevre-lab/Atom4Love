@@ -175,7 +175,7 @@ class EnrollmentTest {
         enrollment.retryActivation(BirthData.Empty)
         val failed = enrollment.await { it is Enrollment.Step.Failed } as Enrollment.Step.Failed
 
-        assertTrue(failed.reason.contains("incomplète"))
+        assertEquals(EnrollError.IncompleteForm, failed.reason)
         assertEquals(0, server.requestCount)
     }
 }

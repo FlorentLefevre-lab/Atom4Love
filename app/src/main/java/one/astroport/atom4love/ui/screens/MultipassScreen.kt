@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import one.astroport.atom4love.BuildConfig
 import one.astroport.atom4love.R
 import one.astroport.atom4love.data.MultipassAccount
+import one.astroport.atom4love.multipass.EnrollError
 import one.astroport.atom4love.multipass.Enrollment
 import one.astroport.atom4love.ui.components.SectionLabel
 import one.astroport.atom4love.ui.components.glass
@@ -323,7 +324,7 @@ fun MultipassScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                stringResource(R.string.mp_failed, step.reason),
+                                stringResource(R.string.mp_failed, reasonText(step.reason)),
                                 style = A4LText.Caption,
                                 color = A4L.Red.copy(alpha = 0.9f),
                             )
@@ -768,3 +769,13 @@ private fun LaterButton(onClose: () -> Unit) {
         )
     }
 }
+
+/**
+ * La raison d'un échec, mise en mots. Sauf pour [EnrollError.FromStation] :
+ * ce message-là vient d'Astroport.ONE, dans la langue qu'elle a employée, et
+ * on le rend tel quel plutôt que de le taire.
+ */
+@Composable
+private fun reasonText(error: EnrollError): String =
+    EnrollError.messageRes(error)?.let { stringResource(it) }
+        ?: (error as EnrollError.FromStation).message

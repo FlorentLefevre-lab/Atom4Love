@@ -30,6 +30,13 @@ class Enrollment(
 
     companion object {
         private const val TAG = "Multipass"
+
+        /**
+         * Les langues qu'Atom4Love parle — d'accord avec `locales_config.xml`.
+         * Déclarer à la station une langue qu'on n'affiche pas soi-même ferait
+         * arriver un courriel qu'on ne saurait pas relire à l'écran.
+         */
+        private val SUPPORTED_LANGS = setOf("fr", "en", "es")
     }
 
     /** Où en est la demande. Un seul chemin, et ses embranchements d'échec. */
@@ -53,7 +60,7 @@ class Enrollment(
          * @param recoverable le MULTIPASS existe (seule l'activation a échoué) :
          *   il n'y a que la clé LOVE à redemander, jamais un compte à recréer.
          */
-        data class Failed(val reason: String, val recoverable: Boolean = false) : Step
+        data class Failed(val reason: EnrollError, val recoverable: Boolean = false) : Step
     }
 
     private val _step = MutableStateFlow<Step>(Step.Idle)
@@ -92,7 +99,7 @@ class Enrollment(
         job = scope.launch {
             val account = store.load()
             if (account == null) {
-                _step.value = Step.Failed("aucun compte enregistré sur cet appareil")
+                _step.value = Step.Failed(EnrollError.NoAccount)
                 return@launch
             }
             activate(account, birth)
@@ -115,7 +122,9 @@ class Enrollment(
         return try {
             val response = service.createMultipass(
                 email = email.trim().lowercase(),
-                lang = "fr",
+                // La station s'en sert pour ses courriels : elle doit parler
+                // la langue de qui la sollicite, pas la nôtre.
+                lang = lang(),
                 // La position du moment sert à rattacher le compte à une UMAP ;
                 // sans localisation, la station accepte des coordonnées nulles.
                 lat = coord(lat),
@@ -139,7 +148,7 @@ class Enrollment(
 
     private suspend fun activate(account: MultipassAccount, birth: BirthData) {
         if (!birth.complete) {
-            _step.value = Step.Failed("fiche d'incarnation incomplète", recoverable = true)
+            _step.value = Step.Failed(EnrollError.IncompleteForm, recoverable = true)
             return
         }
         _step.value = Step.Activating
@@ -162,13 +171,24 @@ class Enrollment(
             _step.value = if (updated != null) {
                 Step.Done(updated)
             } else {
-                Step.Failed("compte introuvable au moment d'enregistrer la clé", recoverable = true)
+                Step.Failed(EnrollError.AccountMissing, recoverable = true)
             }
         } catch (e: Exception) {
             Log.w(TAG, "activation ATOM4LOVE refusée", e)
             _step.value = Step.Failed(humanReadable(e), recoverable = true)
         }
     }
+
+    /**
+     * La langue à déclarer à la station. C'est elle qui écrit les courriels —
+     * dont celui qui porte le code PASS —, et elle ne peut le faire que dans
+     * une langue qu'on lui nomme. On prend la langue **affichée**, celle que
+     * l'utilisateur a choisie dans l'en-tête ou dans les réglages d'Android,
+     * et on retombe sur le français quand ce n'en est aucune des trois : c'est
+     * la langue source de l'application, celle de `values/`.
+     */
+    private fun lang(): String =
+        Locale.getDefault().language.takeIf { it in SUPPORTED_LANGS } ?: "fr"
 
     /** « AAAA-MM-JJTHH:MM » — l'heure d'horloge du lieu de naissance. */
     private fun birthDatetime(b: BirthData): String = String.format(
@@ -180,14 +200,16 @@ class Enrollment(
     private fun coord(value: Double?): String =
         if (value == null) "0.00" else String.format(Locale.US, "%.6f", value)
 
-    private fun humanReadable(e: Exception): String = when (e) {
-        is MultipassError.IdentityConflict ->
-            "ces données sont déjà rattachées à un autre compte"
-        is MultipassError.PassUnavailable ->
-            "cette station ne détient pas le code PASS de ce compte"
-        is MultipassError.PrimaryAccountNotFound ->
-            "aucun MULTIPASS derrière cette adresse"
-        is MultipassError -> e.message ?: "la station a refusé la demande"
-        else -> "station injoignable"
+    /**
+     * Ce que la station a refusé, en valeur. Le message brut d'une
+     * [MultipassError] vient d'elle — il n'est pas traduit et ne peut pas
+     * l'être ici, mais il vaut mieux que rien quand il existe.
+     */
+    private fun humanReadable(e: Exception): EnrollError = when (e) {
+        is MultipassError.IdentityConflict -> EnrollError.AlreadyBound
+        is MultipassError.PassUnavailable -> EnrollError.NoPass
+        is MultipassError.PrimaryAccountNotFound -> EnrollError.NoMultipass
+        is MultipassError -> e.message?.let { EnrollError.FromStation(it) } ?: EnrollError.Refused
+        else -> EnrollError.Unreachable
     }
 }

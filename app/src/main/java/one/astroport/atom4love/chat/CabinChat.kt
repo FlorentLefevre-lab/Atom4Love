@@ -292,7 +292,12 @@ class CabinChat(context: Context) {
          * montée : on ne bascule jamais dans son dos.
          */
         val offered: Medium? = null,
-        val lastError: String? = null,
+        /**
+         * Le dernier incident, **en valeur** : ce moteur n'a pas de `Context`
+         * et ne saurait pas dans quelle langue l'écrire. L'écran s'en charge
+         * ([CabinError.text]).
+         */
+        val lastError: CabinError? = null,
     )
 
     /**
@@ -629,7 +634,7 @@ class CabinChat(context: Context) {
     fun start() {
         val adapter = this.adapter
         if (adapter == null || !adapter.isEnabled) {
-            _status.update { it.copy(lastError = "Bluetooth désactivé") }
+            _status.update { it.copy(lastError = CabinError.BluetoothOff) }
             return
         }
         // journalisée pour recouper les deux bancs : la clé que le pair
@@ -719,7 +724,7 @@ class CabinChat(context: Context) {
                         runCatching { server?.close() }
                         server = null
                         _status.update {
-                            it.copy(advertising = false, scanning = false, lastError = "Bluetooth coupé")
+                            it.copy(advertising = false, scanning = false, lastError = CabinError.BluetoothCut)
                         }
                     }
                     BluetoothAdapter.STATE_ON -> scope.launch {
@@ -741,7 +746,7 @@ class CabinChat(context: Context) {
         if (content.isEmpty() || status.value.links == 0) return false
         val bytes = content.toByteArray(Charsets.UTF_8)
         if (bytes.size > MAX_TEXT_BYTES) {
-            _status.update { it.copy(lastError = "texte trop long (max $MAX_TEXT_BYTES o)") }
+            _status.update { it.copy(lastError = CabinError.TextTooLong(MAX_TEXT_BYTES)) }
             return false
         }
         val msgId = Random.nextInt()
@@ -804,7 +809,7 @@ class CabinChat(context: Context) {
                 Log.w(TAG, "pièce refusée : ${read.name} (${read.bytes} o > $limit)")
             }
             is Attachments.Read.Unreadable -> _status.update {
-                it.copy(lastError = "pièce illisible")
+                it.copy(lastError = CabinError.UnreadableAttachment)
             }
             is Attachments.Read.Ok -> {
                 if (read.bytes.size > limit) {
@@ -834,7 +839,7 @@ class CabinChat(context: Context) {
         val perAddress = routes()
         if (perAddress.isEmpty()) {
             updateMessage(msgId) { it.copy(status = ChatStatus.FAILED) }
-            _status.update { it.copy(lastError = "aucun lien pour émettre") }
+            _status.update { it.copy(lastError = CabinError.NoLink) }
             return
         }
         // Texte : tout le monde (léger). Image/fichier : la contrainte est
@@ -1333,7 +1338,7 @@ class CabinChat(context: Context) {
             }
             if (lost) {
                 Log.w(TAG, "message $msgId sans accusé après ${wait / 1000} s : perdu")
-                _status.update { it.copy(lastError = "sans accusé de ${address.takeLast(5)}") }
+                _status.update { it.copy(lastError = CabinError.NoAck(address.takeLast(5))) }
             }
         }
     }
@@ -1345,7 +1350,7 @@ class CabinChat(context: Context) {
             sentAtMs.remove(out.msgId)
             ackWatchdogs.remove(out.msgId)?.cancel()
             updateMessage(out.msgId) { it.copy(status = ChatStatus.FAILED) }
-            _status.update { it.copy(lastError = "échec d'envoi vers ${link.address.takeLast(5)}") }
+            _status.update { it.copy(lastError = CabinError.SendFailed(link.address.takeLast(5))) }
         }
     }
 
@@ -1717,7 +1722,7 @@ class CabinChat(context: Context) {
             // en toute bonne foi. C'est l'échec qui fait descendre l'échelle
             // d'un cran vers le Direct — pas l'absence d'annonce.
             unreachable.add(medium)
-            _status.update { it.copy(lastError = "${medium.short} injoignable") }
+            _status.update { it.copy(lastError = CabinError.MediumUnreachable(medium)) }
             refreshLinks()
             return
         }
@@ -1847,7 +1852,7 @@ class CabinChat(context: Context) {
     private suspend fun joinGroup(who: String) {
         val (credentials, port) = groupOffers[who] ?: return
         if (!p2p.join(credentials)) {
-            _status.update { it.copy(lastError = "groupe Wi-Fi Direct injoignable") }
+            _status.update { it.copy(lastError = CabinError.P2pUnreachable) }
             return
         }
         inGroup = true
@@ -1862,7 +1867,7 @@ class CabinChat(context: Context) {
     private suspend fun hostGroup() {
         if (listenPort == 0) return
         val credentials = p2p.host() ?: run {
-            _status.update { it.copy(lastError = "groupe Wi-Fi Direct impossible") }
+            _status.update { it.copy(lastError = CabinError.P2pImpossible) }
             return
         }
         inGroup = true
@@ -2060,7 +2065,7 @@ class CabinChat(context: Context) {
 
     private fun startAdvertising() {
         val advertiser = adapter?.bluetoothLeAdvertiser ?: run {
-            _status.update { it.copy(lastError = "annonce BLE indisponible") }
+            _status.update { it.copy(lastError = CabinError.AdvertiseUnavailable) }
             return
         }
         val callback = object : AdvertiseCallback() {
@@ -2070,7 +2075,7 @@ class CabinChat(context: Context) {
             }
 
             override fun onStartFailure(errorCode: Int) {
-                _status.update { it.copy(lastError = "annonce refusée ($errorCode)") }
+                _status.update { it.copy(lastError = CabinError.AdvertiseRefused(errorCode)) }
             }
         }
         advertiseCallback = callback
@@ -2104,7 +2109,7 @@ class CabinChat(context: Context) {
             }
 
             override fun onScanFailed(errorCode: Int) {
-                _status.update { it.copy(scanning = false, lastError = "scan refusé ($errorCode)") }
+                _status.update { it.copy(scanning = false, lastError = CabinError.ScanRefused(errorCode)) }
             }
         }
         scanCallback = callback

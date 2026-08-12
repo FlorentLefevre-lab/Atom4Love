@@ -264,11 +264,11 @@
     <string name="wave_sex">sexe %1$d</string>
     <!-- Ce qui cloche dans une date saisie. Trois cas, jamais concaténés. -->
     <string name="date_problem_future">cette date est dans l\'avenir</string>
-    <string name="date_problem_minor">Atom4Love s\'adresse aux majeurs — %1$d ans révolus</string>
-    <string name="date_problem_too_old">au-delà de %1$d ans, la date est sans doute une faute de frappe</string>
+    <string name="date_problem_minor" tools:ignore="PluralsCandidate">Atom4Love s\'adresse aux majeurs — %1$d ans révolus</string>
+    <string name="date_problem_too_old" tools:ignore="PluralsCandidate">au-delà de %1$d ans, la date est sans doute une faute de frappe</string>
     <!-- Les formats d\'affichage suivent la langue. Le SALT, lui, reste en
          Locale.US : un test le verrouille. -->
-    <string name="format_gestation">%1$d jours</string>
+    <string name="format_gestation" tools:ignore="PluralsCandidate">%1$d jours</string>
     <string name="format_weight">%1$.1f kg</string>
 
     <!-- ─── 01 · Incarnation : la forge du noyau ──────────────────────── -->
@@ -282,8 +282,8 @@
     <string name="forge_step_singularity_sub">la trace originelle, calculée pour vous</string>
     <string name="forge_step_forge">Forger</string>
     <string name="forge_step_forge_sub">dernière relecture avant le scellement</string>
-    <string name="forge_step_header">%1$s  %2$s</string>
-    <string name="forge_next">%1$s  →</string>
+    <string name="forge_step_header" translatable="false">%1$s  %2$s</string>
+    <string name="forge_next" translatable="false">%1$s  →</string>
 
     <string name="inc_lead">Au moment exact de votre naissance, la Terre occupait une position précise dans l\'espace-temps. Votre noyau s\'en dérive : le même instant donne toujours la même clé, sur n\'importe quelle station.</string>
     <string name="inc_no_account_title">Ni compte, ni mot de passe</string>
@@ -316,7 +316,7 @@
     <string name="inc_row_gestation">Gestation</string>
     <string name="inc_row_portal">Portail Goldberg</string>
     <string name="inc_birth_datetime">%1$02d/%2$02d/%3$04d à %4$02d:%5$02d</string>
-    <string name="inc_wave_value">%1$s %2$s</string>
+    <string name="inc_wave_value" translatable="false">%1$s %2$s</string>
 
     <string name="inc_confirm_title">Vérifiez votre incarnation</string>
     <string name="inc_confirm_body">Votre noyau va être scellé avec ces cinq données. Après, plus rien n\'est modifiable.</string>
@@ -348,7 +348,7 @@
     <string name="inc_provisional_note">La clé forgée ici est provisoire : elle vous suffit à portée d\'antenne. Votre clé LOVE, elle, sera dérivée par une station Astroport.ONE le jour où vous ouvrirez un MULTIPASS.</string>
     <string name="inc_multipass_active">MULTIPASS actif · clé LOVE en place</string>
     <string name="inc_multipass_open">Ouvrir un MULTIPASS sur AstroPort.ONE</string>
-    <string name="inc_footer">Atom4Love · by AstroPort.ONE</string>
+    <string name="inc_footer" translatable="false">Atom4Love · by AstroPort.ONE</string>
 
     <string name="inc_salt">salt %1$s</string>
     <string name="inc_salt_incomplete">salt — fiche incomplète</string>
@@ -366,5 +366,43 @@
     <string name="inc_forge_incomplete">Complétez votre fiche pour forger</string>
     <!-- Le problème de date, mis en tête de phrase : « cette date… » devient
          « Cette date… ». -->
-    <string name="inc_date_problem">%1$s.</string>
+    <string name="inc_date_problem" translatable="false">%1$s.</string>
+
+    <!-- ─── Ce que la cabine signale quand ça se passe mal ────────────── -->
+    <!-- Ces phrases naissent dans le moteur, qui n'a pas de Context : il rend
+         une valeur (CabinError), l'écran l'écrit. -->
+    <string name="cabin_err_bluetooth_off">Bluetooth désactivé</string>
+    <string name="cabin_err_bluetooth_cut">Bluetooth coupé</string>
+    <string name="cabin_err_text_too_long">texte trop long (max %1$d o)</string>
+    <string name="cabin_err_unreadable_attachment">pièce illisible</string>
+    <string name="cabin_err_no_link">aucun lien pour émettre</string>
+    <string name="cabin_err_no_ack">sans accusé de %1$s</string>
+    <string name="cabin_err_send_failed">échec d\'envoi vers %1$s</string>
+    <string name="cabin_err_medium_unreachable">%1$s injoignable</string>
+    <string name="cabin_err_p2p_unreachable">groupe Wi-Fi Direct injoignable</string>
+    <string name="cabin_err_p2p_impossible">groupe Wi-Fi Direct impossible</string>
+    <string name="cabin_err_advertise_unavailable">annonce BLE indisponible</string>
+    <string name="cabin_err_advertise_refused">annonce refusée (%1$d)</string>
+    <string name="cabin_err_scan_refused">scan refusé (%1$d)</string>
+
+    <!-- ─── La balise, dans la zone de notification ───────────────────── -->
+    <string name="beacon_channel_name">Balise de proximité</string>
+    <string name="beacon_channel_description">Présence de la balise ATOM4LOVE et noyaux à portée</string>
+    <string name="beacon_notification_title">Balise de proximité active</string>
+    <string name="beacon_none_in_range">Aucun noyau à portée pour l\'instant</string>
+    <plurals name="beacon_in_range">
+        <item quantity="one">%1$d noyau à portée</item>
+        <item quantity="many">%1$d noyaux à portée</item>
+        <item quantity="other">%1$d noyaux à portée</item>
+    </plurals>
+
+    <!-- ─── Ce que la station refuse, et pourquoi ─────────────────────── -->
+    <string name="enroll_err_no_account">aucun compte enregistré sur cet appareil</string>
+    <string name="enroll_err_incomplete">fiche d\'incarnation incomplète</string>
+    <string name="enroll_err_account_missing">compte introuvable au moment d\'enregistrer la clé</string>
+    <string name="enroll_err_already_bound">ces données sont déjà rattachées à un autre compte</string>
+    <string name="enroll_err_no_pass">cette station ne détient pas le code PASS de ce compte</string>
+    <string name="enroll_err_no_multipass">aucun MULTIPASS derrière cette adresse</string>
+    <string name="enroll_err_station_refused">la station a refusé la demande</string>
+    <string name="enroll_err_station_unreachable">station injoignable</string>
 </resources>

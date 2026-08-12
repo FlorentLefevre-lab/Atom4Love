@@ -82,6 +82,7 @@ import android.widget.Toast
 import one.astroport.atom4love.chat.Attachments
 import one.astroport.atom4love.chat.ChatSounds
 import one.astroport.atom4love.chat.CabinChat
+import one.astroport.atom4love.chat.CabinError
 import one.astroport.atom4love.chat.Medium
 import one.astroport.atom4love.chat.ui.ChatPanel
 import one.astroport.atom4love.nostr.NostrKeys
@@ -909,7 +910,7 @@ private fun CabinDirectPanel(chat: CabinChat) {
                     status.links > 0 -> append(stringResource(R.string.cabin_someone_unnamed))
                     else -> append(stringResource(R.string.cabin_nobody_in_range))
                 }
-                status.lastError?.let { append("  ·  $it") }
+                status.lastError?.let { append("  ·  ${it.text()}") }
             },
             style = A4LText.Caption,
             color = if (status.links > 0) A4L.Mint else A4L.TextMuted,
@@ -1075,3 +1076,15 @@ private fun CabinSalonPanel(
 
 /** Le salon montre les dernières pensées sans envahir l'écran du Radar. */
 private const val SALON_VISIBLE_PENSEES = 12
+
+/**
+ * Un [CabinError] mis en mots, ici et maintenant. Le moteur a dit lequel ;
+ * c'est cette ligne qui choisit la langue, et elle change avec elle.
+ */
+@Composable
+private fun CabinError.text(): String =
+    if (args.isEmpty()) {
+        stringResource(messageRes)
+    } else {
+        stringResource(messageRes, *args.toTypedArray())
+    }
