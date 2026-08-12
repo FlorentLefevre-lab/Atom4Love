@@ -93,4 +93,50 @@
     <string name="size_megabytes">%1$.1f Mo</string>
     <string name="size_kilobytes">%1$.0f Ko</string>
     <string name="size_bytes">%1$d o</string>
+
+    <!-- ─── 04 · Résonance : valence, liaisons, ionisation ────────────── -->
+    <string name="resonance_title">Résonance</string>
+    <string name="resonance_valence_stable">Votre valence est stable</string>
+    <string name="resonance_valence_detail">18 abonnements · 21 abonnés. Deux liaisons de plus et vous saturez.</string>
+    <string name="resonance_in_your_portal">Dans votre portail</string>
+    <string name="resonance_attest">Attester</string>
+    <string name="resonance_open_channel">Ouvrir un canal</string>
+    <string name="bond_covalent">COVALENT</string>
+    <string name="bond_network" translatable="false">N2</string>
+    <string name="bond_ionised">IONISÉ</string>
+    <!-- Liaisons de démonstration : l'écran est encore une maquette, mais ce
+         qu'elle montre s'affiche vraiment et se lit donc dans la langue. -->
+    <string name="resonance_demo_bond1_title">Onde Octave · KIN 44</string>
+    <string name="resonance_demo_bond1_detail">npub1h8p…2a19 · 1,2 km</string>
+    <string name="resonance_demo_bond2_title">Onde Φ · KIN 12</string>
+    <string name="resonance_demo_bond2_detail">npub1c7k…9d31 · même hexagone</string>
+    <string name="resonance_demo_bond3_title">Onde Octave · KIN 91</string>
+    <string name="resonance_demo_bond3_detail">npub1t2m…5b80 · 640 m</string>
+
+    <!-- ─── 03 · Plateau « Qui est-ce ? » ─────────────────────────────── -->
+    <string name="board_title">Qui est-ce ?</string>
+    <string name="board_relay_cards">relay · 41 cartes</string>
+    <string name="board_filter_pentagon">🌀 Pentagone</string>
+    <string name="board_filter_nearby">📍 Proche</string>
+    <string name="board_filter_contacts">🤝 Contacts</string>
+    <string name="board_filter_n2" translatable="false">🔗 N2</string>
+    <string name="board_you">Vous</string>
+    <string name="board_nucleus_revealed">Noyau révélé</string>
+    <string name="board_card_played">Carte déposée</string>
+    <string name="board_npub_hidden">npub masqué</string>
+    <string name="board_empty_slot">Déposez une seconde carte</string>
+    <string name="board_live_analysis">Analyse en direct</string>
+    <string name="board_state_revealed">révélé · 2/2</string>
+    <string name="board_state_ready">prêt · 2/2</string>
+    <string name="board_state_waiting">en attente · 1/2</string>
+    <string name="board_harmony">💜 Harmonie</string>
+    <string name="board_friction">🔥 Friction</string>
+    <!-- « 18 % » en français, « 18% » en anglais : l'espace est une règle de
+         langue. Le %% est un pour cent littéral, pas un format. -->
+    <string name="board_percent">%1$d %%</string>
+    <string name="board_your_hand">Votre main</string>
+    <string name="board_hint_play">touchez une carte pour la déposer</string>
+    <string name="board_hint_take_back">touchez la carte déposée pour la reprendre</string>
+    <string name="board_reveal">Révéler</string>
+    <string name="board_revealed">Révélé</string>
 </resources>

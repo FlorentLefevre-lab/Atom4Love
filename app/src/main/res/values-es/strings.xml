@@ -74,4 +74,44 @@
     <string name="size_megabytes">%1$.1f MB</string>
     <string name="size_kilobytes">%1$.0f KB</string>
     <string name="size_bytes">%1$d B</string>
+
+    <!-- ─── 04 · Resonancia ───────────────────────────────────────────── -->
+    <string name="resonance_title">Resonancia</string>
+    <string name="resonance_valence_stable">Tu valencia es estable</string>
+    <string name="resonance_valence_detail">18 seguidos · 21 seguidores. Dos enlaces más y te saturas.</string>
+    <string name="resonance_in_your_portal">En tu portal</string>
+    <string name="resonance_attest">Atestiguar</string>
+    <string name="resonance_open_channel">Abrir un canal</string>
+    <string name="bond_covalent">COVALENTE</string>
+    <string name="bond_ionised">IONIZADO</string>
+    <string name="resonance_demo_bond1_title">Onda Octava · KIN 44</string>
+    <string name="resonance_demo_bond1_detail">npub1h8p…2a19 · 1,2 km</string>
+    <string name="resonance_demo_bond2_title">Onda Φ · KIN 12</string>
+    <string name="resonance_demo_bond2_detail">npub1c7k…9d31 · mismo hexágono</string>
+    <string name="resonance_demo_bond3_title">Onda Octava · KIN 91</string>
+    <string name="resonance_demo_bond3_detail">npub1t2m…5b80 · 640 m</string>
+
+    <!-- ─── 03 · El tablero «¿Quién es?» ──────────────────────────────── -->
+    <string name="board_title">¿Quién es?</string>
+    <string name="board_relay_cards">relé · 41 cartas</string>
+    <string name="board_filter_pentagon">🌀 Pentágono</string>
+    <string name="board_filter_nearby">📍 Cerca</string>
+    <string name="board_filter_contacts">🤝 Contactos</string>
+    <string name="board_you">Tú</string>
+    <string name="board_nucleus_revealed">Núcleo revelado</string>
+    <string name="board_card_played">Carta depositada</string>
+    <string name="board_npub_hidden">npub oculto</string>
+    <string name="board_empty_slot">Deposita una segunda carta</string>
+    <string name="board_live_analysis">Análisis en directo</string>
+    <string name="board_state_revealed">revelado · 2/2</string>
+    <string name="board_state_ready">listo · 2/2</string>
+    <string name="board_state_waiting">esperando · 1/2</string>
+    <string name="board_harmony">💜 Armonía</string>
+    <string name="board_friction">🔥 Fricción</string>
+    <string name="board_percent">%1$d %%</string>
+    <string name="board_your_hand">Tu mano</string>
+    <string name="board_hint_play">toca una carta para depositarla</string>
+    <string name="board_hint_take_back">toca la carta depositada para recuperarla</string>
+    <string name="board_reveal">Revelar</string>
+    <string name="board_revealed">Revelado</string>
 </resources>

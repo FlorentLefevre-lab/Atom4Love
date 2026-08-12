@@ -1,5 +1,6 @@
 package one.astroport.atom4love.ui.screens
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,7 +25,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
+import one.astroport.atom4love.R
 import one.astroport.atom4love.ui.components.DataBadge
 import one.astroport.atom4love.ui.components.SectionLabel
 import one.astroport.atom4love.ui.components.glass
@@ -34,23 +37,43 @@ import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.tint
 
 /** État d'une liaison entre deux noyaux. */
-private enum class BondState(val label: String, val color: Color) {
-    Covalent("COVALENT", A4L.Mint),
-    Network("N2", Color.White),
-    Ionised("IONISÉ", A4L.Orange),
+private enum class BondState(@StringRes val labelRes: Int, val color: Color) {
+    Covalent(R.string.bond_covalent, A4L.Mint),
+    Network(R.string.bond_network, Color.White),
+    Ionised(R.string.bond_ionised, A4L.Orange),
 }
 
+/**
+ * Une liaison telle qu'elle s'affiche. Titre et détail sont des ressources et
+ * non des phrases : cet écran est encore une maquette, mais ce qu'elle montre
+ * s'affiche pour de vrai, et doit donc se lire dans la langue choisie.
+ */
 private data class Bond(
     val score: Int,
-    val title: String,
-    val detail: String,
+    @StringRes val title: Int,
+    @StringRes val detail: Int,
     val state: BondState,
 )
 
 private val BONDS = listOf(
-    Bond(91, "Onde Octave · KIN 44", "npub1h8p…2a19 · 1,2 km", BondState.Covalent),
-    Bond(74, "Onde Φ · KIN 12", "npub1c7k…9d31 · même hexagone", BondState.Network),
-    Bond(58, "Onde Octave · KIN 91", "npub1t2m…5b80 · 640 m", BondState.Ionised),
+    Bond(
+        91,
+        R.string.resonance_demo_bond1_title,
+        R.string.resonance_demo_bond1_detail,
+        BondState.Covalent,
+    ),
+    Bond(
+        74,
+        R.string.resonance_demo_bond2_title,
+        R.string.resonance_demo_bond2_detail,
+        BondState.Network,
+    ),
+    Bond(
+        58,
+        R.string.resonance_demo_bond3_title,
+        R.string.resonance_demo_bond3_detail,
+        BondState.Ionised,
+    ),
 )
 
 /**
@@ -77,7 +100,7 @@ fun ResonanceScreen(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Résonance", style = A4LText.Title, color = A4L.TextHigh)
+            Text(stringResource(R.string.resonance_title), style = A4LText.Title, color = A4L.TextHigh)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 DataBadge("🔑 a4l", A4L.Cyan, border = A4L.Cyan.tint(0.35f))
                 DataBadge("⚡ 42,0 ẑen", A4L.Amber, border = A4L.Amber.tint(0.30f))
@@ -97,12 +120,12 @@ fun ResonanceScreen(modifier: Modifier = Modifier) {
             Spacer(Modifier.width(14.dp))
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
-                    "Votre valence est stable",
+                    stringResource(R.string.resonance_valence_stable),
                     style = A4LText.ItemTitle,
                     color = A4L.TextHigh,
                 )
                 Text(
-                    "18 abonnements · 21 abonnés. Deux liaisons de plus et vous saturez.",
+                    stringResource(R.string.resonance_valence_detail),
                     style = A4LText.Caption,
                     color = A4L.TextMuted,
                 )
@@ -117,7 +140,7 @@ fun ResonanceScreen(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            SectionLabel("Dans votre portail")
+            SectionLabel(stringResource(R.string.resonance_in_your_portal))
             Text(
                 "P02 · Sirius",
                 style = A4LText.Caption.copy(fontSize = 11.sp),
@@ -187,12 +210,16 @@ private fun CovalentBondCard(bond: Bond) {
             )
             Spacer(Modifier.width(13.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(bond.title, style = A4LText.ItemTitle, color = A4L.TextHigh)
-                Text(bond.detail, style = A4LText.Data, color = A4L.TextMuted.copy(alpha = 0.38f))
+                Text(stringResource(bond.title), style = A4LText.ItemTitle, color = A4L.TextHigh)
+                Text(
+                    stringResource(bond.detail),
+                    style = A4LText.Data,
+                    color = A4L.TextMuted.copy(alpha = 0.38f),
+                )
             }
             Spacer(Modifier.width(8.dp))
             DataBadge(
-                bond.state.label,
+                stringResource(bond.state.labelRes),
                 bond.state.color,
                 background = bond.state.color.tint(0.14f),
                 border = null,
@@ -200,8 +227,18 @@ private fun CovalentBondCard(bond: Bond) {
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BondAction("Attester", A4L.Mint, primary = true, modifier = Modifier.weight(1f))
-            BondAction("Ouvrir un canal", Color.White, primary = false, modifier = Modifier.weight(1f))
+            BondAction(
+                stringResource(R.string.resonance_attest),
+                A4L.Mint,
+                primary = true,
+                modifier = Modifier.weight(1f),
+            )
+            BondAction(
+                stringResource(R.string.resonance_open_channel),
+                Color.White,
+                primary = false,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
@@ -224,23 +261,23 @@ private fun BondRow(bond: Bond) {
         Spacer(Modifier.width(13.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                bond.title,
+                stringResource(bond.title),
                 style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.TextHigh,
             )
-            Text(bond.detail, style = A4LText.Data, color = A4L.TextDim)
+            Text(stringResource(bond.detail), style = A4LText.Data, color = A4L.TextDim)
         }
         Spacer(Modifier.width(8.dp))
         when (bond.state) {
             BondState.Ionised -> DataBadge(
-                bond.state.label,
+                stringResource(bond.state.labelRes),
                 A4L.Orange,
                 background = A4L.Orange.tint(0.12f),
                 border = A4L.Orange.tint(0.30f),
                 radius = 7.dp,
             )
             else -> DataBadge(
-                bond.state.label,
+                stringResource(bond.state.labelRes),
                 A4L.TextBody.copy(alpha = 0.45f),
                 background = Color.White.copy(alpha = 0.06f),
                 border = null,

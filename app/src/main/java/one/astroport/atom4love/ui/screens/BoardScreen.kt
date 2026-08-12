@@ -37,9 +37,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import one.astroport.atom4love.R
 import one.astroport.atom4love.domain.AtomCard
 import one.astroport.atom4love.domain.Wave
 import one.astroport.atom4love.domain.resonanceBetween
@@ -55,7 +57,12 @@ import one.astroport.atom4love.ui.theme.tint
 /** Une carte en main : le noyau plus la teinte qui le distingue sur le plateau. */
 private data class DealtCard(val card: AtomCard, val accent: Color)
 
-private val BOARD_FILTERS = listOf("🌀 Pentagone", "📍 Proche", "🤝 Contacts", "🔗 N2")
+private val BOARD_FILTERS = listOf(
+    R.string.board_filter_pentagon,
+    R.string.board_filter_nearby,
+    R.string.board_filter_contacts,
+    R.string.board_filter_n2,
+)
 
 /**
  * 03 · Plateau « Qui est-ce ? »
@@ -68,8 +75,9 @@ private val BOARD_FILTERS = listOf("🌀 Pentagone", "📍 Proche", "🤝 Contac
 fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
 
     // Le npub réel (tronqué) une fois la clé forgée ; celui de la maquette sinon.
-    val you = remember(npub) {
-        AtomCard(kin = 168, wave = Wave.Phi, holder = "Vous", npub = npub ?: "npub1q4v…7f6c")
+    val youLabel = stringResource(R.string.board_you)
+    val you = remember(npub, youLabel) {
+        AtomCard(kin = 168, wave = Wave.Phi, holder = youLabel, npub = npub ?: "npub1q4v…7f6c")
     }
     val hand = remember {
         mutableStateListOf(
@@ -113,9 +121,17 @@ fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("🎴", fontSize = 13.sp)
                 Spacer(Modifier.width(7.dp))
-                Text("Qui est-ce ?", style = A4LText.Title, color = A4L.TextHigh)
+                Text(
+                    stringResource(R.string.board_title),
+                    style = A4LText.Title,
+                    color = A4L.TextHigh,
+                )
             }
-            Text("relay · 41 cartes", style = A4LText.Data.copy(fontSize = 10.sp), color = A4L.TextDim)
+            Text(
+                stringResource(R.string.board_relay_cards),
+                style = A4LText.Data.copy(fontSize = 10.sp),
+                color = A4L.TextDim,
+            )
         }
 
         // ── Filtres ───────────────────────────────────────────────────────
@@ -129,7 +145,7 @@ fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
         ) {
             BOARD_FILTERS.forEachIndexed { index, label ->
                 A4LChip(
-                    label = label,
+                    label = stringResource(label),
                     selected = index == selectedFilter,
                     modifier = Modifier.clickable { selectedFilter = index },
                 )
@@ -150,7 +166,7 @@ fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
                 BoardCard(
                     card = you,
                     accent = A4L.Indigo,
-                    title = "Vous",
+                    title = youLabel,
                     subtitle = you.npub.orEmpty(),
                     modifier = Modifier.weight(1f),
                 )
@@ -161,8 +177,18 @@ fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
                     BoardCard(
                         card = onBoard.card,
                         accent = onBoard.accent,
-                        title = if (revealed) "Noyau révélé" else "Carte déposée",
-                        subtitle = if (revealed) onBoard.card.npub.orEmpty() else "npub masqué",
+                        title = stringResource(
+                            if (revealed) {
+                                R.string.board_nucleus_revealed
+                            } else {
+                                R.string.board_card_played
+                            },
+                        ),
+                        subtitle = if (revealed) {
+                            onBoard.card.npub.orEmpty()
+                        } else {
+                            stringResource(R.string.board_npub_hidden)
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .clickable {
@@ -184,25 +210,27 @@ fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    SectionLabel("Analyse en direct")
+                    SectionLabel(stringResource(R.string.board_live_analysis))
                     Text(
-                        when {
-                            revealed -> "révélé · 2/2"
-                            placed != null -> "prêt · 2/2"
-                            else -> "en attente · 1/2"
-                        },
+                        stringResource(
+                            when {
+                                revealed -> R.string.board_state_revealed
+                                placed != null -> R.string.board_state_ready
+                                else -> R.string.board_state_waiting
+                            },
+                        ),
                         style = A4LText.Data,
                         color = if (placed != null) A4L.Cyan.copy(alpha = 0.6f) else A4L.TextGhost,
                     )
                 }
                 AnalysisBar(
-                    label = "💜 Harmonie",
+                    label = stringResource(R.string.board_harmony),
                     value = resonance?.harmony,
                     fraction = harmony,
                     accent = A4L.Violet,
                 )
                 AnalysisBar(
-                    label = "🔥 Friction",
+                    label = stringResource(R.string.board_friction),
                     value = resonance?.friction,
                     fraction = friction,
                     accent = A4L.Orange,
@@ -222,9 +250,15 @@ fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SectionLabel("Votre main")
+                SectionLabel(stringResource(R.string.board_your_hand))
                 Text(
-                    if (placed == null) "touchez une carte pour la déposer" else "touchez la carte déposée pour la reprendre",
+                    stringResource(
+                        if (placed == null) {
+                            R.string.board_hint_play
+                        } else {
+                            R.string.board_hint_take_back
+                        },
+                    ),
                     style = A4LText.Caption.copy(fontSize = 11.sp),
                     color = A4L.TextDim.copy(alpha = 0.30f),
                 )
@@ -321,7 +355,7 @@ private fun EmptySlot(modifier: Modifier = Modifier) {
     ) {
         Text("＋", fontSize = 20.sp, color = A4L.TextHigh, modifier = Modifier.alpha(0.45f * t))
         Text(
-            "Déposez une seconde carte",
+            stringResource(R.string.board_empty_slot),
             style = A4LText.Caption,
             color = A4L.TextDim.copy(alpha = 0.38f),
         )
@@ -339,7 +373,7 @@ private fun AnalysisBar(label: String, value: Int?, fraction: Float, accent: Col
         ) {
             Text(label, style = A4LText.Body, color = A4L.TextBody.copy(alpha = 0.62f))
             Text(
-                value?.let { "$it %" } ?: "— —",
+                value?.let { stringResource(R.string.board_percent, it) } ?: "— —",
                 style = A4LText.Data.copy(fontSize = 12.sp),
                 color = if (value == null) A4L.TextDim.copy(alpha = 0.3f) else accent,
             )
@@ -419,7 +453,7 @@ private fun RevealButton(enabled: Boolean, revealed: Boolean, onClick: () -> Uni
             Text(if (revealed) "🔓" else "⚡", fontSize = 14.sp)
             Spacer(Modifier.width(8.dp))
             Text(
-                if (revealed) "Révélé" else "Révéler",
+                stringResource(if (revealed) R.string.board_revealed else R.string.board_reveal),
                 style = A4LText.Body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
                 color = if (enabled || revealed) accent else A4L.TextDim.copy(alpha = 0.35f),
             )

@@ -72,4 +72,44 @@
     <string name="size_megabytes">%1$.1f MB</string>
     <string name="size_kilobytes">%1$.0f KB</string>
     <string name="size_bytes">%1$d B</string>
+
+    <!-- ─── 04 · Resonance ────────────────────────────────────────────── -->
+    <string name="resonance_title">Resonance</string>
+    <string name="resonance_valence_stable">Your valence is stable</string>
+    <string name="resonance_valence_detail">18 following · 21 followers. Two more bonds and you saturate.</string>
+    <string name="resonance_in_your_portal">In your portal</string>
+    <string name="resonance_attest">Attest</string>
+    <string name="resonance_open_channel">Open a channel</string>
+    <string name="bond_covalent">COVALENT</string>
+    <string name="bond_ionised">IONISED</string>
+    <string name="resonance_demo_bond1_title">Octave wave · KIN 44</string>
+    <string name="resonance_demo_bond1_detail">npub1h8p…2a19 · 1.2 km</string>
+    <string name="resonance_demo_bond2_title">Φ wave · KIN 12</string>
+    <string name="resonance_demo_bond2_detail">npub1c7k…9d31 · same hexagon</string>
+    <string name="resonance_demo_bond3_title">Octave wave · KIN 91</string>
+    <string name="resonance_demo_bond3_detail">npub1t2m…5b80 · 640 m</string>
+
+    <!-- ─── 03 · The "Who is it?" board ───────────────────────────────── -->
+    <string name="board_title">Who is it?</string>
+    <string name="board_relay_cards">relay · 41 cards</string>
+    <string name="board_filter_pentagon">🌀 Pentagon</string>
+    <string name="board_filter_nearby">📍 Nearby</string>
+    <string name="board_filter_contacts">🤝 Contacts</string>
+    <string name="board_you">You</string>
+    <string name="board_nucleus_revealed">Nucleus revealed</string>
+    <string name="board_card_played">Card played</string>
+    <string name="board_npub_hidden">npub hidden</string>
+    <string name="board_empty_slot">Play a second card</string>
+    <string name="board_live_analysis">Live analysis</string>
+    <string name="board_state_revealed">revealed · 2/2</string>
+    <string name="board_state_ready">ready · 2/2</string>
+    <string name="board_state_waiting">waiting · 1/2</string>
+    <string name="board_harmony">💜 Harmony</string>
+    <string name="board_friction">🔥 Friction</string>
+    <string name="board_percent">%1$d%%</string>
+    <string name="board_your_hand">Your hand</string>
+    <string name="board_hint_play">tap a card to play it</string>
+    <string name="board_hint_take_back">tap the played card to take it back</string>
+    <string name="board_reveal">Reveal</string>
+    <string name="board_revealed">Revealed</string>
 </resources>
