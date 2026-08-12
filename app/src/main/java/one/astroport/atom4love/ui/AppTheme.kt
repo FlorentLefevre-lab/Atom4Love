@@ -31,13 +31,13 @@ object AppTheme {
      * la préférence ne change que par le geste qui est juste là.
      */
     private var loaded = false
-    var dark by mutableStateOf(true)
+    var dark by mutableStateOf(false)
         private set
 
-    /** La nuit tant que rien n'a été choisi : c'est le thème d'origine. */
+    /** **Le jour tant que rien n'a été choisi** : c'est la station à l'ouverture. */
     fun load(context: Context) {
         if (loaded) return
-        dark = prefs(context).getBoolean(KEY_DARK, true)
+        dark = prefs(context).getBoolean(KEY_DARK, false)
         loaded = true
     }
 

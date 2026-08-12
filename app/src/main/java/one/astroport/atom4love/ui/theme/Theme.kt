@@ -66,7 +66,7 @@ private fun schemeOf(p: A4LPalette) = if (p.dark) {
 }
 
 @Composable
-fun Atom4LoveTheme(dark: Boolean = true, content: @Composable () -> Unit) {
+fun Atom4LoveTheme(dark: Boolean = false, content: @Composable () -> Unit) {
     val palette = if (dark) A4LDark else A4LLight
     MaterialTheme(
         colorScheme = schemeOf(palette),

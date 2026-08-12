@@ -71,7 +71,7 @@ data class A4LPalette(
     val dark: Boolean,
 )
 
-/** La nuit — celle d'origine, et le thème servi tant que rien n'a été choisi. */
+/** La nuit — le thème d'origine de la station, servi à qui le demande. */
 val A4LDark = A4LPalette(
     void = Color(0xFF05050C),
     deep = Color(0xFF07070E),
@@ -114,7 +114,8 @@ val A4LDark = A4LPalette(
 )
 
 /**
- * Le jour — la même station, éclairée autrement.
+ * Le jour — la même station, éclairée autrement. **C'est celui qu'on sert tant
+ * que rien n'a été choisi.**
  *
  * Trois règles ont produit ces valeurs, et il faut les tenir si on en ajoute :
  *
@@ -171,7 +172,7 @@ val A4LLight = A4LPalette(
 )
 
 /** La palette du moment. Posée par `Atom4LoveTheme`, jamais ailleurs. */
-val LocalA4L = staticCompositionLocalOf { A4LDark }
+val LocalA4L = staticCompositionLocalOf { A4LLight }
 
 /**
  * La palette du thème courant, sous les noms qu'elle a toujours eus.

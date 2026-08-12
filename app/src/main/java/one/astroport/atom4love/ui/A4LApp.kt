@@ -469,15 +469,17 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
 }
 
 /**
- * L'heure à laquelle on regarde la station : une pastille, un appui.
+ * L'interrupteur du jour et de la nuit : une pastille, un appui.
  *
- * Elle montre **où l'on est** — un croissant dans la nuit, un soleil dans le
- * jour — comme les drapeaux d'à côté montrent la langue qui parle. Le geste,
- * lui, se dit à voix haute : c'est le rôle du `contentDescription`.
+ * Il montre **ce qu'il propose**, pas où l'on est — c'est ce que fait un
+ * interrupteur. Dans le jour, la lune attend qu'on la touche ; on est dans la
+ * nuit, et c'est le soleil qui attend à son tour. Les drapeaux d'à côté font
+ * l'inverse et c'est normal : eux sont trois, on désigne celui qu'on veut ;
+ * ici il n'y a qu'un seul geste possible, et il doit se lire d'un regard.
  *
- * Et c'est une pastille, pas un caractère posé là : un glyphe seul au milieu
- * d'une ligne de texte ne se donne pas pour un bouton. Le cercle vitré est
- * celui des autres boutons ronds de la station.
+ * Le soleil est jaune et un peu plus grand que son cercle — la nuit, c'est lui
+ * la lumière qu'on propose ; la lune reste dans le ton du texte, discrète comme
+ * ce qu'elle promet.
  */
 @Composable
 private fun ThemeToggle() {
@@ -485,7 +487,7 @@ private fun ThemeToggle() {
     val dark = AppTheme.dark
     Box(
         Modifier
-            .size(24.dp)
+            .size(26.dp)
             .clip(CircleShape)
             .background(A4L.Glass)
             .border(1.dp, A4L.StrokeSoft, CircleShape)
@@ -501,9 +503,9 @@ private fun ThemeToggle() {
             // U+FE0E force la présentation texte : sans lui, la police rend le
             // soleil en emoji coloré et la lune en glyphe, deux registres pour
             // un seul interrupteur
-            if (dark) "☾︎" else "☀︎",
-            style = A4LText.Data.copy(fontSize = 12.sp),
-            color = A4L.TextStrong,
+            if (dark) "☀︎" else "☾︎",
+            style = A4LText.Data.copy(fontSize = if (dark) 18.sp else 14.sp),
+            color = if (dark) A4L.Amber else A4L.TextStrong,
         )
     }
 }
