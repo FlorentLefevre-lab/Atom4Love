@@ -150,9 +150,11 @@ private fun Station(
     var account by remember { mutableStateOf<MultipassAccount?>(null) }
     var showMultipass by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { account = enrollment.restore() }
-    LaunchedEffect(enrollStep) {
-        (enrollStep as? Enrollment.Step.Done)?.let { account = it.account }
-    }
+    // Le coffre fait foi, à chaque étape et pas seulement au succès : la
+    // création réussit parfois là où l'activation échoue — le compte existe
+    // alors pour de bon, et l'écran doit le montrer plutôt qu'un formulaire
+    // vide qui inviterait à en créer un second.
+    LaunchedEffect(enrollStep) { account = enrollment.restore() }
 
     // L'identité de la station. Tant qu'aucune station ne l'a dérivée, c'est le
     // noyau provisoire — redérivé des cinq données à chaque démarrage, jamais
