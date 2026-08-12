@@ -298,36 +298,45 @@ private fun Station(
             if (showHelp) {
                 HelpScreen(modifier = modifier, onClose = { showHelp = false })
             } else {
-                IncarnationScreen(
-                    birth = birth,
-                    onBirthChange = ::updateBirth,
-                    forged = false,
-                    onForge = ::forge,
-                    modifier = modifier,
-                    relay = relayStatus,
-                    onHelp = { showHelp = true },
-                )
+                // `statusBarsPadding` ici rend celui de l'écran inoffensif :
+                // la barre de réglages prend l'encoche, l'assistant se pose
+                // dessous — c'est le montage de la station, à l'identique.
+                Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
+                    AppearanceLine()
+                    IncarnationScreen(
+                        birth = birth,
+                        onBirthChange = ::updateBirth,
+                        forged = false,
+                        onForge = ::forge,
+                        modifier = Modifier.weight(1f),
+                        relay = relayStatus,
+                        onHelp = { showHelp = true },
+                    )
+                }
             }
         } else if (showMultipass) {
             // Plein écran, comme l'aide avant la forge : ouvrir un compte n'est
             // pas une manœuvre qu'on mène d'un œil, entre deux onglets.
-            MultipassScreen(
-                step = enrollStep,
-                account = account,
-                onSubmit = { email, passCode ->
-                    scope.launch {
-                        val (lat, lon) = currentCoords()
-                        enrollment.enroll(email, birth, lat, lon, passCode)
-                    }
-                },
-                onRetryActivation = { enrollment.retryActivation(birth) },
-                onReset = { enrollment.reset() },
-                onClose = {
-                    showMultipass = false
-                    enrollment.reset()
-                },
-                modifier = modifier,
-            )
+            Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
+                AppearanceLine()
+                MultipassScreen(
+                    step = enrollStep,
+                    account = account,
+                    onSubmit = { email, passCode ->
+                        scope.launch {
+                            val (lat, lon) = currentCoords()
+                            enrollment.enroll(email, birth, lat, lon, passCode)
+                        }
+                    },
+                    onRetryActivation = { enrollment.retryActivation(birth) },
+                    onReset = { enrollment.reset() },
+                    onClose = {
+                        showMultipass = false
+                        enrollment.reset()
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+            }
         } else {
             // `statusBarsPadding` consomme l'encoche pour ses enfants : celui
             // que chaque écran pose déjà devient un no-op, sans double marge.
@@ -460,11 +469,45 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
             )
         }
         Spacer(Modifier.width(8.dp))
-        ThemeToggle()
-        if (AppLocale.selectable) {
-            Spacer(Modifier.width(8.dp))
-            LanguagePicker()
-        }
+        AppearanceControls()
+    }
+}
+
+/**
+ * Les deux réglages d'apparence : l'heure de la station, puis la langue.
+ *
+ * Ils vont ensemble et dans cet ordre partout où ils apparaissent — c'est à ça
+ * qu'on les retrouve sans les chercher.
+ */
+@Composable
+private fun AppearanceControls() {
+    ThemeToggle()
+    if (AppLocale.selectable) {
+        Spacer(Modifier.width(8.dp))
+        LanguagePicker()
+    }
+}
+
+/**
+ * La même barre de réglages, pour les écrans qui n'ont pas la ligne de cabine :
+ * l'assistant d'incarnation et l'ouverture d'un compte.
+ *
+ * Ce sont les deux écrans qu'on traverse **avant** d'avoir une station, et
+ * c'étaient les seuls d'où l'on ne pouvait pas changer de langue. Quelqu'un dont
+ * le téléphone parle une langue qu'il ne lit pas y forgeait son noyau à
+ * l'aveugle — au moment le plus irréversible de l'application.
+ */
+@Composable
+fun AppearanceLine(modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .background(A4L.NavBackdrop)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppearanceControls()
     }
 }
 
