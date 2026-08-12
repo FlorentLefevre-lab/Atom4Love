@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
@@ -83,14 +84,13 @@ class RelayClient(
     suspend fun publishAndWait(event: NostrEvent, timeoutMs: Long = 10_000): RelayMessage.Ok? {
         val socket = webSocket ?: return null
         return withTimeoutOrNull(timeoutMs) {
-            var ok: RelayMessage.Ok? = null
-            val waiter = scope.launch {
-                ok = inbound.filterIsInstance<RelayMessage.Ok>()
-                    .first { it.eventId == event.id }
-            }
-            socket.send(RelayMessage.publish(event))
-            waiter.join()
-            ok
+            // L'envoi n'a lieu qu'une fois la collecte attachée : lancer l'attente
+            // dans une coroutine et émettre aussitôt laisse une fenêtre où l'accusé
+            // d'un relais rapide (local, ou en mémoire) arrive avant qu'on écoute —
+            // [inbound] ne rejoue rien, l'accusé serait perdu jusqu'au délai.
+            inbound.onSubscription { socket.send(RelayMessage.publish(event)) }
+                .filterIsInstance<RelayMessage.Ok>()
+                .first { it.eventId == event.id }
         }
     }
 

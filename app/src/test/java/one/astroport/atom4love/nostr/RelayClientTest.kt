@@ -6,6 +6,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.jsonArray
@@ -84,9 +85,13 @@ class RelayClientTest {
             client.state.first { it is RelayClient.State.Connected }
         }
 
-        client.subscribe("cabine", NostrFilter(kinds = listOf(1), limit = 5))
+        // Le REQ ne part qu'une fois la collecte attachée : le faux relais répond
+        // en microsecondes, et [inbound] ne rejoue rien.
         val eose = withTimeout(5_000) {
-            client.inbound.filterIsInstance<RelayMessage.Eose>().first()
+            client.inbound
+                .onSubscription { client.subscribe("cabine", NostrFilter(kinds = listOf(1), limit = 5)) }
+                .filterIsInstance<RelayMessage.Eose>()
+                .first()
         }
         assertEquals("cabine", eose.subscriptionId)
         client.close()
