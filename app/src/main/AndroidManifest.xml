@@ -50,9 +50,18 @@
     <!-- usesCleartextTraffic : le relais NOSTR local d'une station Astroport est
          servi en ws:// sur la passerelle du hot-spot (IP dynamique, donc pas de
          domain-config possible). Les relais publics restent en wss:// (TLS). -->
+    <!-- allowBackup="false" : rien de cette station ne doit remonter chez qui que
+         ce soit. Les cinq données d'incarnation vivent en clair dans le DataStore
+         — elles SONT la clé LOVE, qui les a la redérive. Les sauvegarder, c'est
+         confier la clé à un serveur central, exactement ce que le projet refuse ;
+         et la restauration automatique recopie l'incarnation d'un appareil sur
+         l'autre (observé le 2026-08-12 : une tablette est repartie avec le noyau
+         d'un autre appareil du même compte). Rien n'est perdu pour autant : le
+         noyau se redérive des cinq données, et le compte se récupère auprès de sa
+         station avec le code PASS. -->
     <application
         android:usesCleartextTraffic="true"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"

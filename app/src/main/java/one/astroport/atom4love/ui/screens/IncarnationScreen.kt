@@ -95,7 +95,7 @@ private const val WEIGHT_MIN = 2.5f
 private const val WEIGHT_MAX = 4.5f
 
 /**
- * 01 · Incarnation — dérivation de la clé LOVE.
+ * 01 · Incarnation — la forge du noyau.
  *
  * Les cinq données (instant, lieu, onde, poids) sont modifiables tant que la clé
  * n'est pas forgée ; le SALT, la gestation et la date de conception se recalculent
@@ -293,61 +293,67 @@ fun IncarnationScreen(
             // n'est pas une page qui scrolle, c'est un filet — il ne s'active
             // que sur les petits écrans, clavier ouvert et liste de communes
             // déployée, là où la troncature serait pire.
-            Box(
-                Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-            ) {
-                when (ForgeStep.entries[step]) {
-                    ForgeStep.Identity -> IdentityStep()
+            Box(Modifier.weight(1f)) {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    // `fillMaxSize` impose au Column la hauteur du viewport tant
+                    // que l'étape y tient : l'arrangement la centre alors dans
+                    // l'écran. Dès qu'elle déborde, le Column reprend la taille
+                    // de son contenu et le filet de défilement s'active.
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    when (ForgeStep.entries[step]) {
+                        ForgeStep.Identity -> IdentityStep()
 
-                    ForgeStep.Anchor -> Column(
-                        verticalArrangement = Arrangement.spacedBy(13.dp),
-                    ) {
-                        BirthDateTimeSection(
-                            birth = birth,
-                            editable = true,
-                            onPickDate = { showDatePicker = true },
-                            onPickTime = { showTimePicker = true },
-                        )
-                        BirthPlaceSection(
-                            birth = birth,
-                            editable = true,
-                            locating = locating,
-                            suggestions = suggestions,
-                            onNameChange = {
-                                placeSettled = false
-                                onBirthChange(birth.copy(placeName = it))
-                            },
-                            onChoose = ::chooseCommune,
-                            onDone = {
-                                focusManager.clearFocus()
-                                resolveTypedPlace()
-                            },
-                            onLocate = {
-                                val granted = ContextCompat.checkSelfPermission(
-                                    context, Manifest.permission.ACCESS_FINE_LOCATION,
-                                ) == PackageManager.PERMISSION_GRANTED
-                                if (granted) {
-                                    locateFromGps()
-                                } else {
-                                    locationPermission.launch(
-                                        Manifest.permission.ACCESS_FINE_LOCATION,
-                                    )
-                                }
-                            },
-                        )
-                        // L'avertissement qu'ATOM4LOVE porte à cette étape : ces
-                        // coordonnées sont la seule chose à recopier quelque part.
-                        Text(
-                            "Coordonnées de récupération, à noter précieusement : " +
-                                "précision 0,01° — environ 1 km. C'est ce couple de " +
-                                "nombres qui rouvre votre clé si vous perdez cet appareil.",
-                            style = A4LText.Caption,
-                            color = A4L.Amber.copy(alpha = 0.75f),
-                        )
-                    }
+                        ForgeStep.Anchor -> Column(
+                            verticalArrangement = Arrangement.spacedBy(13.dp),
+                        ) {
+                            BirthDateTimeSection(
+                                birth = birth,
+                                editable = true,
+                                onPickDate = { showDatePicker = true },
+                                onPickTime = { showTimePicker = true },
+                            )
+                            BirthPlaceSection(
+                                birth = birth,
+                                editable = true,
+                                locating = locating,
+                                suggestions = suggestions,
+                                onNameChange = {
+                                    placeSettled = false
+                                    onBirthChange(birth.copy(placeName = it))
+                                },
+                                onChoose = ::chooseCommune,
+                                onDone = {
+                                    focusManager.clearFocus()
+                                    resolveTypedPlace()
+                                },
+                                onLocate = {
+                                    val granted = ContextCompat.checkSelfPermission(
+                                        context, Manifest.permission.ACCESS_FINE_LOCATION,
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                    if (granted) {
+                                        locateFromGps()
+                                    } else {
+                                        locationPermission.launch(
+                                            Manifest.permission.ACCESS_FINE_LOCATION,
+                                        )
+                                    }
+                                },
+                            )
+                            // L'avertissement qu'ATOM4LOVE porte à cette étape : ces
+                            // coordonnées sont la seule chose à recopier quelque part.
+                            Text(
+                                "Coordonnées de récupération, à noter précieusement : " +
+                                    "précision 0,01° — environ 1 km. C'est ce couple de " +
+                                    "nombres qui rouvre votre clé si vous perdez cet appareil.",
+                                style = A4LText.Caption,
+                                color = A4L.Amber.copy(alpha = 0.75f),
+                            )
+                        }
 
                     ForgeStep.Vessel -> Column(
                         verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -382,6 +388,7 @@ fun IncarnationScreen(
                         RecapCard(birth)
                         ImmutableWarning()
                         if (!birth.complete) MissingLine(birth)
+                    }
                     }
                 }
             }
@@ -461,7 +468,7 @@ fun IncarnationScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                     Text(
-                        "La clé LOVE va être forgée avec ces cinq données. " +
+                        "Votre noyau va être scellé avec ces cinq données. " +
                             "Après, plus rien n'est modifiable.",
                         style = A4LText.Body,
                         color = A4L.TextBody,
@@ -508,9 +515,10 @@ fun IncarnationScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                     Text(
-                        "Votre fiche d'incarnation et la clé LOVE seront effacées de " +
-                            "cette station. Rien ne part sur le réseau : en ressaisissant " +
-                            "exactement les cinq mêmes données, la même clé renaîtra.",
+                        "Votre fiche d'incarnation et la clé qui en dérive seront " +
+                            "effacées de cette station. Rien ne part sur le réseau : en " +
+                            "ressaisissant exactement les cinq mêmes données, la même clé " +
+                            "renaîtra.",
                         style = A4LText.Body,
                         color = A4L.TextBody,
                     )
@@ -1373,7 +1381,7 @@ private fun ForgeButton(forged: Boolean, complete: Boolean, onClick: () -> Unit)
         Text(
             when {
                 forged -> "Clé LOVE scellée"
-                complete -> "Forger ma clé LOVE"
+                complete -> "Forger mon noyau"
                 else -> "Complétez votre fiche pour forger"
             },
             style = A4LText.Body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
