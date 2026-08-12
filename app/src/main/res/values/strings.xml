@@ -172,20 +172,20 @@
     <string name="mp_title_new">Ouvrir un MULTIPASS</string>
     <string name="mp_lead_done">La station a forgé votre identité et vous a rendu votre clé LOVE.</string>
     <string name="mp_lead_existing">Votre identité décentralisée sur le réseau UPlanet, et la clé LOVE que la station en a dérivée.</string>
-    <string name="mp_lead_new">Un compte sur une station Astroport.ONE. C'est elle qui fabrique tout : Atom4Love ne fait que passer la demande.</string>
+    <string name="mp_lead_new">Un compte sur une station Astroport.ONE. C\'est elle qui fabrique tout : Atom4Love ne fait que passer la demande.</string>
 
     <string name="mp_email_label">Votre adresse email</string>
     <string name="mp_email_placeholder" translatable="false">vous@exemple.org</string>
     <string name="mp_email_hint">Elle identifie le compte et reçoit votre code PASS. Une seule adresse par compte, sur une seule station.</string>
 
     <string name="mp_pass_needed_title">Cette adresse a déjà un MULTIPASS</string>
-    <string name="mp_pass_needed_body">Saisissez le code PASS reçu par mail à sa création : la station vous le rendra plutôt que d'en créer un second.</string>
+    <string name="mp_pass_needed_body">Saisissez le code PASS reçu par mail à sa création : la station vous le rendra plutôt que d\'en créer un second.</string>
     <string name="mp_pass_placeholder">code PASS</string>
 
     <string name="mp_busy_creating">La station forge votre identité, vos portefeuilles et votre espace de stockage. Comptez une trentaine de secondes.</string>
     <string name="mp_busy_activating">Votre naissance part chercher la clé LOVE.</string>
 
-    <string name="mp_failed">La demande n'a pas abouti — %1$s.</string>
+    <string name="mp_failed">La demande n\'a pas abouti — %1$s.</string>
     <string name="mp_failed_recoverable">Votre MULTIPASS, lui, existe bien : il ne manque que la clé LOVE. Rien ne sera recréé.</string>
 
     <string name="mp_action_back">Revenir à la station</string>
@@ -197,7 +197,7 @@
     <string name="mp_action_recover">Récupérer mon MULTIPASS</string>
     <string name="mp_action_create">Créer mon MULTIPASS</string>
     <string name="mp_later">Plus tard</string>
-    <string name="mp_later_hint">Vous retrouverez cette porte en bas de l'onglet Noyau.</string>
+    <string name="mp_later_hint">Vous retrouverez cette porte en bas de l\'onglet Noyau.</string>
 
     <string name="mp_field_account">compte</string>
     <string name="mp_field_station">station</string>
@@ -209,23 +209,23 @@
 
     <string name="mp_rederive_title">Redériver votre clé LOVE</string>
     <string name="mp_obtain_title">Obtenir votre clé LOVE</string>
-    <string name="mp_rederive_body">La station recalcule la clé depuis les cinq données de votre noyau actuel. À faire si vous avez reforgé votre noyau avec d'autres données — sinon elle redonnera exactement la même clé, ce qui ne coûte rien. Votre compte, vos portefeuilles et votre code PASS ne bougent pas.</string>
+    <string name="mp_rederive_body">La station recalcule la clé depuis les cinq données de votre noyau actuel. À faire si vous avez reforgé votre noyau avec d\'autres données — sinon elle redonnera exactement la même clé, ce qui ne coûte rien. Votre compte, vos portefeuilles et votre code PASS ne bougent pas.</string>
 
     <string name="mp_no_account_title">Atom4Love fonctionne sans compte</string>
-    <string name="mp_no_account_body">Votre noyau forgé suffit au radar, à la cabine et à tout ce qui se passe à portée d'antenne. Rien ne vous oblige à ouvrir un compte, ni maintenant ni jamais.</string>
-    <string name="mp_adds_title">Ce qu'un MULTIPASS ajoute</string>
+    <string name="mp_no_account_body">Votre noyau forgé suffit au radar, à la cabine et à tout ce qui se passe à portée d\'antenne. Rien ne vous oblige à ouvrir un compte, ni maintenant ni jamais.</string>
+    <string name="mp_adds_title">Ce qu\'un MULTIPASS ajoute</string>
     <string name="mp_adds_identity">Une identité NOSTR publiée, joignable au-delà de la portée radio.</string>
-    <string name="mp_adds_love">Votre clé LOVE, dérivée de votre naissance par la station : c'est elle qui porte le canal LOVE et votre profil de résonance.</string>
+    <string name="mp_adds_love">Votre clé LOVE, dérivée de votre naissance par la station : c\'est elle qui porte le canal LOVE et votre profil de résonance.</string>
     <string name="mp_adds_wallet">Un portefeuille Ğ1 / Ẑen et un espace de stockage personnel.</string>
-    <string name="mp_adds_web">Une place dans la toile de confiance d'UPlanet.</string>
+    <string name="mp_adds_web">Une place dans la toile de confiance d\'UPlanet.</string>
     <string name="mp_sandbox_title">UPlanet ORIGIN est un bac à sable</string>
-    <string name="mp_sandbox_body">C'est le mot d'Astroport.ONE, pas le nôtre : le monde ouvert où l'on apprend. Le Ẑen y vaut 0,1 Ğ1 — une monnaie pour de faux. Un compte laissé à zéro, sans le moindre mouvement, y est supprimé au bout de sept jours.</string>
-    <string name="mp_sandbox_keys">Vos données de naissance, elles, ne s'effacent pas : les cinq mêmes redonneront toujours la même clé LOVE, sur n'importe quelle station.</string>
+    <string name="mp_sandbox_body">C\'est le mot d\'Astroport.ONE, pas le nôtre : le monde ouvert où l\'on apprend. Le Ẑen y vaut 0,1 Ğ1 — une monnaie pour de faux. Un compte laissé à zéro, sans le moindre mouvement, y est supprimé au bout de sept jours.</string>
+    <string name="mp_sandbox_keys">Vos données de naissance, elles, ne s\'effacent pas : les cinq mêmes redonneront toujours la même clé LOVE, sur n\'importe quelle station.</string>
     <string name="mp_provisional_title">Votre noyau actuel est provisoire</string>
-    <string name="mp_provisional_body">Tant qu'aucune station ne vous connaît, Atom4Love se forge une clé de proximité, la sienne. La station en dérivera une autre — la vraie. Votre npub changera, et ceux qui vous ont croisé en cabine avant aujourd'hui ne vous reconnaîtront plus.</string>
+    <string name="mp_provisional_body">Tant qu\'aucune station ne vous connaît, Atom4Love se forge une clé de proximité, la sienne. La station en dérivera une autre — la vraie. Votre npub changera, et ceux qui vous ont croisé en cabine avant aujourd\'hui ne vous reconnaîtront plus.</string>
 
     <string name="mp_note_pass_title">Notez votre code PASS</string>
-    <string name="mp_note_pass_body">Il récupère votre compte depuis n'importe quel terminal UPlanet, et vous a aussi été envoyé par mail. La station est la seule à le détenir : personne ne pourra vous le redonner ailleurs.</string>
+    <string name="mp_note_pass_body">Il récupère votre compte depuis n\'importe quel terminal UPlanet, et vous a aussi été envoyé par mail. La station est la seule à le détenir : personne ne pourra vous le redonner ailleurs.</string>
     <string name="mp_key_vaulted">La clé de votre compte est rangée sur cet appareil, chiffrée. Elle ouvre vos portefeuilles : ne la recopiez que dans un endroit sûr.</string>
 
     <!-- ─── 05 · Aide ─────────────────────────────────────────────────── -->
@@ -238,23 +238,23 @@
     <string name="help_footer">Atom4Love %1$s · by AstroPort.ONE</string>
 
     <string name="help_vibration_label">Tout est vibration</string>
-    <string name="help_vibration_body">ATOM4LOVE n'est pas de l'astrologie. Au moment exact de votre naissance, la Terre occupait une position précise dans l'espace-temps. Vous en portez l'empreinte géométrique — et elle se calcule, à la minute et au degré près.</string>
-    <string name="help_imprint_label">Votre empreinte · l'accord fondamental</string>
-    <string name="help_imprint_body">Imaginez votre corps comme un instrument. Votre lieu et votre heure de naissance déterminent la note que vous jouez en permanence : votre phase personnelle. Votre poids et votre polarité en donnent la fréquence — l'onde biologique.</string>
+    <string name="help_vibration_body">ATOM4LOVE n\'est pas de l\'astrologie. Au moment exact de votre naissance, la Terre occupait une position précise dans l\'espace-temps. Vous en portez l\'empreinte géométrique — et elle se calcule, à la minute et au degré près.</string>
+    <string name="help_imprint_label">Votre empreinte · l\'accord fondamental</string>
+    <string name="help_imprint_body">Imaginez votre corps comme un instrument. Votre lieu et votre heure de naissance déterminent la note que vous jouez en permanence : votre phase personnelle. Votre poids et votre polarité en donnent la fréquence — l\'onde biologique.</string>
     <string name="help_resonance_label">La résonance · quand deux ondes se croisent</string>
-    <string name="help_resonance_body">Rencontrer quelqu'un, c'est croiser deux phases. Si elles s'emboîtent, c'est la super-cohérence : on se comprend sans parler. Si elles se heurtent, c'est la friction créatrice : on est faits pour inventer ensemble. Aucun des deux n'est un score, et aucun n'est meilleur que l'autre.</string>
-    <string name="help_singularity_label">La singularité · l'esprit et la matière</string>
-    <string name="help_singularity_body">Votre conception est l'Esprit, votre naissance la Matière. En les combinant, la station calcule votre archétype — la façon dont vous transformez l'énergie autour de vous. Vous n'avez pas à connaître cette date : elle se déduit de votre naissance.</string>
+    <string name="help_resonance_body">Rencontrer quelqu\'un, c\'est croiser deux phases. Si elles s\'emboîtent, c\'est la super-cohérence : on se comprend sans parler. Si elles se heurtent, c\'est la friction créatrice : on est faits pour inventer ensemble. Aucun des deux n\'est un score, et aucun n\'est meilleur que l\'autre.</string>
+    <string name="help_singularity_label">La singularité · l\'esprit et la matière</string>
+    <string name="help_singularity_body">Votre conception est l\'Esprit, votre naissance la Matière. En les combinant, la station calcule votre archétype — la façon dont vous transformez l\'énergie autour de vous. Vous n\'avez pas à connaître cette date : elle se déduit de votre naissance.</string>
     <string name="help_temp_key_label">Votre clé temporaire</string>
-    <string name="help_temp_key_body">Au premier lancement, la station se forge une clé à elle, dérivée de vos cinq données. Elle suffit à tout ce qui se passe à portée d'antenne : le radar, la cabine, les liens de proximité. Elle est temporaire — c'est une station Astroport.ONE qui dérivera un jour votre vraie clé LOVE.</string>
+    <string name="help_temp_key_body">Au premier lancement, la station se forge une clé à elle, dérivée de vos cinq données. Elle suffit à tout ce qui se passe à portée d\'antenne : le radar, la cabine, les liens de proximité. Elle est temporaire — c\'est une station Astroport.ONE qui dérivera un jour votre vraie clé LOVE.</string>
     <string name="help_multipass_label">Le MULTIPASS</string>
-    <string name="help_multipass_body">C'est votre identité décentralisée sur le réseau UPlanet : une clé NOSTR publiée, un portefeuille Ğ1 / Ẑen, un espace de stockage, et votre clé LOVE. Il s'ouvre depuis le bas de l'onglet Noyau, avec une adresse email. UPlanet ORIGIN, où l'on arrive, est un bac à sable : le Ẑen y vaut 0,1 Ğ1, et un compte laissé à zéro sans mouvement y est supprimé après sept jours.</string>
+    <string name="help_multipass_body">C\'est votre identité décentralisée sur le réseau UPlanet : une clé NOSTR publiée, un portefeuille Ğ1 / Ẑen, un espace de stockage, et votre clé LOVE. Il s\'ouvre depuis le bas de l\'onglet Noyau, avec une adresse email. UPlanet ORIGIN, où l\'on arrive, est un bac à sable : le Ẑen y vaut 0,1 Ğ1, et un compte laissé à zéro sans mouvement y est supprimé après sept jours.</string>
     <string name="help_forge_label">Forger son noyau</string>
-    <string name="help_forge_body">Remplissez la fiche d'incarnation : la ligne « À renseigner » vous dit ce qui manque. Pour le lieu, tapez trois lettres et choisissez votre commune dans la liste, ou touchez 📍 pour utiliser votre position. Avant de forger, un récapitulatif vous demande une dernière relecture : après confirmation, plus rien n'est modifiable.</string>
+    <string name="help_forge_body">Remplissez la fiche d\'incarnation : la ligne « À renseigner » vous dit ce qui manque. Pour le lieu, tapez trois lettres et choisissez votre commune dans la liste, ou touchez 📍 pour utiliser votre position. Avant de forger, un récapitulatif vous demande une dernière relecture : après confirmation, plus rien n\'est modifiable.</string>
     <string name="help_recover_label">Retrouver sa clé</string>
-    <string name="help_recover_body">Il n'y a pas de phrase de récupération à noter : vos proches la connaissent déjà. Ceux qui savent où et quand vous êtes né peuvent vous redire vos cinq données — et la même clé renaîtra, sur n'importe quelle station. Votre lieu de naissance compte à 1 km près : notez-le précieusement, c'est lui qui rouvre votre clé LOVE si vous perdez cet appareil. Le compte lui-même, en revanche, se récupère avec le code PASS reçu par mail.</string>
+    <string name="help_recover_body">Il n\'y a pas de phrase de récupération à noter : vos proches la connaissent déjà. Ceux qui savent où et quand vous êtes né peuvent vous redire vos cinq données — et la même clé renaîtra, sur n\'importe quelle station. Votre lieu de naissance compte à 1 km près : notez-le précieusement, c\'est lui qui rouvre votre clé LOVE si vous perdez cet appareil. Le compte lui-même, en revanche, se récupère avec le code PASS reçu par mail.</string>
     <string name="help_redo_label">Se tromper, recommencer</string>
-    <string name="help_redo_body">Une donnée fausse ? Dans l'onglet Noyau, « Dissoudre le noyau » efface la fiche et la clé de cette station (deux confirmations). Rien ne part sur le réseau : ressaisissez les bonnes données et forgez à nouveau.</string>
+    <string name="help_redo_body">Une donnée fausse ? Dans l\'onglet Noyau, « Dissoudre le noyau » efface la fiche et la clé de cette station (deux confirmations). Rien ne part sur le réseau : ressaisissez les bonnes données et forgez à nouveau.</string>
     <string name="help_station_label">La station</string>
     <string name="help_station_body">🌀 Radar : les cabines à portée, par proximité réelle. 🎴 Plateau : vos cartes. 💜 Résonance : vos liens. ⚛ Noyau : votre fiche scellée et votre npub. En haut, « relay · x / y » indique combien de relais NOSTR répondent — vert dès que la station est reliée au réseau.</string>
 </resources>

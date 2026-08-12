@@ -189,9 +189,9 @@
     <string name="mp_adds_identity">A published NOSTR identity, reachable beyond radio range.</string>
     <string name="mp_adds_love">Your LOVE key, derived from your birth by the station: it carries the LOVE channel and your resonance profile.</string>
     <string name="mp_adds_wallet">A Ğ1 / Ẑen wallet and a personal storage space.</string>
-    <string name="mp_adds_web">A place in UPlanet's web of trust.</string>
+    <string name="mp_adds_web">A place in UPlanet\'s web of trust.</string>
     <string name="mp_sandbox_title">UPlanet ORIGIN is a sandbox</string>
-    <string name="mp_sandbox_body">That word is Astroport.ONE's, not ours: the open world where one learns. A Ẑen is worth 0.1 Ğ1 there — play money. An account left at zero, without a single movement, is deleted after seven days.</string>
+    <string name="mp_sandbox_body">That word is Astroport.ONE\'s, not ours: the open world where one learns. A Ẑen is worth 0.1 Ğ1 there — play money. An account left at zero, without a single movement, is deleted after seven days.</string>
     <string name="mp_sandbox_keys">Your birth data, on the other hand, does not fade: the same five will always give the same LOVE key, on any station.</string>
     <string name="mp_provisional_title">Your current nucleus is provisional</string>
     <string name="mp_provisional_body">As long as no station knows you, Atom4Love forges a proximity key of its own. The station will derive another — the real one. Your npub will change, and those who met you in a booth before today will no longer recognise you.</string>
@@ -220,11 +220,11 @@
     <string name="help_multipass_label">The MULTIPASS</string>
     <string name="help_multipass_body">It is your decentralised identity on the UPlanet network: a published NOSTR key, a Ğ1 / Ẑen wallet, a storage space, and your LOVE key. It opens from the bottom of the Nucleus tab, with an email address. UPlanet ORIGIN, where you land, is a sandbox: a Ẑen is worth 0.1 Ğ1 there, and an account left at zero without movement is deleted after seven days.</string>
     <string name="help_forge_label">Forging your nucleus</string>
-    <string name="help_forge_body">Fill in the incarnation form: the "To fill in" line tells you what is missing. For the place, type three letters and pick your town from the list, or tap 📍 to use your position. Before forging, a summary asks you to read it over one last time: after confirmation, nothing can be changed.</string>
+    <string name="help_forge_body">Fill in the incarnation form: the “To fill in” line tells you what is missing. For the place, type three letters and pick your town from the list, or tap 📍 to use your position. Before forging, a summary asks you to read it over one last time: after confirmation, nothing can be changed.</string>
     <string name="help_recover_label">Finding your key again</string>
     <string name="help_recover_body">There is no recovery phrase to write down: those close to you already know it. Anyone who knows where and when you were born can tell you your five pieces of data back — and the same key will be reborn, on any station. Your place of birth counts to within 1 km: note it carefully, it is what reopens your LOVE key if you lose this device. The account itself, on the other hand, is recovered with the PASS code sent by mail.</string>
     <string name="help_redo_label">Getting it wrong, starting over</string>
-    <string name="help_redo_body">Wrong data? In the Nucleus tab, "Dissolve the nucleus" erases the form and this station's key (two confirmations). Nothing goes onto the network: enter the right data and forge again.</string>
+    <string name="help_redo_body">Wrong data? In the Nucleus tab, “Dissolve the nucleus” erases the form and this station\'s key (two confirmations). Nothing goes onto the network: enter the right data and forge again.</string>
     <string name="help_station_label">The station</string>
-    <string name="help_station_body">🌀 Radar: the booths within range, by real proximity. 🎴 Board: your cards. 💜 Resonance: your bonds. ⚛ Nucleus: your sealed form and your npub. At the top, "relay · x / y" says how many NOSTR relays answer — green as soon as the station is on the network.</string>
+    <string name="help_station_body">🌀 Radar: the booths within range, by real proximity. 🎴 Board: your cards. 💜 Resonance: your bonds. ⚛ Nucleus: your sealed form and your npub. At the top, “relay · x / y” says how many NOSTR relays answer — green as soon as the station is on the network.</string>
 </resources>
