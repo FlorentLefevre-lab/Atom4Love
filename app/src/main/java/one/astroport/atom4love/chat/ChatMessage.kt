@@ -13,8 +13,19 @@ enum class ChatStatus { SENDING, SENT, DELIVERED, RECEIVING, RECEIVED, FAILED }
 data class ChatMessage(
     val id: Int,
     val mine: Boolean,
-    /** Étiquette de l'expéditeur (« moi » ou suffixe d'adresse radio). */
+    /**
+     * Étiquette de l'expéditeur : « moi », le npub court du pair quand son
+     * attestation a été vérifiée, ou à défaut un suffixe d'adresse radio.
+     * [fromAttested] dit lequel des deux, car ils ne s'annoncent pas pareil.
+     */
     val from: String,
+    /**
+     * L'étiquette est une identité attestée, pas une adresse. Une adresse
+     * s'annonce « pair 36219 » ; un npub se donne tel quel, comme dans la liste
+     * de ceux qui sont là. Dire « pair » devant un npub serait bavard, et
+     * traiter un port comme un nom serait faux.
+     */
+    val fromAttested: Boolean = false,
     val kind: ChatKind,
     val status: ChatStatus,
     val text: String = "",

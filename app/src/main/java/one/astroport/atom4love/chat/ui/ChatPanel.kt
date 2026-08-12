@@ -186,10 +186,12 @@ private fun MessageBubble(
             verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             Text(
-                if (message.mine) {
-                    stringResource(R.string.chat_from_me)
-                } else {
-                    stringResource(R.string.chat_from_peer, message.from)
+                when {
+                    message.mine -> stringResource(R.string.chat_from_me)
+                    // un npub se donne tel quel, comme dans la liste de ceux
+                    // qui sont là ; « pair » n'annonce qu'une adresse
+                    message.fromAttested -> message.from
+                    else -> stringResource(R.string.chat_from_peer, message.from)
                 },
                 style = A4LText.Data,
                 color = if (message.mine) A4L.Mint else A4L.TextDim,

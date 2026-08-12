@@ -1529,14 +1529,33 @@ class CabinChat(context: Context) {
         // même règle qu'à l'émission : la coexistence Bluetooth/Wi-Fi se paie
         // sur la même puce, quel que soit le médium qui porte le transfert
         pauseRadioForTransfer()
+        val attested = attestedShort(event.from)
         addMessage(
             ChatMessage(
-                id = start.msgId, mine = false, from = event.from.takeLast(5),
+                id = start.msgId, mine = false,
+                from = attested ?: event.from.takeLast(5),
+                fromAttested = attested != null,
                 kind = kindOf(start.kind), status = ChatStatus.RECEIVING,
                 name = start.name, mime = start.mime, sizeBytes = start.totalBytes,
             ),
         )
     }
+
+    /**
+     * Le npub court de qui parle depuis [address], ou null tant que personne
+     * n'a signé d'attestation sur cette adresse.
+     *
+     * On cherche par adresse et non par lien : le double lien croisé d'un même
+     * pair porte la même adresse, et il suffit qu'un des deux ait vérifié
+     * l'attestation pour qu'on sache à qui on parle. Sans ça, le panneau
+     * nommait l'expéditeur par un suffixe d'adresse — un port qui change à
+     * chaque session — alors que le npub était déjà connu, affiché juste
+     * au-dessus dans la liste de ceux qui sont là.
+     */
+    private fun attestedShort(address: String): String? = links.values
+        .firstOrNull { it.address == address && it.peerNostrKey != null }
+        ?.peerNostrKey
+        ?.let { Peer(it, Bech32.encode("npub", it)).short }
 
     private fun onIncomingCompleted(event: Reassembler.Event.Completed) {
         val start = event.start
