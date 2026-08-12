@@ -65,6 +65,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.key
 import kotlin.math.cos
@@ -73,6 +76,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import one.astroport.atom4love.R
 import one.astroport.atom4love.domain.GoldbergPortal
 import android.widget.Toast
 import one.astroport.atom4love.chat.Attachments
@@ -331,7 +335,9 @@ fun RadarScreen(
         // ── Titre ─────────────────────────────────────────────────────────
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp)) {
             Text(
-                if (unlocked) "Cabine déverrouillée" else "Cabine à portée",
+                stringResource(
+                    if (unlocked) R.string.radar_cabin_unlocked else R.string.radar_cabin_in_range,
+                ),
                 style = A4LText.H2,
                 color = if (unlocked) A4L.Mint else A4L.TextHigh,
             )
@@ -340,24 +346,23 @@ fun RadarScreen(
                 when {
                     fix == null -> when (locationBlocker) {
                         CellLocator.Blocker.SERVICE_OFF ->
-                            "Hexagone inconnu — la Localisation du téléphone est coupée : " +
-                                "réactivez-la dans les réglages rapides."
+                            stringResource(R.string.radar_hex_unknown_service_off)
                         CellLocator.Blocker.PERMISSION -> if (locationDeadEnd) {
-                            "Hexagone inconnu — la localisation a été refusée. Android " +
-                                "ne la redemandera plus : elle se rouvre depuis les " +
-                                "réglages de l'app. Elle n'allume aucune balise."
+                            stringResource(R.string.radar_hex_unknown_dead_end)
                         } else {
-                            "Hexagone inconnu — la localisation résout votre cellule. " +
-                                "Elle n'allume aucune balise."
+                            stringResource(R.string.radar_hex_unknown_permission)
                         }
                         null ->
-                            "Hexagone inconnu — recherche de position en cours…"
+                            stringResource(R.string.radar_hex_unknown_searching)
                     }
                     unlocked ->
-                        "Hexagone ${cellHex(fix!!.cell)} — abonnement au flux de la cabine actif."
+                        stringResource(R.string.radar_hex_subscribed, cellHex(fix!!.cell))
                     else ->
-                        "Hexagone ${cellHex(fix!!.cell)} — vous êtes à %.0f m du centre géométrique."
-                            .format(fix!!.distanceToCenterM)
+                        stringResource(
+                            R.string.radar_hex_distance,
+                            cellHex(fix!!.cell),
+                            fix!!.distanceToCenterM,
+                        )
                 },
                 style = A4LText.Body,
                 color = A4L.TextBody.copy(alpha = 0.45f),
@@ -365,7 +370,13 @@ fun RadarScreen(
             if (fix == null && locationBlocker == CellLocator.Blocker.PERMISSION) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    if (locationDeadEnd) "Ouvrir les réglages de l'app" else "Accorder la localisation",
+                    stringResource(
+                        if (locationDeadEnd) {
+                            R.string.radar_open_app_settings
+                        } else {
+                            R.string.radar_grant_location
+                        },
+                    ),
                     style = A4LText.Caption,
                     color = A4L.Mint,
                     modifier = Modifier
@@ -420,13 +431,19 @@ fun RadarScreen(
                 }
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    if (unlocked) "RITUEL ACCOMPLI" else "/ 33 S",
+                    if (unlocked) {
+                        stringResource(R.string.radar_ritual_done)
+                    } else {
+                        stringResource(R.string.radar_ritual_countdown, RITUAL_SECONDS.toInt())
+                    },
                     style = A4LText.Data.copy(fontSize = 10.sp, letterSpacing = 1.8.sp),
                     color = if (unlocked) A4L.Mint.copy(alpha = 0.7f) else A4L.Cyan.copy(alpha = 0.55f),
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    if (unlocked) "Toucher pour recommencer" else "Ne bougez plus",
+                    stringResource(
+                        if (unlocked) R.string.radar_ritual_restart else R.string.radar_ritual_hold,
+                    ),
                     style = A4LText.Body.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
                     color = A4L.TextStrong,
                 )
@@ -483,7 +500,7 @@ fun RadarScreen(
                     if (salonActive) pensees.size.toString() else "—",
                     // « ici » appartient désormais à la cabine : l'hexagone,
                     // c'est ce qu'on n'atteint que par un relais
-                    "dans l'hexagone",
+                    stringResource(R.string.radar_stat_in_hexagon),
                     Modifier
                         .weight(1f)
                         .clickable { salonOpen = !salonOpen },
@@ -500,7 +517,7 @@ fun RadarScreen(
                     } else {
                         "—"
                     },
-                    "dans le portail",
+                    stringResource(R.string.radar_stat_in_portal),
                     Modifier.weight(1f),
                 )
                 // « Ici » se compte par la cabine, pas par la balise. Ce
@@ -512,7 +529,7 @@ fun RadarScreen(
                 // une seule fenêtre : le relais, la balise, la cabine.
                 CabinStat(
                     if (cabinOpen) cabinPeers.size.toString() else "—",
-                    "ici, sans relais",
+                    stringResource(R.string.radar_stat_here_no_relay),
                     Modifier
                         .weight(1f)
                         .clickable(onClick = toggleCabin),
@@ -537,11 +554,13 @@ fun RadarScreen(
                 StatusDot(if (cabinOpen) A4L.Mint else A4L.TextDim)
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    if (cabinOpen) {
-                        "Cabine ouverte — toucher pour fermer et effacer"
-                    } else {
-                        "Parler à ceux qui sont ici — chiffré, sans relais"
-                    },
+                    stringResource(
+                        if (cabinOpen) {
+                            R.string.radar_cabin_row_open
+                        } else {
+                            R.string.radar_cabin_row_closed
+                        },
+                    ),
                     style = A4LText.Caption,
                     color = if (cabinOpen) A4L.Mint else A4L.TextMuted,
                 )
@@ -575,10 +594,10 @@ fun RadarScreen(
                         // accordée : sans elle la balise annonce une présence,
                         // jamais une position (charge utile « cellule inconnue »).
                         beaconRunning && ownCell4d != null ->
-                            "Balise active — annonce l'hexagone ${cellHex(ownCell4d!!)}"
+                            stringResource(R.string.radar_beacon_with_cell, cellHex(ownCell4d!!))
                         beaconRunning ->
-                            "Balise active — présence seule, sans position"
-                        else -> "Balise de proximité — Bluetooth requis"
+                            stringResource(R.string.radar_beacon_presence_only)
+                        else -> stringResource(R.string.radar_beacon_needs_bluetooth)
                     },
                     style = A4LText.Caption,
                     color = if (beaconRunning) A4L.Mint else A4L.TextMuted,
@@ -594,7 +613,7 @@ fun RadarScreen(
                 Text("🌙", fontSize = 13.sp)
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    "Après 22 h, cette cabine écoute l'hexagone aux antipodes.",
+                    stringResource(R.string.radar_antipodes),
                     style = A4LText.Caption,
                     color = A4L.TextMuted,
                 )
@@ -787,6 +806,10 @@ private fun CabinDirectPanel(chat: CabinChat) {
     val messages by chat.messages.collectAsStateWithLifecycle()
     val sounds = remember { ChatSounds() }
     val tooBig by chat.tooBig.collectAsStateWithLifecycle()
+    // Lus dans la composition, pas dans le rappel : une ressource lue depuis un
+    // lambda ne serait pas réévaluée si la langue change sous l'application.
+    val savedLabel = stringResource(R.string.cabin_saved_to_downloads)
+    val saveFailedLabel = stringResource(R.string.cabin_save_failed)
 
     // Une pièce refusée mérite un dialogue : le sélecteur système vient de se
     // refermer, et sans lui il ne se passerait visiblement rien.
@@ -795,7 +818,7 @@ private fun CabinDirectPanel(chat: CabinChat) {
             onDismissRequest = { chat.dismissTooBig() },
             confirmButton = {
                 Text(
-                    "Compris",
+                    stringResource(R.string.cabin_too_big_ok),
                     style = A4LText.Caption,
                     color = A4L.Mint,
                     modifier = Modifier
@@ -804,24 +827,52 @@ private fun CabinDirectPanel(chat: CabinChat) {
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                 )
             },
-            title = { Text("Pièce trop lourde", style = A4LText.H2, color = A4L.TextHigh) },
+            title = {
+                Text(
+                    stringResource(R.string.cabin_too_big_title),
+                    style = A4LText.H2,
+                    color = A4L.TextHigh,
+                )
+            },
             text = {
+                // Deux phrases entières, jamais des bribes recollées : l'ordre
+                // des mots n'est pas le même d'une langue à l'autre, et
+                // « au-delà des » seul ne se traduit pas.
+                val medium = stringResource(refusal.medium.labelRes)
+                val res = LocalResources.current
+                val limit = Attachments.humanSize(res, refusal.limit)
                 Text(
                     buildString {
-                        append("« ${refusal.name} »")
-                        if (refusal.bytes > 0) append(" fait ${Attachments.humanSize(refusal.bytes)}")
-                        append(", au-delà des ${Attachments.humanSize(refusal.limit)} que porte la cabine ")
                         append(
-                            when (refusal.medium) {
-                                // le plafond radio n'est pas une limite technique
-                                // mais une limite d'attente : 10 Mo en BLE, c'est
-                                // un quart d'heure
-                                Medium.BLE -> "en direct.\n\nLe BLE tient 14 Ko/s : la même pièce y prendrait un quart " +
-                                    "d'heure. Passez en Wi-Fi depuis l'indicateur du haut et la limite monte à " +
-                                    "${Attachments.humanSize(CabinChat.MAX_TRANSFER_STREAM)}."
-                                else -> "${refusal.medium.label}."
+                            if (refusal.bytes > 0) {
+                                stringResource(
+                                    R.string.cabin_too_big_sized,
+                                    refusal.name,
+                                    Attachments.humanSize(res, refusal.bytes),
+                                    limit,
+                                    medium,
+                                )
+                            } else {
+                                stringResource(
+                                    R.string.cabin_too_big_unsized,
+                                    refusal.name,
+                                    limit,
+                                    medium,
+                                )
                             },
                         )
+                        // le plafond radio n'est pas une limite technique mais
+                        // une limite d'attente : 10 Mo en BLE, c'est un quart
+                        // d'heure
+                        if (refusal.medium == Medium.BLE) {
+                            append("\n\n")
+                            append(
+                                stringResource(
+                                    R.string.cabin_too_big_ble_advice,
+                                    Attachments.humanSize(res, CabinChat.MAX_TRANSFER_STREAM),
+                                ),
+                            )
+                        }
                     },
                     style = A4LText.Body,
                     color = A4L.TextBody,
@@ -851,11 +902,12 @@ private fun CabinDirectPanel(chat: CabinChat) {
         Text(
             buildString {
                 when {
-                    peers.isNotEmpty() -> append("${peers.size} ici")
+                    peers.isNotEmpty() ->
+                        append(stringResource(R.string.cabin_peers_here, peers.size))
                     // un pair sans noyau incarné n'a rien à attester : il est
                     // bien là, mais il n'y a pas d'identité à montrer
-                    status.links > 0 -> append("quelqu'un est là, sans identité déclarée")
-                    else -> append("personne à portée")
+                    status.links > 0 -> append(stringResource(R.string.cabin_someone_unnamed))
+                    else -> append(stringResource(R.string.cabin_nobody_in_range))
                 }
                 status.lastError?.let { append("  ·  $it") }
             },
@@ -877,7 +929,11 @@ private fun CabinDirectPanel(chat: CabinChat) {
         // laisserait croire qu'on est seul
         if (status.unattestedLinks > 0 && peers.isNotEmpty()) {
             Text(
-                "et ${status.unattestedLinks} lien(s) sans identité déclarée",
+                pluralStringResource(
+                    R.plurals.cabin_unattested_links,
+                    status.unattestedLinks,
+                    status.unattestedLinks,
+                ),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -885,18 +941,17 @@ private fun CabinDirectPanel(chat: CabinChat) {
         ChatPanel(
             messages = messages,
             canSend = status.links > 0,
-            placeholder = "ici, chiffré…",
+            placeholder = stringResource(R.string.cabin_chat_placeholder),
             // le vide n'a pas le même sens selon qu'on est seul ou pas : dire
             // « personne à portée » alors que quelqu'un est là se contredirait
             // avec la présence affichée juste au-dessus
-            emptyHint = if (status.links > 0) {
-                "Personne n'a encore rien dit. Ce qui se dira ici ne partira sur " +
-                    "aucun relais, et s'effacera en fermant la cabine."
-            } else {
-                "Personne à portée pour l'instant. La cabine trouve seule les noyaux " +
-                    "proches dont la cabine est ouverte. Rien de ce qui se dit ici ne " +
-                    "part sur un relais, et tout s'efface en fermant."
-            },
+            emptyHint = stringResource(
+                if (status.links > 0) {
+                    R.string.cabin_empty_with_peers
+                } else {
+                    R.string.cabin_empty_alone
+                },
+            ),
             onSendText = { text -> chat.sendText(text) },
             onSendImage = { uri -> chat.sendImage(uri) },
             onSendFile = { uri -> chat.sendFile(uri) },
@@ -912,7 +967,7 @@ private fun CabinDirectPanel(chat: CabinChat) {
                     val ok = Attachments.saveToDownloads(context, file, message.name, message.mime)
                     Toast.makeText(
                         context,
-                        if (ok) "Enregistré dans Téléchargements" else "Échec de l'enregistrement",
+                        if (ok) savedLabel else saveFailedLabel,
                         Toast.LENGTH_SHORT,
                     ).show()
                 }
@@ -945,14 +1000,13 @@ private fun CabinSalonPanel(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            "SALON DE CABINE",
+            stringResource(R.string.salon_title),
             style = A4LText.Data.copy(fontSize = 10.sp, letterSpacing = 1.7.sp),
             color = A4L.Green.copy(alpha = 0.75f),
         )
         if (!active) {
             Text(
-                "Salon fermé — il s'ouvre quand la station du lieu est à portée " +
-                    "(pastille « relais local »). Rien ne part sur Internet.",
+                stringResource(R.string.salon_closed),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -960,8 +1014,7 @@ private fun CabinSalonPanel(
         }
         if (pensees.isEmpty()) {
             Text(
-                "Personne n'a encore rien déposé ici. Les pensées sont éphémères : " +
-                    "elles vivent le temps du salon, rien n'est archivé.",
+                stringResource(R.string.salon_empty),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -969,7 +1022,11 @@ private fun CabinSalonPanel(
         pensees.takeLast(SALON_VISIBLE_PENSEES).forEach { pensee ->
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(
-                    if (pensee.mine) "moi · ${pensee.author}" else pensee.author,
+                    if (pensee.mine) {
+                        stringResource(R.string.salon_mine, pensee.author)
+                    } else {
+                        pensee.author
+                    },
                     style = A4LText.Data.copy(fontSize = 9.sp),
                     color = if (pensee.mine) A4L.Mint.copy(alpha = 0.8f) else A4L.TextDim,
                 )
@@ -988,14 +1045,18 @@ private fun CabinSalonPanel(
                 cursorBrush = SolidColor(A4L.Mint),
                 decorationBox = { inner ->
                     if (draft.isEmpty()) {
-                        Text("une pensée pour ce lieu…", style = A4LText.Caption, color = A4L.TextGhost)
+                        Text(
+                            stringResource(R.string.salon_draft_placeholder),
+                            style = A4LText.Caption,
+                            color = A4L.TextGhost,
+                        )
                     }
                     inner()
                 },
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                if (sending) "…" else "déposer",
+                if (sending) "…" else stringResource(R.string.salon_post),
                 style = A4LText.Caption,
                 color = if (draft.isBlank() || sending) A4L.TextGhost else A4L.Mint,
                 modifier = Modifier

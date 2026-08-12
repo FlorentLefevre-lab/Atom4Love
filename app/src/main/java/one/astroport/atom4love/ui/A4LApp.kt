@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -402,7 +403,7 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
                 // le médium ne se lit qu'une fois quelqu'un joint : dire « BLE »
                 // dans le vide ferait passer une antenne allumée pour un lien
                 medium == null -> "cabine ouverte — personne à portée"
-                else -> "${medium.label} · ${medium.short}"
+                else -> "${stringResource(medium.labelRes)} · ${medium.short}"
             },
             style = A4LText.Data.copy(fontSize = 10.sp),
             color = if (open && medium != null) A4L.Mint else A4L.TextMuted,

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Español — traducido de `values/`, que lleva el idioma de origen.
+    ⚠ Traducción automática : falta una relectura humana. La voz del proyecto
+    (« tout est vibration », « super-cohérence ») no se juzga sola.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- ─── 02 · Radar ────────────────────────────────────────────────── -->
+    <string name="radar_cabin_unlocked">Cabina desbloqueada</string>
+    <string name="radar_cabin_in_range">Cabina al alcance</string>
+
+    <string name="radar_hex_unknown_service_off">Hexágono desconocido — la Ubicación del teléfono está desactivada: reactívala en los ajustes rápidos.</string>
+    <string name="radar_hex_unknown_dead_end">Hexágono desconocido — se denegó la ubicación. Android ya no volverá a pedirla: se reabre desde los ajustes de la app. No enciende ninguna baliza.</string>
+    <string name="radar_hex_unknown_permission">Hexágono desconocido — la ubicación resuelve tu celda. No enciende ninguna baliza.</string>
+    <string name="radar_hex_unknown_searching">Hexágono desconocido — buscando la posición…</string>
+    <string name="radar_hex_subscribed">Hexágono %1$s — suscripción al flujo de la cabina activa.</string>
+    <string name="radar_hex_distance">Hexágono %1$s — estás a %2$.0f m del centro geométrico.</string>
+
+    <string name="radar_open_app_settings">Abrir los ajustes de la app</string>
+    <string name="radar_grant_location">Conceder la ubicación</string>
+
+    <string name="radar_ritual_done">RITUAL CUMPLIDO</string>
+    <string name="radar_ritual_countdown">/ %1$d S</string>
+    <string name="radar_ritual_restart">Toca para empezar de nuevo</string>
+    <string name="radar_ritual_hold">No te muevas</string>
+
+    <string name="radar_stat_in_hexagon">en el hexágono</string>
+    <string name="radar_stat_in_portal">en el portal</string>
+    <string name="radar_stat_here_no_relay">aquí, sin relé</string>
+
+    <string name="radar_cabin_row_open">Cabina abierta — toca para cerrar y borrar</string>
+    <string name="radar_cabin_row_closed">Habla con quienes están aquí — cifrado, sin relé</string>
+
+    <string name="radar_beacon_with_cell">Baliza activa — anuncia el hexágono %1$s</string>
+    <string name="radar_beacon_presence_only">Baliza activa — solo presencia, sin posición</string>
+    <string name="radar_beacon_needs_bluetooth">Baliza de proximidad — se requiere Bluetooth</string>
+    <string name="radar_antipodes">Después de las 22 h, esta cabina escucha el hexágono en las antípodas.</string>
+
+    <!-- ─── La cabina ─────────────────────────────────────────────────── -->
+    <string name="cabin_peers_here" tools:ignore="PluralsCandidate">%1$d aquí</string>
+    <string name="cabin_someone_unnamed">alguien está aquí, sin identidad declarada</string>
+    <string name="cabin_nobody_in_range">nadie al alcance</string>
+    <plurals name="cabin_unattested_links">
+        <item quantity="one">y %1$d enlace sin identidad declarada</item>
+        <item quantity="many">y %1$d enlaces sin identidad declarada</item>
+        <item quantity="other">y %1$d enlaces sin identidad declarada</item>
+    </plurals>
+    <string name="cabin_chat_placeholder">aquí, cifrado…</string>
+    <string name="cabin_empty_with_peers">Nadie ha dicho nada todavía. Lo que se diga aquí no saldrá por ningún relé y se borrará al cerrar la cabina.</string>
+    <string name="cabin_empty_alone">Nadie al alcance por ahora. La cabina encuentra sola los núcleos cercanos cuya cabina está abierta. Nada de lo que se dice aquí sale por un relé, y todo se borra al cerrar.</string>
+    <string name="cabin_saved_to_downloads">Guardado en Descargas</string>
+    <string name="cabin_save_failed">No se pudo guardar</string>
+
+    <string name="cabin_too_big_title">Adjunto demasiado pesado</string>
+    <string name="cabin_too_big_ok">Entendido</string>
+    <string name="cabin_too_big_sized">«%1$s» pesa %2$s, más allá de los %3$s que lleva la cabina %4$s.</string>
+    <string name="cabin_too_big_unsized">«%1$s» supera los %2$s que lleva la cabina %3$s.</string>
+    <string name="cabin_too_big_ble_advice">El BLE aguanta 14 KB/s: el mismo adjunto tardaría un cuarto de hora. Pasa a Wi-Fi desde el indicador de arriba y el límite sube a %1$s.</string>
+
+    <!-- ─── El salón de cabina ────────────────────────────────────────── -->
+    <string name="salon_title">SALÓN DE CABINA</string>
+    <string name="salon_closed">Salón cerrado — se abre cuando la estación del lugar está al alcance (indicador «relé local»). Nada sale a Internet.</string>
+    <string name="salon_empty">Nadie ha dejado nada aquí todavía. Los pensamientos son efímeros: viven lo que dura el salón, nada se archiva.</string>
+    <string name="salon_mine">yo · %1$s</string>
+    <string name="salon_draft_placeholder">un pensamiento para este lugar…</string>
+    <string name="salon_post">depositar</string>
+
+    <!-- ─── Los medios de la cabina ───────────────────────────────────── -->
+    <string name="medium_ble">en directo</string>
+    <string name="medium_wifi_station">por la red del lugar</string>
+    <string name="medium_wifi_direct">punto a punto</string>
+
+    <!-- ─── Tamaños de adjunto ────────────────────────────────────────── -->
+    <string name="size_megabytes">%1$.1f MB</string>
+    <string name="size_kilobytes">%1$.0f KB</string>
+    <string name="size_bytes">%1$d B</string>
+</resources>

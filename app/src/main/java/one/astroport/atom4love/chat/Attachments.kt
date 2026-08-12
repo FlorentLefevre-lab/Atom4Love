@@ -3,6 +3,7 @@ package one.astroport.atom4love.chat
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
@@ -11,6 +12,7 @@ import android.os.Build
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
+import one.astroport.atom4love.R
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
@@ -126,18 +128,20 @@ object Attachments {
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 
-    fun humanSize(bytes: Long): String = when {
-        bytes >= 999_500L -> "%.1f Mo".format(bytes / 1_000_000f)
-        bytes >= 1_000L -> "%.0f Ko".format(bytes / 1_000f)
-        else -> "$bytes o"
+    /**
+     * Une taille lisible, dans la langue de l'appareil : « 2,4 Mo » en
+     * français, « 2.4 MB » en anglais. L'unité ET le séparateur décimal
+     * viennent des ressources — les écrire ici les figerait en français.
+     *
+     * Le seuil : dès 999,5 Ko, le Ko arrondi afficherait « 1000 Ko ».
+     */
+    fun humanSize(res: Resources, bytes: Long): String = when {
+        bytes >= 999_500L -> res.getString(R.string.size_megabytes, bytes / 1_000_000f)
+        bytes >= 1_000L -> res.getString(R.string.size_kilobytes, bytes / 1_000f)
+        else -> res.getString(R.string.size_bytes, bytes)
     }
 
-    fun humanSize(bytes: Int): String = when {
-        // dès 999,5 Ko, le Ko arrondi afficherait « 1000 Ko »
-        bytes >= 999_500 -> "%.1f Mo".format(bytes / 1_000_000f)
-        bytes >= 1_000 -> "%.0f Ko".format(bytes / 1_000f)
-        else -> "$bytes o"
-    }
+    fun humanSize(res: Resources, bytes: Int): String = humanSize(res, bytes.toLong())
 
     private fun displayName(context: Context, uri: Uri): String? = runCatching {
         context.contentResolver

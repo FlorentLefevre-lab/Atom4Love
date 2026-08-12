@@ -1,3 +1,96 @@
-<resources>
-    <string name="app_name">Atom4Love</string>
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Les textes de l'application, en français.
+
+    `values/` porte la LANGUE SOURCE, pas un défaut universel : ces phrases ont
+    été écrites en français, et une partie vient du discours d'Astroport.ONE.
+    La référence ne doit pas être une traduction — `values-en/` et `values-es/`
+    en découlent. Conséquence assumée : un appareil réglé sur une quatrième
+    langue voit le français, jusqu'à ce qu'il choisisse dans le sélecteur.
+
+    Ce qui ne vit PAS ici : les journaux (Log.d), le package diag/ — hors
+    release — et les identifiants techniques (« a4l:— », « ↑ 42° »), qui ne
+    sont d'aucune langue.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <!-- Le nom de l'application ne se traduit pas : c'est un nom propre. -->
+    <string name="app_name" translatable="false">Atom4Love</string>
+
+    <!-- ─── 02 · Radar : le rituel et la cabine à portée ─────────────── -->
+    <string name="radar_cabin_unlocked">Cabine déverrouillée</string>
+    <string name="radar_cabin_in_range">Cabine à portée</string>
+
+    <string name="radar_hex_unknown_service_off">Hexagone inconnu — la Localisation du téléphone est coupée : réactivez-la dans les réglages rapides.</string>
+    <string name="radar_hex_unknown_dead_end">Hexagone inconnu — la localisation a été refusée. Android ne la redemandera plus : elle se rouvre depuis les réglages de l\'app. Elle n\'allume aucune balise.</string>
+    <string name="radar_hex_unknown_permission">Hexagone inconnu — la localisation résout votre cellule. Elle n\'allume aucune balise.</string>
+    <string name="radar_hex_unknown_searching">Hexagone inconnu — recherche de position en cours…</string>
+    <string name="radar_hex_subscribed">Hexagone %1$s — abonnement au flux de la cabine actif.</string>
+    <string name="radar_hex_distance">Hexagone %1$s — vous êtes à %2$.0f m du centre géométrique.</string>
+
+    <string name="radar_open_app_settings">Ouvrir les réglages de l\'app</string>
+    <string name="radar_grant_location">Accorder la localisation</string>
+
+    <string name="radar_ritual_done">RITUEL ACCOMPLI</string>
+    <string name="radar_ritual_countdown">/ %1$d S</string>
+    <string name="radar_ritual_restart">Toucher pour recommencer</string>
+    <string name="radar_ritual_hold">Ne bougez plus</string>
+
+    <string name="radar_stat_in_hexagon">dans l\'hexagone</string>
+    <string name="radar_stat_in_portal">dans le portail</string>
+    <string name="radar_stat_here_no_relay">ici, sans relais</string>
+
+    <string name="radar_cabin_row_open">Cabine ouverte — toucher pour fermer et effacer</string>
+    <string name="radar_cabin_row_closed">Parler à ceux qui sont ici — chiffré, sans relais</string>
+
+    <string name="radar_beacon_with_cell">Balise active — annonce l\'hexagone %1$s</string>
+    <string name="radar_beacon_presence_only">Balise active — présence seule, sans position</string>
+    <string name="radar_beacon_needs_bluetooth">Balise de proximité — Bluetooth requis</string>
+    <string name="radar_antipodes">Après 22 h, cette cabine écoute l\'hexagone aux antipodes.</string>
+
+    <!-- ─── La cabine : ce qui se dit ici, entre gens à portée ────────── -->
+    <!-- Pas un pluriel : « 1 ici » et « 2 ici » s'écrivent pareil dans les
+         trois langues. -->
+    <string name="cabin_peers_here" tools:ignore="PluralsCandidate">%1$d ici</string>
+    <string name="cabin_someone_unnamed">quelqu\'un est là, sans identité déclarée</string>
+    <string name="cabin_nobody_in_range">personne à portée</string>
+    <plurals name="cabin_unattested_links">
+        <item quantity="one">et %1$d lien sans identité déclarée</item>
+        <!-- `many` ne sert qu'à la notation compacte (« 1 million de liens ») :
+             nous ne l'employons pas, mais le CLDR l'attend pour fr et es. -->
+        <item quantity="many">et %1$d liens sans identité déclarée</item>
+        <item quantity="other">et %1$d liens sans identité déclarée</item>
+    </plurals>
+    <string name="cabin_chat_placeholder">ici, chiffré…</string>
+    <string name="cabin_empty_with_peers">Personne n\'a encore rien dit. Ce qui se dira ici ne partira sur aucun relais, et s\'effacera en fermant la cabine.</string>
+    <string name="cabin_empty_alone">Personne à portée pour l\'instant. La cabine trouve seule les noyaux proches dont la cabine est ouverte. Rien de ce qui se dit ici ne part sur un relais, et tout s\'efface en fermant.</string>
+    <string name="cabin_saved_to_downloads">Enregistré dans Téléchargements</string>
+    <string name="cabin_save_failed">Échec de l\'enregistrement</string>
+
+    <!-- Pièce jointe refusée. Deux phrases entières plutôt qu'une
+         concaténation : l'ordre des mots n'est pas le même d'une langue à
+         l'autre, et une bribe seule ne se traduit pas. -->
+    <string name="cabin_too_big_title">Pièce trop lourde</string>
+    <string name="cabin_too_big_ok">Compris</string>
+    <string name="cabin_too_big_sized">« %1$s » fait %2$s, au-delà des %3$s que porte la cabine %4$s.</string>
+    <string name="cabin_too_big_unsized">« %1$s » dépasse les %2$s que porte la cabine %3$s.</string>
+    <string name="cabin_too_big_ble_advice">Le BLE tient 14 Ko/s : la même pièce y prendrait un quart d\'heure. Passez en Wi-Fi depuis l\'indicateur du haut et la limite monte à %1$s.</string>
+
+    <!-- ─── Le salon de cabine : les pensées éphémères du lieu ────────── -->
+    <string name="salon_title">SALON DE CABINE</string>
+    <string name="salon_closed">Salon fermé — il s\'ouvre quand la station du lieu est à portée (pastille « relais local »). Rien ne part sur Internet.</string>
+    <string name="salon_empty">Personne n\'a encore rien déposé ici. Les pensées sont éphémères : elles vivent le temps du salon, rien n\'est archivé.</string>
+    <string name="salon_mine">moi · %1$s</string>
+    <string name="salon_draft_placeholder">une pensée pour ce lieu…</string>
+    <string name="salon_post">déposer</string>
+
+    <!-- ─── Les médiums de la cabine (chat/Medium.kt) ─────────────────── -->
+    <string name="medium_ble">en direct</string>
+    <string name="medium_wifi_station">par le réseau du lieu</string>
+    <string name="medium_wifi_direct">pair à pair</string>
+
+    <!-- ─── Tailles de pièce jointe (chat/Attachments.kt) ─────────────── -->
+    <!-- Le format porte l'unité : le séparateur décimal suit la langue. -->
+    <string name="size_megabytes">%1$.1f Mo</string>
+    <string name="size_kilobytes">%1$.0f Ko</string>
+    <string name="size_bytes">%1$d o</string>
 </resources>

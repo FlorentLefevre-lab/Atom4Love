@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    English — translated from `values/`, which holds the source language.
+    « Cabine » is rendered as “booth”: a phone booth you step into, not a hut.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- ─── 02 · Radar ────────────────────────────────────────────────── -->
+    <string name="radar_cabin_unlocked">Booth unlocked</string>
+    <string name="radar_cabin_in_range">Booth in range</string>
+
+    <string name="radar_hex_unknown_service_off">Hexagon unknown — the phone\'s Location is switched off: turn it back on from the quick settings.</string>
+    <string name="radar_hex_unknown_dead_end">Hexagon unknown — location was denied. Android will not ask again: it reopens from the app settings. It turns on no beacon.</string>
+    <string name="radar_hex_unknown_permission">Hexagon unknown — location resolves your cell. It turns on no beacon.</string>
+    <string name="radar_hex_unknown_searching">Hexagon unknown — looking for a position…</string>
+    <string name="radar_hex_subscribed">Hexagon %1$s — subscribed to the booth feed.</string>
+    <string name="radar_hex_distance">Hexagon %1$s — you are %2$.0f m from the geometric centre.</string>
+
+    <string name="radar_open_app_settings">Open the app settings</string>
+    <string name="radar_grant_location">Grant location</string>
+
+    <string name="radar_ritual_done">RITUAL COMPLETE</string>
+    <string name="radar_ritual_countdown">/ %1$d S</string>
+    <string name="radar_ritual_restart">Tap to start over</string>
+    <string name="radar_ritual_hold">Hold still</string>
+
+    <string name="radar_stat_in_hexagon">in the hexagon</string>
+    <string name="radar_stat_in_portal">in the portal</string>
+    <string name="radar_stat_here_no_relay">here, no relay</string>
+
+    <string name="radar_cabin_row_open">Booth open — tap to close and erase</string>
+    <string name="radar_cabin_row_closed">Talk to those who are here — encrypted, no relay</string>
+
+    <string name="radar_beacon_with_cell">Beacon on — announcing hexagon %1$s</string>
+    <string name="radar_beacon_presence_only">Beacon on — presence only, no position</string>
+    <string name="radar_beacon_needs_bluetooth">Proximity beacon — Bluetooth required</string>
+    <string name="radar_antipodes">After 10 pm, this booth listens to the hexagon at the antipodes.</string>
+
+    <!-- ─── The booth ─────────────────────────────────────────────────── -->
+    <string name="cabin_peers_here" tools:ignore="PluralsCandidate">%1$d here</string>
+    <string name="cabin_someone_unnamed">someone is here, with no declared identity</string>
+    <string name="cabin_nobody_in_range">nobody in range</string>
+    <plurals name="cabin_unattested_links">
+        <item quantity="one">and %1$d link with no declared identity</item>
+        <item quantity="other">and %1$d links with no declared identity</item>
+    </plurals>
+    <string name="cabin_chat_placeholder">here, encrypted…</string>
+    <string name="cabin_empty_with_peers">Nobody has said anything yet. What is said here will travel over no relay, and will be erased when the booth closes.</string>
+    <string name="cabin_empty_alone">Nobody in range for now. The booth finds the nearby nuclei whose own booth is open, on its own. Nothing said here travels over a relay, and everything is erased on closing.</string>
+    <string name="cabin_saved_to_downloads">Saved to Downloads</string>
+    <string name="cabin_save_failed">Could not save</string>
+
+    <string name="cabin_too_big_title">Attachment too heavy</string>
+    <string name="cabin_too_big_ok">Got it</string>
+    <string name="cabin_too_big_sized">“%1$s” is %2$s, beyond the %3$s the booth carries %4$s.</string>
+    <string name="cabin_too_big_unsized">“%1$s” goes beyond the %2$s the booth carries %3$s.</string>
+    <string name="cabin_too_big_ble_advice">BLE holds 14 KB/s: the same attachment would take a quarter of an hour. Switch to Wi-Fi from the indicator at the top and the limit rises to %1$s.</string>
+
+    <!-- ─── The booth lounge ──────────────────────────────────────────── -->
+    <string name="salon_title">BOOTH LOUNGE</string>
+    <string name="salon_closed">Lounge closed — it opens when the venue\'s station is in range (the “local relay” dot). Nothing goes onto the Internet.</string>
+    <string name="salon_empty">Nobody has left anything here yet. Thoughts are ephemeral: they live as long as the lounge does, nothing is archived.</string>
+    <string name="salon_mine">me · %1$s</string>
+    <string name="salon_draft_placeholder">a thought for this place…</string>
+    <string name="salon_post">post</string>
+
+    <!-- ─── Booth media ───────────────────────────────────────────────── -->
+    <string name="medium_ble">direct</string>
+    <string name="medium_wifi_station">over the venue\'s network</string>
+    <string name="medium_wifi_direct">peer to peer</string>
+
+    <!-- ─── Attachment sizes ──────────────────────────────────────────── -->
+    <string name="size_megabytes">%1$.1f MB</string>
+    <string name="size_kilobytes">%1$.0f KB</string>
+    <string name="size_bytes">%1$d B</string>
+</resources>

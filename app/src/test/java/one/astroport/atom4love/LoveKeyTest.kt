@@ -6,6 +6,7 @@ import one.astroport.atom4love.domain.Wave
 import java.time.LocalDate
 import java.util.Calendar
 import java.util.GregorianCalendar
+import java.util.Locale
 import java.util.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -28,6 +29,28 @@ class LoveKeyTest {
     fun `l'onde Octave bascule le sexe a 1 dans le SALT`() {
         val octave = BirthData.Sample.copy(wave = Wave.Octave)
         assertEquals("198504171530_48.86_2.35_1_3.2", LoveKey.salt(octave))
+    }
+
+    /**
+     * Le verrou de l'internationalisation : le SALT est ce qui produit la clé,
+     * et la même fiche doit donner la même clé sur un appareil en espagnol, en
+     * arabe ou en turc. `LoveKey.saltFormat` vaut `Locale.US` pour ça — sans
+     * lui, une locale arabe écrirait les chiffres en indo-arabe et une locale
+     * française mettrait une virgule décimale : deux noyaux différents pour la
+     * même personne, irrécupérables.
+     */
+    @Test
+    fun `le SALT ne depend pas de la langue de l'appareil`() {
+        val reference = LoveKey.salt(BirthData.Sample)
+        val avant = Locale.getDefault()
+        try {
+            listOf("fr-FR", "en-US", "es-ES", "ar-EG", "tr-TR", "hi-IN").forEach { tag ->
+                Locale.setDefault(Locale.forLanguageTag(tag))
+                assertEquals("SALT altéré sous $tag", reference, LoveKey.salt(BirthData.Sample))
+            }
+        } finally {
+            Locale.setDefault(avant)
+        }
     }
 
     @Test

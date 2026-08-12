@@ -1,5 +1,8 @@
 package one.astroport.atom4love.chat
 
+import androidx.annotation.StringRes
+import one.astroport.atom4love.R
+
 /**
  * Les médiums par lesquels une cabine peut porter ses trames.
  *
@@ -27,12 +30,19 @@ package one.astroport.atom4love.chat
  * Bluetooth/Wi-Fi.
  */
 enum class Medium(
-    /** Ce que la cabine en dit à l'écran. */
-    val label: String,
-    /** Le nom du médium, pour l'indicateur du haut. */
+    /**
+     * Ce que la cabine en dit à l'écran — une ressource, pas une phrase : ce
+     * mot-là s'affiche, il suit donc la langue choisie. Le lire demande un
+     * `Context` (`stringResource(medium.labelRes)` en Compose).
+     */
+    @StringRes val labelRes: Int,
+    /**
+     * Le nom du médium, pour l'indicateur du haut. Reste en dur : « BLE » et
+     * « Wi-Fi Direct » sont les noms des technologies, d'aucune langue.
+     */
     val short: String,
 ) {
-    BLE("en direct", "BLE"),
+    BLE(R.string.medium_ble, "BLE"),
 
     /**
      * « Par la station » disait le contraire de ce qui se passe : dans cette
@@ -43,8 +53,8 @@ enum class Medium(
      * une station est le client d'un point d'accès — juste dans le code, mais
      * lu à côté de « sans relais » il suggérait un serveur dans la boucle.
      */
-    WIFI_STATION("par le réseau du lieu", "Wi-Fi"),
-    WIFI_DIRECT("pair à pair", "Wi-Fi Direct"),
+    WIFI_STATION(R.string.medium_wifi_station, "Wi-Fi AP"),
+    WIFI_DIRECT(R.string.medium_wifi_direct, "Wi-Fi Direct"),
     ;
 
     /** Rang de routage — l'ordre de déclaration est l'échelle. */

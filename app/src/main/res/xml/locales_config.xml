@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Les langues que l'application sait parler. Déclarées à la main plutôt que
+    générées : la liste est courte, et elle dit une intention.
+
+    Sa présence suffit à faire apparaître le sélecteur par application
+    d'Android 13+ (Réglages › Applis › Atom4Love › Langue). Le sélecteur *dans*
+    l'app viendra ensuite : quelqu'un peut vouloir Atom4Love en espagnol sans
+    passer tout son téléphone en espagnol.
+
+    Le français est la langue par défaut parce que `values/` porte la source.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android"
+    android:defaultLocale="fr">
+    <locale android:name="fr" />
+    <locale android:name="en" />
+    <locale android:name="es" />
+</locale-config>

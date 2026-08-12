@@ -39,13 +39,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import one.astroport.atom4love.chat.Attachments
 import one.astroport.atom4love.chat.ChatKind
 import one.astroport.atom4love.chat.ChatMessage
@@ -150,7 +150,16 @@ fun ChatPanel(
 
 // ── Bulles ────────────────────────────────────────────────────────────────
 
-private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+/**
+ * L'heure d'un message, dans la langue courante. Pas une constante : la langue
+ * peut changer sous l'application (sélecteur par appli d'Android 13+), et un
+ * format figé au démarrage garderait celle du lancement.
+ */
+@Composable
+private fun rememberTimeFormat(): SimpleDateFormat {
+    val locale = LocalResources.current.configuration.locales[0]
+    return remember(locale) { SimpleDateFormat("HH:mm", locale) }
+}
 
 @Composable
 private fun MessageBubble(
@@ -206,7 +215,7 @@ private fun MessageBubble(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    timeFormat.format(Date(message.atMs)),
+                    rememberTimeFormat().format(Date(message.atMs)),
                     style = A4LText.Data,
                     color = A4L.TextGhost,
                 )
@@ -280,7 +289,7 @@ private fun FileContent(message: ChatMessage, onOpen: (ChatMessage) -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                Attachments.humanSize(message.sizeBytes),
+                Attachments.humanSize(LocalResources.current, message.sizeBytes),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -365,7 +374,7 @@ private fun AudioContent(message: ChatMessage, audio: AudioPlayback) {
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                Attachments.humanSize(message.sizeBytes),
+                Attachments.humanSize(LocalResources.current, message.sizeBytes),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
