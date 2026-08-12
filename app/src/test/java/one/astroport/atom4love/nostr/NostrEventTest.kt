@@ -11,6 +11,23 @@ class NostrEventTest {
 
     private val keys = LoveKeyForge.forge(BirthData.Sample)
 
+    /**
+     * Le noyau provisoire de la fiche d'exemple, figé.
+     *
+     * Ce npub n'a aucune valeur de protocole — la clé LOVE vient de la station.
+     * Mais il vaut engagement : toute retouche à la forge provisoire déplacerait
+     * l'identité de chaque appareil déjà en service, et les cabines ouvertes la
+     * veille ne reconnaîtraient plus personne. Si ce test tombe, c'est une
+     * décision à prendre, jamais un effet de bord à entériner.
+     */
+    @Test
+    fun `la forge provisoire ne bouge pas sous les pieds des appareils en service`() {
+        assertEquals(
+            "npub17c7fnw5jrmhurkn09k8j842sr9md3sdhr94zg34xdru08gqs2hhswxqdp6",
+            keys.npub,
+        )
+    }
+
     @Test
     fun `sérialisation canonique NIP-01 - forme exacte`() {
         val canonical = NostrEvent.canonicalJson(

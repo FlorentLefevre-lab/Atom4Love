@@ -98,11 +98,9 @@ data class BirthData(
 }
 
 /**
- * Dérivation de la clé LOVE.
+ * Le SALT et ce que la station en calcule.
  *
- * SALT   = `AAAAMMJJHHmn_lat_lon_sexe_poids`
- * PEPPER = date de conception, calculée depuis le poids de naissance :
- *          gestation = 280 + (poids − 3,5) × 4 jours.
+ * SALT = `AAAAMMJJHHmn_lat_lon_sexe_poids`
  */
 object LoveKey {
 
@@ -119,21 +117,32 @@ object LoveKey {
         )
     }
 
-    /** Durée de gestation en jours, dérivée du poids de naissance. */
-    fun gestationDays(weightKg: Float): Double = 280.0 + (weightKg - 3.5) * 4.0
+    /**
+     * La gestation, telle qu'Astroport.ONE la compte : 280 jours pour tout le
+     * monde.
+     *
+     * L'app calculait autrefois une durée dérivée du poids de naissance
+     * (280 + (poids − 3,5) × 4). C'était une invention locale, et la station
+     * ne la connaît pas : son PEPPER prend la date de naissance moins 280 jours,
+     * à midi solaire local. Afficher autre chose que ce qui fait la clé serait
+     * mentir à qui relit sa fiche.
+     */
+    const val GESTATION_DAYS = 280L
 
-    /** PEPPER : l'instant de conception, gestation avant la naissance. */
+    /**
+     * La conception : [GESTATION_DAYS] jours avant la naissance, à midi.
+     *
+     * La station affine ce midi en heure solaire du lieu avant de le convertir
+     * en UTC — quelques minutes d'écart sous nos longitudes, sans effet sur le
+     * jour affiché ici.
+     */
     fun conception(b: BirthData): Date {
-        require(b.dateComplete && b.timeComplete && b.weightKg != null) {
-            "instant ou poids de naissance manquant"
-        }
-        val birth = GregorianCalendar(TimeZone.getTimeZone("UTC")).apply {
+        require(b.dateComplete) { "date de naissance manquante" }
+        return GregorianCalendar(TimeZone.getTimeZone("UTC")).apply {
             clear()
-            set(b.year!!, b.month!! - 1, b.day!!, b.hour!!, b.minute!!)
-        }
-        val millis = (gestationDays(b.weightKg) * 24.0 * 3600.0 * 1000.0).toLong()
-        birth.timeInMillis = birth.timeInMillis - millis
-        return birth.time
+            set(b.year!!, b.month!! - 1, b.day!!, 12, 0)
+            add(Calendar.DAY_OF_YEAR, -GESTATION_DAYS.toInt())
+        }.time
     }
 
     /**
@@ -161,8 +170,8 @@ object LoveKey {
 
     fun formatDate(d: Date): String = shortDate.format(d)
 
-    /** « 278,8 jours » — virgule décimale française. */
-    fun formatDays(days: Double): String = String.format(Locale.FRANCE, "%.1f jours", days)
+    /** « 280 jours » — la même durée pour tout le monde. */
+    fun formatGestation(): String = "$GESTATION_DAYS jours"
 
     /** « 3,2 kg », ou « — » tant que le poids n'est pas saisi. */
     fun formatWeight(kg: Float?): String =

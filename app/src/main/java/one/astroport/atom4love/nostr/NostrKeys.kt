@@ -2,6 +2,8 @@ package one.astroport.atom4love.nostr
 
 import fr.acinq.secp256k1.Secp256k1
 import java.security.MessageDigest
+import java.util.GregorianCalendar
+import java.util.TimeZone
 import one.astroport.atom4love.domain.BirthData
 import one.astroport.atom4love.domain.LoveKey
 
@@ -55,11 +57,33 @@ class NostrKeys(val privateKey: ByteArray) {
 object LoveKeyForge {
 
     fun forge(birth: BirthData): NostrKeys {
-        val seed = "${LoveKey.salt(birth)}|${LoveKey.conception(birth).time}"
+        val seed = "${LoveKey.salt(birth)}|${provisionalPepper(birth)}"
         var candidate = sha256(seed.toByteArray(Charsets.UTF_8))
         // Probabilité ~2^-128 d'un scalaire hors courbe : on re-hache jusqu'à validité.
         while (!Secp256k1.secKeyVerify(candidate)) candidate = sha256(candidate)
         return NostrKeys(candidate)
+    }
+
+    /**
+     * Le PEPPER du noyau provisoire, figé ici et nulle part ailleurs.
+     *
+     * C'est l'ancienne gestation de l'app — 280 jours corrigés de 4 par 100 g —
+     * gardée telle quelle **exprès**. Elle n'a aucune valeur de protocole : la
+     * station ne la connaît pas, et la clé LOVE la remplacera. Mais toute
+     * retouche ici change le npub de chaque appareil déjà en service, et une
+     * cabine ouverte hier ne reconnaîtrait plus personne. On ne fait pas bouger
+     * des identités vivantes pour une question d'affichage.
+     */
+    private fun provisionalPepper(b: BirthData): Long {
+        require(b.dateComplete && b.timeComplete && b.weightKg != null) {
+            "instant ou poids de naissance manquant"
+        }
+        val gestationDays = 280.0 + (b.weightKg - 3.5) * 4.0
+        val birth = GregorianCalendar(TimeZone.getTimeZone("UTC")).apply {
+            clear()
+            set(b.year!!, b.month!! - 1, b.day!!, b.hour!!, b.minute!!)
+        }
+        return birth.timeInMillis - (gestationDays * 24.0 * 3600.0 * 1000.0).toLong()
     }
 
     internal fun sha256(data: ByteArray): ByteArray =

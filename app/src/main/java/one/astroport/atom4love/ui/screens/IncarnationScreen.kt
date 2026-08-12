@@ -104,8 +104,8 @@ private const val WEIGHT_MAX = 4.5f
  * 01 · Incarnation — la forge du noyau.
  *
  * Les cinq données (instant, lieu, onde, poids) sont modifiables tant que la clé
- * n'est pas forgée ; le SALT, la gestation et la date de conception se recalculent
- * à chaque frappe. Une fois forgée, tout se verrouille : c'est le contrat annoncé
+ * n'est pas forgée ; le SALT et la date de conception se recalculent à chaque
+ * frappe. Une fois forgée, tout se verrouille : c'est le contrat annoncé
  * par l'avertissement ambre.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -394,9 +394,9 @@ fun IncarnationScreen(
                         SingularityCard(birth)
                         Text(
                             "Votre conception est l'Esprit, votre naissance la Matière. " +
-                                "Rien à saisir : la station la déduit de votre naissance, " +
-                                "et le portail est le sommet du pavage le plus proche de " +
-                                "votre lieu.",
+                                "Rien à saisir : la station compte 280 jours pour tout le " +
+                                "monde, et le portail est le sommet du pavage le plus " +
+                                "proche de votre lieu.",
                             style = A4LText.Caption,
                             color = A4L.TextMuted,
                         )
@@ -1170,13 +1170,11 @@ private fun SingularityCard(birth: BirthData) {
         SectionLabel("Singularité · calculée", color = A4L.Cyan.copy(alpha = 0.6f))
         ComputedRow(
             "Conception",
-            if (birth.dateComplete && birth.timeComplete && birth.weightKg != null) {
-                LoveKey.formatDate(LoveKey.conception(birth))
-            } else "—",
+            if (birth.dateComplete) LoveKey.formatDate(LoveKey.conception(birth)) else "—",
         )
         ComputedRow(
             "Gestation",
-            birth.weightKg?.let { LoveKey.formatDays(LoveKey.gestationDays(it)) } ?: "—",
+            if (birth.dateComplete) LoveKey.formatGestation() else "—",
         )
         // Le vrai portail : le sommet du polyèdre de Goldberg le plus
         // proche du lieu de naissance (les 12 pentagones de la grille H3).

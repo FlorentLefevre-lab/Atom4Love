@@ -31,23 +31,22 @@ class LoveKeyTest {
     }
 
     @Test
-    fun `la gestation vaut 280 jours corriges de 4 jours par 100 g`() {
-        assertEquals(278.8, LoveKey.gestationDays(3.2f), 0.001)
-        assertEquals(280.0, LoveKey.gestationDays(3.5f), 0.001)
-        assertEquals(282.0, LoveKey.gestationDays(4.0f), 0.001)
-    }
-
-    @Test
-    fun `la conception est la naissance moins la gestation`() {
+    fun `la conception est la naissance moins 280 jours, convention Astroport`() {
         val c = GregorianCalendar(TimeZone.getTimeZone("UTC")).apply {
             time = LoveKey.conception(BirthData.Sample)
         }
-        // 17 avril 1985 15h30 UTC − 278,8 jours = 12 juillet 1984 vers 20 h.
-        // (La maquette affiche « 15 juil. 1984 » : une valeur d'illustration,
-        // pas le résultat de la formule.)
+        // 17 avril 1985 − 280 jours = 11 juillet 1984. La station applique la
+        // même soustraction avant de placer l'instant à midi solaire local.
         assertEquals(1984, c.get(Calendar.YEAR))
         assertEquals(Calendar.JULY, c.get(Calendar.MONTH))
-        assertEquals(12, c.get(Calendar.DAY_OF_MONTH))
+        assertEquals(11, c.get(Calendar.DAY_OF_MONTH))
+    }
+
+    @Test
+    fun `le poids de naissance ne deplace plus la conception`() {
+        val leger = LoveKey.conception(BirthData.Sample.copy(weightKg = 2.5f))
+        val lourd = LoveKey.conception(BirthData.Sample.copy(weightKg = 4.5f))
+        assertEquals(leger, lourd)
     }
 
     // ── Plausibilité de la date de naissance ─────────────────────────────
