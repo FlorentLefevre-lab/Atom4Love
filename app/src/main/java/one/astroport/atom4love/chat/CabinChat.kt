@@ -595,6 +595,12 @@ class CabinChat(context: Context) {
     private var activeOutgoing = 0
     private var lastConnectMs = 0L
 
+    /** Fil protocole. Ce que le scan ne dit pas : qui annonce. */
+    private val bleIdentities = BleIdentities()
+
+    /** Fil protocole. Les adresses qu'on a cessé d'appeler, pour ne le dire qu'une fois. */
+    private val dialSkipped = LinkedHashSet<String>()
+
     /** Scan et annonce suspendus pendant un transfert — l'antenne au débit. */
     private var radioPaused = false
 
@@ -1039,6 +1045,9 @@ class CabinChat(context: Context) {
         link.peerNostrKey = attested
         val npub = Bech32.encode("npub", attested)
         Log.i(TAG, "pair attesté sur ${link.address} : ${npub.take(12)}…${npub.takeLast(4)}")
+        // La seule occasion d'associer une adresse BLE à quelqu'un : elle ne
+        // se redonne qu'au prix d'une connexion.
+        if (link.medium == Medium.BLE) bleIdentities.learn(link.address, Hex.encode(attested))
         // l'attestation arrive APRÈS que le lien soit prêt : sans ça, la
         // présence n'apparaîtrait jamais dans la cabine
         refreshLinks()
@@ -2124,6 +2133,20 @@ class CabinChat(context: Context) {
         // la radio reste au transfert : aucune connexion sortante pendant
         // qu'on émet ou réassemble
         if (activeOutgoing > 0 || reassembler.activeStreams() > 0) return
+        // Déjà joignable par un médium plus rapide ? Alors cette adresse n'a
+        // rien à nous apprendre et sa connexion coûterait de l'antenne pour
+        // retrouver quelqu'un à qui l'on parle déjà. Le lien BLE tombe, le
+        // scan le revoit, on recommençait : c'est ce va-et-vient qui s'arrête.
+        if (!bleIdentities.shouldDial(address, reachedBeyondBle())) {
+            if (dialSkipped.add(address)) {
+                Log.i(TAG, "$address laissé de côté : ce pair est déjà là par un médium plus rapide")
+                while (dialSkipped.size > BACKOFF_MAX_ENTRIES) {
+                    dialSkipped.remove(dialSkipped.first())
+                }
+            }
+            return
+        }
+        dialSkipped.remove(address)
         val now = SystemClock.elapsedRealtime()
         if (now - lastConnectMs < CONNECT_SPACING_MS) return
         val notBefore = retryAfterMs[address]
@@ -2148,6 +2171,18 @@ class CabinChat(context: Context) {
         }
         link.gatt = gatt
     }
+
+    /**
+     * Fil protocole. Les pairs attestés que l'on tient par mieux que la radio.
+     *
+     * Un lien seulement *ouvert* ne compte pas : tant qu'il n'est pas prêt et
+     * son médium accepté, il ne porterait rien, et se priver du BLE sur cette
+     * foi laisserait la cabine muette.
+     */
+    private fun reachedBeyondBle(): Set<String> = links.values.asSequence()
+        .filter { it.ready && it.medium.rank > Medium.BLE.rank && it.medium in enabledMedia }
+        .mapNotNull { link -> link.peerNostrKey?.let { Hex.encode(it) } }
+        .toSet()
 
     /** Fil protocole. Pose le délai de grâce d'une adresse, map bornée. */
     private fun backoff(address: String, delayMs: Long) {
