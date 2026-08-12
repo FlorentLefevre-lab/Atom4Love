@@ -11,6 +11,7 @@ import android.net.wifi.p2p.WifiP2pGroup
 import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
+import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import java.security.SecureRandom
@@ -49,6 +50,16 @@ class P2pGroup(context: Context) {
         private const val FORM_TIMEOUT_MS = 20_000L
         private const val POLL_MS = 400L
 
+        /**
+         * Un groupe qui vient de se former refuse d'être retiré : `removeGroup`
+         * rend `BUSY` tant que le système finit son travail (vu au banc le
+         * 2026-08-12, systématiquement, dans la seconde qui suit l'ouverture).
+         * Une seule demande ne suffit donc pas — et c'est ce qui laissait des
+         * groupes ouverts derrière des fermetures que le code croyait propres.
+         */
+        private const val REMOVE_ATTEMPTS = 6
+        private const val REMOVE_RETRY_MS = 400L
+
         /** Sans caractères qu'on puisse confondre à l'oral ou à l'œil. */
         private const val ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
 
@@ -68,14 +79,56 @@ class P2pGroup(context: Context) {
         fun permissionsGranted(context: Context): Boolean = RUNTIME_PERMISSIONS.all {
             ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
         }
+
+        private const val TRACE_FILE = "a4l_p2p"
+        private const val TRACE_KEY = "engaged_group"
+
+        internal fun decide(trace: String?, currentGroup: String?): Verdict = when {
+            trace == null -> Verdict.Nothing
+            currentGroup == null -> Verdict.Forget
+            currentGroup == trace -> Verdict.Remove(trace)
+            else -> Verdict.Forget
+        }
     }
 
     /** De quoi entrer dans un groupe sans rien découvrir. */
     data class Credentials(val networkName: String, val passphrase: String)
 
+    /**
+     * Ce que la trace commande au lancement suivant. Sortie du framework pour
+     * être vérifiable : c'est ici que tient la règle, et elle tient en une
+     * phrase — **on ne retire que le groupe qu'on a soi-même engagé**. Un
+     * groupe formé par une autre application (un partage de fichiers, une
+     * diffusion d'écran) porte un autre nom et ne nous regarde pas.
+     */
+    internal sealed interface Verdict {
+        /** Aucune trace : on n'a rien laissé derrière nous. */
+        data object Nothing : Verdict
+        /** La trace ne désigne plus rien de vivant — l'oublier suffit. */
+        data object Forget : Verdict
+        /** Le groupe est encore là, et il est de nous. */
+        data class Remove(val networkName: String) : Verdict
+    }
+
     private val appContext = context.applicationContext
     private val manager = appContext.getSystemService(WifiP2pManager::class.java)
     private var channel: WifiP2pManager.Channel? = null
+
+    /**
+     * Le nom du groupe engagé, écrit sur le disque — parce qu'il doit survivre
+     * précisément à ce que la cabine, elle, ne survit pas. Un processus tué ne
+     * passe par aucun `stop()` : le groupe reste monté côté système, et il ne
+     * reste rien en mémoire pour le nommer au lancement suivant.
+     */
+    private val trace = appContext.getSharedPreferences(TRACE_FILE, Context.MODE_PRIVATE)
+
+    private fun engage(networkName: String) {
+        trace.edit().putString(TRACE_KEY, networkName).apply()
+    }
+
+    private fun forget() {
+        trace.edit().remove(TRACE_KEY).apply()
+    }
 
     /** Vrai quand cet appareil peut ouvrir ou rejoindre un groupe. */
     fun usable(): Boolean = manager != null && JOIN_SUPPORTED
@@ -108,6 +161,7 @@ class P2pGroup(context: Context) {
                     "groupe Wi-Fi Direct déjà ouvert : ${group.networkName} " +
                         "sur ${group.frequency} MHz",
                 )
+                engage(group.networkName)
                 return Credentials(group.networkName, group.passphrase)
             }
         }
@@ -144,6 +198,7 @@ class P2pGroup(context: Context) {
                         "groupe Wi-Fi Direct ouvert : ${group.networkName} sur " +
                             "${group.frequency} MHz (${if (group.frequency > 3000) "5 GHz" else "2,4 GHz"})",
                     )
+                    engage(group.networkName)
                     return@withTimeoutOrNull Credentials(group.networkName, group.passphrase)
                 }
                 delay(POLL_MS)
@@ -241,6 +296,7 @@ class P2pGroup(context: Context) {
         existingGroup(manager, channel)?.let { group ->
             if (!group.isGroupOwner && group.networkName == credentials.networkName) {
                 Log.i(TAG, "déjà dans le groupe ${credentials.networkName}")
+                engage(group.networkName)
                 return true
             }
         }
@@ -274,6 +330,9 @@ class P2pGroup(context: Context) {
             @Suppress("UNREACHABLE_CODE") false
         } ?: false
         Log.i(TAG, if (joined) "groupe ${credentials.networkName} rejoint" else "groupe non formé")
+        // Rejoindre engage autant qu'ouvrir : un membre reste membre après la
+        // mort de l'app, et c'est `removeGroup` qui l'en fait sortir.
+        if (joined) engage(credentials.networkName)
         return joined
     }
 
@@ -291,16 +350,137 @@ class P2pGroup(context: Context) {
         }
     }
 
-    /** Referme le groupe. Sans ça, l'interface P2P survivrait à la cabine. */
+    /**
+     * Referme le groupe. Sans ça, l'interface P2P survivrait à la cabine.
+     *
+     * Le retrait est asynchrone : fermer le canal dans la foulée, comme on le
+     * faisait, coupait la commande avant qu'elle passe — vu au banc le
+     * 2026-08-12, un groupe restait ouvert après une fermeture pourtant propre.
+     * On attend donc le verdict du système pour fermer le canal, et la trace
+     * n'est effacée qu'en cas de succès : un retrait refusé laisse de quoi
+     * reprendre au lancement suivant plutôt qu'un groupe orphelin.
+     */
     @SuppressLint("MissingPermission")
     fun release() {
         val manager = this.manager ?: return
         val channel = this.channel ?: return
-        runCatching { manager.removeGroup(channel, null) }
+        this.channel = null
+        val handler = Handler(Looper.getMainLooper())
+        val done = { removed: Boolean ->
+            if (removed) forget()
+            runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) channel.close()
+            }
+        }
+        // La cabine se ferme sans attendre : les tentatives vivent sur le
+        // Looper principal, celui-là même qui porte le canal P2P, et survivent
+        // donc à l'annulation du scope de CabinChat.
+        fun attempt(left: Int) {
+            runCatching {
+                manager.removeGroup(channel, object : WifiP2pManager.ActionListener {
+                    override fun onSuccess() {
+                        done(true)
+                    }
+
+                    override fun onFailure(reason: Int) {
+                        if (reason == WifiP2pManager.BUSY && left > 0) {
+                            handler.postDelayed({ attempt(left - 1) }, REMOVE_RETRY_MS)
+                        } else {
+                            Log.w(
+                                TAG,
+                                "removeGroup refusé (raison $reason) — repris au prochain lancement",
+                            )
+                            done(false)
+                        }
+                    }
+                })
+            }.onFailure { done(false) }
+        }
+        attempt(REMOVE_ATTEMPTS)
+    }
+
+    /**
+     * Referme le groupe qu'un arrêt brutal a laissé monté. Rend vrai quand il y
+     * en avait un et qu'il est parti.
+     *
+     * `release()` ne peut rien pour ce cas : il ne parle qu'au canal de sa
+     * propre instance, et l'instance qui a ouvert le groupe est morte avec le
+     * processus. Ici on repart de la trace écrite sur le disque — le seul
+     * témoin qui ait survécu.
+     *
+     * Sans permission, on ne touche à rien et on garde la trace : le groupe
+     * attendra un lancement où on aura le droit de le fermer, plutôt que d'être
+     * oublié en silence.
+     */
+    @SuppressLint("MissingPermission")
+    suspend fun reclaim(): Boolean {
+        val engaged = trace.getString(TRACE_KEY, null) ?: return false
+        val manager = this.manager ?: return false
+        if (!permissionsGranted(appContext)) {
+            Log.i(TAG, "groupe $engaged laissé ouvert : permission Wi-Fi Direct retirée")
+            return false
+        }
+        val channel = channel() ?: return false
+        val verdict = decide(engaged, existingGroup(manager, channel)?.networkName)
+        val removed = when (verdict) {
+            is Verdict.Remove -> {
+                Log.i(TAG, "groupe ${verdict.networkName} retrouvé ouvert — on le referme")
+                removeGroup(manager, channel)
+            }
+            // Le groupe est tombé de lui-même (redémarrage, Wi-Fi coupé), ou
+            // ce qui est monté appartient à quelqu'un d'autre : dans les deux
+            // cas il n'y a rien à retirer, seulement une trace à effacer.
+            Verdict.Forget, Verdict.Nothing -> false
+        }
+        forget()
+        closeChannel()
+        return removed
+    }
+
+    /** `removeGroup` qui insiste tant que le système se dit occupé. */
+    @SuppressLint("MissingPermission")
+    private suspend fun removeGroup(
+        manager: WifiP2pManager,
+        channel: WifiP2pManager.Channel,
+    ): Boolean {
+        repeat(REMOVE_ATTEMPTS) {
+            val failure = runCatching {
+                suspendCancellableCoroutine { cont ->
+                    manager.removeGroup(channel, object : WifiP2pManager.ActionListener {
+                        override fun onSuccess() = cont.resume(null)
+                        override fun onFailure(reason: Int) = cont.resume(reason)
+                    })
+                }
+            }.getOrDefault(WifiP2pManager.ERROR)
+            if (failure == null) return true
+            if (failure != WifiP2pManager.BUSY) {
+                Log.w(TAG, "removeGroup refusé (raison $failure)")
+                return false
+            }
+            delay(REMOVE_RETRY_MS)
+        }
+        Log.w(TAG, "removeGroup encore occupé après $REMOVE_ATTEMPTS tentatives")
+        return false
+    }
+
+    private fun closeChannel() {
         runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) channel.close()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) channel?.close()
         }
         this.channel = null
+    }
+
+    /**
+     * Le nom du groupe monté sur cet appareil, quel qu'en soit le propriétaire.
+     * Réservé aux vérifications : c'est la seule façon de constater qu'un
+     * groupe est vraiment parti, là où la trace ne dit que notre intention.
+     */
+    @SuppressLint("MissingPermission")
+    internal suspend fun currentGroupName(): String? {
+        val manager = this.manager ?: return null
+        if (!permissionsGranted(appContext)) return null
+        val channel = channel() ?: return null
+        return existingGroup(manager, channel)?.networkName
     }
 
     @SuppressLint("MissingPermission")

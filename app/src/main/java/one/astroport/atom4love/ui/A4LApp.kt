@@ -207,6 +207,14 @@ private fun Station(
     // Une instance neuve à chaque ouverture : le moteur ne se rallume pas après
     // stop() (son scope est annulé), et ce qui s'est dit en cabine n'a pas à
     // survivre à la sortie.
+    // Un groupe Wi-Fi Direct survit à l'application qui l'a formé : fermer la
+    // cabine le referme, mais un balayage dans les récents, un crash ou une
+    // mort par mémoire ne passent par aucun stop(). Restait alors un réseau
+    // ouvert que plus personne ne surveillait, jusqu'au redémarrage. On le
+    // ramasse ici, une fois par lancement, avant qu'une cabine puisse rouvrir.
+    LaunchedEffect(Unit) {
+        P2pGroup(context.applicationContext).reclaim()
+    }
     var cabinOpen by remember { mutableStateOf(false) }
     var cabinSession by remember { mutableIntStateOf(0) }
     val cabin = remember(cabinSession) { CabinChat(context.applicationContext) }
