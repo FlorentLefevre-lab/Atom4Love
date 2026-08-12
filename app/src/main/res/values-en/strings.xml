@@ -227,4 +227,103 @@
     <string name="help_redo_body">Wrong data? In the Nucleus tab, “Dissolve the nucleus” erases the form and this station\'s key (two confirmations). Nothing goes onto the network: enter the right data and forge again.</string>
     <string name="help_station_label">The station</string>
     <string name="help_station_body">🌀 Radar: the booths within range, by real proximity. 🎴 Board: your cards. 💜 Resonance: your bonds. ⚛ Nucleus: your sealed form and your npub. At the top, “relay · x / y” says how many NOSTR relays answer — green as soon as the station is on the network.</string>
+
+    <!-- ─── The domain ────────────────────────────────────────────────── -->
+    <string name="wave_phi">Φ wave</string>
+    <string name="wave_octave">Octave wave</string>
+    <string name="wave_sex">sex %1$d</string>
+    <string name="date_problem_future">that date is in the future</string>
+    <string name="date_problem_minor">Atom4Love is for adults — %1$d years old and over</string>
+    <string name="date_problem_too_old">beyond %1$d years, the date is most likely a typo</string>
+    <string name="format_gestation">%1$d days</string>
+    <string name="format_weight">%1$.1f kg</string>
+
+    <!-- ─── 01 · Incarnation: forging the nucleus ─────────────────────── -->
+    <string name="forge_step_identity">Identity</string>
+    <string name="forge_step_identity_sub">what the station makes, and for whom</string>
+    <string name="forge_step_anchor">Anchor</string>
+    <string name="forge_step_anchor_sub">date · time · place of birth</string>
+    <string name="forge_step_vessel">The vessel</string>
+    <string name="forge_step_vessel_sub">biological wave · birth weight</string>
+    <string name="forge_step_singularity">Singularity</string>
+    <string name="forge_step_singularity_sub">the original trace, computed for you</string>
+    <string name="forge_step_forge">Forge</string>
+    <string name="forge_step_forge_sub">one last read before sealing</string>
+
+    <string name="inc_lead">At the exact moment of your birth, the Earth held a precise position in space-time. Your nucleus derives from it: the same instant always gives the same key, on any station.</string>
+    <string name="inc_no_account_title">No account, no password</string>
+    <string name="inc_no_account_body">Four screens are enough: when and where you were born, your wave and your birth weight. None of it goes onto the network.</string>
+    <string name="inc_temp_key_title">A temporary key, to begin with</string>
+    <string name="inc_temp_key_body">It is enough for everything that happens within antenna range. Your LOVE key will be derived by an Astroport.ONE station the day you open a MULTIPASS — you will be offered that right after.</string>
+
+    <string name="inc_section_datetime">Date and time of birth</string>
+    <string name="inc_section_place">Place of birth</string>
+    <string name="inc_section_wave">Biological wave</string>
+    <string name="inc_section_weight">Birth weight</string>
+    <string name="inc_section_singularity">Singularity · computed</string>
+    <string name="inc_section_incarnation">Your incarnation</string>
+    <string name="inc_dd">DD</string>
+    <string name="inc_mm">MM</string>
+    <string name="inc_yyyy">YYYY</string>
+    <string name="inc_hh">HH</string>
+    <string name="inc_mn">MI</string>
+    <string name="inc_place_placeholder">Town, country…</string>
+    <string name="inc_coords_warning">Recovery coordinates, to be written down carefully: 0.01° precision — about 1 km. This pair of numbers is what reopens your key if you lose this device: tap them to enter them yourself.</string>
+    <string name="inc_vessel_note">The wave and the weight give your body its frequency — the biological wave. Both enter the key.</string>
+    <string name="inc_singularity_note">Your conception is Spirit, your birth is Matter. Nothing to enter: the station counts 280 days for everyone, and the portal is the vertex of the tiling nearest your place.</string>
+
+    <string name="inc_row_birth">Birth</string>
+    <string name="inc_row_place">Place</string>
+    <string name="inc_row_coords">Coordinates</string>
+    <string name="inc_row_wave">Wave</string>
+    <string name="inc_row_weight">Weight</string>
+    <string name="inc_row_conception">Conception</string>
+    <string name="inc_row_gestation">Gestation</string>
+    <string name="inc_row_portal">Goldberg portal</string>
+    <string name="inc_birth_datetime">%3$04d-%2$02d-%1$02d at %4$02d:%5$02d</string>
+
+    <string name="inc_confirm_title">Check your incarnation</string>
+    <string name="inc_confirm_body">Your nucleus is about to be sealed with these five pieces of data. After that, nothing can be changed.</string>
+    <string name="inc_confirm_warning">⚠ One mistake here and the derived key will never be yours. Take the time to read every line.</string>
+    <string name="inc_confirm_forge">Forge for good</string>
+    <string name="inc_confirm_recheck">Check again</string>
+
+    <string name="inc_dissolve_title">Dissolve the nucleus?</string>
+    <string name="inc_dissolve_body">Your incarnation form and the key derived from it will be erased from this station. Nothing goes onto the network: entering exactly the same five pieces of data will bring the same key back.</string>
+    <string name="inc_dissolve_warning">⚠ A single different value produces an entirely different key.</string>
+    <string name="inc_dissolve_last_title">Last confirmation</string>
+    <string name="inc_dissolve_last_body">The station is about to forget your nucleus, at once and with no way back. You will return to the forge screen, with an empty form.</string>
+    <string name="inc_dissolve_final">Dissolve for good</string>
+    <string name="inc_dissolve">Dissolve the nucleus</string>
+    <string name="inc_continue">Continue</string>
+    <string name="inc_cancel">Cancel</string>
+    <string name="inc_confirm">OK</string>
+
+    <string name="inc_time_title">Time of birth</string>
+    <string name="inc_coords_title">Birth coordinates</string>
+    <string name="inc_coords_body">The pair you wrote down, as it is. Two decimals — about 1 km: that is the precision that enters your key.</string>
+    <string name="inc_latitude">Latitude</string>
+    <string name="inc_longitude">Longitude</string>
+    <string name="inc_coords_south_west">South and West are written negative: −33.45, −70.67.</string>
+
+    <string name="inc_sealed_title">Your nucleus</string>
+    <string name="inc_sealed_body">Sealed. These five pieces of data no longer change: they re-derive your key at every start, on any station.</string>
+    <string name="inc_sealed_note">These five pieces of data can never be changed again. Those who know you can say them back: the people close to you are your recovery phrase.</string>
+    <string name="inc_provisional_note">The key forged here is provisional: it is enough for you within antenna range. Your LOVE key will be derived by an Astroport.ONE station the day you open a MULTIPASS.</string>
+    <string name="inc_multipass_active">MULTIPASS active · LOVE key in place</string>
+    <string name="inc_multipass_open">Open a MULTIPASS on AstroPort.ONE</string>
+
+    <string name="inc_salt">salt %1$s</string>
+    <string name="inc_salt_incomplete">salt — form incomplete</string>
+    <string name="inc_missing">To fill in: %1$s</string>
+    <string name="inc_missing_date">date</string>
+    <string name="inc_missing_time">time</string>
+    <string name="inc_missing_place">place</string>
+    <string name="inc_missing_place_pick">place (pick from the list or 📍)</string>
+    <string name="inc_missing_wave">wave</string>
+    <string name="inc_missing_weight">weight</string>
+
+    <string name="inc_key_sealed">LOVE key sealed</string>
+    <string name="inc_forge_action">Forge my nucleus</string>
+    <string name="inc_forge_incomplete">Complete your form to forge</string>
 </resources>

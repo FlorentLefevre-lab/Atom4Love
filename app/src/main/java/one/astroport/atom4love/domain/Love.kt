@@ -1,5 +1,8 @@
 package one.astroport.atom4love.domain
 
+import android.content.res.Resources
+import androidx.annotation.StringRes
+import one.astroport.atom4love.R
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.Calendar
@@ -8,10 +11,26 @@ import java.util.GregorianCalendar
 import java.util.Locale
 import java.util.TimeZone
 
-/** Onde biologique. Le sexe entre tel quel dans le SALT : 0 = Onde Φ, 1 = Onde Octave. */
-enum class Wave(val sex: Int, val symbol: String, val label: String) {
-    Phi(0, "Φ", "Onde Φ"),
-    Octave(1, "8", "Onde Octave"),
+/**
+ * Onde biologique. Le sexe entre tel quel dans le SALT : 0 = Onde Φ, 1 = Onde
+ * Octave. **Seul [sex] entre dans la dérivation** — le nom s'affiche, il suit
+ * donc la langue ; le symbole est un glyphe et n'appartient à aucune.
+ */
+enum class Wave(val sex: Int, val symbol: String, @StringRes val labelRes: Int) {
+    Phi(0, "Φ", R.string.wave_phi),
+    Octave(1, "8", R.string.wave_octave),
+}
+
+/**
+ * Ce qui peut clocher dans une date de naissance saisie. Le domaine dit
+ * *lequel* des trois cas ; l'écran dit *comment* on l'annonce, dans la langue
+ * de l'appareil. [arg] est l'âge qui borne le cas, ou null quand il n'en faut
+ * aucun.
+ */
+enum class DateProblem(@StringRes val messageRes: Int, val arg: Int?) {
+    Future(R.string.date_problem_future, null),
+    Minor(R.string.date_problem_minor, BirthData.MIN_AGE_YEARS),
+    TooOld(R.string.date_problem_too_old, BirthData.MAX_AGE_YEARS),
 }
 
 /**
@@ -57,15 +76,16 @@ data class BirthData(
             !date.isBefore(today.minusYears(MAX_AGE_YEARS.toLong()))
     }
 
-    /** Ce qui cloche dans la date, pour le dire à l'écran. Null si elle va. */
-    fun dateProblem(today: LocalDate = LocalDate.now()): String? {
+    /**
+     * Ce qui cloche dans la date. Une valeur, pas une phrase : ce contrôle vit
+     * dans le domaine, qui n'a pas de `Context` — l'écran rend le texte.
+     */
+    fun dateProblem(today: LocalDate = LocalDate.now()): DateProblem? {
         val date = birthDate ?: return null
         return when {
-            date.isAfter(today) -> "cette date est dans l'avenir"
-            date.isAfter(today.minusYears(MIN_AGE_YEARS.toLong())) ->
-                "Atom4Love s'adresse aux majeurs — $MIN_AGE_YEARS ans révolus"
-            date.isBefore(today.minusYears(MAX_AGE_YEARS.toLong())) ->
-                "au-delà de $MAX_AGE_YEARS ans, la date est sans doute une faute de frappe"
+            date.isAfter(today) -> DateProblem.Future
+            date.isAfter(today.minusYears(MIN_AGE_YEARS.toLong())) -> DateProblem.Minor
+            date.isBefore(today.minusYears(MAX_AGE_YEARS.toLong())) -> DateProblem.TooOld
             else -> null
         }
     }
@@ -164,18 +184,24 @@ object LoveKey {
         return Triple(c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH))
     }
 
-    private val shortDate = SimpleDateFormat("d MMM yyyy", Locale.FRENCH).apply {
-        timeZone = TimeZone.getTimeZone("UTC")
-    }
-
-    fun formatDate(d: Date): String = shortDate.format(d)
+    /**
+     * « 11 juil. 1984 » en français, « 11 Jul 1984 » en anglais. Le format se
+     * construit à chaque appel plutôt qu'une fois pour toutes : la langue peut
+     * changer sous l'application, et un `SimpleDateFormat` est de toute façon
+     * mutable — le partager entre fils était déjà douteux.
+     */
+    fun formatDate(d: Date, locale: Locale = Locale.getDefault()): String =
+        SimpleDateFormat("d MMM yyyy", locale)
+            .apply { timeZone = TimeZone.getTimeZone("UTC") }
+            .format(d)
 
     /** « 280 jours » — la même durée pour tout le monde. */
-    fun formatGestation(): String = "$GESTATION_DAYS jours"
+    fun formatGestation(res: Resources): String =
+        res.getString(R.string.format_gestation, GESTATION_DAYS)
 
     /** « 3,2 kg », ou « — » tant que le poids n'est pas saisi. */
-    fun formatWeight(kg: Float?): String =
-        if (kg == null) "—" else String.format(Locale.FRANCE, "%.1f kg", kg)
+    fun formatWeight(res: Resources, kg: Float?): String =
+        if (kg == null) "—" else res.getString(R.string.format_weight, kg)
 
     /** « 48.86 · 2.35 » — les coordonnées telles qu'elles entrent dans le SALT. */
     fun formatCoords(b: BirthData): String =

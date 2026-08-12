@@ -257,4 +257,114 @@
     <string name="help_redo_body">Une donnée fausse ? Dans l\'onglet Noyau, « Dissoudre le noyau » efface la fiche et la clé de cette station (deux confirmations). Rien ne part sur le réseau : ressaisissez les bonnes données et forgez à nouveau.</string>
     <string name="help_station_label">La station</string>
     <string name="help_station_body">🌀 Radar : les cabines à portée, par proximité réelle. 🎴 Plateau : vos cartes. 💜 Résonance : vos liens. ⚛ Noyau : votre fiche scellée et votre npub. En haut, « relay · x / y » indique combien de relais NOSTR répondent — vert dès que la station est reliée au réseau.</string>
+
+    <!-- ─── Le domaine : ondes, dates, formats d'affichage ────────────── -->
+    <string name="wave_phi">Onde Φ</string>
+    <string name="wave_octave">Onde Octave</string>
+    <string name="wave_sex">sexe %1$d</string>
+    <!-- Ce qui cloche dans une date saisie. Trois cas, jamais concaténés. -->
+    <string name="date_problem_future">cette date est dans l\'avenir</string>
+    <string name="date_problem_minor">Atom4Love s\'adresse aux majeurs — %1$d ans révolus</string>
+    <string name="date_problem_too_old">au-delà de %1$d ans, la date est sans doute une faute de frappe</string>
+    <!-- Les formats d\'affichage suivent la langue. Le SALT, lui, reste en
+         Locale.US : un test le verrouille. -->
+    <string name="format_gestation">%1$d jours</string>
+    <string name="format_weight">%1$.1f kg</string>
+
+    <!-- ─── 01 · Incarnation : la forge du noyau ──────────────────────── -->
+    <string name="forge_step_identity">Identité</string>
+    <string name="forge_step_identity_sub">ce que la station fabrique, et pour qui</string>
+    <string name="forge_step_anchor">Ancrage</string>
+    <string name="forge_step_anchor_sub">date · heure · lieu de naissance</string>
+    <string name="forge_step_vessel">Le vaisseau</string>
+    <string name="forge_step_vessel_sub">onde biologique · poids de naissance</string>
+    <string name="forge_step_singularity">Singularité</string>
+    <string name="forge_step_singularity_sub">la trace originelle, calculée pour vous</string>
+    <string name="forge_step_forge">Forger</string>
+    <string name="forge_step_forge_sub">dernière relecture avant le scellement</string>
+    <string name="forge_step_header">%1$s  %2$s</string>
+    <string name="forge_next">%1$s  →</string>
+
+    <string name="inc_lead">Au moment exact de votre naissance, la Terre occupait une position précise dans l\'espace-temps. Votre noyau s\'en dérive : le même instant donne toujours la même clé, sur n\'importe quelle station.</string>
+    <string name="inc_no_account_title">Ni compte, ni mot de passe</string>
+    <string name="inc_no_account_body">Quatre écrans suffisent : quand et où vous êtes né, votre onde et votre poids de naissance. Rien de tout cela ne part sur le réseau.</string>
+    <string name="inc_temp_key_title">Une clé temporaire, pour commencer</string>
+    <string name="inc_temp_key_body">Elle vous suffit pour tout ce qui se passe à portée d\'antenne. Votre clé LOVE, elle, sera dérivée par une station Astroport.ONE le jour où vous ouvrirez un MULTIPASS — ce sera proposé juste après.</string>
+
+    <string name="inc_section_datetime">Date et heure de naissance</string>
+    <string name="inc_section_place">Lieu de naissance</string>
+    <string name="inc_section_wave">Onde biologique</string>
+    <string name="inc_section_weight">Poids de naissance</string>
+    <string name="inc_section_singularity">Singularité · calculée</string>
+    <string name="inc_section_incarnation">Votre incarnation</string>
+    <string name="inc_dd">JJ</string>
+    <string name="inc_mm">MM</string>
+    <string name="inc_yyyy">AAAA</string>
+    <string name="inc_hh">HH</string>
+    <string name="inc_mn">MN</string>
+    <string name="inc_place_placeholder">Ville, pays…</string>
+    <string name="inc_coords_warning">Coordonnées de récupération, à noter précieusement : précision 0,01° — environ 1 km. C\'est ce couple de nombres qui rouvre votre clé si vous perdez cet appareil : touchez-les pour les saisir vous-même.</string>
+    <string name="inc_vessel_note">L\'onde et le poids donnent sa fréquence à votre corps — l\'onde biologique. Ils entrent tous deux dans la clé.</string>
+    <string name="inc_singularity_note">Votre conception est l\'Esprit, votre naissance la Matière. Rien à saisir : la station compte 280 jours pour tout le monde, et le portail est le sommet du pavage le plus proche de votre lieu.</string>
+
+    <string name="inc_row_birth">Naissance</string>
+    <string name="inc_row_place">Lieu</string>
+    <string name="inc_row_coords">Coordonnées</string>
+    <string name="inc_row_wave">Onde</string>
+    <string name="inc_row_weight">Poids</string>
+    <string name="inc_row_conception">Conception</string>
+    <string name="inc_row_gestation">Gestation</string>
+    <string name="inc_row_portal">Portail Goldberg</string>
+    <string name="inc_birth_datetime">%1$02d/%2$02d/%3$04d à %4$02d:%5$02d</string>
+    <string name="inc_wave_value">%1$s %2$s</string>
+
+    <string name="inc_confirm_title">Vérifiez votre incarnation</string>
+    <string name="inc_confirm_body">Votre noyau va être scellé avec ces cinq données. Après, plus rien n\'est modifiable.</string>
+    <string name="inc_confirm_warning">⚠ Une erreur ici, et la clé dérivée ne sera jamais la vôtre. Prenez le temps de relire chaque ligne.</string>
+    <string name="inc_confirm_forge">Forger définitivement</string>
+    <string name="inc_confirm_recheck">Vérifier encore</string>
+
+    <string name="inc_dissolve_title">Dissoudre le noyau ?</string>
+    <string name="inc_dissolve_body">Votre fiche d\'incarnation et la clé qui en dérive seront effacées de cette station. Rien ne part sur le réseau : en ressaisissant exactement les cinq mêmes données, la même clé renaîtra.</string>
+    <string name="inc_dissolve_warning">⚠ Une seule donnée différente produira une clé entièrement différente.</string>
+    <string name="inc_dissolve_last_title">Dernière confirmation</string>
+    <string name="inc_dissolve_last_body">La station va oublier votre noyau, immédiatement et sans retour en arrière. Vous reviendrez à l\'écran de forge, fiche vierge.</string>
+    <string name="inc_dissolve_final">Dissoudre définitivement</string>
+    <string name="inc_dissolve">Dissoudre le noyau</string>
+    <string name="inc_continue">Continuer</string>
+    <string name="inc_cancel">Annuler</string>
+    <string name="inc_confirm">Valider</string>
+
+    <string name="inc_time_title">Heure de naissance</string>
+    <string name="inc_coords_title">Coordonnées de naissance</string>
+    <string name="inc_coords_body">Le couple que vous avez noté, tel quel. Deux décimales — environ 1 km : c\'est la précision qui entre dans votre clé.</string>
+    <string name="inc_latitude">Latitude</string>
+    <string name="inc_longitude">Longitude</string>
+    <string name="inc_coords_south_west">Sud et Ouest s\'écrivent en négatif : −33.45, −70.67.</string>
+
+    <string name="inc_sealed_title">Votre noyau</string>
+    <string name="inc_sealed_body">Scellé. Ces cinq données ne changent plus : elles redérivent votre clé à chaque démarrage, sur n\'importe quelle station.</string>
+    <string name="inc_sealed_note">Ces cinq données ne seront plus jamais modifiables. Ceux qui vous connaissent peuvent les redire : vos proches sont votre phrase de récupération.</string>
+    <string name="inc_provisional_note">La clé forgée ici est provisoire : elle vous suffit à portée d\'antenne. Votre clé LOVE, elle, sera dérivée par une station Astroport.ONE le jour où vous ouvrirez un MULTIPASS.</string>
+    <string name="inc_multipass_active">MULTIPASS actif · clé LOVE en place</string>
+    <string name="inc_multipass_open">Ouvrir un MULTIPASS sur AstroPort.ONE</string>
+    <string name="inc_footer">Atom4Love · by AstroPort.ONE</string>
+
+    <string name="inc_salt">salt %1$s</string>
+    <string name="inc_salt_incomplete">salt — fiche incomplète</string>
+    <string name="inc_missing">À renseigner : %1$s</string>
+    <string name="inc_missing_date">date</string>
+    <string name="inc_missing_time">heure</string>
+    <string name="inc_missing_place">lieu</string>
+    <string name="inc_missing_place_pick">lieu (choisissez dans la liste ou 📍)</string>
+    <string name="inc_missing_wave">onde</string>
+    <string name="inc_missing_weight">poids</string>
+    <string name="inc_missing_separator" translatable="false"> · </string>
+
+    <string name="inc_key_sealed">Clé LOVE scellée</string>
+    <string name="inc_forge_action">Forger mon noyau</string>
+    <string name="inc_forge_incomplete">Complétez votre fiche pour forger</string>
+    <!-- Le problème de date, mis en tête de phrase : « cette date… » devient
+         « Cette date… ». -->
+    <string name="inc_date_problem">%1$s.</string>
 </resources>

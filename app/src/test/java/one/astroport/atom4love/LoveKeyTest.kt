@@ -1,6 +1,7 @@
 package one.astroport.atom4love
 
 import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.domain.DateProblem
 import one.astroport.atom4love.domain.LoveKey
 import one.astroport.atom4love.domain.Wave
 import java.time.LocalDate
@@ -80,22 +81,26 @@ class LoveKeyTest {
     private fun born(y: Int, m: Int, d: Int) =
         BirthData.Sample.copy(year = y, month = m, day = d)
 
+    // Ces trois cas portent sur la VALEUR rendue, plus sur sa phrase : le
+    // domaine dit lequel des trois cas, l'écran l'écrit dans sa langue.
     @Test
     fun `on ne nait pas demain`() {
         assertFalse(born(2026, 8, 14).isPlausible(today))
-        assertEquals("cette date est dans l'avenir", born(2026, 8, 14).dateProblem(today))
+        assertEquals(DateProblem.Future, born(2026, 8, 14).dateProblem(today))
     }
 
     @Test
     fun `un mineur ne forge pas de noyau`() {
         // La veille des 18 ans : refusé. Le jour même : accepté.
         assertFalse(born(2008, 8, 13).isPlausible(today))
+        assertEquals(DateProblem.Minor, born(2008, 8, 13).dateProblem(today))
         assertTrue(born(2008, 8, 12).isPlausible(today))
     }
 
     @Test
     fun `au-dela de 120 ans, c'est une faute de frappe`() {
         assertFalse(born(1906, 8, 11).isPlausible(today))
+        assertEquals(DateProblem.TooOld, born(1906, 8, 11).dateProblem(today))
         assertTrue(born(1906, 8, 12).isPlausible(today))
     }
 

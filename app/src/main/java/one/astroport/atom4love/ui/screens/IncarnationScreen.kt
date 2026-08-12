@@ -3,6 +3,7 @@ package one.astroport.atom4love.ui.screens
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -60,6 +61,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
@@ -81,7 +84,9 @@ import java.util.Locale
 import kotlin.math.round
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import one.astroport.atom4love.R
 import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.domain.DateProblem
 import one.astroport.atom4love.domain.GoldbergPortal
 import one.astroport.atom4love.geo.CommuneApi
 import one.astroport.atom4love.geo.PlaceResolver
@@ -254,12 +259,16 @@ fun IncarnationScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            "${stepTitle.glyph}  ${stepTitle.title}",
+                            stringResource(
+                                R.string.forge_step_header,
+                                stepTitle.glyph,
+                                stringResource(stepTitle.titleRes),
+                            ),
                             style = A4LText.H2,
                             color = A4L.TextHigh,
                         )
                         Text(
-                            stepTitle.subtitle,
+                            stringResource(stepTitle.subtitleRes),
                             style = A4LText.Caption,
                             color = A4L.TextMuted,
                             modifier = Modifier.padding(top = 3.dp),
@@ -359,17 +368,17 @@ fun IncarnationScreen(
                                     Text("⚠", fontSize = 12.sp, color = A4L.Red)
                                     Spacer(Modifier.width(9.dp))
                                     Text(
-                                        problem.replaceFirstChar { it.uppercase() } + ".",
+                                        stringResource(
+                                            R.string.inc_date_problem,
+                                            problemText(problem),
+                                        ),
                                         style = A4LText.Caption,
                                         color = A4L.Red.copy(alpha = 0.9f),
                                     )
                                 }
                             }
                             Text(
-                                "Coordonnées de récupération, à noter précieusement : " +
-                                    "précision 0,01° — environ 1 km. C'est ce couple de " +
-                                    "nombres qui rouvre votre clé si vous perdez cet " +
-                                    "appareil : touchez-les pour les saisir vous-même.",
+                                stringResource(R.string.inc_coords_warning),
                                 style = A4LText.Caption,
                                 color = A4L.Amber.copy(alpha = 0.75f),
                             )
@@ -381,8 +390,7 @@ fun IncarnationScreen(
                         WaveSection(birth = birth, editable = true, onBirthChange = onBirthChange)
                         WeightSection(birth = birth, editable = true, onBirthChange = onBirthChange)
                         Text(
-                            "L'onde et le poids donnent sa fréquence à votre corps — " +
-                                "l'onde biologique. Ils entrent tous deux dans la clé.",
+                            stringResource(R.string.inc_vessel_note),
                             style = A4LText.Caption,
                             color = A4L.TextMuted,
                         )
@@ -393,10 +401,7 @@ fun IncarnationScreen(
                     ) {
                         SingularityCard(birth)
                         Text(
-                            "Votre conception est l'Esprit, votre naissance la Matière. " +
-                                "Rien à saisir : la station compte 280 jours pour tout le " +
-                                "monde, et le portail est le sommet du pavage le plus " +
-                                "proche de votre lieu.",
+                            stringResource(R.string.inc_singularity_note),
                             style = A4LText.Caption,
                             color = A4L.TextMuted,
                         )
@@ -460,7 +465,10 @@ fun IncarnationScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    "${ForgeStep.entries[step + 1].title}  →",
+                                    stringResource(
+                                        R.string.forge_next,
+                                        stringResource(ForgeStep.entries[step + 1].titleRes),
+                                    ),
                                     style = A4LText.Body.copy(
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
@@ -484,30 +492,44 @@ fun IncarnationScreen(
     if (showForgeConfirm && birth.complete) {
         AlertDialog(
             onDismissRequest = { showForgeConfirm = false },
-            title = { Text("Vérifiez votre incarnation", style = A4LText.Title) },
+            title = { Text(stringResource(R.string.inc_confirm_title), style = A4LText.Title) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                     Text(
-                        "Votre noyau va être scellé avec ces cinq données. " +
-                            "Après, plus rien n'est modifiable.",
+                        stringResource(R.string.inc_confirm_body),
                         style = A4LText.Body,
                         color = A4L.TextBody,
                     )
                     Spacer(Modifier.height(2.dp))
+                    ComputedRow(stringResource(R.string.inc_row_birth), stringResource(
+                            R.string.inc_birth_datetime,
+                            birth.day!!, birth.month!!, birth.year!!, birth.hour!!, birth.minute!!,
+                        ))
                     ComputedRow(
-                        "Naissance",
-                        "%02d/%02d/%04d à %02d:%02d".format(
-                            birth.day, birth.month, birth.year, birth.hour, birth.minute,
-                        ),
+                        stringResource(R.string.inc_row_place),
+                        birth.placeName.ifBlank { "—" },
                     )
-                    ComputedRow("Lieu", birth.placeName.ifBlank { "—" })
-                    ComputedRow("Coordonnées", LoveKey.formatCoords(birth))
-                    ComputedRow("Onde", "${birth.wave?.symbol} ${birth.wave?.label}")
-                    ComputedRow("Poids", LoveKey.formatWeight(birth.weightKg))
+                    ComputedRow(
+                        stringResource(R.string.inc_row_coords),
+                        LoveKey.formatCoords(birth),
+                    )
+                    ComputedRow(
+                        stringResource(R.string.inc_row_wave),
+                        birth.wave?.let {
+                            stringResource(
+                                R.string.inc_wave_value,
+                                it.symbol,
+                                stringResource(it.labelRes),
+                            )
+                        } ?: "—",
+                    )
+                    ComputedRow(
+                        stringResource(R.string.inc_row_weight),
+                        LoveKey.formatWeight(LocalResources.current, birth.weightKg),
+                    )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "⚠ Une erreur ici, et la clé dérivée ne sera jamais la vôtre. " +
-                            "Prenez le temps de relire chaque ligne.",
+                        stringResource(R.string.inc_confirm_warning),
                         style = A4LText.Caption,
                         color = A4L.Amber.copy(alpha = 0.85f),
                     )
@@ -517,11 +539,11 @@ fun IncarnationScreen(
                 TextButton(onClick = {
                     showForgeConfirm = false
                     onForge()
-                }) { Text("Forger définitivement", color = A4L.Gold) }
+                }) { Text(stringResource(R.string.inc_confirm_forge), color = A4L.Gold) }
             },
             dismissButton = {
                 TextButton(onClick = { showForgeConfirm = false }) {
-                    Text("Vérifier encore", color = A4L.TextBody)
+                    Text(stringResource(R.string.inc_confirm_recheck), color = A4L.TextBody)
                 }
             },
         )
@@ -531,19 +553,16 @@ fun IncarnationScreen(
     if (showDissolveWarning) {
         AlertDialog(
             onDismissRequest = { showDissolveWarning = false },
-            title = { Text("Dissoudre le noyau ?", style = A4LText.Title) },
+            title = { Text(stringResource(R.string.inc_dissolve_title), style = A4LText.Title) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                     Text(
-                        "Votre fiche d'incarnation et la clé qui en dérive seront " +
-                            "effacées de cette station. Rien ne part sur le réseau : en " +
-                            "ressaisissant exactement les cinq mêmes données, la même clé " +
-                            "renaîtra.",
+                        stringResource(R.string.inc_dissolve_body),
                         style = A4LText.Body,
                         color = A4L.TextBody,
                     )
                     Text(
-                        "⚠ Une seule donnée différente produira une clé entièrement différente.",
+                        stringResource(R.string.inc_dissolve_warning),
                         style = A4LText.Caption,
                         color = A4L.Amber.copy(alpha = 0.85f),
                     )
@@ -553,11 +572,11 @@ fun IncarnationScreen(
                 TextButton(onClick = {
                     showDissolveWarning = false
                     showDissolveFinal = true
-                }) { Text("Continuer", color = A4L.Red.copy(alpha = 0.85f)) }
+                }) { Text(stringResource(R.string.inc_continue), color = A4L.Red.copy(alpha = 0.85f)) }
             },
             dismissButton = {
                 TextButton(onClick = { showDissolveWarning = false }) {
-                    Text("Annuler", color = A4L.TextBody)
+                    Text(stringResource(R.string.inc_cancel), color = A4L.TextBody)
                 }
             },
         )
@@ -566,11 +585,10 @@ fun IncarnationScreen(
     if (showDissolveFinal) {
         AlertDialog(
             onDismissRequest = { showDissolveFinal = false },
-            title = { Text("Dernière confirmation", style = A4LText.Title) },
+            title = { Text(stringResource(R.string.inc_dissolve_last_title), style = A4LText.Title) },
             text = {
                 Text(
-                    "La station va oublier votre noyau, immédiatement et sans retour " +
-                        "en arrière. Vous reviendrez à l'écran de forge, fiche vierge.",
+                    stringResource(R.string.inc_dissolve_last_body),
                     style = A4LText.Body,
                     color = A4L.TextBody,
                 )
@@ -579,11 +597,11 @@ fun IncarnationScreen(
                 TextButton(onClick = {
                     showDissolveFinal = false
                     onDissolve?.invoke()
-                }) { Text("Dissoudre définitivement", color = A4L.Red) }
+                }) { Text(stringResource(R.string.inc_dissolve_final), color = A4L.Red) }
             },
             dismissButton = {
                 TextButton(onClick = { showDissolveFinal = false }) {
-                    Text("Annuler", color = A4L.TextBody)
+                    Text(stringResource(R.string.inc_cancel), color = A4L.TextBody)
                 }
             },
         )
@@ -637,10 +655,10 @@ fun IncarnationScreen(
                         onBirthChange(birth.copy(year = y, month = m, day = d))
                     }
                     showDatePicker = false
-                }) { Text("Valider") }
+                }) { Text(stringResource(R.string.inc_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Annuler") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.inc_cancel)) }
             },
         ) { DatePicker(state = state) }
     }
@@ -657,12 +675,12 @@ fun IncarnationScreen(
                 TextButton(onClick = {
                     onBirthChange(birth.copy(hour = state.hour, minute = state.minute))
                     showTimePicker = false
-                }) { Text("Valider") }
+                }) { Text(stringResource(R.string.inc_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Annuler") }
+                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.inc_cancel)) }
             },
-            title = { Text("Heure de naissance", style = A4LText.Title) },
+            title = { Text(stringResource(R.string.inc_time_title), style = A4LText.Title) },
             text = { TimePicker(state = state) },
         )
     }
@@ -700,31 +718,30 @@ private fun CoordinatesDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Coordonnées de naissance", style = A4LText.Title) },
+        title = { Text(stringResource(R.string.inc_coords_title), style = A4LText.Title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
                 Text(
-                    "Le couple que vous avez noté, tel quel. Deux décimales — " +
-                        "environ 1 km : c'est la précision qui entre dans votre clé.",
+                    stringResource(R.string.inc_coords_body),
                     style = A4LText.Body,
                     color = A4L.TextBody,
                 )
                 CoordinateField(
-                    label = "Latitude",
+                    label = stringResource(R.string.inc_latitude),
                     value = latText,
                     hint = "48.86",
                     invalid = latText.isNotBlank() && parsedLat == null,
                     onValueChange = { latText = it },
                 )
                 CoordinateField(
-                    label = "Longitude",
+                    label = stringResource(R.string.inc_longitude),
                     value = lonText,
                     hint = "2.35",
                     invalid = lonText.isNotBlank() && parsedLon == null,
                     onValueChange = { lonText = it },
                 )
                 Text(
-                    "Sud et Ouest s'écrivent en négatif : −33.45, −70.67.",
+                    stringResource(R.string.inc_coords_south_west),
                     style = A4LText.Caption,
                     color = A4L.TextMuted,
                 )
@@ -741,10 +758,10 @@ private fun CoordinatesDialog(
                         round(parsedLon!! * 100.0) / 100.0,
                     )
                 },
-            ) { Text("Valider", color = if (valid) A4L.Cyan else A4L.TextGhost) }
+            ) { Text(stringResource(R.string.inc_confirm), color = if (valid) A4L.Cyan else A4L.TextGhost) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Annuler", color = A4L.TextBody) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.inc_cancel), color = A4L.TextBody) }
         },
     )
 }
@@ -804,19 +821,30 @@ private fun CoordinateField(
 }
 
 /**
+ * Le texte d'un [DateProblem], première lettre en capitale. Le domaine dit
+ * lequel des trois cas ; c'est ici qu'on l'écrit, dans la langue de l'appareil.
+ */
+@Composable
+private fun problemText(problem: DateProblem): String =
+    (problem.arg?.let { stringResource(problem.messageRes, it) }
+        ?: stringResource(problem.messageRes))
+        .replaceFirstChar { it.uppercase() }
+
+/**
  * Les cinq stations de l'assistant, dans l'ordre d'ATOM4LOVE : on ne demande
  * qu'une chose à la fois, et chacune tient dans l'écran sans rien faire défiler.
  */
 private enum class ForgeStep(
+    /** Le glyphe reste en dur : un pictogramme n'est d'aucune langue. */
     val glyph: String,
-    val title: String,
-    val subtitle: String,
+    @StringRes val titleRes: Int,
+    @StringRes val subtitleRes: Int,
 ) {
-    Identity("🪪", "Identité", "ce que la station fabrique, et pour qui"),
-    Anchor("⚓", "Ancrage", "date · heure · lieu de naissance"),
-    Vessel("🧬", "Le vaisseau", "onde biologique · poids de naissance"),
-    Singularity("🌀", "Singularité", "la trace originelle, calculée pour vous"),
-    Forge("⚛", "Forger", "dernière relecture avant le scellement");
+    Identity("🪪", R.string.forge_step_identity, R.string.forge_step_identity_sub),
+    Anchor("⚓", R.string.forge_step_anchor, R.string.forge_step_anchor_sub),
+    Vessel("🧬", R.string.forge_step_vessel, R.string.forge_step_vessel_sub),
+    Singularity("🌀", R.string.forge_step_singularity, R.string.forge_step_singularity_sub),
+    Forge("⚛", R.string.forge_step_forge, R.string.forge_step_forge_sub);
 
     /** Ce que l'étape exige pour qu'on ait le droit de passer à la suivante. */
     fun isSatisfied(b: BirthData): Boolean = when (this) {
@@ -885,9 +913,7 @@ private fun StepBar(current: Int, reached: (Int) -> Boolean, onSelect: (Int) -> 
 private fun IdentityStep() {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            "Au moment exact de votre naissance, la Terre occupait une position " +
-                "précise dans l'espace-temps. Votre noyau s'en dérive : le même " +
-                "instant donne toujours la même clé, sur n'importe quelle station.",
+            stringResource(R.string.inc_lead),
             style = A4LText.Body,
             color = A4L.TextBody,
         )
@@ -899,13 +925,12 @@ private fun IdentityStep() {
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
-                "Ni compte, ni mot de passe",
+                stringResource(R.string.inc_no_account_title),
                 style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.TextHigh,
             )
             Text(
-                "Quatre écrans suffisent : quand et où vous êtes né, votre onde et " +
-                    "votre poids de naissance. Rien de tout cela ne part sur le réseau.",
+                stringResource(R.string.inc_no_account_body),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -918,14 +943,12 @@ private fun IdentityStep() {
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
-                "Une clé temporaire, pour commencer",
+                stringResource(R.string.inc_temp_key_title),
                 style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.Gold,
             )
             Text(
-                "Elle vous suffit pour tout ce qui se passe à portée d'antenne. " +
-                    "Votre clé LOVE, elle, sera dérivée par une station Astroport.ONE " +
-                    "le jour où vous ouvrirez un MULTIPASS — ce sera proposé juste après.",
+                stringResource(R.string.inc_temp_key_body),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -942,24 +965,24 @@ private fun BirthDateTimeSection(
     onPickTime: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        SectionLabel("Date et heure de naissance")
+        SectionLabel(stringResource(R.string.inc_section_datetime))
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Les cases vides s'affichent en fantôme « JJ MM AAAA » :
             // l'utilisateur voit d'un coup d'œil ce qui reste à définir.
             DigitBox(
-                birth.day?.let { "%02d".format(it) } ?: "JJ",
+                birth.day?.let { "%02d".format(it) } ?: stringResource(R.string.inc_dd),
                 42.dp, enabled = editable, placeholder = birth.day == null,
                 onClick = onPickDate,
             )
             Spacer(Modifier.width(6.dp))
             DigitBox(
-                birth.month?.let { "%02d".format(it) } ?: "MM",
+                birth.month?.let { "%02d".format(it) } ?: stringResource(R.string.inc_mm),
                 42.dp, enabled = editable, placeholder = birth.month == null,
                 onClick = onPickDate,
             )
             Spacer(Modifier.width(6.dp))
             DigitBox(
-                birth.year?.toString() ?: "AAAA",
+                birth.year?.toString() ?: stringResource(R.string.inc_yyyy),
                 60.dp, enabled = editable, placeholder = birth.year == null,
                 onClick = onPickDate,
             )
@@ -970,7 +993,7 @@ private fun BirthDateTimeSection(
                 modifier = Modifier.padding(horizontal = 8.dp),
             )
             DigitBox(
-                birth.hour?.let { "%02d".format(it) } ?: "HH",
+                birth.hour?.let { "%02d".format(it) } ?: stringResource(R.string.inc_hh),
                 42.dp, accent = true, enabled = editable, placeholder = birth.hour == null,
                 onClick = onPickTime,
             )
@@ -981,7 +1004,7 @@ private fun BirthDateTimeSection(
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
             DigitBox(
-                birth.minute?.let { "%02d".format(it) } ?: "MN",
+                birth.minute?.let { "%02d".format(it) } ?: stringResource(R.string.inc_mn),
                 42.dp, accent = true, enabled = editable, placeholder = birth.minute == null,
                 onClick = onPickTime,
             )
@@ -1003,7 +1026,7 @@ private fun BirthPlaceSection(
     onEditCoords: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        SectionLabel("Lieu de naissance")
+        SectionLabel(stringResource(R.string.inc_section_place))
         Row(
             Modifier
                 .fillMaxWidth()
@@ -1026,7 +1049,7 @@ private fun BirthPlaceSection(
                 decorationBox = { inner ->
                     if (birth.placeName.isEmpty()) {
                         Text(
-                            "Ville, pays…",
+                            stringResource(R.string.inc_place_placeholder),
                             style = A4LText.Body.copy(fontSize = 14.sp),
                             color = A4L.TextGhost,
                         )
@@ -1111,7 +1134,7 @@ private fun BirthPlaceSection(
 @Composable
 private fun WaveSection(birth: BirthData, editable: Boolean, onBirthChange: (BirthData) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        SectionLabel("Onde biologique")
+        SectionLabel(stringResource(R.string.inc_section_wave))
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
             Wave.entries.forEach { wave ->
                 WaveCard(
@@ -1135,9 +1158,9 @@ private fun WeightSection(birth: BirthData, editable: Boolean, onBirthChange: (B
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            SectionLabel("Poids de naissance")
+            SectionLabel(stringResource(R.string.inc_section_weight))
             Text(
-                LoveKey.formatWeight(birth.weightKg),
+                LoveKey.formatWeight(LocalResources.current, birth.weightKg),
                 style = A4LText.Data.copy(fontSize = 13.sp),
                 color = A4L.TextHigh.copy(alpha = 0.75f),
             )
@@ -1167,19 +1190,25 @@ private fun SingularityCard(birth: BirthData) {
             .padding(horizontal = 15.dp, vertical = 13.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SectionLabel("Singularité · calculée", color = A4L.Cyan.copy(alpha = 0.6f))
+        SectionLabel(
+            stringResource(R.string.inc_section_singularity),
+            color = A4L.Cyan.copy(alpha = 0.6f),
+        )
+        val res = LocalResources.current
         ComputedRow(
-            "Conception",
-            if (birth.dateComplete) LoveKey.formatDate(LoveKey.conception(birth)) else "—",
+            stringResource(R.string.inc_row_conception),
+            if (birth.dateComplete) {
+                LoveKey.formatDate(LoveKey.conception(birth), res.configuration.locales[0])
+            } else "—",
         )
         ComputedRow(
-            "Gestation",
-            if (birth.dateComplete) LoveKey.formatGestation() else "—",
+            stringResource(R.string.inc_row_gestation),
+            if (birth.dateComplete) LoveKey.formatGestation(res) else "—",
         )
         // Le vrai portail : le sommet du polyèdre de Goldberg le plus
         // proche du lieu de naissance (les 12 pentagones de la grille H3).
         ComputedRow(
-            "Portail Goldberg",
+            stringResource(R.string.inc_row_portal),
             if (birth.lat != null && birth.lon != null) {
                 GoldbergPortal.nearest(birth.lat, birth.lon).label
             } else "—",
@@ -1198,19 +1227,28 @@ private fun RecapCard(birth: BirthData) {
             .padding(horizontal = 15.dp, vertical = 13.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SectionLabel("Votre incarnation")
+        SectionLabel(stringResource(R.string.inc_section_incarnation))
         ComputedRow(
-            "Naissance",
+            stringResource(R.string.inc_row_birth),
             if (birth.dateComplete && birth.timeComplete) {
-                "%02d/%02d/%04d à %02d:%02d".format(
-                    birth.day, birth.month, birth.year, birth.hour, birth.minute,
+                stringResource(
+                    R.string.inc_birth_datetime,
+                    birth.day!!, birth.month!!, birth.year!!, birth.hour!!, birth.minute!!,
                 )
             } else "—",
         )
-        ComputedRow("Lieu", birth.placeName.ifBlank { "—" })
-        ComputedRow("Coordonnées", LoveKey.formatCoords(birth))
-        ComputedRow("Onde", birth.wave?.let { "${it.symbol} ${it.label}" } ?: "—")
-        ComputedRow("Poids", LoveKey.formatWeight(birth.weightKg))
+        ComputedRow(stringResource(R.string.inc_row_place), birth.placeName.ifBlank { "—" })
+        ComputedRow(stringResource(R.string.inc_row_coords), LoveKey.formatCoords(birth))
+        ComputedRow(
+            stringResource(R.string.inc_row_wave),
+            birth.wave?.let {
+                stringResource(R.string.inc_wave_value, it.symbol, stringResource(it.labelRes))
+            } ?: "—",
+        )
+        ComputedRow(
+            stringResource(R.string.inc_row_weight),
+            LoveKey.formatWeight(LocalResources.current, birth.weightKg),
+        )
     }
 }
 
@@ -1227,8 +1265,7 @@ private fun ImmutableWarning() {
         Spacer(Modifier.width(9.dp))
         Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Text(
-                "Ces cinq données ne seront plus jamais modifiables. Ceux qui vous " +
-                    "connaissent peuvent les redire : vos proches sont votre phrase de récupération.",
+                stringResource(R.string.inc_sealed_note),
                 style = A4LText.Caption,
                 color = A4L.Amber.copy(alpha = 0.85f),
             )
@@ -1236,9 +1273,7 @@ private fun ImmutableWarning() {
             // clé LOVE, et le jour où une station la dérivera vraiment, le npub
             // d'aujourd'hui sera périmé.
             Text(
-                "La clé forgée ici est provisoire : elle vous suffit à portée " +
-                    "d'antenne. Votre clé LOVE, elle, sera dérivée par une station " +
-                    "Astroport.ONE le jour où vous ouvrirez un MULTIPASS.",
+                stringResource(R.string.inc_provisional_note),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
@@ -1251,7 +1286,11 @@ private fun ImmutableWarning() {
 private fun SaltLine(birth: BirthData, npub: String?) {
     Column {
         Text(
-            if (birth.complete) "salt ${LoveKey.salt(birth)}" else "salt — fiche incomplète",
+            if (birth.complete) {
+                stringResource(R.string.inc_salt, LoveKey.salt(birth))
+            } else {
+                stringResource(R.string.inc_salt_incomplete)
+            },
             style = A4LText.Data.copy(fontSize = 9.sp),
             color = A4L.TextGhost,
             maxLines = 1,
@@ -1278,18 +1317,23 @@ private fun SaltLine(birth: BirthData, npub: String?) {
 private fun MissingLine(birth: BirthData, only: ForgeStep? = null) {
     val missing = buildList {
         if (only == null || only == ForgeStep.Anchor) {
-            if (!birth.dateComplete) add("date")
-            if (!birth.timeComplete) add("heure")
+            if (!birth.dateComplete) add(stringResource(R.string.inc_missing_date))
+            if (!birth.timeComplete) add(stringResource(R.string.inc_missing_time))
             if (birth.lat == null || birth.lon == null) {
                 add(
-                    if (birth.placeName.isBlank()) "lieu"
-                    else "lieu (choisissez dans la liste ou 📍)",
+                    stringResource(
+                        if (birth.placeName.isBlank()) {
+                            R.string.inc_missing_place
+                        } else {
+                            R.string.inc_missing_place_pick
+                        },
+                    ),
                 )
             }
         }
         if (only == null || only == ForgeStep.Vessel) {
-            if (birth.wave == null) add("onde")
-            if (birth.weightKg == null) add("poids")
+            if (birth.wave == null) add(stringResource(R.string.inc_missing_wave))
+            if (birth.weightKg == null) add(stringResource(R.string.inc_missing_weight))
         }
     }
     if (missing.isEmpty()) return
@@ -1297,7 +1341,10 @@ private fun MissingLine(birth: BirthData, only: ForgeStep? = null) {
         Text("ⓘ", fontSize = 11.sp, color = A4L.Cyan.copy(alpha = 0.7f))
         Spacer(Modifier.width(7.dp))
         Text(
-            "À renseigner : ${missing.joinToString(" · ")}",
+            stringResource(
+                R.string.inc_missing,
+                missing.joinToString(stringResource(R.string.inc_missing_separator)),
+            ),
             style = A4LText.Caption,
             color = A4L.TextMuted,
         )
@@ -1322,11 +1369,14 @@ private fun ColumnScope.SealedNucleus(
         modifier.verticalScroll(rememberScrollState()),
     ) {
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp)) {
-            Text("Votre noyau", style = A4LText.H1, color = A4L.TextHigh)
+            Text(
+                stringResource(R.string.inc_sealed_title),
+                style = A4LText.H1,
+                color = A4L.TextHigh,
+            )
             Spacer(Modifier.height(8.dp))
             Text(
-                "Scellé. Ces cinq données ne changent plus : elles redérivent votre " +
-                    "clé à chaque démarrage, sur n'importe quelle station.",
+                stringResource(R.string.inc_sealed_body),
                 style = A4LText.Body,
                 color = A4L.TextBody,
             )
@@ -1365,11 +1415,13 @@ private fun ColumnScope.SealedNucleus(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    if (multipassActive) {
-                        "MULTIPASS actif · clé LOVE en place"
-                    } else {
-                        "Ouvrir un MULTIPASS sur AstroPort.ONE"
-                    },
+                    stringResource(
+                        if (multipassActive) {
+                            R.string.inc_multipass_active
+                        } else {
+                            R.string.inc_multipass_open
+                        },
+                    ),
                     style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                     color = accent,
                 )
@@ -1390,14 +1442,14 @@ private fun ColumnScope.SealedNucleus(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                "Dissoudre le noyau",
+                stringResource(R.string.inc_dissolve),
                 style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.Red.copy(alpha = 0.85f),
             )
         }
         // Le launcher garde le nom court ; la filiation s'affiche ici.
         Text(
-            "Atom4Love · by AstroPort.ONE",
+            stringResource(R.string.inc_footer),
             style = A4LText.Data.copy(fontSize = 9.sp),
             color = A4L.TextGhost,
             textAlign = TextAlign.Center,
@@ -1470,12 +1522,12 @@ private fun WaveCard(
             color = if (selected) A4L.Mint else A4L.TextMuted,
         )
         Text(
-            wave.label,
+            stringResource(wave.labelRes),
             style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
             color = if (selected) A4L.Mint else A4L.TextBody.copy(alpha = 0.55f),
         )
         Text(
-            "sexe ${wave.sex}",
+            stringResource(R.string.wave_sex, wave.sex),
             style = A4LText.Data.copy(fontSize = 9.sp),
             color = if (selected) A4L.Mint.copy(alpha = 0.55f) else A4L.TextGhost,
         )
@@ -1494,6 +1546,8 @@ private fun WeightSlider(
     onValueChange: (Float) -> Unit,
 ) {
     val fraction = value?.let { ((it - WEIGHT_MIN) / (WEIGHT_MAX - WEIGHT_MIN)).coerceIn(0f, 1f) }
+    // lu dans la composition : `semantics` n'est pas un contexte composable
+    val weightLabel = stringResource(R.string.inc_section_weight)
 
     // Le poids entre dans le SALT au dixième de kilo près : on arrondit à la saisie.
     fun updateFromFraction(f: Float) {
@@ -1506,7 +1560,7 @@ private fun WeightSlider(
             .fillMaxWidth()
             .height(20.dp)
             .semantics {
-                contentDescription = "Poids de naissance"
+                contentDescription = weightLabel
                 progressBarRangeInfo =
                     ProgressBarRangeInfo(value ?: WEIGHT_MIN, WEIGHT_MIN..WEIGHT_MAX)
             }
@@ -1573,11 +1627,13 @@ private fun ForgeButton(forged: Boolean, complete: Boolean, onClick: () -> Unit)
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            when {
-                forged -> "Clé LOVE scellée"
-                complete -> "Forger mon noyau"
-                else -> "Complétez votre fiche pour forger"
-            },
+            stringResource(
+                when {
+                    forged -> R.string.inc_key_sealed
+                    complete -> R.string.inc_forge_action
+                    else -> R.string.inc_forge_incomplete
+                },
+            ),
             style = A4LText.Body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
             color = if (ready) accent else accent.copy(alpha = 0.45f),
         )
