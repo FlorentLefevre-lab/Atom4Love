@@ -433,11 +433,17 @@ fun RadarScreen(
             }
 
             // Noyaux voisins qui respirent — les vrais, vus par la balise BLE.
-            neighbors.take(MAX_NEIGHBOR_DOTS).forEach { neighbor ->
-                key(neighbor.address) {
-                    NeighborDot(neighbor = neighbor, ownCell4d = ownCell4d)
+            // Un point par personne, comme le compteur : sans ce regroupement,
+            // une adresse qui vient de tourner et l'ancienne, pas encore
+            // évincée, faisaient scintiller deux points pour un seul appareil.
+            neighbors
+                .distinctBy { it.token ?: it.address }
+                .take(MAX_NEIGHBOR_DOTS)
+                .forEach { neighbor ->
+                    key(neighbor.token ?: neighbor.address) {
+                        NeighborDot(neighbor = neighbor, ownCell4d = ownCell4d)
+                    }
                 }
-            }
         }
 
         // ── Compteurs de la cabine ────────────────────────────────────────
@@ -487,7 +493,10 @@ fun RadarScreen(
                 // qui annoncent la même cellule que la nôtre.
                 CabinStat(
                     if (beaconRunning && ownCell4d != null) {
-                        neighbors.count { it.cell4d == ownCell4d }.toString()
+                        // par jeton de présence, pas par adresse : une adresse
+                        // qui tourne pendant que l'ancienne survit à son TTL
+                        // faisait compter deux fois le même appareil
+                        NeighborRegistry.countIn(neighbors, ownCell4d).toString()
                     } else {
                         "—"
                     },

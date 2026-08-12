@@ -52,6 +52,18 @@ class ProximityService : Service() {
         /** Adresse 4D que la balise annonce (null = cellule non résolue ou balise coupée). */
         val advertisedCell4d: StateFlow<Long?> = _advertisedCell4d.asStateFlow()
 
+        private val _nostrKey = MutableStateFlow<ByteArray?>(null)
+
+        /**
+         * Le noyau, confié à la balise pour qu'elle sache dériver son jeton de
+         * présence — jamais pour l'annoncer. La clé ne quitte pas l'appareil :
+         * seul [ProximityPayload.token] part dans l'air, et il ne se remonte
+         * pas en npub. À rappeler quand l'identité change (clé LOVE reçue).
+         */
+        fun bindIdentity(nostrKey: ByteArray?) {
+            _nostrKey.value = nostrKey
+        }
+
         /** Sans elles, ni l'annonce ni le scan ne peuvent démarrer (runtime dès API 31). */
         fun corePermissionsGranted(context: Context): Boolean =
             Build.VERSION.SDK_INT < Build.VERSION_CODES.S || listOf(
@@ -127,7 +139,9 @@ class ProximityService : Service() {
         if (!engineStarted) {
             engineStarted = true
             val registry = NeighborRegistry()
-            val engine = ProximityEngine(this, registry, CellLocator(this))
+            val engine = ProximityEngine(
+                this, registry, CellLocator(this), nostrKey = { _nostrKey.value },
+            )
             scope.launch { engine.run() }
             scope.launch {
                 engine.state.collect { _advertisedCell4d.value = it.advertisedCell4d }

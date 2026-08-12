@@ -1684,9 +1684,9 @@ class CabinChat(context: Context) {
      * distingue rien : c'est l'adresse **locale** de la socket acceptée qui le
      * dit — le groupe P2P vit en 192.168.49.0/24, son propriétaire en .1.
      *
-     * Sans ça, un lien P2P entrant se ferait passer pour un lien de station :
-     * l'indicateur annoncerait « par la station » à quelqu'un qui parle en
-     * pair à pair, et [followMedium] accepterait le mauvais médium.
+     * Sans ça, un lien P2P entrant se ferait passer pour un lien d'infra :
+     * l'indicateur annoncerait « par le réseau du lieu » à quelqu'un qui parle
+     * en pair à pair, et [followMedium] accepterait le mauvais médium.
      */
     private fun inboundMedium(socket: Socket): Medium =
         if (socket.localAddress?.hostAddress?.startsWith(P2P_SUBNET) == true) {

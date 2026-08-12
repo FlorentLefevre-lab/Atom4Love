@@ -66,6 +66,7 @@ import one.astroport.atom4love.nostr.LoveKeyForge
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.proximity.CellLocator
+import one.astroport.atom4love.proximity.ProximityService
 import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.screens.BoardScreen
@@ -182,6 +183,9 @@ private fun Station(
     // par le relais local, jamais par les relais publics.
     val salon = remember { CabinSalon(scope, relay.localRelay) }
     LaunchedEffect(keys) {
+        // La balise dérive son jeton de présence du noyau — sans quoi elle
+        // n'annonce rien qui la distingue, et le portail compte des adresses.
+        ProximityService.bindIdentity(keys?.publicKey)
         if (keys != null) {
             relay.start(keys)
             salon.start(keys)

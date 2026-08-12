@@ -41,6 +41,13 @@ class ProximityEngine(
     private val registry: NeighborRegistry,
     private val locator: CellLocator,
     private val rotation: CellRotation = CellRotation.None,
+    /**
+     * La clé publique du noyau, relue à chaque annonce : elle n'existe pas
+     * forcément quand la balise démarre (fiche pas encore forgée), et elle
+     * change le jour où une station rend la clé LOVE. Rien d'elle ne part
+     * dans l'air — seulement le jeton de [ProximityPayload.token].
+     */
+    private val nostrKey: () -> ByteArray? = { null },
 ) {
 
     companion object {
@@ -76,6 +83,9 @@ class ProximityEngine(
 
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
+
+    /** Jeton actuellement dans l'air — il n'a pas à sortir d'ici. */
+    private var advertisedToken: Int? = null
 
     /**
      * Tourne jusqu'à annulation de la coroutine appelante ; l'annonce et le scan
@@ -118,9 +128,17 @@ class ProximityEngine(
                 Log.d(TAG, "cellule H3 résolue : ${h3Cell?.toString(16) ?: "échec (pas de position)"}")
                 val cell4d = h3Cell?.let { rotation.apply(it, System.currentTimeMillis()) }
 
-                if (advertiseCallback == null || cell4d != _state.value.advertisedCell4d) {
+                // Le jeton suit la cellule ET le noyau : refaire l'annonce quand
+                // l'un des deux bouge, sinon un noyau forgé après le démarrage
+                // de la balise n'y figurerait jamais.
+                val token = ProximityPayload.token(nostrKey(), cell4d)
+                if (advertiseCallback == null ||
+                    cell4d != _state.value.advertisedCell4d ||
+                    token != advertisedToken
+                ) {
                     advertiseCallback?.let { runCatching { advertiser.stopAdvertising(it) } }
-                    advertiseCallback = startAdvertising(advertiser, cell4d)
+                    advertisedToken = token
+                    advertiseCallback = startAdvertising(advertiser, cell4d, token)
                 }
 
                 var waited = 0L
@@ -146,6 +164,7 @@ class ProximityEngine(
     private suspend fun startAdvertising(
         advertiser: BluetoothLeAdvertiser,
         cell4d: Long?,
+        token: Int?,
     ): AdvertiseCallback? {
         val settings = AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
@@ -155,7 +174,7 @@ class ProximityEngine(
         val data = AdvertiseData.Builder()
             .setIncludeDeviceName(false)
             .addServiceUuid(SERVICE_UUID)
-            .addServiceData(SERVICE_UUID, ProximityPayload.encode(cell4d))
+            .addServiceData(SERVICE_UUID, ProximityPayload.encode(cell4d, token))
             .build()
 
         var callback: AdvertiseCallback? = null
@@ -216,6 +235,6 @@ class ProximityEngine(
         ) ?: return
         Log.d(TAG, "pair ${result.device.address} rssi=${result.rssi} " +
             "cell4d=${payload.cell4d?.toString(16) ?: "inconnue"}")
-        registry.report(result.device.address, payload.cell4d, result.rssi)
+        registry.report(result.device.address, payload.cell4d, payload.token, result.rssi)
     }
 }

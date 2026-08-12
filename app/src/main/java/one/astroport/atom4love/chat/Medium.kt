@@ -33,7 +33,17 @@ enum class Medium(
     val short: String,
 ) {
     BLE("en direct", "BLE"),
-    WIFI_STATION("par la station", "Wi-Fi"),
+
+    /**
+     * « Par la station » disait le contraire de ce qui se passe : dans cette
+     * application, *la station* c'est Astroport.ONE — et l'écran d'accueil
+     * lui-même. Or ce médium ne passe par aucune des deux : les deux noyaux
+     * sont clients du même point d'accès, la box du lieu, et rien de ce qu'ils
+     * se disent ne sort de ce réseau. Le mot vient du vocabulaire Wi-Fi, où
+     * une station est le client d'un point d'accès — juste dans le code, mais
+     * lu à côté de « sans relais » il suggérait un serveur dans la boucle.
+     */
+    WIFI_STATION("par le réseau du lieu", "Wi-Fi"),
     WIFI_DIRECT("pair à pair", "Wi-Fi Direct"),
     ;
 
