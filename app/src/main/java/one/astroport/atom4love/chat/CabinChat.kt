@@ -180,6 +180,14 @@ class CabinChat(context: Context) {
         /** Le temps de laisser partir les adieux avant d'éteindre les fils. */
         private const val BYE_FLUSH_MS = 350L
 
+        /**
+         * Combien de copies d'adieu on accepte d'attendre à la fois. Personne
+         * ne tient trois voies à la fois, et il faudrait autant de départs
+         * simultanés pour approcher ce nombre — c'est un garde-fou, pas une
+         * mesure.
+         */
+        private const val DEPARTED_MEMORY = 32
+
         /** Le temps qu'une annulation de connexion parte avant de fermer le serveur. */
         private const val SERVER_CLOSE_DELAY_MS = 600L
 
@@ -810,11 +818,35 @@ class CabinChat(context: Context) {
     /** Fil protocole. Les adresses qu'on a cessé d'appeler, pour ne le dire qu'une fois. */
     private val dialSkipped = LinkedHashSet<String>()
 
+    /**
+     * Fil protocole. Liens qu'un adieu vient d'emporter, et sur lesquels une
+     * copie de cet adieu voyageait déjà.
+     *
+     * Le pair dit au revoir sur chacun de ses liens ; nous les retirons tous
+     * dès le premier mot, puisqu'ils mènent à la même personne. Les copies
+     * arrivent donc derrière, sur des liens qui n'existent plus — attendues, et
+     * non pas inconnues. Sans ce registre, chaque départ laissait autant
+     * d'avertissements que la personne tenait de voies.
+     *
+     * Une entrée se consomme à la première trame, et le registre est borné :
+     * une copie qui ne viendrait jamais — le lien étant tombé avant elle — ne
+     * doit pas s'accumuler pour la vie de la cabine.
+     */
+    private val departed = LinkedHashSet<String>()
+
     /** Scan et annonce suspendus pendant un transfert — l'antenne au débit. */
     private var radioPaused = false
 
     private fun key(medium: Medium, kind: LinkKind, address: String) =
         "${medium.tag}:${if (kind == LinkKind.CLIENT) 'c' else 's'}:$address"
+
+    /** Fil protocole. Retenir qu'une copie d'adieu est encore en chemin. */
+    private fun expectFarewell(k: String) {
+        departed.add(k)
+        while (departed.size > DEPARTED_MEMORY) {
+            departed.iterator().let { it.next(); it.remove() }
+        }
+    }
 
     /**
      * Fil protocole. Un lien par **personne**, au meilleur médium accepté.
@@ -923,6 +955,7 @@ class CabinChat(context: Context) {
                 serverMtus.clear()
                 offers.clear()
                 groupOffers.clear()
+                departed.clear()
                 synchronized(subscribedAddresses) { subscribedAddresses.clear() }
             }.get()
         }
@@ -1963,9 +1996,15 @@ class CabinChat(context: Context) {
             null -> Log.w(TAG, "trame illisible de $from (${bytes.size} o)")
             is ChatFrame.Handshake -> onHandshakeFrame(medium, kind, from, frame)
             is ChatFrame.Sealed -> {
-                val link = links[key(medium, kind, from)]
-                if (link == null) Log.w(TAG, "trame scellée d'un lien inconnu : $from")
-                else unseal(link, frame)?.let { handlePlainFrame(medium, kind, from, it) }
+                val k = key(medium, kind, from)
+                val link = links[k]
+                when {
+                    link != null -> unseal(link, frame)?.let { handlePlainFrame(medium, kind, from, it) }
+                    // L'adieu qui voyageait déjà sur cette voie-là, arrivé après
+                    // celui qui l'a emportée. On l'attendait : voir [departed].
+                    departed.remove(k) -> Unit
+                    else -> Log.w(TAG, "trame scellée d'un lien inconnu : $from")
+                }
             }
             else -> handlePlainFrame(medium, kind, from, bytes)
         }
@@ -1996,10 +2035,16 @@ class CabinChat(context: Context) {
                 if (leaving == null) {
                     removeLink(medium, kind, from)
                 } else {
-                    links.values
+                    val going = links.values
                         .filter { it.peerNostrKey?.contentEquals(leaving) == true }
                         .toList()
-                        .forEach { removeLink(it.medium, it.kind, it.address) }
+                    // Le mot est arrivé sur celle-ci ; les autres en portent
+                    // encore une copie, qui trouvera son lien déjà retiré.
+                    going.asSequence()
+                        .map { key(it.medium, it.kind, it.address) }
+                        .filter { it != key(medium, kind, from) }
+                        .forEach(::expectFarewell)
+                    going.forEach { removeLink(it.medium, it.kind, it.address) }
                 }
             }
             // Le réassembleur efface le partiel et rend un échec ; l'écran, lui,
