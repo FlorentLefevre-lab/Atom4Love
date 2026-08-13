@@ -246,7 +246,7 @@
     <string name="help_tzolkin_label">The Tzolkin · 260 days</string>
     <string name="help_tzolkin_body">Thirteen tones crossed with twenty seals: 260 combinations that loop back on themselves. The count follows neither sun nor moon — it does not date, it situates. Your KIN comes out of that grid, and it is on that grid that the station measures what brings you close to someone.</string>
     <string name="help_kin_label">The KIN</string>
-    <string name="help_kin_body">A tone, 1 to 13, crossed with a seal, 1 to 20: your KIN is one of the 260 cells of the Tzolkin. The seal wraps around — past the twentieth you are back at the first — so two KIN far apart by number can be neighbours by seal. It is not computed on this device: the station returns it with your MULTIPASS.</string>
+    <string name="help_kin_body">A tone, 1 to 13, crossed with a seal, 1 to 20: your KIN is one of the 260 cells of the Tzolkin. The seal wraps around — past the twentieth you are back at the first — so two KIN far apart by number can be neighbours by seal. Your date of birth is enough to compute it: this station does so itself, and you read it under "Singularity · computed". An Astroport.ONE station returns the same number with your MULTIPASS.</string>
     <string name="help_waves_label">The Φ wave, the Octave wave</string>
     <string name="help_waves_body">Two polarities, and nothing else: Φ or Octave. That is all the record asks on that side, and it goes into your key exactly as it stands. It says which side of the interference you vibrate on; your frequency comes from body measurements this station does not ask for.</string>
 
@@ -336,6 +336,8 @@
     <string name="inc_row_conception">Conception</string>
     <string name="inc_row_gestation">Gestation</string>
     <string name="inc_row_portal">Goldberg portal</string>
+    <string name="inc_row_kin">KIN</string>
+    <string name="inc_row_phase">Personal phase</string>
     <string name="inc_birth_datetime">%3$04d-%2$02d-%1$02d at %4$02d:%5$02d</string>
     <string name="inc_birth_date">%3$04d-%2$02d-%1$02d</string>
 

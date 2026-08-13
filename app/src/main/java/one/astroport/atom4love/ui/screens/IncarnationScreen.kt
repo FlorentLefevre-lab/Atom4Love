@@ -74,6 +74,8 @@ import one.astroport.atom4love.geo.CommuneApi
 import one.astroport.atom4love.geo.PlaceResolver
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.domain.LoveKey
+import one.astroport.atom4love.domain.Phi2X
+import one.astroport.atom4love.domain.KinMaya
 import one.astroport.atom4love.domain.Wave
 import one.astroport.atom4love.ui.components.AtomLogo
 import one.astroport.atom4love.ui.components.BirthDateWheels
@@ -1235,6 +1237,34 @@ private fun SingularityCard(birth: BirthData) {
                 GoldbergPortal.nearest(birth.lat, birth.lon).label
             } else "—",
             valueColor = A4L.Cyan,
+        )
+        // Le KIN ne demande que la date — il paraît donc avant le lieu, et
+        // avant la forge. La station le calcule elle-même depuis le portage de
+        // la table de Fred ; celui que rend le MULTIPASS est le même nombre.
+        ComputedRow(
+            stringResource(R.string.inc_row_kin),
+            KinMaya.of(birth)?.let { kin ->
+                stringResource(
+                    R.string.inc_kin_value,
+                    kin.kin,
+                    KinMaya.glyphName(kin.glyph) ?: "—",
+                )
+            } ?: "—",
+        )
+        // La phase, elle, attend le lieu : c'est le nombre sur lequel le Radar
+        // calcule ses résonances, et le montrer ici évite qu'il ne vive que
+        // dans la comparaison avec les autres.
+        ComputedRow(
+            stringResource(R.string.inc_row_phase),
+            // La virgule française ici, le point pour les coordonnées juste
+            // au-dessus : celles-là se recopient à l'identique dans une autre
+            // station, une phase se lit seulement — comme le k du Radar.
+            Phi2X.personalPhase(birth)?.let {
+                stringResource(
+                    R.string.inc_phase_value,
+                    String.format(Locale.getDefault(), "%.3f", it),
+                )
+            } ?: "—",
         )
     }
 }

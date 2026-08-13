@@ -297,7 +297,7 @@
     <string name="help_tzolkin_label">Le Tzolkin · 260 jours</string>
     <string name="help_tzolkin_body">Treize tons croisés de vingt sceaux : 260 combinaisons qui bouclent sur elles-mêmes. Le compte ne suit ni le soleil ni la lune — il ne sert pas à dater, mais à situer. C\'est de cette grille que sort votre KIN, et c\'est sur elle que la station mesure ce qui vous rapproche d\'un autre.</string>
     <string name="help_kin_label">Le KIN</string>
-    <string name="help_kin_body">Un ton, de 1 à 13, croisé d\'un sceau, de 1 à 20 : votre KIN est l\'une des 260 cases du Tzolkin. Le sceau boucle — du vingtième on revient au premier —, si bien que deux KIN éloignés par le numéro peuvent être voisins par le sceau. Il ne se calcule pas sur cet appareil : c\'est la station qui le rend avec votre MULTIPASS.</string>
+    <string name="help_kin_body">Un ton, de 1 à 13, croisé d\'un sceau, de 1 à 20 : votre KIN est l\'une des 260 cases du Tzolkin. Le sceau boucle — du vingtième on revient au premier —, si bien que deux KIN éloignés par le numéro peuvent être voisins par le sceau. Votre date de naissance suffit à le calculer : cette station le fait elle-même, et vous le lisez dans « Singularité · calculée ». Une station Astroport.ONE rend le même nombre avec votre MULTIPASS.</string>
     <string name="help_waves_label">L\'onde Φ, l\'onde Octave</string>
     <string name="help_waves_body">Deux polarités, et rien d\'autre : Φ ou Octave. C\'est tout ce que la fiche demande de ce côté-là, et elle entre telle quelle dans votre clé. Elle dit de quel côté de l\'interférence vous vibrez ; votre fréquence, elle, se déduit de mesures du corps que cette station ne demande pas.</string>
 
@@ -394,9 +394,15 @@
     <string name="inc_row_conception">Conception</string>
     <string name="inc_row_gestation">Gestation</string>
     <string name="inc_row_portal">Portail Goldberg</string>
+    <string name="inc_row_kin">KIN</string>
+    <string name="inc_row_phase">Phase personnelle</string>
     <string name="inc_birth_datetime">%1$02d/%2$02d/%3$04d à %4$02d:%5$02d</string>
     <string name="inc_birth_date">%1$02d/%2$02d/%3$04d</string>
     <string name="inc_wave_value" translatable="false">%1$s %2$s</string>
+    <!-- Le sceau garde son nom maya, qui ne se traduit pas ; la phase est en
+         radians, l'unité dans laquelle Fred la calcule et la compare. -->
+    <string name="inc_kin_value" translatable="false">%1$d · %2$s</string>
+    <string name="inc_phase_value" translatable="false">%1$s rad</string>
 
     <string name="inc_confirm_title">Vérifiez votre incarnation</string>
     <string name="inc_confirm_body">Votre noyau va être scellé avec ces données. Après, plus rien n\'est modifiable.</string>

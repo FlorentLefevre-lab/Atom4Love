@@ -248,7 +248,7 @@
     <string name="help_tzolkin_label">El Tzolkin · 260 días</string>
     <string name="help_tzolkin_body">Trece tonos cruzados con veinte sellos: 260 combinaciones que se cierran sobre sí mismas. La cuenta no sigue ni al sol ni a la luna — no sirve para fechar, sino para situar. De esa retícula sale su KIN, y sobre ella mide la estación lo que le acerca a otra persona.</string>
     <string name="help_kin_label">El KIN</string>
-    <string name="help_kin_body">Un tono, del 1 al 13, cruzado con un sello, del 1 al 20: su KIN es una de las 260 casillas del Tzolkin. El sello da la vuelta — del vigésimo se regresa al primero —, de modo que dos KIN lejanos por el número pueden ser vecinos por el sello. No se calcula en este aparato: la estación lo devuelve con su MULTIPASS.</string>
+    <string name="help_kin_body">Un tono, del 1 al 13, cruzado con un sello, del 1 al 20: su KIN es una de las 260 casillas del Tzolkin. El sello da la vuelta — del vigésimo se regresa al primero —, de modo que dos KIN lejanos por el número pueden ser vecinos por el sello. Su fecha de nacimiento basta para calcularlo: esta estación lo hace ella misma, y usted lo lee en «Singularidad · calculada». Una estación Astroport.ONE devuelve el mismo número con su MULTIPASS.</string>
     <string name="help_waves_label">La onda Φ, la onda Octava</string>
     <string name="help_waves_body">Dos polaridades, y nada más: Φ u Octava. Es todo lo que la ficha pide por ese lado, y entra tal cual en su clave. Dice de qué lado de la interferencia vibra usted; su frecuencia, en cambio, se deduce de medidas del cuerpo que esta estación no pide.</string>
 
@@ -338,6 +338,8 @@
     <string name="inc_row_conception">Concepción</string>
     <string name="inc_row_gestation">Gestación</string>
     <string name="inc_row_portal">Portal Goldberg</string>
+    <string name="inc_row_kin">KIN</string>
+    <string name="inc_row_phase">Fase personal</string>
     <string name="inc_birth_datetime">%1$02d/%2$02d/%3$04d a las %4$02d:%5$02d</string>
     <string name="inc_birth_date">%1$02d/%2$02d/%3$04d</string>
 
