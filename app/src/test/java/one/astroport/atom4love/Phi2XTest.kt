@@ -6,6 +6,7 @@ import one.astroport.atom4love.domain.KinMaya
 import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.domain.Wave
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -98,6 +99,42 @@ class Phi2XTest {
         assertNull(Phi2X.personalPhase(BirthData.Empty))
         assertNull(Phi2X.personalPhase(BirthData.Sample.copy(lat = null)))
         assertNull(Phi2X.personalPhase(BirthData.Sample.copy(year = null)))
+    }
+
+    /**
+     * k = 1/(1+|sin Δφ|), vérifié contre l'exécution de `compute_resonance_k`
+     * de la station. Les deux extrêmes valent 1 — en phase et en opposition —
+     * et le creux, en quadrature, ne descend qu'à 0,5.
+     */
+    @Test
+    fun `le taux de resonance suit la station`() {
+        // Le Pixel contre BirthData.Sample, avec les phases calculées ci-dessus.
+        assertClose(0.811061115065, Phi2X.resonanceK(4.852425269214, 1.475719788267), 1e-11)
+        assertClose(1.0, Phi2X.resonanceK(0.0, 0.0), 1e-12)
+        assertClose(1.0, Phi2X.resonanceK(0.0, Math.PI), 1e-12)
+        assertClose(0.5, Phi2X.resonanceK(1.0, 1.0 + Math.PI / 2), 1e-12)
+    }
+
+    @Test
+    fun `la resonance est symetrique et bornee`() {
+        for (a in 0..12) {
+            for (b in 0..12) {
+                val pa = a / 12.0 * Phi2X.TAU
+                val pb = b / 12.0 * Phi2X.TAU
+                val k = Phi2X.resonanceK(pa, pb)
+                assertClose(k, Phi2X.resonanceK(pb, pa), 1e-12)
+                assertTrue("k hors [0,5 ; 1] : $k", k >= 0.5 - 1e-12 && k <= 1.0 + 1e-12)
+            }
+        }
+    }
+
+    /** En phase ou en opposition, à la tolérance près — et le tour boucle. */
+    @Test
+    fun `la singularite optique se voit aux deux bouts`() {
+        assertTrue(Phi2X.isOpticalSingularity(1.0, 1.0))
+        assertTrue(Phi2X.isOpticalSingularity(1.0, 1.0 + Math.PI))
+        assertTrue(Phi2X.isOpticalSingularity(0.01, Phi2X.TAU - 0.01))
+        assertFalse(Phi2X.isOpticalSingularity(1.0, 1.0 + Math.PI / 2))
     }
 
     @Test

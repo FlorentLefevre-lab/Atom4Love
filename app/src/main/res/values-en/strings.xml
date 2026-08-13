@@ -27,6 +27,13 @@
     <string name="radar_stat_in_portal">in the portal</string>
     <string name="radar_stat_here_no_relay">here, no relay</string>
 
+    <string name="radar_resonance_title">Resonances in range</string>
+    <string name="radar_resonance_k">k %1$s</string>
+    <string name="radar_resonance_singularity">singularity</string>
+    <string name="radar_resonance_no_phase">phase unknown</string>
+    <string name="radar_resonance_mine_missing">Your phase needs your place of birth — without it there is nothing to compare.</string>
+    <string name="radar_resonance_hint">k runs from 0.5 to 1. It rises when two waves cross in phase — or exactly out of phase, which amounts to answering each other.</string>
+
     <string name="radar_cabin_row_open">Booth open — tap to close and erase</string>
     <string name="radar_cabin_row_closed">Talk to those who are here — encrypted, no relay</string>
 

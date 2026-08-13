@@ -72,6 +72,23 @@ class NeighborRegistryTest {
         assertEquals(2, NeighborRegistry.countIn(registry.neighbors.value, 7L))
     }
 
+    /** La signature traverse le registre : c'est elle que le Radar affiche. */
+    @Test
+    fun `la signature du pair arrive jusqu'au registre`() {
+        val signature = ProximityPayload.Signature(sex = 1, glyph = 2, phase = 4.85)
+        registry.report("AA:BB", cell4d = 7L, token = 42, rssi = -60, signature = signature)
+        assertEquals(signature, registry.neighbors.value.single().signature)
+    }
+
+    /** Un pair d'une version antérieure reste un voisin, simplement sans signature. */
+    @Test
+    fun `sans signature le voisin existe quand meme`() {
+        registry.report("AA:BB", cell4d = 7L, token = 42, rssi = -60)
+        val neighbor = registry.neighbors.value.single()
+        assertEquals(ProximityPayload.Signature.Unknown, neighbor.signature)
+        assertEquals(1, NeighborRegistry.countIn(registry.neighbors.value, 7L))
+    }
+
     @Test
     fun `une autre cellule ne compte pas, et la cellule inconnue non plus`() {
         registry.report("AA:BB", cell4d = 7L, token = 42, rssi = -60)

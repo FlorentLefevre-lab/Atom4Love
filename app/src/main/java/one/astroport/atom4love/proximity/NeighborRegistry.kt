@@ -51,6 +51,12 @@ class NeighborRegistry(
         val token: Int?,
         /** Dernier RSSI en dBm — la matière première du futur test de portée. */
         val rssi: Int,
+        /**
+         * Ce que le pair dit de lui sans se nommer — polarité, sceau, phase.
+         * Vide pour un pair resté à une version antérieure de l'annonce : il
+         * reste un voisin, simplement sans résonance calculable.
+         */
+        val signature: ProximityPayload.Signature = ProximityPayload.Signature.Unknown,
         val firstSeenMillis: Long,
         val lastSeenMillis: Long,
     )
@@ -59,7 +65,13 @@ class NeighborRegistry(
     private val _neighbors = MutableStateFlow<List<Neighbor>>(emptyList())
     val neighbors: StateFlow<List<Neighbor>> = _neighbors.asStateFlow()
 
-    fun report(address: String, cell4d: Long?, token: Int?, rssi: Int) {
+    fun report(
+        address: String,
+        cell4d: Long?,
+        token: Int?,
+        rssi: Int,
+        signature: ProximityPayload.Signature = ProximityPayload.Signature.Unknown,
+    ) {
         val now = clock()
         synchronized(byAddress) {
             val previous = byAddress[address]
@@ -68,6 +80,7 @@ class NeighborRegistry(
                 cell4d = cell4d,
                 token = token,
                 rssi = rssi,
+                signature = signature,
                 firstSeenMillis = previous?.firstSeenMillis ?: now,
                 lastSeenMillis = now,
             )

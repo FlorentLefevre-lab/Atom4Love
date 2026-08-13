@@ -251,6 +251,8 @@ class ProximityEngine(
         ) ?: return
         Log.d(TAG, "pair ${result.device.address} rssi=${result.rssi} " +
             "cell4d=${payload.cell4d?.toString(16) ?: "inconnue"}")
-        registry.report(result.device.address, payload.cell4d, payload.token, result.rssi)
+        registry.report(
+            result.device.address, payload.cell4d, payload.token, result.rssi, payload.signature,
+        )
     }
 }

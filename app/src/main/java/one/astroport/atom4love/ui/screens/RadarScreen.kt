@@ -70,6 +70,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.key
+import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
@@ -78,6 +79,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.R
 import one.astroport.atom4love.domain.GoldbergPortal
+import one.astroport.atom4love.domain.KinMaya
+import one.astroport.atom4love.domain.Phi2X
+import one.astroport.atom4love.domain.Wave
 import android.widget.Toast
 import one.astroport.atom4love.chat.Attachments
 import one.astroport.atom4love.chat.ChatSounds
@@ -90,6 +94,7 @@ import one.astroport.atom4love.nostr.CabinSalon
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.proximity.CellLocator
 import one.astroport.atom4love.proximity.NeighborRegistry
+import one.astroport.atom4love.proximity.ProximityPayload
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -97,6 +102,7 @@ import androidx.compose.ui.unit.sp
 import one.astroport.atom4love.proximity.ProximityService
 import one.astroport.atom4love.ui.components.HexagonShape
 import one.astroport.atom4love.ui.components.hexagonPath
+import one.astroport.atom4love.ui.components.SectionLabel
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.components.dashedGlass
 import one.astroport.atom4love.ui.components.glass
@@ -204,6 +210,7 @@ fun RadarScreen(
     val beaconRunning by ProximityService.running.collectAsStateWithLifecycle()
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
     val ownCell4d by ProximityService.advertisedCell4d.collectAsStateWithLifecycle()
+    val ownSignature by ProximityService.signature.collectAsStateWithLifecycle()
     // La localisation se demande pour elle-même. Elle ne l'était auparavant que
     // par le bouton balise, ce qui obligeait à diffuser son adresse 4D en
     // continu pour obtenir un hexagone — donc pour entrer dans le salon de
@@ -748,6 +755,10 @@ fun RadarScreen(
                     color = if (beaconRunning) A4L.Mint else A4L.TextMuted,
                 )
             }
+            // Ce que la balise entend des autres, une fois traduit : le panneau
+            // ne paraît que s'il y a quelque chose à dire, et disparaît avec le
+            // dernier voisin signé.
+            ResonancePanel(neighbors = neighbors, own = ownSignature)
         }
 
         Spacer(Modifier.height(20.dp))
@@ -897,6 +908,110 @@ private fun BoxScope.NeighborDot(
             .scale(1f + 0.06f * t)
             .background(color, CircleShape),
     )
+}
+
+/**
+ * Les résonances lues dans l'air — un voisin par ligne, la plus forte en tête.
+ *
+ * Ce panneau ne dit jamais **qui** : l'annonce ne porte pas de npub, et c'est
+ * exprès. Il dit comment deux ondes se croiseraient si elles se rencontraient —
+ * la polarité, le sceau maya, et le k de Fred. Un voisin resté à une ancienne
+ * version de l'annonce n'a pas de ligne : il compte toujours dans le portail,
+ * il n'a simplement rien signé.
+ */
+@Composable
+private fun ResonancePanel(
+    neighbors: List<NeighborRegistry.Neighbor>,
+    own: ProximityPayload.Signature,
+) {
+    // Une ligne par personne, comme les points : deux adresses d'un même jeton
+    // sont un seul appareil qui vient de changer de visage.
+    val signed = neighbors
+        .distinctBy { it.token ?: it.address }
+        .filter { it.signature != ProximityPayload.Signature.Unknown }
+        .sortedByDescending { neighbor ->
+            val theirs = neighbor.signature.phase
+            if (own.phase != null && theirs != null) Phi2X.resonanceK(own.phase, theirs) else -1.0
+        }
+        .take(MAX_NEIGHBOR_DOTS)
+    if (signed.isEmpty()) return
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .glass(12.dp, A4L.GlassFaint, A4L.Cyan.tint(0.18f))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(9.dp),
+    ) {
+        SectionLabel(stringResource(R.string.radar_resonance_title))
+        signed.forEach { neighbor ->
+            key(neighbor.token ?: neighbor.address) {
+                ResonanceRow(signature = neighbor.signature, own = own)
+            }
+        }
+        Text(
+            stringResource(
+                // Sans notre propre phase il n'y a rien à comparer, et la
+                // raison en est réparable : c'est le lieu de naissance qui
+                // manque. Le dire ici plutôt que d'aligner des tirets muets.
+                if (own.phase == null) {
+                    R.string.radar_resonance_mine_missing
+                } else {
+                    R.string.radar_resonance_hint
+                },
+            ),
+            style = A4LText.Caption.copy(fontSize = 10.sp),
+            color = A4L.TextGhost,
+        )
+    }
+}
+
+/** Une résonance : la polarité, le sceau, et k. */
+@Composable
+private fun ResonanceRow(
+    signature: ProximityPayload.Signature,
+    own: ProximityPayload.Signature,
+) {
+    val k = own.phase?.let { mine ->
+        signature.phase?.let { theirs -> Phi2X.resonanceK(mine, theirs) }
+    }
+    val singular = own.phase != null && signature.phase != null &&
+        Phi2X.isOpticalSingularity(own.phase, signature.phase)
+    val strong = k != null && k >= Phi2X.SUPER_COHERENCE_K
+    val accent = if (strong) A4L.Mint else A4L.Cyan
+
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        // La polarité de l'autre, dans le glyphe que la fiche lui a donné.
+        Text(
+            signature.sex?.let { sex -> Wave.entries.firstOrNull { it.sex == sex }?.symbol } ?: "·",
+            style = A4LText.Data.copy(fontSize = 15.sp),
+            color = accent,
+            modifier = Modifier.width(22.dp),
+        )
+        Text(
+            KinMaya.glyphName(signature.glyph) ?: "—",
+            style = A4LText.Data.copy(fontSize = 12.sp),
+            color = A4L.TextBody,
+            modifier = Modifier.weight(1f),
+        )
+        if (singular) {
+            Text(
+                stringResource(R.string.radar_resonance_singularity),
+                style = A4LText.Caption.copy(fontSize = 10.sp),
+                color = A4L.Mint,
+            )
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(
+            // Trois décimales, comme Fred les écrit : k se lit à la troisième,
+            // deux ondes voisines partagent les deux premières.
+            k?.let {
+                stringResource(R.string.radar_resonance_k, String.format(Locale.getDefault(), "%.3f", it))
+            } ?: stringResource(R.string.radar_resonance_no_phase),
+            style = A4LText.Data.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+            color = if (k == null) A4L.TextGhost else accent,
+        )
+    }
 }
 
 /** Un compteur de la cabine : un grand nombre, un libellé. */

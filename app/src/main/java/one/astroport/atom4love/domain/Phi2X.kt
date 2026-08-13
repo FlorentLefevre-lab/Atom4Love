@@ -168,6 +168,33 @@ object Phi2X {
     }
 
     /**
+     * Le seuil du « match quantique » de Fred (`Atom4Peace.SUPER_COHERENCE_K`) :
+     * au-delà, les deux ondes se croisent sans presque rien perdre.
+     */
+    const val SUPER_COHERENCE_K = 0.95
+
+    /**
+     * k = 1 / (1 + |sin Δφ|) — le taux de résonance entre deux phases.
+     *
+     * Il ne descend jamais sous 0,5 : deux ondes en quadrature échangent encore.
+     * Le maximum, 1, est atteint aux deux extrémités — en phase **et** en
+     * opposition de phase, ce que Fred appelle la singularité optique. C'est
+     * voulu : s'opposer exactement, c'est encore se répondre.
+     */
+    fun resonanceK(phaseA: Double, phaseB: Double): Double =
+        1.0 / (1.0 + kotlin.math.abs(kotlin.math.sin(phaseA - phaseB)))
+
+    /**
+     * En phase ou en opposition, à [tolerance] près — la singularité optique.
+     * La distance se mesure sur le cercle : 0 et 2π sont le même endroit.
+     */
+    fun isOpticalSingularity(phaseA: Double, phaseB: Double, tolerance: Double = 0.05): Boolean {
+        var delta = floorMod(kotlin.math.abs(phaseA - phaseB), TAU)
+        if (delta > PI) delta = TAU - delta
+        return delta < tolerance || kotlin.math.abs(delta - PI) < tolerance
+    }
+
+    /**
      * L'instant de naissance en secondes Unix, l'heure d'horloge du lieu étant
      * lue comme si elle était UTC — c'est ce qu'attend `compute_personal_phase`,
      * qui rattrape ensuite le décalage par la longitude.

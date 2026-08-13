@@ -28,6 +28,13 @@
     <string name="radar_stat_in_portal">en el portal</string>
     <string name="radar_stat_here_no_relay">aquí, sin relé</string>
 
+    <string name="radar_resonance_title">Resonancias al alcance</string>
+    <string name="radar_resonance_k">k %1$s</string>
+    <string name="radar_resonance_singularity">singularidad</string>
+    <string name="radar_resonance_no_phase">fase desconocida</string>
+    <string name="radar_resonance_mine_missing">Tu fase necesita tu lugar de nacimiento — sin él no hay nada que comparar.</string>
+    <string name="radar_resonance_hint">k va de 0,5 a 1. Sube cuando dos ondas se cruzan en fase — o exactamente en oposición, que viene a ser responderse.</string>
+
     <string name="radar_cabin_row_open">Cabina abierta — toca para cerrar y borrar</string>
     <string name="radar_cabin_row_closed">Habla con quienes están aquí — cifrado, sin relé</string>
 

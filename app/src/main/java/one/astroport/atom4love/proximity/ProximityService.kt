@@ -56,6 +56,13 @@ class ProximityService : Service() {
         private val _signature = MutableStateFlow(ProximityPayload.Signature.Unknown)
 
         /**
+         * Notre propre signature — l'écran en a besoin pour comparer : une
+         * résonance se calcule entre deux phases, et l'une des deux est la
+         * nôtre.
+         */
+        val signature: StateFlow<ProximityPayload.Signature> = _signature.asStateFlow()
+
+        /**
          * Le noyau, confié à la balise pour qu'elle sache dériver son jeton de
          * présence — jamais pour l'annoncer. La clé ne quitte pas l'appareil :
          * seul [ProximityPayload.token] part dans l'air, et il ne se remonte

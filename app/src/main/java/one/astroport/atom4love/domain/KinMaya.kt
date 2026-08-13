@@ -38,6 +38,22 @@ object KinMaya {
     const val GLYPH_UNKNOWN = 99
 
     /**
+     * Les vingt sceaux sous leur nom maya. Ce sont des noms propres : ils ne
+     * passent pas par `strings.xml` et se disent pareil dans les trois langues,
+     * là où « Dragon, Vent, Nuit… » demanderait trois traductions et perdrait
+     * ce que Fred et l'interface web nomment.
+     */
+    private val GLYPH_NAMES = arrayOf(
+        "Imix", "Ik", "Akbal", "Kan", "Chicchan", "Cimi", "Manik", "Lamat",
+        "Muluc", "Oc", "Chuen", "Eb", "Ben", "Ix", "Men", "Cib",
+        "Caban", "Etznab", "Cauac", "Ahau",
+    )
+
+    /** Le nom du sceau 0..19, ou null hors de la table. */
+    fun glyphName(glyph: Int?): String? = glyph?.takeIf { it in GLYPH_NAMES.indices }
+        ?.let { GLYPH_NAMES[it] }
+
+    /**
      * Un KIN et ses trois index, tous **comptés à partir de zéro** comme chez
      * Fred : [glyph] 0..19, [tone] 0..12, [color] 0..4. `Resonance.kt` compte
      * ses sceaux et ses tons à partir de 1 — c'est le même nombre décalé d'un.
