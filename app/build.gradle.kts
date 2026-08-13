@@ -20,6 +20,24 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+/**
+ * Le commit court, ou « nogit » hors dépôt. Lu à la configuration : un build
+ * debug doit pouvoir se nommer lui-même (voir buildTypes.debug).
+ */
+// `providers.exec` et non un ProcessBuilder : le cache de configuration de
+// Gradle refuse tout processus lancé à la main depuis un build.gradle.
+val gitShortHash: String = runCatching {
+    val head = providers.exec {
+        commandLine("git", "rev-parse", "--short", "HEAD")
+    }.standardOutput.asText.get().trim()
+    val dirty = providers.exec {
+        commandLine("git", "status", "--porcelain")
+    }.standardOutput.asText.get().isNotBlank()
+    // Le « + » dit que le build contient du travail non commité : sans lui,
+    // deux APK très différents porteraient le même numéro.
+    if (dirty) "$head+" else head
+}.getOrNull()?.takeIf { it.isNotEmpty() } ?: "nogit"
+
 android {
     namespace = "one.astroport.atom4love"
     compileSdk = 36
@@ -69,7 +87,11 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            // Le commit dans le numéro de version : l'onglet Réglages dit alors
+            // quel APK tourne vraiment sur l'appareil. Deux builds debug se
+            // ressemblent trop pour qu'on les distingue autrement, et chercher
+            // un défaut dans une version qu'on n'a pas installée coûte cher.
+            versionNameSuffix = "-debug-$gitShortHash"
             isMinifyEnabled = false
             buildConfigField("String", "NOSTR_DEFAULT_RELAY", "\"wss://relay.copylaradio.com\"")
         }
