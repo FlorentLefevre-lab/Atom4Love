@@ -1626,6 +1626,8 @@ class CabinChat(context: Context) {
         // n'entend rien de la cabine sans qu'on le lui demande, et son annonce
         // continue coûterait à ce transfert le même prix que nos propres liens.
         RadioSilence.request(true)
+        // Même geste, même fenêtre : on fige le Wi-Fi comme on tait le BLE.
+        acquireWifiLock()
         Log.i(TAG, "radio en pause : transfert en cours")
     }
 
@@ -1636,6 +1638,10 @@ class CabinChat(context: Context) {
         radioPaused = false
         setBleInterval(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
         RadioSilence.request(false)
+        // Rendu avec le reste : c'est ici que la radio redevient libre de
+        // regarder autour, et c'est de ça que vivent la jointure d'un groupe et
+        // la position de la balise.
+        releaseWifiLock()
         startAdvertising()
         startScan()
         Log.i(TAG, "radio relancée : transferts terminés")
@@ -2165,7 +2171,6 @@ class CabinChat(context: Context) {
      */
     private fun startListener() {
         if (listener != null) return
-        acquireWifiLock()
         runCatching { ServerSocket(0) }
             .onFailure { Log.w(TAG, "écoute TCP impossible — $it") }
             .onSuccess { socket ->
@@ -2176,7 +2181,30 @@ class CabinChat(context: Context) {
             }
     }
 
-    /** Le mode basse latence existe depuis l'API 29 ; avant, la haute perf. */
+    /**
+     * Le mode basse latence existe depuis l'API 29 ; avant, la haute perf.
+     *
+     * Tenu **le temps d'un transfert seulement**, sur la même fenêtre que le
+     * silence BLE : c'est le même geste, figer l'antenne pour débiter. Il l'a
+     * d'abord été toute la vie de la cabine, et ça se payait trois fois.
+     *
+     * Le pilote de certains appareils répond à la basse latence en coupant les
+     * scans Wi-Fi (mesuré au banc le 13/08 sur la TB350XU : aucun résultat de
+     * scan verrou tenu, la liste entière verrou rendu ; le Pixel, lui, scanne
+     * dans les deux cas). Or `ProximityService` est un service de premier plan
+     * permanent, et la basse latence s'active dès qu'un tel service existe —
+     * écran éteint compris. Verrou pris à l'ouverture, donc : plus aucun scan
+     * de toute la session. Ce qui coûtait, dans l'ordre : rejoindre un groupe
+     * Wi-Fi Direct devenait impossible (la requête réseau reconnaît le SSID au
+     * scan, et sans lui elle patiente une minute puis renonce) ; la balise
+     * perdait la localisation par Wi-Fi et pouvait annoncer une cellule fausse
+     * à l'intérieur ; et le chip ne dormait plus de la session.
+     *
+     * Ce qu'on rend en échange : entre deux transferts l'économie d'énergie
+     * revient, soit jusqu'à ~300 ms de latence sur un paquet entrant. Ne
+     * circulent alors que du texte, des offres, des ACK et le `connect` TCP —
+     * qui dispose de [DIAL_TIMEOUT_MS], dix fois la marge.
+     */
     private fun acquireWifiLock() {
         if (wifiLock != null) return
         val manager = appContext.getSystemService(WifiManager::class.java) ?: return
@@ -2420,7 +2448,31 @@ class CabinChat(context: Context) {
     /** Fil protocole. Entre dans le groupe d'un pair, puis compose vers lui. */
     private suspend fun joinGroup(who: String) {
         val (credentials, port) = groupOffers[who] ?: return
-        if (!p2p.join(credentials)) {
+        // Le verrou basse latence fige la radio pour le débit, et certains
+        // pilotes y répondent en coupant les scans. Mesuré au banc le 13/08 sur
+        // la TB350XU : verrou tenu, `list-scan-results` ne rend rien du tout,
+        // pas même le réseau du lieu auquel elle est pourtant connectée ;
+        // verrou rendu, la liste entière apparaît, groupe du pair compris. Le
+        // Pixel, lui, scanne dans les deux cas — c'est le pilote qui décide.
+        //
+        // Or entrer par requête réseau OBLIGE à scanner : c'est au scan
+        // qu'Android reconnaît le SSID du groupe, et sans lui la requête
+        // patiente une minute puis renonce. On ne peut pas tenir la radio
+        // immobile et lui demander de regarder autour.
+        //
+        // Hors transfert il n'y a rien à rendre — [acquireWifiLock] ne vit plus
+        // que dans la fenêtre de [pauseRadioForTransfer]. Mais on peut très
+        // bien accepter le Wi-Fi Direct pendant qu'un envoi passe encore en
+        // BLE : ce cas-là existe, et c'est celui-ci qui le tient.
+        releaseWifiLock()
+        val joined = try {
+            p2p.join(credentials)
+        } finally {
+            // Rendu au transfert s'il dure encore, à personne sinon — et jamais
+            // à une cabine qui s'est fermée pendant qu'on cherchait.
+            if (radioPaused && listener != null) acquireWifiLock()
+        }
+        if (!joined) {
             _status.update { it.copy(lastError = CabinError.P2pUnreachable) }
             return
         }
