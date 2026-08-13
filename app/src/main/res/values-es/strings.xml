@@ -34,8 +34,9 @@
     <string name="radar_beacon_with_cell">Baliza activa — anuncia el hexágono %1$s</string>
     <string name="radar_beacon_presence_only">Baliza activa — solo presencia, sin posición</string>
     <string name="radar_beacon_needs_bluetooth">Baliza de proximidad — se requiere Bluetooth</string>
-    <string name="radar_group_host_self">Usted mantiene el grupo Wi-Fi Direct: al salir, lo cierra para todos.</string>
-    <string name="radar_group_host_peer">%1$s mantiene el grupo Wi-Fi Direct: si sale, se cierra para todos.</string>
+    <string name="radar_group_closed">%1$s cerró el grupo Wi-Fi Direct. La cabina continúa, más lenta: toque para descartar.</string>
+    <string name="radar_group_host_self">Usted mantiene el grupo Wi-Fi Direct: al salir, se cierra y cada uno pierde su vía rápida hacia usted.</string>
+    <string name="radar_group_host_peer">%1$s mantiene el grupo Wi-Fi Direct: si sale, se cierra y su vía rápida hacia él desaparece.</string>
     <string name="radar_antipodes">Después de las 22 h, esta cabina escucha el hexágono en las antípodas.</string>
 
     <!-- ─── La cabina ─────────────────────────────────────────────────── -->

@@ -88,6 +88,9 @@ import one.astroport.atom4love.nostr.Bech32
 import one.astroport.atom4love.nostr.Hex
 import one.astroport.atom4love.nostr.NostrKeys
 import java.util.zip.CRC32
+import androidx.core.content.IntentCompat
+import android.net.wifi.p2p.WifiP2pManager
+import android.net.wifi.p2p.WifiP2pInfo
 
 /**
  * Le canal direct de la cabine : ce qui se dit **ici**, entre gens à portée.
@@ -323,11 +326,28 @@ class CabinChat(context: Context) {
          *
          * Ça mérite d'être dit, parce que ce n'est pas un détail de topologie :
          * le propriétaire **est** le point d'accès du groupe, et son départ le
-         * dissout **pour tout le monde** — y compris pour deux pairs qui se
-         * parlaient par lui sans avoir besoin de lui. Un client qui s'en va, lui,
-         * ne retire que lui-même.
+         * dissout pour tout le monde. Un client qui s'en va, lui, ne retire que
+         * lui-même.
+         *
+         * Ce que ce départ ne coupe **pas** : les conversations des autres entre
+         * eux. Dans cette cabine, un invité ne compose que vers l'hôte
+         * (`OWNER_ADDRESS`) et personne n'annonce jamais d'adresse Direct — tout
+         * lien Direct a donc l'hôte à un bout. Deux invités se parlaient déjà par
+         * le BLE ou par la box, et continuent. Ce qu'ils perdent est leur voie
+         * rapide **vers l'hôte**, pas l'un vers l'autre.
          */
         val groupHost: GroupHost? = null,
+        /**
+         * Le npub de l'hôte qui vient de fermer son groupe, tant que personne
+         * ne l'a lu.
+         *
+         * Ça n'a pas sa place dans `lastError` : cette ligne-là s'écrit en
+         * petit à côté du compteur, de la même couleur que tout le reste, et
+         * une information qui disparaît sans avoir été vue n'a pas été donnée.
+         * Le bandeau qui annonçait l'hôte est le seul endroit où l'œil
+         * regardait déjà — c'est là que la nouvelle doit arriver.
+         */
+        val groupClosedBy: String? = null,
         /**
          * Un médium plus rapide qu'un pair nous a annoncé et que l'utilisateur
          * n'a pas encore accepté. C'est de là que vient la proposition de
@@ -430,6 +450,14 @@ class CabinChat(context: Context) {
         _refusal.value = null
     }
 
+    /** La nouvelle a été lue : le bandeau peut s'effacer. */
+    fun dismissGroupClosed() {
+        scope.launch {
+            groupClosedBy = null
+            refreshLinks()
+        }
+    }
+
     /**
      * Le médium le plus lent parmi ceux qu'on emprunterait — celui qui décide
      * du plafond, et celui qu'on nomme dans un refus. Sans lien du tout, la
@@ -506,6 +534,7 @@ class CabinChat(context: Context) {
     private var advertiseCallback: AdvertiseCallback? = null
     private var scanCallback: ScanCallback? = null
     private var stateReceiver: BroadcastReceiver? = null
+    private var groupReceiver: BroadcastReceiver? = null
 
     private enum class LinkKind { CLIENT, SERVER }
 
@@ -676,6 +705,9 @@ class CabinChat(context: Context) {
     /** Qui tient le groupe — nul tant qu'aucun n'est formé. */
     private var groupHost: GroupHost? = null
 
+    /** Qui vient de le fermer — nul tant que personne n'est parti, ou une fois lu. */
+    private var groupClosedBy: String? = null
+
     /** MTU annoncés côté serveur, parfois avant l'abonnement CCCD. */
     private val serverMtus = HashMap<String, Int>()
 
@@ -784,6 +816,7 @@ class CabinChat(context: Context) {
                 (nostrKeys?.npubShort ?: "aucun noyau incarné : pas d'attestation"),
         )
         registerStateReceiver()
+        registerGroupReceiver()
         startRadio()
         startListener()
         scope.launch {
@@ -802,6 +835,8 @@ class CabinChat(context: Context) {
     fun stop() {
         runCatching { stateReceiver?.let { appContext.unregisterReceiver(it) } }
         stateReceiver = null
+        runCatching { groupReceiver?.let { appContext.unregisterReceiver(it) } }
+        groupReceiver = null
         runCatching { scanCallback?.let { adapter?.bluetoothLeScanner?.stopScan(it) } }
         runCatching { advertiseCallback?.let { adapter?.bluetoothLeAdvertiser?.stopAdvertising(it) } }
         // fermée avant l'annulation du scope : c'est ce qui débloque l'accept()
@@ -858,6 +893,70 @@ class CabinChat(context: Context) {
     }
 
     /** Suit les cycles du Bluetooth : coupé → liens fermés ; revenu → tout repart. */
+    /**
+     * Suit la vie du groupe Wi-Fi Direct — celui qu'on tient comme celui qu'on
+     * a rejoint.
+     *
+     * Rien ne le surveillait : quand l'hôte fermait son groupe, les hébergés
+     * gardaient une ligne rouge affirmant qu'il le tenait toujours, et rien ne
+     * leur disait que la voie rapide venait de disparaître. Or c'est le
+     * propriétaire qui décide pour tout le monde, ce qui rend son départ
+     * d'autant plus digne d'être annoncé.
+     *
+     * Le BLE, lui, n'a jamais cessé de porter la cabine : on ne perd pas la
+     * conversation, seulement sa vitesse.
+     */
+    private fun registerGroupReceiver() {
+        if (groupReceiver != null) return
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val info = IntentCompat.getParcelableExtra(
+                    intent,
+                    WifiP2pManager.EXTRA_WIFI_P2P_INFO,
+                    WifiP2pInfo::class.java,
+                )
+                if (info?.groupFormed == true) return
+                scope.launch { onGroupGone() }
+            }
+        }
+        groupReceiver = receiver
+        ContextCompat.registerReceiver(
+            appContext,
+            receiver,
+            IntentFilter(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+    }
+
+    /**
+     * Fil protocole. Le groupe n'est plus. On ne dit quelque chose que si l'on
+     * y était : la diffusion arrive aussi quand un groupe qui ne nous concerne
+     * pas se défait.
+     *
+     * On ne crie pas non plus sur celui qui vient de fermer le sien — il le
+     * sait, il vient de le faire. [stop] a déjà remis `groupHost` à null.
+     */
+    private fun onGroupGone() {
+        val host = groupHost ?: return
+        groupHost = null
+        inGroup = false
+        links.values.filter { it.medium == Medium.WIFI_DIRECT }.toList().forEach { link ->
+            removeLink(link.medium, link.kind, link.address)
+        }
+        // Le groupe est fermé : l'invitation qu'on en gardait ne vaut plus
+        // rien, et la rejouer ferait échouer une jointure sur des identifiants
+        // périmés.
+        groupOffers.clear()
+        enabledMedia.remove(Medium.WIFI_DIRECT)
+        if (host is GroupHost.Peer) {
+            Log.i(TAG, "groupe fermé par ${host.short} — retour au médium restant")
+            groupClosedBy = host.short
+        } else {
+            Log.i(TAG, "notre groupe Wi-Fi Direct s'est refermé")
+        }
+        refreshLinks()
+    }
+
     private fun registerStateReceiver() {
         if (stateReceiver != null) return
         val receiver = object : BroadcastReceiver() {
@@ -2206,6 +2305,7 @@ class CabinChat(context: Context) {
         // c'est le pair qui tient le groupe : son npub, celui-là même que la
         // liste des présents affiche
         groupHost = GroupHost.Peer(Bech32.encode("npub", Hex.decode(who)))
+        groupClosedBy = null
         refreshLinks()
         dial(Medium.WIFI_DIRECT, P2pGroup.OWNER_ADDRESS, port)
     }
@@ -2223,6 +2323,7 @@ class CabinChat(context: Context) {
         }
         inGroup = true
         groupHost = GroupHost.Self
+        groupClosedBy = null
         refreshLinks()
         val frame = ChatFrames.encodeGroup(credentials.networkName, credentials.passphrase, listenPort)
         links.values.forEach { link ->
@@ -2699,6 +2800,12 @@ class CabinChat(context: Context) {
 
     private fun refreshLinks() {
         val ready = links.values.filter { it.ready }
+        // Les offres d'un pair partent avec lui. Rien ne les retirait : une
+        // adresse annoncée par quelqu'un qui n'est plus là faisait croire à une
+        // voie encore ouverte, et la liste de médiums proposait de la forcer.
+        val present = ready.mapNotNull { it.peerNostrKey }.mapTo(HashSet()) { Hex.encode(it) }
+        offers.keys.retainAll(present)
+        groupOffers.keys.retainAll(present)
         val routes = routes()
         // le médium réellement en service : celui du meilleur lien emprunté,
         // pas celui du meilleur lien ouvert
@@ -2717,6 +2824,7 @@ class CabinChat(context: Context) {
                 medium = inUse,
                 enabled = enabledMedia.toSet(),
                 groupHost = groupHost,
+                groupClosedBy = groupClosedBy,
                 offered = offered,
             )
         }

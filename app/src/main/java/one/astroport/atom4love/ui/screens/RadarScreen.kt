@@ -573,6 +573,45 @@ fun RadarScreen(
             // où un client qui s'en va ne retire que lui-même. Quand c'est
             // nous, la phrase le dit — on part rarement en sachant qu'on
             // emporte la voie des autres.
+            // Le groupe vient de se refermer. En ambre et non en rouge : rien
+            // n'est cassé, quelqu'un est parti — et le BLE n'a jamais cessé de
+            // porter la cabine. Le bandeau reste jusqu'à ce qu'on le touche :
+            // une nouvelle qui s'efface toute seule n'a pas été donnée.
+            cabinStatus.groupClosedBy?.let { who ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .glass(12.dp, A4L.Amber.tint(0.08f), A4L.Amber.tint(0.28f))
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { cabin?.dismissGroupClosed() }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    StatusDot(A4L.Amber)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            stringResource(R.string.radar_group_closed, who),
+                            style = A4LText.Caption,
+                            color = A4L.Amber,
+                        )
+                        // La voie de repli se propose ICI, au moment où on la
+                        // perd — pas seulement en petit dans le bandeau du
+                        // haut, où l'œil ne va pas quand il vient de lire une
+                        // mauvaise nouvelle.
+                        //
+                        // Le réseau du lieu, et lui seul. Afficher `offered`
+                        // tel quel proposait « repasser en Wi-Fi P2P » — c'est
+                        // à dire revenir à ce qui venait de se fermer, sans
+                        // personne en face pour rouvrir un groupe : la cabine
+                        // propose Direct dès qu'aucune station n'est joignable,
+                        // ce qui est vrai et illisible. Faute de station
+                        // offerte, on ne propose rien et le bandeau se contente
+                        // de dire ce qui s'est passé.
+                    }
+                    Text("✕", style = A4LText.Data, color = A4L.Amber.copy(alpha = 0.7f))
+                }
+            }
             cabinStatus.groupHost?.let { host ->
                 Row(
                     Modifier

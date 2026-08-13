@@ -48,8 +48,9 @@
     <!-- L'hôte d'un groupe Wi-Fi Direct. Dit en entier : « propriétaire » ne
          veut rien dire pour qui n'a pas lu la spec Wi-Fi, alors que la
          conséquence, elle, se comprend. -->
-    <string name="radar_group_host_self">Vous tenez le groupe Wi-Fi Direct — en sortant, vous le refermez pour tous.</string>
-    <string name="radar_group_host_peer">%1$s tient le groupe Wi-Fi Direct — s\'il sort, le groupe se referme pour tous.</string>
+    <string name="radar_group_closed">%1$s a fermé le groupe Wi-Fi Direct. La cabine continue, en plus lent — toucher pour effacer.</string>
+    <string name="radar_group_host_self">Vous tenez le groupe Wi-Fi Direct — en sortant, il se referme et chacun perd sa voie rapide vers vous.</string>
+    <string name="radar_group_host_peer">%1$s tient le groupe Wi-Fi Direct — s\'il sort, il se referme et votre voie rapide vers lui disparaît.</string>
     <string name="radar_antipodes">Après 22 h, cette cabine écoute l\'hexagone aux antipodes.</string>
 
     <!-- ─── La cabine : ce qui se dit ici, entre gens à portée ────────── -->
