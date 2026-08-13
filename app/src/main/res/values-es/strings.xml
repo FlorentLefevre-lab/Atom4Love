@@ -219,7 +219,7 @@
     <string name="mp_adds_web">Un lugar en la red de confianza de UPlanet.</string>
     <string name="mp_sandbox_title">UPlanet ORIGIN es un cajón de arena</string>
     <string name="mp_sandbox_body">La palabra es de Astroport.ONE, no nuestra: el mundo abierto donde se aprende. Allí un Ẑen vale 0,1 Ğ1 — dinero de mentira. Una cuenta dejada a cero, sin el menor movimiento, se borra a los siete días.</string>
-    <string name="mp_sandbox_keys">Tus datos de nacimiento, en cambio, no se borran: los mismos cinco darán siempre la misma clave LOVE, en cualquier estación.</string>
+    <string name="mp_sandbox_keys">Tus datos de nacimiento, en cambio, no se borran: los mismos darán siempre la misma clave LOVE, en cualquier estación.</string>
     <string name="mp_provisional_title">Tu núcleo actual es provisional</string>
     <string name="mp_provisional_body">Mientras ninguna estación te conozca, Atom4Love se forja una clave de proximidad, la suya. La estación derivará otra — la de verdad. Tu npub cambiará, y quienes te cruzaron en una cabina antes de hoy ya no te reconocerán.</string>
 
@@ -242,13 +242,13 @@
     <string name="help_tzolkin_body">Trece tonos cruzados con veinte sellos: 260 combinaciones que se cierran sobre sí mismas. La cuenta no sigue ni al sol ni a la luna — no sirve para fechar, sino para situar. De esa retícula sale su KIN, y sobre ella mide la estación lo que le acerca a otra persona.</string>
     <string name="help_kin_label">El KIN</string>
     <string name="help_kin_body">Un tono, del 1 al 13, cruzado con un sello, del 1 al 20: su KIN es una de las 260 casillas del Tzolkin. El sello da la vuelta — del vigésimo se regresa al primero —, de modo que dos KIN lejanos por el número pueden ser vecinos por el sello. No se calcula en este aparato: la estación lo devuelve con su MULTIPASS.</string>
-    <string name="help_waves_label">La onda Φ, la onda Octava · ωbio</string>
-    <string name="help_waves_body">Dos polaridades, y nada más: Φ u Octava. Es todo lo que la ficha pide por ese lado, y entra tal cual en su clave. Es ella la que da la frecuencia de su onda biológica — el ωbio que la interfaz web de ATOM4LOVE muestra en hercios.</string>
+    <string name="help_waves_label">La onda Φ, la onda Octava</string>
+    <string name="help_waves_body">Dos polaridades, y nada más: Φ u Octava. Es todo lo que la ficha pide por ese lado, y entra tal cual en su clave. Dice de qué lado de la interferencia vibra usted; su frecuencia, en cambio, se deduce de medidas del cuerpo que esta estación no pide.</string>
 
     <string name="help_vibration_label">Todo es vibración</string>
     <string name="help_vibration_body">ATOM4LOVE no es astrología. En el momento exacto de tu nacimiento, la Tierra ocupaba una posición precisa en el espacio-tiempo. Llevas su huella geométrica — y se calcula, al minuto y al grado.</string>
     <string name="help_imprint_label">Tu huella · el acorde fundamental</string>
-    <string name="help_imprint_body">Imagina tu cuerpo como un instrumento. Tu lugar y tu fecha de nacimiento determinan la nota que tocas permanentemente: tu fase personal. Tu polaridad le da la frecuencia — la onda biológica.</string>
+    <string name="help_imprint_body">Imagina tu cuerpo como un instrumento. Tu lugar y tu fecha de nacimiento determinan la nota que tocas permanentemente: tu fase personal. Tu polaridad dice de qué lado de la interferencia se sitúa esa nota.</string>
     <string name="help_resonance_label">La resonancia · cuando dos ondas se cruzan</string>
     <string name="help_resonance_body">Encontrar a alguien es cruzar dos fases. Si encajan, es la supercoherencia: uno se entiende sin hablar. Si chocan, es la fricción creadora: estáis hechos para inventar juntos. Ninguna de las dos es una puntuación, y ninguna es mejor que la otra.</string>
     <string name="help_singularity_label">La singularidad · el espíritu y la materia</string>
@@ -274,7 +274,7 @@
     <string name="faq_cabin_label">Lo que se dice en la cabina, ¿adónde va?</string>
     <string name="faq_cabin_body">A ningún otro sitio. El contenido va cifrado de extremo a extremo y no cruza ningún relé. Al cerrar la cabina, la conversación y los archivos recibidos se borran del aparato — es lo que promete «tocar para cerrar y borrar», y lo cumple.</string>
     <string name="faq_weight_label">¿Por qué ya no se pide mi peso al nacer?</string>
-    <string name="faq_weight_body">Entraba en la clave, junto con la polaridad, para dar la frecuencia de su onda biológica. Muy pocos lo conocen: la estación retiene 3,5 kg para todo el mundo — exactamente lo que hace Astroport.ONE cuando ese campo llega vacío.</string>
+    <string name="faq_weight_body">Entraba en la clave, junto con la polaridad. Muy pocos lo conocen: la estación retiene 3,5 kg para todo el mundo — exactamente lo que hace Astroport.ONE cuando ese campo llega vacío.</string>
     <string name="faq_nobody_label">El Radar no muestra a nadie.</string>
     <string name="faq_nobody_body">Hace falta el Bluetooth encendido en ambos lados, y que la otra persona haya abierto su cabina: solo se ven los núcleos cuya cabina está abierta. Mientras nadie haga ese gesto, nada se anuncia — es deliberado.</string>
     <string name="faq_change_label">¿Puedo corregir mis datos tras la forja?</string>
@@ -310,7 +310,7 @@
 
     <string name="inc_section_datetime">Fecha y hora de nacimiento</string>
     <string name="inc_section_place">Lugar de nacimiento</string>
-    <string name="inc_section_wave">Onda biológica</string>
+    <string name="inc_section_wave">Tu onda</string>
     <string name="inc_section_singularity">Singularidad · calculada</string>
     <string name="inc_section_incarnation">Tu encarnación</string>
     <string name="inc_dd">DD</string>
@@ -320,7 +320,7 @@
     <string name="inc_mn">MI</string>
     <string name="inc_place_placeholder">Ciudad, país…</string>
     <string name="inc_coords_warning">Coordenadas de recuperación, anótalas con cuidado: precisión de 0,01° — alrededor de 1 km. Es este par de números el que reabre tu clave si pierdes este aparato: tócalos para escribirlos tú mismo.</string>
-    <string name="inc_vessel_note">Onda u Octava, nada más: la polaridad entra tal cual en la clave y da su frecuencia a tu onda biológica.</string>
+    <string name="inc_vessel_note">Onda u Octava, nada más: la polaridad entra tal cual en la clave. Dice de qué lado de la interferencia vibras.</string>
     <string name="inc_singularity_note">Tu concepción es el Espíritu, tu nacimiento la Materia. Nada que escribir: la estación cuenta 280 días para todo el mundo, y el portal es el vértice del teselado más cercano a tu lugar.</string>
 
     <string name="inc_row_birth">Nacimiento</string>

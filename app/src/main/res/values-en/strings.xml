@@ -217,7 +217,7 @@
     <string name="mp_adds_web">A place in UPlanet\'s web of trust.</string>
     <string name="mp_sandbox_title">UPlanet ORIGIN is a sandbox</string>
     <string name="mp_sandbox_body">That word is Astroport.ONE\'s, not ours: the open world where one learns. A Ẑen is worth 0.1 Ğ1 there — play money. An account left at zero, without a single movement, is deleted after seven days.</string>
-    <string name="mp_sandbox_keys">Your birth data, on the other hand, does not fade: the same five will always give the same LOVE key, on any station.</string>
+    <string name="mp_sandbox_keys">Your birth data, on the other hand, does not fade: the same data will always give the same LOVE key, on any station.</string>
     <string name="mp_provisional_title">Your current nucleus is provisional</string>
     <string name="mp_provisional_body">As long as no station knows you, Atom4Love forges a proximity key of its own. The station will derive another — the real one. Your npub will change, and those who met you in a booth before today will no longer recognise you.</string>
 
@@ -240,13 +240,13 @@
     <string name="help_tzolkin_body">Thirteen tones crossed with twenty seals: 260 combinations that loop back on themselves. The count follows neither sun nor moon — it does not date, it situates. Your KIN comes out of that grid, and it is on that grid that the station measures what brings you close to someone.</string>
     <string name="help_kin_label">The KIN</string>
     <string name="help_kin_body">A tone, 1 to 13, crossed with a seal, 1 to 20: your KIN is one of the 260 cells of the Tzolkin. The seal wraps around — past the twentieth you are back at the first — so two KIN far apart by number can be neighbours by seal. It is not computed on this device: the station returns it with your MULTIPASS.</string>
-    <string name="help_waves_label">The Φ wave, the Octave wave · ωbio</string>
-    <string name="help_waves_body">Two polarities, and nothing else: Φ or Octave. That is all the record asks on that side, and it goes into your key exactly as it stands. It is what gives the frequency of your biological wave — the ωbio that the ATOM4LOVE web interface shows in hertz.</string>
+    <string name="help_waves_label">The Φ wave, the Octave wave</string>
+    <string name="help_waves_body">Two polarities, and nothing else: Φ or Octave. That is all the record asks on that side, and it goes into your key exactly as it stands. It says which side of the interference you vibrate on; your frequency comes from body measurements this station does not ask for.</string>
 
     <string name="help_vibration_label">Everything is vibration</string>
     <string name="help_vibration_body">ATOM4LOVE is not astrology. At the exact moment of your birth, the Earth held a precise position in space-time. You carry its geometric imprint — and it can be computed, to the minute and to the degree.</string>
     <string name="help_imprint_label">Your imprint · the fundamental chord</string>
-    <string name="help_imprint_body">Picture your body as an instrument. Your place and date of birth set the note you play at all times: your personal phase. Your polarity gives its frequency — the biological wave.</string>
+    <string name="help_imprint_body">Picture your body as an instrument. Your place and date of birth set the note you play at all times: your personal phase. Your polarity says which side of the interference that note sits on.</string>
     <string name="help_resonance_label">Resonance · when two waves cross</string>
     <string name="help_resonance_body">Meeting someone is crossing two phases. If they fit together, that is super-coherence: you understand each other without speaking. If they clash, that is creative friction: you are made to invent together. Neither is a score, and neither is better than the other.</string>
     <string name="help_singularity_label">Singularity · spirit and matter</string>
@@ -272,7 +272,7 @@
     <string name="faq_cabin_label">What is said in the cabin, where does it go?</string>
     <string name="faq_cabin_body">Nowhere else. The content is end-to-end encrypted and crosses no relay. On closing the cabin, the conversation and the attachments you received are wiped from the device — that is what “touch to close and erase” promises, and it keeps it.</string>
     <string name="faq_weight_label">Why is my birth weight no longer asked for?</string>
-    <string name="faq_weight_body">It used to enter the key, together with polarity, to give the frequency of your biological wave. Too few people know it: the station now keeps 3.5 kg for everyone — exactly what Astroport.ONE does when that field arrives empty.</string>
+    <string name="faq_weight_body">It used to enter the key, together with polarity. Too few people know it: the station now keeps 3.5 kg for everyone — exactly what Astroport.ONE does when that field arrives empty.</string>
     <string name="faq_nobody_label">The Radar shows nobody.</string>
     <string name="faq_nobody_body">Bluetooth must be on at both ends, and the other person must have opened their cabin: you only see cores whose cabin is open. Until someone makes that gesture, nothing announces itself — by design.</string>
     <string name="faq_change_label">Can I correct my data after forging?</string>
@@ -308,7 +308,7 @@
 
     <string name="inc_section_datetime">Date and time of birth</string>
     <string name="inc_section_place">Place of birth</string>
-    <string name="inc_section_wave">Biological wave</string>
+    <string name="inc_section_wave">Your wave</string>
     <string name="inc_section_singularity">Singularity · computed</string>
     <string name="inc_section_incarnation">Your incarnation</string>
     <string name="inc_dd">DD</string>
@@ -318,7 +318,7 @@
     <string name="inc_mn">MI</string>
     <string name="inc_place_placeholder">Town, country…</string>
     <string name="inc_coords_warning">Recovery coordinates, to be written down carefully: 0.01° precision — about 1 km. This pair of numbers is what reopens your key if you lose this device: tap them to enter them yourself.</string>
-    <string name="inc_vessel_note">Wave or Octave, nothing else: the polarity enters the key exactly as it stands, and gives your biological wave its frequency.</string>
+    <string name="inc_vessel_note">Wave or Octave, nothing else: the polarity enters the key exactly as it stands. It says which side of the interference you vibrate on.</string>
     <string name="inc_singularity_note">Your conception is Spirit, your birth is Matter. Nothing to enter: the station counts 280 days for everyone, and the portal is the vertex of the tiling nearest your place.</string>
 
     <string name="inc_row_birth">Birth</string>

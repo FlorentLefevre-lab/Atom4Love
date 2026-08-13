@@ -257,7 +257,7 @@
     <string name="mp_adds_web">Une place dans la toile de confiance d\'UPlanet.</string>
     <string name="mp_sandbox_title">UPlanet ORIGIN est un bac à sable</string>
     <string name="mp_sandbox_body">C\'est le mot d\'Astroport.ONE, pas le nôtre : le monde ouvert où l\'on apprend. Le Ẑen y vaut 0,1 Ğ1 — une monnaie pour de faux. Un compte laissé à zéro, sans le moindre mouvement, y est supprimé au bout de sept jours.</string>
-    <string name="mp_sandbox_keys">Vos données de naissance, elles, ne s\'effacent pas : les cinq mêmes redonneront toujours la même clé LOVE, sur n\'importe quelle station.</string>
+    <string name="mp_sandbox_keys">Vos données de naissance, elles, ne s\'effacent pas : les mêmes redonneront toujours la même clé LOVE, sur n\'importe quelle station.</string>
     <string name="mp_provisional_title">Votre noyau actuel est provisoire</string>
     <string name="mp_provisional_body">Tant qu\'aucune station ne vous connaît, Atom4Love se forge une clé de proximité, la sienne. La station en dérivera une autre — la vraie. Votre npub changera, et ceux qui vous ont croisé en cabine avant aujourd\'hui ne vous reconnaîtront plus.</string>
 
@@ -280,20 +280,21 @@
     <string name="help_group_gestures">Les gestes</string>
 
     <!-- Le vocabulaire maya, tel que le code l'implémente (domain/Resonance.kt)
-         et tel que l'interface web de Fred le nomme (ωbio, Φ²). On ne décrit
-         ici que ce que l'application fait ou reçoit vraiment. -->
+         et tel que l'interface web de Fred le nomme (Φ²). On ne décrit ici que
+         ce que l'application fait ou reçoit vraiment — d'où l'absence de ωbio,
+         qui demande une taille et un poids que la fiche ne demande plus. -->
     <string name="help_group_maya">Le compte maya</string>
     <string name="help_tzolkin_label">Le Tzolkin · 260 jours</string>
     <string name="help_tzolkin_body">Treize tons croisés de vingt sceaux : 260 combinaisons qui bouclent sur elles-mêmes. Le compte ne suit ni le soleil ni la lune — il ne sert pas à dater, mais à situer. C\'est de cette grille que sort votre KIN, et c\'est sur elle que la station mesure ce qui vous rapproche d\'un autre.</string>
     <string name="help_kin_label">Le KIN</string>
     <string name="help_kin_body">Un ton, de 1 à 13, croisé d\'un sceau, de 1 à 20 : votre KIN est l\'une des 260 cases du Tzolkin. Le sceau boucle — du vingtième on revient au premier —, si bien que deux KIN éloignés par le numéro peuvent être voisins par le sceau. Il ne se calcule pas sur cet appareil : c\'est la station qui le rend avec votre MULTIPASS.</string>
-    <string name="help_waves_label">L\'onde Φ, l\'onde Octave · ωbio</string>
-    <string name="help_waves_body">Deux polarités, et rien d\'autre : Φ ou Octave. C\'est tout ce que la fiche demande de ce côté-là, et elle entre telle quelle dans votre clé. C\'est elle qui donne la fréquence de votre onde biologique — le ωbio que l\'interface web d\'ATOM4LOVE affiche en hertz.</string>
+    <string name="help_waves_label">L\'onde Φ, l\'onde Octave</string>
+    <string name="help_waves_body">Deux polarités, et rien d\'autre : Φ ou Octave. C\'est tout ce que la fiche demande de ce côté-là, et elle entre telle quelle dans votre clé. Elle dit de quel côté de l\'interférence vous vibrez ; votre fréquence, elle, se déduit de mesures du corps que cette station ne demande pas.</string>
 
     <string name="help_vibration_label">Tout est vibration</string>
     <string name="help_vibration_body">ATOM4LOVE n\'est pas de l\'astrologie. Au moment exact de votre naissance, la Terre occupait une position précise dans l\'espace-temps. Vous en portez l\'empreinte géométrique — et elle se calcule, à la minute et au degré près.</string>
     <string name="help_imprint_label">Votre empreinte · l\'accord fondamental</string>
-    <string name="help_imprint_body">Imaginez votre corps comme un instrument. Votre lieu et votre date de naissance déterminent la note que vous jouez en permanence : votre phase personnelle. Votre polarité en donne la fréquence — l\'onde biologique.</string>
+    <string name="help_imprint_body">Imaginez votre corps comme un instrument. Votre lieu et votre date de naissance déterminent la note que vous jouez en permanence : votre phase personnelle. Votre polarité, elle, dit de quel côté de l\'interférence cette note se tient.</string>
     <string name="help_resonance_label">La résonance · quand deux ondes se croisent</string>
     <string name="help_resonance_body">Rencontrer quelqu\'un, c\'est croiser deux phases. Si elles s\'emboîtent, c\'est la super-cohérence : on se comprend sans parler. Si elles se heurtent, c\'est la friction créatrice : on est faits pour inventer ensemble. Aucun des deux n\'est un score, et aucun n\'est meilleur que l\'autre.</string>
     <string name="help_singularity_label">La singularité · l\'esprit et la matière</string>
@@ -321,7 +322,7 @@
     <string name="faq_cabin_label">Ce qui se dit en cabine, où va-t-il ?</string>
     <string name="faq_cabin_body">Nulle part ailleurs. Le contenu est chiffré de bout en bout et ne franchit aucun relais. En fermant la cabine, la conversation et les pièces jointes reçues sont effacées de l\'appareil — c\'est ce que promet la ligne « toucher pour fermer et effacer », et elle le tient.</string>
     <string name="faq_weight_label">Pourquoi ne me demande-t-on plus mon poids de naissance ?</string>
-    <string name="faq_weight_body">Il entrait dans la clé, avec la polarité, pour donner la fréquence de votre onde biologique. Trop peu de gens le connaissent : la station retient 3,5 kg pour tout le monde — exactement ce que fait Astroport.ONE quand ce champ arrive vide.</string>
+    <string name="faq_weight_body">Il entrait dans la clé, avec la polarité. Trop peu de gens le connaissent : la station retient 3,5 kg pour tout le monde — exactement ce que fait Astroport.ONE quand ce champ arrive vide.</string>
     <string name="faq_nobody_label">Le Radar ne montre personne.</string>
     <string name="faq_nobody_body">Il faut le Bluetooth allumé des deux côtés, et que l\'autre ait ouvert sa cabine : on ne voit que les noyaux dont la cabine est ouverte. Tant que personne ne fait ce geste, rien ne s\'annonce — c\'est voulu.</string>
     <string name="faq_change_label">Puis-je corriger mes données après la forge ?</string>
@@ -362,7 +363,7 @@
 
     <string name="inc_section_datetime">Date et heure de naissance</string>
     <string name="inc_section_place">Lieu de naissance</string>
-    <string name="inc_section_wave">Onde biologique</string>
+    <string name="inc_section_wave">Votre onde</string>
     <string name="inc_section_singularity">Singularité · calculée</string>
     <string name="inc_section_incarnation">Votre incarnation</string>
     <string name="inc_dd">JJ</string>
@@ -372,7 +373,7 @@
     <string name="inc_mn">MN</string>
     <string name="inc_place_placeholder">Ville, pays…</string>
     <string name="inc_coords_warning">Coordonnées de récupération, à noter précieusement : précision 0,01° — environ 1 km. C\'est ce couple de nombres qui rouvre votre clé si vous perdez cet appareil : touchez-les pour les saisir vous-même.</string>
-    <string name="inc_vessel_note">Onde ou Octave, rien d\'autre : la polarité entre telle quelle dans la clé, et donne sa fréquence à votre onde biologique.</string>
+    <string name="inc_vessel_note">Onde ou Octave, rien d\'autre : la polarité entre telle quelle dans la clé. Elle dit de quel côté de l\'interférence vous vibrez.</string>
     <string name="inc_singularity_note">Votre conception est l\'Esprit, votre naissance la Matière. Rien à saisir : la station compte 280 jours pour tout le monde, et le portail est le sommet du pavage le plus proche de votre lieu.</string>
 
     <string name="inc_row_birth">Naissance</string>
