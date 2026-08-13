@@ -15,7 +15,6 @@ import androidx.core.content.FileProvider
 import one.astroport.atom4love.R
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.InputStream
 
 /**
  * Pièces jointes de la causerie : lecture d'un contenu partagé, préparation
@@ -25,7 +24,13 @@ import java.io.InputStream
 object Attachments {
 
     sealed interface Read {
-        class Ok(val name: String, val mime: String, val bytes: ByteArray) : Read
+        /**
+         * La pièce est **déjà posée sur le disque** : c'est de là qu'elle
+         * partira, morceau par morceau. Elle n'a traversé la mémoire à aucun
+         * moment — sans quoi « qualité initiale » n'aurait pas dépassé quelques
+         * secondes de vidéo.
+         */
+        class Ok(val name: String, val mime: String, val file: File, val size: Int) : Read
 
         /**
          * Trop lourde pour le médium du moment. Porte le nom et la **vraie**
@@ -43,22 +48,54 @@ object Attachments {
     private const val JPEG_QUALITY = 80
     private const val DIR = "chat"
 
-    /** Lit une pièce jointe telle quelle, refusée au-delà de [maxBytes]. */
-    fun read(context: Context, uri: Uri, maxBytes: Int): Read {
+    /**
+     * Copie une pièce choisie dans files/chat/, telle quelle, refusée au-delà
+     * de [maxBytes]. **Rien ne passe par la mémoire** : le contenu va du
+     * fournisseur au disque par tampons de 64 Ko, ce qui rend la taille d'une
+     * vidéo indifférente à ce que le téléphone peut tenir.
+     *
+     * Le fichier n'est nommé qu'une fois complet : un refus de taille ou une
+     * lecture rompue ne laissent rien.
+     */
+    fun stage(context: Context, uri: Uri, maxBytes: Int): Read {
         val resolver = context.contentResolver
         val name = displayName(context, uri) ?: "piece-jointe"
-        // La taille déclarée d'abord : refuser sur elle évite de charger
-        // cinquante mégaoctets en mémoire pour finalement dire non. Tous les
-        // fournisseurs ne la donnent pas — d'où le contrôle qui suit.
+        // La taille déclarée d'abord : refuser sur elle évite de recopier
+        // cinquante mégaoctets pour finalement dire non. Tous les fournisseurs
+        // ne la donnent pas — d'où le contrôle qui suit, en cours de copie.
         declaredSize(context, uri)?.let { size ->
             if (size > maxBytes) return Read.TooBig(name, size)
         }
-        val bytes = runCatching {
-            resolver.openInputStream(uri)?.use { readAtMost(it, maxBytes) }
-        }.getOrNull() ?: return Read.Unreadable
-        if (bytes.size > maxBytes) return Read.TooBig(name, -1L)
+        val destination = destination(context, name)
+        val partial = File(destination.parentFile, destination.name + ".partiel")
+        var copied = 0L
+        val outcome = runCatching {
+            resolver.openInputStream(uri)?.use { input ->
+                partial.outputStream().buffered().use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val n = input.read(buffer)
+                        if (n < 0) break
+                        copied += n
+                        // au-delà du plafond, on s'arrête net : inutile de
+                        // finir de recopier ce qu'on va refuser
+                        if (copied > maxBytes) return@runCatching false
+                        output.write(buffer, 0, n)
+                    }
+                }
+                true
+            }
+        }.getOrNull()
+        if (outcome != true) {
+            partial.delete()
+            return if (outcome == false) Read.TooBig(name, copied) else Read.Unreadable
+        }
+        if (!partial.renameTo(destination)) {
+            partial.delete()
+            return Read.Unreadable
+        }
         val mime = resolver.getType(uri) ?: "application/octet-stream"
-        return Read.Ok(name, mime, bytes)
+        return Read.Ok(name, mime, destination, copied.toInt())
     }
 
     /** Taille annoncée par le fournisseur, null s'il ne la déclare pas. */
@@ -77,27 +114,41 @@ object Attachments {
      * l'original est déjà assez léger, envoyé tel quel.
      */
     fun prepareImage(context: Context, uri: Uri): Read {
-        val direct = read(context, uri, IMAGE_KEEP_BYTES)
-        if (direct is Read.Ok && direct.mime.startsWith("image/")) return direct
+        val direct = stage(context, uri, IMAGE_KEEP_BYTES)
+        if (direct is Read.Ok) {
+            if (direct.mime.startsWith("image/")) return direct
+            // pas une image malgré le sélecteur : on ne garde pas sa copie
+            direct.file.delete()
+        }
+        // Ici seulement la mémoire entre en jeu, et elle est bornée : l'image
+        // est ramenée à 1280 px avant d'être recompressée.
         val bitmap = decodeScaled(context, uri) ?: return Read.Unreadable
         val out = ByteArrayOutputStream()
         val ok = bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
         bitmap.recycle()
         if (!ok) return Read.Unreadable
         val name = "img-${System.currentTimeMillis().toString(36)}.jpg"
-        return Read.Ok(name, "image/jpeg", out.toByteArray())
+        val file = runCatching { saveCopy(context, name, out.toByteArray()) }.getOrNull()
+            ?: return Read.Unreadable
+        return Read.Ok(name, "image/jpeg", file, file.length().toInt())
     }
 
-    /** Copie locale d'un contenu (reçu ou émis) dans files/chat/. */
-    fun saveCopy(context: Context, preferredName: String, bytes: ByteArray): File {
+    /**
+     * Un emplacement libre dans files/chat/, sous un nom rendu inoffensif.
+     * C'est la destination d'une pièce qu'on prépare à envoyer comme de celle
+     * qu'un [one.astroport.atom4love.chat.wire.FileSink] est en train de recevoir.
+     */
+    fun destination(context: Context, preferredName: String): File {
         val dir = File(context.filesDir, DIR).apply { mkdirs() }
         val safe = preferredName.ifBlank { "piece-jointe" }
             .replace(Regex("[^A-Za-z0-9._-]"), "_")
             .takeLast(80)
-        val file = File(dir, "${System.currentTimeMillis().toString(36)}-$safe")
-        file.writeBytes(bytes)
-        return file
+        return File(dir, "${System.currentTimeMillis().toString(36)}-$safe")
     }
+
+    /** Copie locale d'un contenu déjà en mémoire (image recompressée). */
+    fun saveCopy(context: Context, preferredName: String, bytes: ByteArray): File =
+        destination(context, preferredName).apply { writeBytes(bytes) }
 
     /**
      * Efface tout ce que la cabine détient dans files/chat/.
@@ -202,14 +253,4 @@ object Attachments {
         }
     }.getOrNull()
 
-    private fun readAtMost(input: InputStream, maxBytes: Int): ByteArray {
-        val out = ByteArrayOutputStream()
-        val buffer = ByteArray(32 * 1024)
-        while (out.size() <= maxBytes) {
-            val n = input.read(buffer)
-            if (n < 0) break
-            out.write(buffer, 0, n)
-        }
-        return out.toByteArray()
-    }
 }

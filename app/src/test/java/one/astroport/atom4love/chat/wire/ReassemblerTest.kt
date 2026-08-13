@@ -30,7 +30,7 @@ class ReassemblerTest {
         assertEquals(Reassembler.Event.Progress(1, 12, 30), events[1])
         assertEquals(Reassembler.Event.Progress(1, 24, 30), events[2])
         val completed = events[3] as Reassembler.Event.Completed
-        assertArrayEquals(content, completed.bytes)
+        assertArrayEquals(content, (completed.payload as Payload.InMemory).bytes)
         assertEquals("A", completed.from)
     }
 

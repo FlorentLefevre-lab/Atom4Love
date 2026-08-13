@@ -70,9 +70,15 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import one.astroport.atom4love.chat.net.FramedSocket
 import one.astroport.atom4love.chat.net.P2pGroup
+import one.astroport.atom4love.chat.wire.BytesSource
 import one.astroport.atom4love.chat.wire.ChatFrame
 import one.astroport.atom4love.chat.wire.ChatFrames
+import one.astroport.atom4love.chat.wire.FileSink
+import one.astroport.atom4love.chat.wire.FileSource
+import one.astroport.atom4love.chat.wire.MemorySink
+import one.astroport.atom4love.chat.wire.Payload
 import one.astroport.atom4love.chat.wire.Reassembler
+import one.astroport.atom4love.chat.wire.Source
 import one.astroport.atom4love.nostr.CabinSalon
 import one.astroport.atom4love.proximity.RadioSilence
 import one.astroport.atom4love.noise.NoiseIdentity
@@ -81,6 +87,7 @@ import one.astroport.atom4love.noise.NoiseVouch
 import one.astroport.atom4love.nostr.Bech32
 import one.astroport.atom4love.nostr.Hex
 import one.astroport.atom4love.nostr.NostrKeys
+import java.util.zip.CRC32
 
 /**
  * Le canal direct de la cabine : ce qui se dit **ici**, entre gens à portée.
@@ -149,12 +156,24 @@ class CabinChat(context: Context) {
          * Le plafond retenu est celui du **plus lent des liens visés** : si un
          * pair n'est joignable qu'en radio, c'est lui qui décide, sinon la
          * pièce partirait vers lui pour un quart d'heure.
+         *
+         * **Le plafond du flux est passé de 10 à 200 Mo** le 13/08, une fois le
+         * transfert sorti de la mémoire. Il valait 10 Mo parce que les deux
+         * bouts tenaient la pièce entière dans un `ByteArray` — pas parce que
+         * le réseau peinait : à 15,5 Mo/s mesurés, 200 Mo passent en treize
+         * secondes. C'était donc un plafond de mémoire déguisé en plafond de
+         * débit, et il interdisait la vidéo à qualité initiale (10 Mo ne font
+         * que 4,5 s de 1080p). Ce qui le borne maintenant est la place sur le
+         * disque, et une copie ratée se voit franchement.
          */
         const val MAX_TRANSFER_BLE = 2_000_000
-        const val MAX_TRANSFER_STREAM = 10_000_000
+        const val MAX_TRANSFER_STREAM = 200_000_000
 
         /** Ce qu'un récepteur accepte, quel que soit le médium d'arrivée. */
         const val MAX_TRANSFER_BYTES = MAX_TRANSFER_STREAM
+
+        /** Tampon des lectures qui ne servent qu'à calculer un CRC. */
+        private const val CRC_BUFFER = 64 * 1024
 
         /**
          * Ce que l'UI doit demander avant [start]. Aucune localisation : le
@@ -405,10 +424,15 @@ class CabinChat(context: Context) {
         val kind: Int,
         val name: String,
         val mime: String,
-        val content: ByteArray,
+        /** Ouverte une fois par lien : le même message part vers plusieurs pairs. */
+        val source: Source,
+        /** Calculé une seule fois, à l'expédition — pas une fois par lien. */
+        val crc32: Int,
         /** Ce lien pilote la barre de progression et le statut du message. */
         val primary: Boolean,
-    )
+    ) {
+        val size: Int get() = source.size
+    }
 
     private class Link(val medium: Medium, val kind: LinkKind, val address: String) {
         var mtu = DEFAULT_MTU
@@ -567,7 +591,18 @@ class CabinChat(context: Context) {
      */
     private val subscribedAddresses = mutableSetOf<String>()
 
-    private val reassembler = Reassembler(MAX_TRANSFER_BYTES)
+    /**
+     * Le texte atterrit en mémoire — il devient une phrase, et il est borné.
+     * Tout le reste va droit sur le disque, fragment par fragment : c'est ce
+     * qui permet à une vidéo de peser plus que ce que le téléphone peut tenir.
+     */
+    private val reassembler = Reassembler(MAX_TRANSFER_BYTES) { start ->
+        if (start.kind == ChatFrames.KIND_TEXT) {
+            MemorySink(start.totalBytes)
+        } else {
+            FileSink(Attachments.destination(appContext, start.name))
+        }
+    }
 
     /** Dernier pourcentage publié par transfert — étrangle les recompositions. */
     private val progressPct = HashMap<Int, Int>()
@@ -697,6 +732,10 @@ class CabinChat(context: Context) {
         // fermer la cabine en plein transfert laisserait la balise muette pour
         // toujours : le silence était le nôtre, il part avec nous
         RadioSilence.request(false)
+        // Les réceptions en cours écrivent dans files/chat/ : les abandonner
+        // AVANT le balayage, sinon un fragment en retard recréerait un fichier
+        // juste après qu'on a fini de nettoyer.
+        reassembler.abortAll()
         // « tout s'efface en fermant » est écrit dans la cabine, en trois
         // langues. La conversation s'en allait bien avec l'instance, mais les
         // pièces jointes restaient sur le disque — de la première cabine à
@@ -765,7 +804,7 @@ class CabinChat(context: Context) {
             ),
         )
         _chimes.tryEmit(Chime.SENT)
-        scope.launch { dispatch(msgId, ChatFrames.KIND_TEXT, "", "", bytes) }
+        scope.launch { dispatch(msgId, ChatFrames.KIND_TEXT, "", "", BytesSource(bytes)) }
         return true
     }
 
@@ -773,9 +812,8 @@ class CabinChat(context: Context) {
     fun sendImage(uri: Uri) {
         scope.launch(Dispatchers.IO) {
             val read = Attachments.prepareImage(appContext, uri)
-            val copy = saveLocalCopy(read)
             withContext(dispatcher) {
-                dispatchAttachment(ChatKind.IMAGE, ChatFrames.KIND_IMAGE, read, copy, transferLimit())
+                dispatchAttachment(ChatKind.IMAGE, ChatFrames.KIND_IMAGE, read, transferLimit())
             }
         }
     }
@@ -783,25 +821,20 @@ class CabinChat(context: Context) {
     /** Envoie un fichier tel quel, plafonné selon le médium ([transferLimit]). */
     fun sendFile(uri: Uri) {
         scope.launch(Dispatchers.IO) {
-            // le plafond se lit AVANT la lecture : inutile de charger dix
+            // le plafond se lit AVANT la copie : inutile de recopier deux cents
             // mégaoctets pour découvrir ensuite qu'ils ne passeront pas
             val limit = withContext(dispatcher) { transferLimit() }
-            val read = Attachments.read(appContext, uri, limit)
-            val copy = saveLocalCopy(read)
+            val read = Attachments.stage(appContext, uri, limit)
             withContext(dispatcher) {
-                dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, copy, limit)
+                dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, limit)
             }
         }
     }
-
-    private fun saveLocalCopy(read: Attachments.Read) = (read as? Attachments.Read.Ok)
-        ?.let { runCatching { Attachments.saveCopy(appContext, it.name, it.bytes) }.getOrNull() }
 
     private fun dispatchAttachment(
         kind: ChatKind,
         wireKind: Int,
         read: Attachments.Read,
-        copy: java.io.File?,
         limit: Int,
     ) {
         when (read) {
@@ -819,9 +852,12 @@ class CabinChat(context: Context) {
                 it.copy(lastError = CabinError.UnreadableAttachment)
             }
             is Attachments.Read.Ok -> {
-                if (read.bytes.size > limit) {
+                if (read.size > limit) {
+                    // le plafond a pu descendre pendant la copie : un lien BLE
+                    // qui s'ouvre ramène les dix mégaoctets promis à deux
+                    read.file.delete()
                     _tooBig.value = TooBig(
-                        read.name, read.bytes.size.toLong(), limit,
+                        read.name, read.size.toLong(), limit,
                         routes().minByOrNull { it.medium.rank }?.medium ?: Medium.BLE,
                     )
                     return
@@ -831,18 +867,21 @@ class CabinChat(context: Context) {
                     ChatMessage(
                         id = msgId, mine = true, from = "moi",
                         kind = kind, status = ChatStatus.SENDING,
-                        file = copy, name = read.name, mime = read.mime,
-                        sizeBytes = read.bytes.size,
+                        // la copie posée par la préparation EST la pièce jointe :
+                        // elle sert à la fois de source d'envoi et de trace à
+                        // l'écran, là où on en écrivait deux
+                        file = read.file, name = read.name, mime = read.mime,
+                        sizeBytes = read.size,
                     ),
                 )
                 _chimes.tryEmit(Chime.SENT)
-                dispatch(msgId, wireKind, read.name, read.mime, read.bytes)
+                dispatch(msgId, wireKind, read.name, read.mime, FileSource(read.file, read.size))
             }
         }
     }
 
     /** Fil protocole. Une émission par personne, au meilleur médium accepté. */
-    private fun dispatch(msgId: Int, kind: Int, name: String, mime: String, content: ByteArray) {
+    private fun dispatch(msgId: Int, kind: Int, name: String, mime: String, source: Source) {
         val perAddress = routes()
         if (perAddress.isEmpty()) {
             updateMessage(msgId) { it.copy(status = ChatStatus.FAILED) }
@@ -866,16 +905,24 @@ class CabinChat(context: Context) {
         // rendez-vous : 16 Ko/s de bout en bout, dans la fourchette de
         // l'écriture. [routes] applique déjà cette préférence.
         val targets = if (kind == ChatFrames.KIND_TEXT) perAddress else attachmentTargets(perAddress)
+        // Une seule lecture pour le CRC, ici, et non une par lien : sur un
+        // fichier, le calculer dans chaque transfert relirait tout le contenu
+        // autant de fois qu'il y a de pairs.
+        val crc = crcOf(source) ?: run {
+            updateMessage(msgId) { it.copy(status = ChatStatus.FAILED) }
+            _status.update { it.copy(lastError = CabinError.UnreadableAttachment) }
+            return
+        }
         var primary = true
         targets.forEach { link ->
-            link.transfers.trySend(Outgoing(msgId, kind, name, mime, content, primary))
+            link.transfers.trySend(Outgoing(msgId, kind, name, mime, source, crc, primary))
             primary = false
         }
         // le médium retenu ET l'inventaire des liens : sans les deux, un message
         // parti par la radio alors qu'une socket était ouverte ne s'explique pas
         Log.i(
             TAG,
-            "message $msgId (${content.size} o) par " +
+            "message $msgId (${source.size} o) par " +
                 targets.joinToString { "${it.medium.short}/${it.address}" } +
                 " — liens " +
                 links.values.joinToString {
@@ -883,6 +930,24 @@ class CabinChat(context: Context) {
                 },
         )
     }
+
+    /**
+     * CRC du contenu à envoyer, lu une seule fois quel que soit le nombre de
+     * pairs. null quand la source est illisible — un fichier disparu sous nos
+     * pieds, par exemple : mieux vaut l'échec ici qu'un CRC faux en face.
+     */
+    private fun crcOf(source: Source): Int? = runCatching {
+        val crc = CRC32()
+        val buffer = ByteArray(CRC_BUFFER)
+        source.open().use { reader ->
+            while (true) {
+                val n = reader.read(buffer)
+                if (n <= 0) break
+                crc.update(buffer, 0, n)
+            }
+        }
+        crc.value.toInt()
+    }.getOrNull()
 
     // ── Fil d'émission d'un lien ──────────────────────────────────────────
 
@@ -926,7 +991,7 @@ class CabinChat(context: Context) {
         // certains empilements relâchent la priorité au fil du temps :
         // on la redemande au début de chaque transfert
         if (link.medium == Medium.BLE) requestHighPriority(link)
-        if (out.primary) sentAtMs[out.msgId] = SystemClock.elapsedRealtime() to out.content.size
+        if (out.primary) sentAtMs[out.msgId] = SystemClock.elapsedRealtime() to out.size
         try {
             runTransferInner(link, out)
         } finally {
@@ -1225,7 +1290,7 @@ class CabinChat(context: Context) {
         // budget d'une trame ordinaire, scellement Noise déjà déduit
         val att = link.payload
         val start = ChatFrames.encodeStart(
-            ChatFrame.Start(out.msgId, out.kind, out.content.size, ChatFrames.crc32(out.content), out.name, out.mime),
+            ChatFrame.Start(out.msgId, out.kind, out.size, out.crc32, out.name, out.mime),
             att,
         )
         if (start == null || !writeFrame(link, start, withResponse = link.kind == LinkKind.CLIENT)) {
@@ -1246,47 +1311,63 @@ class CabinChat(context: Context) {
         var loopMs = 0L
         link.sealMs = 0L
         link.wireMs = 0L
-        while (offset < out.content.size) {
-            // les acquittements se glissent entre deux fragments
-            while (true) {
-                val control = link.control.tryReceive().getOrNull() ?: break
-                writeFrame(link, control)
-            }
-            val fragmentStart = SystemClock.elapsedRealtime()
-            val end = minOf(offset + chunk, out.content.size)
-            // La contre-pression est une affaire de radio : TCP a la sienne,
-            // et une écriture sur socket ne rend la main que quand l'octet est
-            // parti. Rien à cadencer hors du BLE.
-            val windowEdge = end == out.content.size || index % ACK_WINDOW == ACK_WINDOW - 1
-            val reliable = link.medium != Medium.BLE || (windowEdge && link.kind == LinkKind.CLIENT)
-            val encoded = ChatFrames.encodeData(out.msgId, index, out.content, offset, end)
-            val encodedAt = SystemClock.elapsedRealtime()
-            if (!writeFrame(link, encoded, reliable)) {
-                onTransferFailed(link, out)
-                failLink(link)
-                return
-            }
-            loopMs += encodedAt - fragmentStart
-            // pas d'équivalent « avec réponse » pour une notification :
-            // on relâche la pression d'un souffle à chaque fenêtre
-            if (windowEdge && link.medium == Medium.BLE && link.kind == LinkKind.SERVER) {
-                delay(NOTIFY_WINDOW_PAUSE_MS)
-            }
-            offset = end
-            index++
-            // l'intervalle de connexion n'est pas lisible : on l'observe par le
-            // temps passé par fragment, seul reflet dont on dispose
-            if (!priorityRetried && index == PRIORITY_RETRY_AT_FRAGMENT) {
-                priorityRetried = true
-                val perFragment = (SystemClock.elapsedRealtime() - startedAt) / index
-                if (perFragment > SLOW_FRAGMENT_MS) {
-                    // constat seul : reposer la priorité ne sert à rien ici —
-                    // essayé au banc, y compris en rebondissant par BALANCED
-                    // pour forcer une mise à jour, sans le moindre gain
-                    Log.w(TAG, "lien lent ($perFragment ms/fragment)")
+        val total = out.size
+        // Le contenu se lit au fil de l'envoi, jamais d'un bloc : c'est ce qui
+        // rend la taille d'une vidéo indifférente à la mémoire du téléphone.
+        // Chaque lien ouvre son propre lecteur — un même message part vers
+        // plusieurs pairs, chacun à son rythme.
+        out.source.open().use { reader ->
+            val buffer = ByteArray(chunk)
+            while (offset < total) {
+                // les acquittements se glissent entre deux fragments
+                while (true) {
+                    val control = link.control.tryReceive().getOrNull() ?: break
+                    writeFrame(link, control)
                 }
+                val fragmentStart = SystemClock.elapsedRealtime()
+                val read = runCatching { reader.read(buffer) }.getOrDefault(-1)
+                if (read <= 0) {
+                    // le contenu s'est dérobé en route : le pair attend des
+                    // octets qui n'existent plus, on ne le laisse pas au CRC
+                    Log.w(TAG, "message ${out.msgId} : source tarie à $offset/$total o")
+                    onTransferFailed(link, out)
+                    return
+                }
+                val end = offset + read
+                // La contre-pression est une affaire de radio : TCP a la sienne,
+                // et une écriture sur socket ne rend la main que quand l'octet est
+                // parti. Rien à cadencer hors du BLE.
+                val windowEdge = end == total || index % ACK_WINDOW == ACK_WINDOW - 1
+                val reliable = link.medium != Medium.BLE || (windowEdge && link.kind == LinkKind.CLIENT)
+                val encoded = ChatFrames.encodeData(out.msgId, index, buffer, 0, read)
+                val encodedAt = SystemClock.elapsedRealtime()
+                if (!writeFrame(link, encoded, reliable)) {
+                    onTransferFailed(link, out)
+                    failLink(link)
+                    return
+                }
+                loopMs += encodedAt - fragmentStart
+                // pas d'équivalent « avec réponse » pour une notification :
+                // on relâche la pression d'un souffle à chaque fenêtre
+                if (windowEdge && link.medium == Medium.BLE && link.kind == LinkKind.SERVER) {
+                    delay(NOTIFY_WINDOW_PAUSE_MS)
+                }
+                offset = end
+                index++
+                // l'intervalle de connexion n'est pas lisible : on l'observe par le
+                // temps passé par fragment, seul reflet dont on dispose
+                if (!priorityRetried && index == PRIORITY_RETRY_AT_FRAGMENT) {
+                    priorityRetried = true
+                    val perFragment = (SystemClock.elapsedRealtime() - startedAt) / index
+                    if (perFragment > SLOW_FRAGMENT_MS) {
+                        // constat seul : reposer la priorité ne sert à rien ici —
+                        // essayé au banc, y compris en rebondissant par BALANCED
+                        // pour forcer une mise à jour, sans le moindre gain
+                        Log.w(TAG, "lien lent ($perFragment ms/fragment)")
+                    }
+                }
+                if (out.primary) publishProgress(out.msgId, offset, total)
             }
-            if (out.primary) publishProgress(out.msgId, offset, out.content.size)
         }
         if (out.primary) {
             progressPct.remove(out.msgId)
@@ -1300,7 +1381,7 @@ class CabinChat(context: Context) {
             // guetteur ne concerne que ce chemin-là — une socket qui a écrit
             // sans lever a bel et bien remis ses octets.
             if (link.medium == Medium.BLE && link.kind == LinkKind.SERVER) {
-                armAckWatchdog(out.msgId, link.address, out.content.size)
+                armAckWatchdog(out.msgId, link.address, out.size)
             }
         }
         // ms/fragment journalisés : sans eux, un lien resté à 48 ms ressemble à
@@ -1317,7 +1398,7 @@ class CabinChat(context: Context) {
         }
         Log.i(
             TAG,
-            "message ${out.msgId} $verb (${out.content.size} o, $index fragment(s)) " +
+            "message ${out.msgId} $verb (${out.size} o, $index fragment(s)) " +
                 "vers ${link.address} — $elapsed ms, ${elapsed / maxOf(index, 1)} ms/fragment " +
                 "(scellement ${link.sealMs} ms, transport ${link.wireMs} ms, boucle $loopMs ms)",
         )
@@ -1567,29 +1648,24 @@ class CabinChat(context: Context) {
     private fun onIncomingCompleted(event: Reassembler.Event.Completed) {
         val start = event.start
         progressPct.remove(start.msgId)
-        when (kindOf(start.kind)) {
-            ChatKind.TEXT -> updateMessage(start.msgId) {
+        when (val payload = event.payload) {
+            // le texte est arrivé en mémoire, c'est ce qu'on lui a demandé
+            is Payload.InMemory -> updateMessage(start.msgId) {
                 it.copy(
                     status = ChatStatus.RECEIVED, progress = 1f,
-                    text = String(event.bytes, Charsets.UTF_8),
+                    text = String(payload.bytes, Charsets.UTF_8),
                 )
             }
-            else -> {
-                val file = runCatching {
-                    Attachments.saveCopy(appContext, start.name, event.bytes)
-                }.getOrNull()
-                updateMessage(start.msgId) {
-                    it.copy(
-                        status = if (file != null) ChatStatus.RECEIVED else ChatStatus.FAILED,
-                        progress = 1f, file = file,
-                    )
-                }
+            // la pièce jointe est déjà sur le disque, écrite au fil des
+            // fragments : plus rien à recopier une fois complète
+            is Payload.OnDisk -> updateMessage(start.msgId) {
+                it.copy(status = ChatStatus.RECEIVED, progress = 1f, file = payload.file)
             }
         }
         val by = links.values.firstOrNull { it.address == event.from }
         Log.i(
             TAG,
-            "message ${start.msgId} reçu au complet (${event.bytes.size} o)" +
+            "message ${start.msgId} reçu au complet (${start.totalBytes} o)" +
                 (by?.let { " — attente ${it.readMs} ms, traitement ${it.handleMs} ms" } ?: ""),
         )
         by?.let { it.readMs = 0L; it.handleMs = 0L }
