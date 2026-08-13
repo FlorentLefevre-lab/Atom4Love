@@ -141,10 +141,63 @@ class P2pGroup(context: Context) {
      * reçoit son adresse en 192.168.49.x du propriétaire.
      *
      * La connexion vit tant que la requête vit : la rendre, c'est sortir.
+     *
+     * Elle appartient au **processus**, pas à cette instance — même raison que
+     * la trace sur le disque, un cran plus court. `CabinHost` jette sa
+     * `CabinChat`, et donc son `P2pGroup`, à chaque fermeture de cabine : une
+     * requête laissée derrière deviendrait irrattrapable, et Android
+     * continuerait de courir après un SSID mort. C'est ce qui bloquait la
+     * jointure suivante — la nouvelle requête faisait la queue derrière un
+     * fantôme et finissait en `onUnavailable`.
      */
-    private var joinedCallback: ConnectivityManager.NetworkCallback? = null
-    private var joinedNetwork: Network? = null
-    private var joinedName: String? = null
+    private object Joined {
+        var callback: ConnectivityManager.NetworkCallback? = null
+        var network: Network? = null
+        var name: String? = null
+    }
+
+    /**
+     * Les retraits engagés et pas encore tranchés.
+     *
+     * Du processus, pour la même raison que [Joined], et pour une raison de
+     * plus : `release()` rend la main aussitôt et laisse ses reprises vivre sur
+     * le Looper principal — jusqu'à 2,4 s si le système se dit occupé —, mais
+     * la cabine qui l'a demandé, elle, est déjà fermée et son instance jetée.
+     * Rouvrir dans cette fenêtre trouvait le groupe encore monté, l'adoptait
+     * comme le sien, en publiait les identifiants aux pairs, et le retrait en
+     * vol l'emportait juste après : chacun tenait alors la clé d'un réseau qui
+     * n'existait plus.
+     */
+    private object Releasing {
+        var inFlight = 0
+    }
+
+    private fun beginRelease() {
+        synchronized(Releasing) { Releasing.inFlight++ }
+    }
+
+    private fun endRelease() {
+        synchronized(Releasing) { if (Releasing.inFlight > 0) Releasing.inFlight-- }
+    }
+
+    /**
+     * Laisse un retrait en vol se terminer avant d'engager quoi que ce soit.
+     *
+     * Borné : un `removeGroup` dont le système ne rend jamais le verdict ne
+     * doit pas condamner le Wi-Fi Direct pour le reste de la session. Passé le
+     * délai on avance quand même — au pire on retombe sur l'ancien défaut, au
+     * lieu de n'avoir plus rien du tout.
+     */
+    private suspend fun awaitRelease() {
+        val deadline = System.currentTimeMillis() + RELEASE_WAIT_MS
+        while (synchronized(Releasing) { Releasing.inFlight } > 0) {
+            if (System.currentTimeMillis() >= deadline) {
+                Log.w(TAG, "retrait de groupe toujours en cours — on n'attend plus")
+                return
+            }
+            delay(RELEASE_POLL_MS)
+        }
+    }
 
     /**
      * Prévenu quand le groupe qu'on avait rejoint disparaît pour de bon.
@@ -192,11 +245,15 @@ class P2pGroup(context: Context) {
     @SuppressLint("MissingPermission")
     suspend fun host(): Credentials? {
         val manager = this.manager ?: return null
-        val channel = channel() ?: return null
         if (!permissionsGranted(appContext)) {
             Log.w(TAG, "Wi-Fi Direct : permission manquante")
             return null
         }
+        // Avant tout le reste : le groupe qu'on va voir monté est peut-être
+        // celui qu'on est en train de retirer, et le canal qu'on ouvrirait
+        // maintenant serait refermé par ce retrait-là en aboutissant.
+        awaitRelease()
+        val channel = channel() ?: return null
         existingGroup(manager, channel)?.let { group ->
             if (group.isGroupOwner) {
                 Log.i(
@@ -327,10 +384,16 @@ class P2pGroup(context: Context) {
         }
         val connectivity = appContext.getSystemService(ConnectivityManager::class.java)
             ?: return false
+        // Même règle qu'à l'ouverture : on n'entre pas chez un autre tant qu'on
+        // n'a pas fini de rendre son propre groupe.
+        awaitRelease()
         // Déjà dedans : la requête tient la connexion tant qu'on la garde, il
         // n'y a rien à refaire — et en relancer une seconde couperait la
         // première.
-        if (joinedName == credentials.networkName && joinedNetwork != null) {
+        val already = synchronized(Joined) {
+            Joined.name == credentials.networkName && Joined.network != null
+        }
+        if (already) {
             Log.i(TAG, "déjà dans le groupe ${credentials.networkName}")
             return true
         }
@@ -362,8 +425,10 @@ class P2pGroup(context: Context) {
             suspendCancellableCoroutine { cont ->
             val callback = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
-                    joinedNetwork = network
-                    joinedName = credentials.networkName
+                    synchronized(Joined) {
+                        Joined.network = network
+                        Joined.name = credentials.networkName
+                    }
                     Log.i(TAG, "groupe ${credentials.networkName} rejoint")
                     if (cont.isActive) cont.resume(true)
                 }
@@ -374,10 +439,15 @@ class P2pGroup(context: Context) {
                     // déclarer le groupe fermé — sinon le moindre clignotement
                     // annoncerait un départ qui n'a pas eu lieu.
                     Log.i(TAG, "groupe ${credentials.networkName} perdu")
-                    joinedNetwork = null
-                    val mine = joinedCallback
+                    val mine = synchronized(Joined) {
+                        Joined.network = null
+                        Joined.callback
+                    }
                     Handler(Looper.getMainLooper()).postDelayed({
-                        if (joinedCallback === mine && joinedNetwork == null) {
+                        val gone = synchronized(Joined) {
+                            Joined.callback === mine && Joined.network == null
+                        }
+                        if (gone) {
                             Log.i(TAG, "groupe ${credentials.networkName} : parti pour de bon")
                             onGroupLost?.invoke()
                         }
@@ -385,15 +455,21 @@ class P2pGroup(context: Context) {
                 }
 
                 override fun onUnavailable() {
+                    // La requête est morte, mais elle reste inscrite auprès du
+                    // système tant qu'on ne la rend pas — et une requête
+                    // inscrite pour un SSID qui n'existe pas fait patienter
+                    // celle qui viendra après. C'est ce qui bloquait la
+                    // jointure suivante.
                     Log.w(TAG, "groupe ${credentials.networkName} non rejoint")
+                    leaveJoined()
                     if (cont.isActive) cont.resume(false)
                 }
             }
-            joinedCallback = callback
+            synchronized(Joined) { Joined.callback = callback }
             runCatching {
                 connectivity.requestNetwork(request, callback)
             }.onFailure {
-                joinedCallback = null
+                synchronized(Joined) { Joined.callback = null }
                 Log.w(TAG, "requête de groupe refusée — $it")
                 if (cont.isActive) cont.resume(false)
             }
@@ -407,17 +483,32 @@ class P2pGroup(context: Context) {
         }
     }
 
-    /** Rend la requête réseau : la connexion au groupe s'arrête avec elle. */
+    /**
+     * Rend la requête réseau : la connexion au groupe s'arrête avec elle.
+     *
+     * Sans effet si l'on n'en tenait pas — et c'est ce qui permet de l'appeler
+     * partout où l'on sort, sans avoir à savoir par où l'on est entré.
+     */
     private fun leaveJoined() {
-        val callback = joinedCallback ?: return
-        joinedCallback = null
-        joinedNetwork = null
-        joinedName = null
+        val callback = synchronized(Joined) {
+            val held = Joined.callback ?: return
+            Joined.callback = null
+            Joined.network = null
+            Joined.name = null
+            held
+        }
+        Log.i(TAG, "requête de groupe rendue")
         runCatching {
             appContext.getSystemService(ConnectivityManager::class.java)
                 ?.unregisterNetworkCallback(callback)
         }
     }
+
+    /**
+     * Rend la requête réseau sans toucher au groupe : quand celui-ci est déjà
+     * tombé, il n'y a plus rien à retirer, seulement une place à quitter.
+     */
+    fun leave() = leaveJoined()
 
     /**
      * Le réseau du groupe, quand Android le publie. Une socket non liée part
@@ -428,7 +519,7 @@ class P2pGroup(context: Context) {
     @Suppress("DEPRECATION")
     fun network(): Network? {
         // Invité : le réseau que la requête nous a rendu, à lier aux sockets.
-        joinedNetwork?.let { return it }
+        synchronized(Joined) { Joined.network }?.let { return it }
         // Hôte : c'est notre propre interface p2p, qu'aucune requête ne porte.
         val connectivity = appContext.getSystemService(ConnectivityManager::class.java) ?: return null
         return connectivity.allNetworks.firstOrNull { network ->
@@ -454,11 +545,16 @@ class P2pGroup(context: Context) {
         val channel = this.channel ?: return
         this.channel = null
         val handler = Handler(Looper.getMainLooper())
+        // Le retrait est engagé à partir d'ici, et il l'est pour le processus :
+        // une cabine qui rouvre pendant ce temps doit attendre son verdict
+        // plutôt que d'adopter un groupe déjà condamné.
+        beginRelease()
         val done = { removed: Boolean ->
             if (removed) forget()
             runCatching {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) channel.close()
             }
+            endRelease()
         }
         // La cabine se ferme sans attendre : les tentatives vivent sur le
         // Looper principal, celui-là même qui porte le canal P2P, et survivent
@@ -499,11 +595,19 @@ class P2pGroup(context: Context) {
         release()
         val manager = this.manager ?: return true
         val deadline = System.currentTimeMillis() + timeoutMs
-        while (System.currentTimeMillis() < deadline) {
-            // le canal a été fermé par release() : on en rouvre un pour lire
-            val channel = channel() ?: return true
-            if (existingGroup(manager, channel) == null) return true
-            delay(RELEASE_POLL_MS)
+        try {
+            while (System.currentTimeMillis() < deadline) {
+                // le canal a été fermé par release() : on en rouvre un pour lire
+                val channel = channel() ?: return true
+                if (existingGroup(manager, channel) == null) return true
+                delay(RELEASE_POLL_MS)
+            }
+        } finally {
+            // Le canal de sondage n'a servi qu'à regarder. Le laisser ouvert
+            // maintient notre lien au service Wi-Fi Direct pour rien, et il n'y
+            // a personne pour le refermer plus tard : `release()` n'a fermé que
+            // celui d'avant.
+            closeChannel()
         }
         return false
     }
@@ -552,21 +656,29 @@ class P2pGroup(context: Context) {
         manager: WifiP2pManager,
         channel: WifiP2pManager.Channel,
     ): Boolean {
-        repeat(REMOVE_ATTEMPTS) {
-            val failure = runCatching {
-                suspendCancellableCoroutine { cont ->
-                    manager.removeGroup(channel, object : WifiP2pManager.ActionListener {
-                        override fun onSuccess() = cont.resume(null)
-                        override fun onFailure(reason: Int) = cont.resume(reason)
-                    })
+        // Le ramassage part sans que personne l'attende (`CabinHost` le lance
+        // et passe à autre chose) : la cabine peut s'ouvrir en plein milieu.
+        // Elle doit voir ce retrait-là comme les autres.
+        beginRelease()
+        try {
+            repeat(REMOVE_ATTEMPTS) {
+                val failure = runCatching {
+                    suspendCancellableCoroutine { cont ->
+                        manager.removeGroup(channel, object : WifiP2pManager.ActionListener {
+                            override fun onSuccess() = cont.resume(null)
+                            override fun onFailure(reason: Int) = cont.resume(reason)
+                        })
+                    }
+                }.getOrDefault(WifiP2pManager.ERROR)
+                if (failure == null) return true
+                if (failure != WifiP2pManager.BUSY) {
+                    Log.w(TAG, "removeGroup refusé (raison $failure)")
+                    return false
                 }
-            }.getOrDefault(WifiP2pManager.ERROR)
-            if (failure == null) return true
-            if (failure != WifiP2pManager.BUSY) {
-                Log.w(TAG, "removeGroup refusé (raison $failure)")
-                return false
+                delay(REMOVE_RETRY_MS)
             }
-            delay(REMOVE_RETRY_MS)
+        } finally {
+            endRelease()
         }
         Log.w(TAG, "removeGroup encore occupé après $REMOVE_ATTEMPTS tentatives")
         return false
