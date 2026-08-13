@@ -155,6 +155,8 @@ dependencies {
     // --- Compose ---
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.compose)
+    // Deux volets côte à côte sur grand écran (tablette du banc, pliables).
+    implementation(libs.bundles.adaptive)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
@@ -193,6 +195,9 @@ dependencies {
 
     // --- Images ---
     implementation(libs.bundles.coil)
+
+    // --- Vidéo : relecture dans la bulle (jamais de ré-encodage, cf. catalogue) ---
+    implementation(libs.bundles.media3)
 
     // --- Tests unitaires ---
     testImplementation(libs.junit)

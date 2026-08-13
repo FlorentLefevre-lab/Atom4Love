@@ -17,6 +17,9 @@ workManager = "2.10.5"
 
 # --- Compose ---
 composeBom = "2026.02.01"
+# material3-adaptive a son propre cycle : le BOM Compose ne le pilote pas.
+# 1.3.0 exigerait compileSdk 37 ; on reste en 36 tant que rien ne le réclame.
+material3Adaptive = "1.2.0"
 
 # --- Injection de dépendances ---
 # files/ demandait 2.57, dont le plugin Gradle utilise BaseExtension,
@@ -48,6 +51,9 @@ playServicesLocation = "21.3.0"
 # --- Images ---
 coil = "3.3.0"
 
+# --- Vidéo (pièces jointes de la cabine) ---
+media3 = "1.11.0"
+
 # --- Tests ---
 junit = "4.13.2"
 androidxJunit = "1.3.0"
@@ -77,6 +83,13 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+
+# --- Mises en page adaptatives (tablette, pliables) ---
+# `adaptive` porte la mesure des fenêtres, `adaptive-layout` les échafaudages
+# à deux volets, `adaptive-navigation` le retour arrière entre volets.
+androidx-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive", version.ref = "material3Adaptive" }
+androidx-adaptive-layout = { group = "androidx.compose.material3.adaptive", name = "adaptive-layout", version.ref = "material3Adaptive" }
+androidx-adaptive-navigation = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation", version.ref = "material3Adaptive" }
 
 # --- Hilt ---
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
@@ -116,6 +129,14 @@ play-services-location = { group = "com.google.android.gms", name = "play-servic
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 
+# --- Vidéo ---
+# Pas de `media3-transformer` ici, et c'est une décision : la vidéo part telle
+# qu'elle a été filmée, jamais ré-encodée. Ce qui la rend possible n'est pas la
+# compression mais le médium — le Wi-Fi seul y a droit (cf. CabinChat).
+# Restent la lecture dans la bulle et sa surface Compose.
+media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+media3-ui-compose = { group = "androidx.media3", name = "media3-ui-compose", version.ref = "media3" }
+
 # --- Tests ---
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
@@ -146,3 +167,5 @@ compose = [
 room = ["androidx-room-runtime", "androidx-room-ktx"]
 okhttp = ["okhttp", "okhttp-logging"]
 coil = ["coil-compose", "coil-network-okhttp"]
+adaptive = ["androidx-adaptive", "androidx-adaptive-layout", "androidx-adaptive-navigation"]
+media3 = ["media3-exoplayer", "media3-ui-compose"]
