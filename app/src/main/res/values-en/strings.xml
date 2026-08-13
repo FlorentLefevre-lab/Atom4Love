@@ -151,6 +151,7 @@
     <string name="tab_bonds">Resonance</string>
     <string name="tab_nucleus">Nucleus</string>
     <string name="tab_help">Help</string>
+    <string name="tab_settings">Settings</string>
 
     <!-- ─── The link indicator, at the very top ───────────────────────── -->
     <string name="header_cabin_closed">booth closed</string>
@@ -229,7 +230,6 @@
          his own English, his words win over these. -->
     <string name="help_title">Help</string>
     <string name="help_lead">What the station does, and why it does it this way.</string>
-    <string name="help_footer">Atom4Love %1$s · by AstroPort.ONE</string>
 
     <string name="help_group_world">The world</string>
     <string name="help_group_identity">Your identity</string>
@@ -408,4 +408,9 @@
     <string name="enroll_err_no_multipass">no MULTIPASS behind this address</string>
     <string name="enroll_err_station_refused">the station refused the request</string>
     <string name="enroll_err_station_unreachable">station unreachable</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_about_label">This station</string>
+    <string name="settings_version">Atom4Love %1$s</string>
+    <string name="settings_maker">by AstroPort.ONE</string>
 </resources>

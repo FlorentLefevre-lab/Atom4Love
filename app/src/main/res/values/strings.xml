@@ -189,6 +189,7 @@
     <string name="tab_bonds">Résonance</string>
     <string name="tab_nucleus">Noyau</string>
     <string name="tab_help">Aide</string>
+    <string name="tab_settings">Réglages</string>
 
     <!-- ─── L'indicateur de liaison, tout en haut ─────────────────────── -->
     <string name="header_cabin_closed">cabine fermée</string>
@@ -271,7 +272,6 @@
          ceux-ci ne sont qu'une traduction de bonne foi, à confronter. -->
     <string name="help_title">Aide</string>
     <string name="help_lead">Ce que fait la station, et pourquoi elle le fait ainsi.</string>
-    <string name="help_footer">Atom4Love %1$s · by AstroPort.ONE</string>
 
     <!-- Les trois thèmes, dans l'ordre où la question se pose : ce qu'est ce
          monde, ce qu'on y est, ce qu'on y fait. -->
@@ -474,4 +474,13 @@
     <string name="enroll_err_no_multipass">aucun MULTIPASS derrière cette adresse</string>
     <string name="enroll_err_station_refused">la station a refusé la demande</string>
     <string name="enroll_err_station_unreachable">station injoignable</string>
+
+    <!-- ─── 06 · Réglages ─────────────────────────────────────────────── -->
+    <!-- La version de l'application ne vit QUE sur cet écran : un numéro de
+         build n'a rien à faire au pied d'une page d'aide, et deux endroits qui
+         l'affichent finissent par se contredire. -->
+    <string name="settings_title">Réglages</string>
+    <string name="settings_about_label">Cette station</string>
+    <string name="settings_version">Atom4Love %1$s</string>
+    <string name="settings_maker">by AstroPort.ONE</string>
 </resources>

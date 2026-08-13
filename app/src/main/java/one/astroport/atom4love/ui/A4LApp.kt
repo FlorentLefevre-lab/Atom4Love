@@ -82,6 +82,7 @@ import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.screens.BoardScreen
 import one.astroport.atom4love.ui.screens.HelpScreen
+import one.astroport.atom4love.ui.screens.SettingsScreen
 import one.astroport.atom4love.ui.screens.IncarnationScreen
 import one.astroport.atom4love.ui.screens.MultipassScreen
 import one.astroport.atom4love.ui.screens.RadarScreen
@@ -95,7 +96,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.AlertDialog
 
-/** Les cinq destinations de la barre du bas. */
+/** Les six destinations de la barre du bas. */
 enum class A4LTab(
     /** L'emoji reste en dur : un pictogramme n'est d'aucune langue. */
     val icon: String,
@@ -106,6 +107,9 @@ enum class A4LTab(
     Bonds("💜", R.string.tab_bonds),
     Nucleus("⚛", R.string.tab_nucleus),
     Help("❓", R.string.tab_help),
+    // U+FE0F : sans lui, U+2699 tombe sur la police TEXTE du système, qui
+    // le dessine en cercle à rayons — une roue de bateau, pas un engrenage.
+    Settings("⚙️", R.string.tab_settings),
     ;
 
     /**
@@ -118,6 +122,7 @@ enum class A4LTab(
             Radar, Board, Nucleus -> A4L.Cyan
             Bonds -> A4L.Mint
             Help -> A4L.Indigo
+            Settings -> A4L.TextStrong
         }
 }
 
@@ -422,6 +427,7 @@ private fun Station(
                                 },
                             )
                             A4LTab.Help -> HelpScreen()
+                            A4LTab.Settings -> SettingsScreen()
                         }
                     }
                     ElectronSweep(trigger = tab)
@@ -776,7 +782,7 @@ private fun LanguagePicker() {
     }
 }
 
-/** Barre de navigation — quatre onglets, l'actif prend la couleur de son espace. */
+/** Barre de navigation — l'onglet actif prend la couleur de son espace. */
 @Composable
 private fun A4LNavBar(current: A4LTab, onSelect: (A4LTab) -> Unit) {
     // le filet du haut se dessine hors composition : sa couleur se prend ici

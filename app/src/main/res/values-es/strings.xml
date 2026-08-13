@@ -153,6 +153,7 @@
     <string name="tab_bonds">Resonancia</string>
     <string name="tab_nucleus">Núcleo</string>
     <string name="tab_help">Ayuda</string>
+    <string name="tab_settings">Ajustes</string>
 
     <!-- ─── El indicador de enlace, arriba del todo ───────────────────── -->
     <string name="header_cabin_closed">cabina cerrada</string>
@@ -231,7 +232,6 @@
          propio español, sus palabras mandan sobre estas. -->
     <string name="help_title">Ayuda</string>
     <string name="help_lead">Lo que hace la estación, y por qué lo hace así.</string>
-    <string name="help_footer">Atom4Love %1$s · by AstroPort.ONE</string>
 
     <string name="help_group_world">El mundo</string>
     <string name="help_group_identity">Su identidad</string>
@@ -411,4 +411,9 @@
     <string name="enroll_err_no_multipass">ningún MULTIPASS detrás de esta dirección</string>
     <string name="enroll_err_station_refused">la estación ha rechazado la solicitud</string>
     <string name="enroll_err_station_unreachable">estación inalcanzable</string>
+
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_about_label">Esta estación</string>
+    <string name="settings_version">Atom4Love %1$s</string>
+    <string name="settings_maker">by AstroPort.ONE</string>
 </resources>

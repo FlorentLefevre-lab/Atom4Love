@@ -32,10 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import one.astroport.atom4love.BuildConfig
 import one.astroport.atom4love.R
 import one.astroport.atom4love.ui.components.glass
 import one.astroport.atom4love.ui.components.screenBackground
@@ -98,7 +96,11 @@ fun HelpScreen(
             Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 20.dp)
+                // L'encoche du bas n'est à nous que si nous touchons le bas.
+                // Sous l'onglet Aide, la barre de menus la porte un cran plus
+                // bas ; en plein écran avant la forge, personne d'autre.
+                .then(if (atWindowBottom) Modifier.navigationBarsPadding() else Modifier),
         ) {
             // La barre d'onglets de Material, habillée de la palette : deux
             // titres écrits côte à côte ne se lisaient que comme des liens,
@@ -215,22 +217,6 @@ fun HelpScreen(
             }
         }
 
-        // ── Pied ──────────────────────────────────────────────────────────
-        //
-        // L'encoche du bas n'est à nous que si nous touchons le bas. Sous
-        // l'onglet Aide c'est la barre de menus qui la porte, un cran plus
-        // bas : la reprendre ici creusait une bande vide entre le pied et les
-        // onglets, et rognait d'autant le texte au bas du défilement.
-        Text(
-            stringResource(R.string.help_footer, BuildConfig.VERSION_NAME),
-            style = A4LText.Data.copy(fontSize = 9.sp),
-            color = A4L.TextGhost,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 14.dp)
-                .then(if (atWindowBottom) Modifier.navigationBarsPadding() else Modifier),
-        )
     }
 }
 
