@@ -231,6 +231,18 @@
     <string name="help_lead">What the station does, and why it does it this way.</string>
     <string name="help_footer">Atom4Love %1$s · by AstroPort.ONE</string>
 
+    <string name="help_group_world">The world</string>
+    <string name="help_group_identity">Your identity</string>
+    <string name="help_group_gestures">What you do</string>
+
+    <string name="help_group_maya">The Maya count</string>
+    <string name="help_tzolkin_label">The Tzolkin · 260 days</string>
+    <string name="help_tzolkin_body">Thirteen tones crossed with twenty seals: 260 combinations that loop back on themselves. The count follows neither sun nor moon — it does not date, it situates. Your KIN comes out of that grid, and it is on that grid that the station measures what brings you close to someone.</string>
+    <string name="help_kin_label">The KIN</string>
+    <string name="help_kin_body">A tone, 1 to 13, crossed with a seal, 1 to 20: your KIN is one of the 260 cells of the Tzolkin. The seal wraps around — past the twentieth you are back at the first — so two KIN far apart by number can be neighbours by seal. It is not computed on this device: the station returns it with your MULTIPASS.</string>
+    <string name="help_waves_label">The Φ wave, the Octave wave · ωbio</string>
+    <string name="help_waves_body">Two polarities, and nothing else: Φ or Octave. That is all the record asks on that side, and it goes into your key exactly as it stands. Together with your birth weight it gives the frequency of your biological wave — the ωbio that the ATOM4LOVE web interface shows in hertz.</string>
+
     <string name="help_vibration_label">Everything is vibration</string>
     <string name="help_vibration_body">ATOM4LOVE is not astrology. At the exact moment of your birth, the Earth held a precise position in space-time. You carry its geometric imprint — and it can be computed, to the minute and to the degree.</string>
     <string name="help_imprint_label">Your imprint · the fundamental chord</string>
@@ -251,6 +263,20 @@
     <string name="help_redo_body">Wrong data? In the Nucleus tab, “Dissolve the nucleus” erases the form and this station\'s key (two confirmations). Nothing goes onto the network: enter the right data and forge again.</string>
     <string name="help_station_label">The station</string>
     <string name="help_station_body">🌀 Radar: the booths within range, by real proximity. 🎴 Board: your cards. 💜 Resonance: your bonds. ⚛ Nucleus: your sealed form and your npub. At the top, “relay · x / y” says how many NOSTR relays answer — green as soon as the station is on the network.</string>
+
+    <string name="faq_title">F.A.Q.</string>
+    <string name="faq_lead">The questions that keep coming back, and what the station answers.</string>
+
+    <string name="faq_network_label">Do I need an Internet connection?</string>
+    <string name="faq_network_body">Not for the cabin: it speaks over Bluetooth, or over a Wi-Fi network it builds itself between the two devices. Nothing passes through a server. The rest of the station — the NOSTR relays, the MULTIPASS — does need the network, and you can see it in the “relay · x / y” at the top of the screen.</string>
+    <string name="faq_cabin_label">What is said in the cabin, where does it go?</string>
+    <string name="faq_cabin_body">Nowhere else. The content is end-to-end encrypted and crosses no relay. On closing the cabin, the conversation and the attachments you received are wiped from the device — that is what “touch to close and erase” promises, and it keeps it.</string>
+    <string name="faq_weight_label">Why does the station ask for my weight?</string>
+    <string name="faq_weight_body">It serves no health measurement and is compared to nothing. Together with polarity, it gives the frequency of your biological wave: that is all the station draws from it.</string>
+    <string name="faq_nobody_label">The Radar shows nobody.</string>
+    <string name="faq_nobody_body">Bluetooth must be on at both ends, and the other person must have opened their cabin: you only see cores whose cabin is open. Until someone makes that gesture, nothing announces itself — by design.</string>
+    <string name="faq_change_label">Can I correct my data after forging?</string>
+    <string name="faq_change_body">Not directly: once confirmed, the record is sealed. In the Core tab, “Dissolve the core” erases this station\'s record and key, and you forge again with the right data. Your key depends on those five figures: the smallest correction yields a different one.</string>
 
     <!-- ─── The domain ────────────────────────────────────────────────── -->
     <string name="wave_phi">Φ wave</string>

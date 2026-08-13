@@ -320,6 +320,9 @@ private fun Station(
                     HelpScreen(
                         modifier = Modifier.weight(1f),
                         onClose = { showHelp = false },
+                        // Avant la forge il n'y a pas de barre de menus : le
+                        // bas de la fenêtre, c'est ce pied-là.
+                        atWindowBottom = true,
                     )
                 }
             } else {

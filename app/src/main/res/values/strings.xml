@@ -273,6 +273,23 @@
     <string name="help_lead">Ce que fait la station, et pourquoi elle le fait ainsi.</string>
     <string name="help_footer">Atom4Love %1$s · by AstroPort.ONE</string>
 
+    <!-- Les trois thèmes, dans l'ordre où la question se pose : ce qu'est ce
+         monde, ce qu'on y est, ce qu'on y fait. -->
+    <string name="help_group_world">Le monde</string>
+    <string name="help_group_identity">Votre identité</string>
+    <string name="help_group_gestures">Les gestes</string>
+
+    <!-- Le vocabulaire maya, tel que le code l'implémente (domain/Resonance.kt)
+         et tel que l'interface web de Fred le nomme (ωbio, Φ²). On ne décrit
+         ici que ce que l'application fait ou reçoit vraiment. -->
+    <string name="help_group_maya">Le compte maya</string>
+    <string name="help_tzolkin_label">Le Tzolkin · 260 jours</string>
+    <string name="help_tzolkin_body">Treize tons croisés de vingt sceaux : 260 combinaisons qui bouclent sur elles-mêmes. Le compte ne suit ni le soleil ni la lune — il ne sert pas à dater, mais à situer. C\'est de cette grille que sort votre KIN, et c\'est sur elle que la station mesure ce qui vous rapproche d\'un autre.</string>
+    <string name="help_kin_label">Le KIN</string>
+    <string name="help_kin_body">Un ton, de 1 à 13, croisé d\'un sceau, de 1 à 20 : votre KIN est l\'une des 260 cases du Tzolkin. Le sceau boucle — du vingtième on revient au premier —, si bien que deux KIN éloignés par le numéro peuvent être voisins par le sceau. Il ne se calcule pas sur cet appareil : c\'est la station qui le rend avec votre MULTIPASS.</string>
+    <string name="help_waves_label">L\'onde Φ, l\'onde Octave · ωbio</string>
+    <string name="help_waves_body">Deux polarités, et rien d\'autre : Φ ou Octave. C\'est tout ce que la fiche demande de ce côté-là, et elle entre telle quelle dans votre clé. Avec le poids de naissance, elle donne la fréquence de votre onde biologique — le ωbio que l\'interface web d\'ATOM4LOVE affiche en hertz.</string>
+
     <string name="help_vibration_label">Tout est vibration</string>
     <string name="help_vibration_body">ATOM4LOVE n\'est pas de l\'astrologie. Au moment exact de votre naissance, la Terre occupait une position précise dans l\'espace-temps. Vous en portez l\'empreinte géométrique — et elle se calcule, à la minute et au degré près.</string>
     <string name="help_imprint_label">Votre empreinte · l\'accord fondamental</string>
@@ -293,6 +310,22 @@
     <string name="help_redo_body">Une donnée fausse ? Dans l\'onglet Noyau, « Dissoudre le noyau » efface la fiche et la clé de cette station (deux confirmations). Rien ne part sur le réseau : ressaisissez les bonnes données et forgez à nouveau.</string>
     <string name="help_station_label">La station</string>
     <string name="help_station_body">🌀 Radar : les cabines à portée, par proximité réelle. 🎴 Plateau : vos cartes. 💜 Résonance : vos liens. ⚛ Noyau : votre fiche scellée et votre npub. En haut, « relay · x / y » indique combien de relais NOSTR répondent — vert dès que la station est reliée au réseau.</string>
+
+    <!-- F.A.Q. — le second onglet, de plain-pied avec l'Aide. Chaque réponse
+         ne dit que ce que la station fait vraiment ; aucune ne promet. -->
+    <string name="faq_title">F.A.Q.</string>
+    <string name="faq_lead">Les questions qui reviennent, et ce que la station y répond.</string>
+
+    <string name="faq_network_label">Faut-il une connexion Internet ?</string>
+    <string name="faq_network_body">Pas pour la cabine : elle parle en Bluetooth, ou par un réseau Wi-Fi qu\'elle fabrique elle-même entre les deux appareils. Rien ne transite par un serveur. Le reste de la station — les relais NOSTR, le MULTIPASS — a besoin du réseau, et vous le voyez au « relay · x / y » en haut de l\'écran.</string>
+    <string name="faq_cabin_label">Ce qui se dit en cabine, où va-t-il ?</string>
+    <string name="faq_cabin_body">Nulle part ailleurs. Le contenu est chiffré de bout en bout et ne franchit aucun relais. En fermant la cabine, la conversation et les pièces jointes reçues sont effacées de l\'appareil — c\'est ce que promet la ligne « toucher pour fermer et effacer », et elle le tient.</string>
+    <string name="faq_weight_label">Pourquoi la station demande-t-elle mon poids ?</string>
+    <string name="faq_weight_body">Il ne sert à aucune mesure de santé et n\'est comparé à rien. Avec la polarité, il donne la fréquence de votre onde biologique : c\'est la seule chose que la station en tire.</string>
+    <string name="faq_nobody_label">Le Radar ne montre personne.</string>
+    <string name="faq_nobody_body">Il faut le Bluetooth allumé des deux côtés, et que l\'autre ait ouvert sa cabine : on ne voit que les noyaux dont la cabine est ouverte. Tant que personne ne fait ce geste, rien ne s\'annonce — c\'est voulu.</string>
+    <string name="faq_change_label">Puis-je corriger mes données après la forge ?</string>
+    <string name="faq_change_body">Pas directement : après confirmation, la fiche est scellée. Dans l\'onglet Noyau, « Dissoudre le noyau » efface la fiche et la clé de cette station, et vous reforgez avec les bonnes données. Votre clé dépend de ces cinq données : la moindre correction en donne une autre.</string>
 
     <!-- ─── Le domaine : ondes, dates, formats d'affichage ────────────── -->
     <string name="wave_phi">Onde Φ</string>
