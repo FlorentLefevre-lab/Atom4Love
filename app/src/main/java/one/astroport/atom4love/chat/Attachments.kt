@@ -100,6 +100,29 @@ object Attachments {
     }
 
     /**
+     * Efface tout ce que la cabine détient dans files/chat/.
+     *
+     * « Fermer = effacer » ne portait jusqu'ici que sur la conversation, qui
+     * meurt avec l'instance de `CabinChat` ; les fichiers, eux, n'étaient
+     * supprimés nulle part et s'accumulaient depuis la toute première cabine.
+     *
+     * Ce qui est parti dans Téléchargements ([saveToDownloads]) n'est **pas**
+     * concerné : cette copie-là est hors de notre dossier, quelqu'un l'a
+     * demandée, elle lui appartient. Effacer aussi la sienne ferait de la
+     * sortie de cabine un piège pour qui a pris soin de garder une photo.
+     *
+     * Le dossier lui-même survit à son contenu : [saveCopy] le recréerait de
+     * toute façon, et le garder évite une course avec un transfert qui
+     * démarrerait dans la même seconde.
+     *
+     * Rend le nombre d'entrées retirées — de quoi le dire au journal.
+     */
+    fun wipe(context: Context): Int {
+        val entries = File(context.filesDir, DIR).listFiles() ?: return 0
+        return entries.count { it.deleteRecursively() }
+    }
+
+    /**
      * Copie une pièce reçue vers Téléchargements (MediaStore, API 29+) pour
      * la sortir du stockage privé de l'appli. false si échec ou API < 29.
      */

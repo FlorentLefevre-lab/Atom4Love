@@ -6,7 +6,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import one.astroport.atom4love.chat.Attachments
 import one.astroport.atom4love.chat.CabinChat
 import one.astroport.atom4love.chat.net.P2pGroup
 import one.astroport.atom4love.nostr.NostrKeys
@@ -45,6 +47,11 @@ class CabinHost(application: Application) : AndroidViewModel(application) {
         // une mort par mémoire ne passent par aucun stop(). On le ramasse une
         // fois, ici, avant qu'une cabine puisse rouvrir.
         viewModelScope.launch { P2pGroup(context).reclaim() }
+        // Les pièces jointes sortent par les mêmes portes dérobées : `stop()`
+        // les efface, et aucune de ces trois morts-là ne l'appelle. Même
+        // ramassage, même endroit — rien n'est encore ouvert à cet instant,
+        // donc il n'y a aucun transfert en cours à emporter.
+        viewModelScope.launch(Dispatchers.IO) { Attachments.wipe(context) }
     }
 
     fun open(keys: NostrKeys?) {

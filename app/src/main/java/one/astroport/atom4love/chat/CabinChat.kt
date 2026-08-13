@@ -697,6 +697,13 @@ class CabinChat(context: Context) {
         // fermer la cabine en plein transfert laisserait la balise muette pour
         // toujours : le silence était le nôtre, il part avec nous
         RadioSilence.request(false)
+        // « tout s'efface en fermant » est écrit dans la cabine, en trois
+        // langues. La conversation s'en allait bien avec l'instance, mais les
+        // pièces jointes restaient sur le disque — de la première cabine à
+        // celle-ci. Suppression d'unlink, pas de réécriture : assez brève pour
+        // rester ici, dans le geste qui la promet.
+        val wiped = Attachments.wipe(appContext)
+        if (wiped > 0) Log.i(TAG, "cabine fermée : $wiped pièce(s) effacée(s)")
         _status.value = Status()
     }
 
