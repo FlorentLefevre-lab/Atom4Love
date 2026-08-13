@@ -30,13 +30,14 @@
     <string name="radar_cabin_row_open">Booth open — tap to close and erase</string>
     <string name="radar_cabin_row_closed">Talk to those who are here — encrypted, no relay</string>
 
-    <string name="radar_beacon_with_cell">Beacon on — announcing hexagon %1$s</string>
+    <string name="radar_beacon_with_cell">Beacon on (location) — announcing hexagon %1$s</string>
     <string name="radar_beacon_presence_only">Beacon on — presence only, no position</string>
     <string name="radar_beacon_needs_bluetooth">Proximity beacon — Bluetooth required</string>
+    <string name="radar_group_fallback">→ switch back to %1$s</string>
+    <string name="radar_group_reopen">→ open your own Wi-Fi P2P group</string>
     <string name="radar_group_closed">%1$s closed the Wi-Fi Direct group. The cabin carries on, more slowly — tap to dismiss.</string>
     <string name="radar_group_host_self">You hold the Wi-Fi Direct group — leaving closes it, and everyone loses their fast path to you.</string>
     <string name="radar_group_host_peer">%1$s holds the Wi-Fi Direct group — if they leave, it closes and your fast path to them is gone.</string>
-    <string name="radar_antipodes">After 10 pm, this booth listens to the hexagon at the antipodes.</string>
 
     <!-- ─── The booth ─────────────────────────────────────────────────── -->
     <string name="cabin_peers_here" tools:ignore="PluralsCandidate">%1$d here</string>
@@ -70,6 +71,15 @@
     <string name="salon_post">post</string>
 
     <!-- ─── Booth media ───────────────────────────────────────────────── -->
+    <string name="medium_note_ble">slowest — attachments capped, video refused</string>
+    <string name="medium_note_station">fast — goes through the venue\'s box</string>
+    <string name="medium_note_direct_host">fast — you open the group, and you hold it</string>
+    <string name="medium_note_direct_join">fast — you join the group already open</string>
+    <string name="medium_note_unreachable">nobody is offering it right now</string>
+    <string name="medium_leave_group_title">Close the group?</string>
+    <string name="medium_leave_group_body">You hold this Wi-Fi Direct group: switching to %1$s closes it. Everyone in it loses their fast path to you, and your exchanges with them fall back to the slowest. What they say to each other never went through it, and carries on.</string>
+    <string name="medium_leave_group_ok">Close it</string>
+    <string name="medium_leave_group_cancel">Stay</string>
     <string name="medium_ble">direct</string>
     <string name="medium_wifi_station">over the venue\'s network</string>
     <string name="medium_wifi_direct">peer to peer</string>

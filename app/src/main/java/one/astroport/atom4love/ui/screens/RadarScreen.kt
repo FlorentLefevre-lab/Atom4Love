@@ -189,6 +189,8 @@ fun RadarScreen(
      * conversation que personne n'a fermée. Fermer reste un geste, ici.
      */
     cabin: CabinChat? = null,
+    /** Forcer la voie porteuse — même porte que l'entête, permissions comprises. */
+    onSelectMedium: (Medium) -> Unit = {},
     cabinOpen: Boolean = false,
     onOpenCabin: () -> Unit = {},
     onCloseCabin: () -> Unit = {},
@@ -608,6 +610,35 @@ fun RadarScreen(
                         // ce qui est vrai et illisible. Faute de station
                         // offerte, on ne propose rien et le bandeau se contente
                         // de dire ce qui s'est passé.
+                        // Deux issues, et il faut les deux : reprendre le réseau
+                        // du lieu quand il est là, ou rouvrir un groupe soi-même.
+                        // N'en proposer qu'une laissait sans porte de sortie qui
+                        // n'a pas de box en commun avec le pair restant.
+                        if (Medium.WIFI_STATION in cabinStatus.reachable) {
+                            Text(
+                                stringResource(
+                                    R.string.radar_group_fallback,
+                                    Medium.WIFI_STATION.short,
+                                ),
+                                style = A4LText.Caption,
+                                color = A4L.Cyan,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { onSelectMedium(Medium.WIFI_STATION) }
+                                    .padding(vertical = 2.dp),
+                            )
+                        }
+                        if (Medium.WIFI_DIRECT in cabinStatus.reachable) {
+                            Text(
+                                stringResource(R.string.radar_group_reopen),
+                                style = A4LText.Caption,
+                                color = A4L.Cyan,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { onSelectMedium(Medium.WIFI_DIRECT) }
+                                    .padding(vertical = 2.dp),
+                            )
+                        }
                     }
                     Text("✕", style = A4LText.Data, color = A4L.Amber.copy(alpha = 0.7f))
                 }

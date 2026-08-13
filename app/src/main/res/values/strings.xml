@@ -42,16 +42,21 @@
     <string name="radar_cabin_row_open">Cabine ouverte — toucher pour fermer et effacer</string>
     <string name="radar_cabin_row_closed">Parler à ceux qui sont ici — chiffré, sans relais</string>
 
-    <string name="radar_beacon_with_cell">Balise active — annonce l\'hexagone %1$s</string>
+    <!-- « (localisation) » et non « (GPS) » : la position vient du fournisseur
+         fusionné en PRIORITY_BALANCED_POWER_ACCURACY, qui évite exprès le
+         satellite quand le Wi-Fi et les antennes suffisent — donc presque
+         toujours en intérieur. C\'est aussi le mot de la permission Android. -->
+    <string name="radar_beacon_with_cell">Balise active (localisation) — annonce l\'hexagone %1$s</string>
     <string name="radar_beacon_presence_only">Balise active — présence seule, sans position</string>
     <string name="radar_beacon_needs_bluetooth">Balise de proximité — Bluetooth requis</string>
     <!-- L'hôte d'un groupe Wi-Fi Direct. Dit en entier : « propriétaire » ne
          veut rien dire pour qui n'a pas lu la spec Wi-Fi, alors que la
          conséquence, elle, se comprend. -->
+    <string name="radar_group_fallback">→ repasser en %1$s</string>
+    <string name="radar_group_reopen">→ ouvrir votre propre groupe Wi-Fi P2P</string>
     <string name="radar_group_closed">%1$s a fermé le groupe Wi-Fi Direct. La cabine continue, en plus lent — toucher pour effacer.</string>
     <string name="radar_group_host_self">Vous tenez le groupe Wi-Fi Direct — en sortant, il se referme et chacun perd sa voie rapide vers vous.</string>
     <string name="radar_group_host_peer">%1$s tient le groupe Wi-Fi Direct — s\'il sort, il se referme et votre voie rapide vers lui disparaît.</string>
-    <string name="radar_antipodes">Après 22 h, cette cabine écoute l\'hexagone aux antipodes.</string>
 
     <!-- ─── La cabine : ce qui se dit ici, entre gens à portée ────────── -->
     <!-- Pas un pluriel : « 1 ici » et « 2 ici » s'écrivent pareil dans les
@@ -93,6 +98,19 @@
     <string name="salon_post">déposer</string>
 
     <!-- ─── Les médiums de la cabine (chat/Medium.kt) ─────────────────── -->
+    <!-- Ce que chaque voie coûte ou apporte, dit dans la liste au moment du
+         choix : les trois n'ont pas du tout les mêmes conséquences. -->
+    <string name="medium_note_ble">le plus lent — pièces jointes bornées, vidéo refusée</string>
+    <string name="medium_note_station">rapide — passe par la box du lieu</string>
+    <string name="medium_note_direct_host">rapide — vous ouvrez le groupe, et vous le tenez</string>
+    <string name="medium_note_direct_join">rapide — vous entrez dans le groupe ouvert</string>
+    <string name="medium_note_unreachable">personne ne l\'offre pour l\'instant</string>
+
+    <string name="medium_leave_group_title">Refermer le groupe ?</string>
+    <string name="medium_leave_group_body">Vous tenez ce groupe Wi-Fi Direct : en passant en %1$s, il se referme. Chacun de ses membres perd sa voie rapide vers vous, et vos échanges avec eux repassent par le plus lent. Ce qu\'ils se disent entre eux n\'y passait pas, et continue.</string>
+    <string name="medium_leave_group_ok">Refermer</string>
+    <string name="medium_leave_group_cancel">Rester</string>
+
     <string name="medium_ble">en direct</string>
     <string name="medium_wifi_station">par le réseau du lieu</string>
     <string name="medium_wifi_direct">pair à pair</string>

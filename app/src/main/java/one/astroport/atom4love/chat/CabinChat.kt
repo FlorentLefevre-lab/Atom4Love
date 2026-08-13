@@ -322,6 +322,26 @@ class CabinChat(context: Context) {
          */
         val enabled: Set<Medium> = setOf(Medium.BLE),
         /**
+         * Tout ce qu'on **pourrait** emprunter : ce qui est déjà ouvert, plus
+         * ce que les pairs annoncent.
+         *
+         * [offered] n'en nomme qu'un — le barreau le plus bas encore à gravir,
+         * parce que la ligne du haut ne propose qu'un pas à la fois. Une liste
+         * qui laisse choisir, elle, doit savoir lesquels sont atteignables :
+         * calculée sur `offered`, elle donnait « hors d'atteinte » à un groupe
+         * dont l'invitation était pourtant en main.
+         */
+        val reachable: Set<Medium> = setOf(Medium.BLE),
+        /**
+         * Un pair nous a invités dans son groupe : choisir le Direct nous y
+         * ferait **entrer**, pas en ouvrir un.
+         *
+         * L'écran le déduisait de [groupHost], qui n'est posé qu'une fois
+         * dedans — donc avant d'entrer il annonçait « vous ouvrez le groupe »
+         * à quelqu'un qui allait le rejoindre.
+         */
+        val groupInvited: Boolean = false,
+        /**
          * Qui tient le groupe Wi-Fi Direct, quand il y en a un.
          *
          * Ça mérite d'être dit, parce que ce n'est pas un détail de topologie :
@@ -2340,6 +2360,57 @@ class CabinChat(context: Context) {
      * attend. (Le pair qui a déjà engagé le médium, lui, est suivi : voir
      * [followMedium].)
      */
+    /**
+     * Cesser d'emprunter un médium.
+     *
+     * **Le BLE ne s'éteint jamais** : c'est la seule porte d'entrée, celle qui
+     * découvre un inconnu et l'atteste. L'éteindre ne « forcerait » rien, ça
+     * fermerait la cabine.
+     *
+     * Quitter un groupe Wi-Fi Direct n'est pas anodin : si nous le tenons, le
+     * retirer le referme **pour tout le monde**. C'est à l'écran de le dire
+     * avant de le demander ; ici on exécute.
+     */
+    fun disable(medium: Medium) {
+        if (medium == Medium.BLE) return
+        scope.launch {
+            if (!enabledMedia.remove(medium)) return@launch
+            Log.i(TAG, "médium abandonné : ${medium.short}")
+            links.values.filter { it.medium == medium }.toList().forEach { link ->
+                removeLink(link.medium, link.kind, link.address)
+            }
+            if (medium == Medium.WIFI_DIRECT && inGroup) {
+                // Le verdict compte. Se déclarer sorti d'un groupe qu'Android
+                // tient encore condamne toute jointure suivante — elle échouera
+                // sur un `connect()` lancé alors qu'on possède toujours le sien,
+                // et rien ne dira pourquoi.
+                if (p2p.releaseAndWait()) {
+                    inGroup = false
+                    groupHost = null
+                    groupOffers.clear()
+                } else {
+                    Log.w(TAG, "groupe non retiré : le médium reste engagé")
+                    enabledMedia.add(medium)
+                    _status.update { it.copy(lastError = CabinError.P2pUnreachable) }
+                }
+            }
+            refreshLinks()
+        }
+    }
+
+    /**
+     * Forcer le médium porteur.
+     *
+     * Le routage prend toujours le plus haut rang **parmi les médiums
+     * acceptés** : choisir revient donc à ouvrir celui qu'on veut et à fermer
+     * ceux qui le dépasseraient. Le BLE reste dessous, toujours — on ne choisit
+     * pas la porte, on choisit par où passe le trafic.
+     */
+    fun select(medium: Medium) {
+        Medium.entries.filter { it.rank > medium.rank }.forEach(::disable)
+        if (medium != Medium.BLE) enable(medium)
+    }
+
     fun enable(medium: Medium) {
         scope.launch {
             if (!enabledMedia.add(medium)) return@launch
@@ -2783,6 +2854,19 @@ class CabinChat(context: Context) {
      * station** — c'est la seule chose qu'on sache d'eux. Une invitation déjà
      * reçue le justifie de toute façon : le pair a ouvert son groupe pour nous.
      */
+    /**
+     * Un groupe Wi-Fi Direct est-il seulement possible ? Deux conditions : la
+     * puce sait le faire, et quelqu'un d'attesté est là pour y entrer.
+     *
+     * C'est plus large que [directOffer], et c'est voulu : l'échelle ne
+     * *propose* pas un groupe quand une station porte déjà les deux noyaux —
+     * ce serait du travail pour rien. Mais quelqu'un qui **demande** le P2P a
+     * ses raisons (le lieu peut isoler ses clients, ou l'on veut sortir du
+     * réseau du lieu), et lui répondre « hors d'atteinte » serait faux.
+     */
+    private fun directPossible(): Boolean =
+        p2p.usable() && links.values.any { it.ready && it.peerNostrKey != null }
+
     private fun directOffer(): List<Medium> {
         // La permission ne se teste PAS ici : sans offre affichée, l'utilisateur
         // n'aurait aucun endroit où l'accorder. C'est l'écran qui la demande au
@@ -2814,7 +2898,8 @@ class CabinChat(context: Context) {
         // c'est la PLUS BASSE qu'on propose : l'ordre de l'échelle est BLE puis
         // station puis Direct — une station qui porte déjà les deux noyaux ne
         // demande rien à personne, là où un groupe P2P doit être formé exprès.
-        val offered = (offers.values.flatMap { it.keys } + directOffer())
+        val announced = offers.values.flatMap { it.keys } + directOffer()
+        val offered = announced
             .filter { it !in enabledMedia && (inUse == null || it.rank > inUse.rank) }
             .minByOrNull { it.rank }
         _status.update { status ->
@@ -2823,8 +2908,12 @@ class CabinChat(context: Context) {
                 unattestedLinks = ready.count { it.peerNostrKey == null },
                 medium = inUse,
                 enabled = enabledMedia.toSet(),
+                // Ce qu'on PEUT forcer, plus large que ce que l'échelle propose.
+                reachable = enabledMedia + announced + Medium.BLE +
+                    (if (directPossible()) setOf(Medium.WIFI_DIRECT) else emptySet()),
                 groupHost = groupHost,
                 groupClosedBy = groupClosedBy,
+                groupInvited = groupOffers.isNotEmpty(),
                 offered = offered,
             )
         }

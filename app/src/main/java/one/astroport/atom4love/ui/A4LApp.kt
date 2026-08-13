@@ -91,6 +91,9 @@ import one.astroport.atom4love.R
 import one.astroport.atom4love.ui.screens.SplashScreen
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.AlertDialog
 
 /** Les cinq destinations de la barre du bas. */
 enum class A4LTab(
@@ -261,6 +264,19 @@ private fun Station(
         }
     }
 
+    /**
+     * Forcer la voie porteuse. Même porte que [upgrade] pour la permission :
+     * ouvrir un groupe Wi-Fi Direct la demande, et l'écran est le seul endroit
+     * d'où l'on peut encore l'accorder.
+     */
+    val selectMedium: (Medium) -> Unit = { medium ->
+        if (medium == Medium.WIFI_DIRECT && !P2pGroup.permissionsGranted(context)) {
+            nearbyLauncher.launch(P2pGroup.RUNTIME_PERMISSIONS)
+        } else {
+            cabin.select(medium)
+        }
+    }
+
     fun updateBirth(b: BirthData) {
         birth = b
         scope.launch { store.save(b, forged) }
@@ -354,6 +370,7 @@ private fun Station(
                     cabin = cabin,
                     open = cabinOpen,
                     onUpgrade = upgrade,
+                    onSelect = selectMedium,
                 )
                 Box(Modifier.weight(1f)) {
                     AnimatedContent(
@@ -377,6 +394,7 @@ private fun Station(
                                 salon = salon,
                                 keys = keys,
                                 cabin = cabin,
+                                onSelectMedium = selectMedium,
                                 cabinOpen = cabinOpen,
                                 onOpenCabin = { cabinHost.open(keys) },
                                 onCloseCabin = closeCabin,
@@ -422,7 +440,12 @@ private fun Station(
  * décide.
  */
 @Composable
-private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Unit) {
+private fun CabinLine(
+    cabin: CabinChat,
+    open: Boolean,
+    onUpgrade: (Medium) -> Unit,
+    onSelect: (Medium) -> Unit,
+) {
     val status by cabin.status.collectAsState()
     val peers by cabin.peers.collectAsState()
     val medium = status.medium
@@ -458,6 +481,10 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
             style = A4LText.Data.copy(fontSize = 10.sp),
             color = if (open && medium != null) A4L.Mint else A4L.TextMuted,
         )
+        // Choisir soi-même par où ça passe, plutôt que d'attendre qu'on le
+        // propose. La liste ne s'ouvre que cabine ouverte : hors cabine il n'y
+        // a pas de trafic à router, et forcer une voie ne voudrait rien dire.
+        if (open) MediumPicker(status = status, onSelect = onSelect)
         if (open && peers.isNotEmpty()) {
             Spacer(Modifier.width(10.dp))
             Text(
@@ -479,6 +506,155 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
         }
         Spacer(Modifier.width(8.dp))
         AppearanceControls()
+    }
+}
+
+
+/**
+ * La liste des voies, à côté du mode actif — pour forcer celle qu'on veut.
+ *
+ * Elle n'annonce pas trois positions exclusives, parce que les médiums se
+ * cumulent : **le BT reste dessous quoi qu'on choisisse**, c'est la porte
+ * d'entrée et la seule qui atteste un inconnu. Choisir revient à dire par où
+ * doit passer le trafic — ce qui ferme les voies plus rapides, pas la porte.
+ *
+ * Une voie que personne n'offre reste dans la liste, éteinte : la voir absente
+ * n'apprend rien, la voir hors d'atteinte dit qu'elle existe et qu'il manque
+ * quelqu'un en face.
+ */
+@Composable
+private fun MediumPicker(status: CabinChat.Status, onSelect: (Medium) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    // Quitter un groupe qu'on tient le referme POUR TOUS. Ça ne se fait pas
+    // d'un doigt distrait — d'où la seule confirmation de cette liste, réservée
+    // au cas où le geste engage quelqu'un d'autre que soi.
+    var confirmLeaving by remember { mutableStateOf<Medium?>(null) }
+
+    confirmLeaving?.let { target ->
+        AlertDialog(
+            onDismissRequest = { confirmLeaving = null },
+            containerColor = A4L.Deep,
+            title = {
+                Text(
+                    stringResource(R.string.medium_leave_group_title),
+                    style = A4LText.H2,
+                    color = A4L.TextHigh,
+                )
+            },
+            text = {
+                Text(
+                    stringResource(R.string.medium_leave_group_body, target.short),
+                    style = A4LText.Body,
+                    color = A4L.TextBody,
+                )
+            },
+            confirmButton = {
+                Text(
+                    stringResource(R.string.medium_leave_group_ok),
+                    style = A4LText.Caption,
+                    color = A4L.Red,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            confirmLeaving = null
+                            onSelect(target)
+                        }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            },
+            dismissButton = {
+                Text(
+                    stringResource(R.string.medium_leave_group_cancel),
+                    style = A4LText.Caption,
+                    color = A4L.TextMuted,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { confirmLeaving = null }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            },
+        )
+    }
+
+    Box {
+        Text(
+            if (open) "▴" else "▾",
+            style = A4LText.Data.copy(fontSize = 10.sp),
+            color = A4L.Cyan,
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .clickable { open = true }
+                .padding(horizontal = 6.dp, vertical = 2.dp),
+        )
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            containerColor = A4L.Deep,
+        ) {
+            Medium.entries.forEach { medium ->
+                val active = status.medium == medium
+                // Le moteur dit lesquels sont atteignables — pas `offered`,
+                // qui ne nomme que le prochain pas.
+                val reachable = medium in status.reachable
+                // Ce que ce choix coûte ou apporte, sous le nom. Une liste qui
+                // ne dit que « BT / Wi-Fi AP / Wi-Fi P2P » laisse deviner, et
+                // ces trois-là n'ont pas du tout les mêmes conséquences.
+                val consequence = when {
+                    !reachable -> R.string.medium_note_unreachable
+                    medium == Medium.BLE -> R.string.medium_note_ble
+                    medium == Medium.WIFI_STATION -> R.string.medium_note_station
+                    // hôte ou invité, ce n'est pas le même engagement — et ça se
+                    // sait AVANT d'entrer, par l'invitation reçue
+                    status.groupHost != null || status.groupInvited ->
+                        R.string.medium_note_direct_join
+                    else -> R.string.medium_note_direct_host
+                }
+                DropdownMenuItem(
+                    enabled = reachable && !active,
+                    onClick = {
+                        open = false
+                        // On ne quitte pas son propre groupe sans le savoir.
+                        if (status.groupHost is CabinChat.GroupHost.Self &&
+                            medium.rank < Medium.WIFI_DIRECT.rank
+                        ) {
+                            confirmLeaving = medium
+                        } else {
+                            onSelect(medium)
+                        }
+                    },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                medium.short,
+                                style = A4LText.Data.copy(fontSize = 11.sp),
+                                color = when {
+                                    active -> A4L.Mint
+                                    reachable -> A4L.TextBody
+                                    else -> A4L.TextGhost
+                                },
+                            )
+                            Text(
+                                stringResource(consequence),
+                                style = A4LText.Caption.copy(fontSize = 10.sp),
+                                color = if (reachable) A4L.TextMuted else A4L.TextGhost,
+                            )
+                        }
+                    },
+                    trailingIcon = {
+                        Text(
+                            when {
+                                active -> "●"
+                                reachable -> ""
+                                // hors d'atteinte : personne ne l'offre
+                                else -> "—"
+                            },
+                            style = A4LText.Data.copy(fontSize = 10.sp),
+                            color = if (active) A4L.Mint else A4L.TextGhost,
+                        )
+                    },
+                )
+            }
+        }
     }
 }
 
