@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +51,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -64,7 +67,9 @@ import androidx.core.app.ActivityCompat
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -75,6 +80,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.R
@@ -298,12 +304,17 @@ fun RadarScreen(
     val portal = fix?.let { GoldbergPortal.nearest(it.lat, it.lon) }
     val heading = rememberHeadingDegrees()
 
+    // Le défilement de l'écran est tenu ici, et non posé au vol : ouvrir la
+    // cabine doit amener la conversation sous les yeux. Sur un écran de 677 dp
+    // elle naît sous la ligne de flottaison, derrière le disque du radar.
+    val pageScroll = rememberScrollState()
+
     Column(
         modifier
             .fillMaxSize()
             .screenBackground(A4L.GlowRadar, A4L.Deep, centerY = 0.34f, radiusFactor = 1.2f)
             .statusBarsPadding()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(pageScroll),
     ) {
 
         // ── Adresse de la tuile + cap ─────────────────────────────────────
@@ -729,7 +740,35 @@ fun RadarScreen(
                 )
             }
             if (cabinOpen) {
-                cabin?.let { CabinDirectPanel(chat = it) }
+                cabin?.let { chat ->
+                    // Où la conversation se tient DANS LA FENÊTRE — sa position
+                    // dans sa colonne ne dirait rien du défilement, la colonne
+                    // n'étant pas celle qui défile.
+                    var topInWindow by remember { mutableIntStateOf(0) }
+                    Box(
+                        Modifier.onGloballyPositioned { coords ->
+                            topInWindow = coords.positionInRoot().y.toInt()
+                        },
+                    ) {
+                        CabinDirectPanel(chat = chat)
+                    }
+                    // Ce qu'on laisse au-dessus : de quoi garder la rangée
+                    // « Cabine ouverte » à l'écran, pour savoir d'où l'on vient.
+                    val margin = with(LocalDensity.current) { 132.dp.roundToPx() }
+                    // Une seule fois par ouverture — ensuite la page appartient
+                    // au doigt, et la position mesurée change à chaque
+                    // défilement : s'y accrocher ferait boucler l'écran sur
+                    // lui-même. On attend que la page connaisse SA PROPRE
+                    // hauteur : au premier placement `maxValue` vaut encore
+                    // zéro, et le défilement se bornait à rien du tout.
+                    LaunchedEffect(Unit) {
+                        val (top, max) = snapshotFlow { topInWindow to pageScroll.maxValue }
+                            .first { (top, max) -> top > 0 && max > 0 }
+                        pageScroll.animateScrollTo(
+                            (pageScroll.value + top - margin).coerceIn(0, max),
+                        )
+                    }
+                }
             }
             Row(
                 Modifier
@@ -1060,7 +1099,10 @@ private fun CabinStat(
  * contrepartie étanche du salon d'hexagone.
  *
  * Hauteur bornée : l'écran est déjà dans un `verticalScroll`, et une liste
- * paresseuse ne se mesure pas dans une hauteur infinie.
+ * paresseuse ne se mesure pas dans une hauteur infinie. Bornée **à l'écran**
+ * et non à un nombre fixe : 400 dp tenaient sur les 1000 dp de la tablette et
+ * poussaient le champ de saisie sous la barre de navigation du Pixel, qui n'en
+ * a que 677 — on y tapait à l'aveugle, après avoir fait défiler toute la page.
  */
 @Composable
 private fun CabinDirectPanel(chat: CabinChat) {
@@ -1255,7 +1297,14 @@ private fun CabinDirectPanel(chat: CabinChat) {
                     ).show()
                 }
             },
-            modifier = Modifier.height(400.dp),
+            // 42 % de la hauteur : de quoi lire plusieurs bulles sans que le
+            // champ de saisie quitte l'écran. Le plancher garde une
+            // conversation lisible sur un petit écran, le plafond rend à la
+            // tablette exactement ce qu'elle avait.
+            modifier = Modifier.height(
+                (LocalConfiguration.current.screenHeightDp * 0.42f).dp
+                    .coerceIn(240.dp, 400.dp),
+            ),
         )
     }
 }
