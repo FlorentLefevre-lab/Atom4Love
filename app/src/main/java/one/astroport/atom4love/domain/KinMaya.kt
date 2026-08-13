@@ -1,0 +1,76 @@
+package one.astroport.atom4love.domain
+
+/**
+ * Le KIN du Tzolkin — portage de `calc_kin()` de `tools/phi2x.py`.
+ *
+ * L'Aide dit encore que le KIN « ne se calcule pas sur cet appareil ». C'était
+ * vrai tant que la table vivait chez Fred : elle est publique, et un sceau qui
+ * n'existe que pour les titulaires d'un MULTIPASS ne peut pas entrer dans une
+ * annonce de proximité.
+ *
+ * Le calcul ne demande **que la date** : ni heure, ni lieu. Il est donc
+ * disponible dès que la fiche porte sa date, avant même la forge.
+ */
+object KinMaya {
+
+    /**
+     * Décalage cumulé de chaque mois. Les trois derniers repartent bas parce
+     * que le compte reboucle sur 260 en cours d'année.
+     *
+     * ⚠ Le 29 février n'y est **pas** compté : le calendrier Dreamspell
+     * l'appelle « Jour hors du Temps » et le laisse dehors. Ce n'est pas un
+     * oubli, c'est la cosmologie d'Argüelles — ne jamais le « corriger ».
+     */
+    private val MONTH_OFFSET = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 13, 44, 74)
+
+    /** Le cycle de 52 ans, indexé par `année % 52`. */
+    private val YEAR_SUM = mapOf(
+        30 to 2, 35 to 7, 40 to 12, 45 to 17, 50 to 22, 3 to 27, 8 to 32, 13 to 37,
+        18 to 42, 23 to 47, 28 to 52, 32 to 57, 38 to 62, 42 to 67, 48 to 72, 1 to 76,
+        6 to 82, 11 to 87, 16 to 92, 21 to 97, 26 to 102, 31 to 107, 36 to 112, 41 to 117,
+        46 to 122, 51 to 127, 4 to 132, 9 to 137, 14 to 142, 19 to 147, 24 to 152,
+        29 to 157, 34 to 162, 39 to 167, 44 to 172, 49 to 177, 2 to 182, 7 to 187,
+        12 to 192, 17 to 197, 22 to 202, 27 to 207, 37 to 217, 47 to 227, 0 to 232,
+        5 to 237, 10 to 242, 15 to 247, 20 to 252, 25 to 257,
+    )
+
+    /** Valeur diffusée quand le sceau n'est pas connu — celle de cabine-33. */
+    const val GLYPH_UNKNOWN = 99
+
+    /**
+     * Un KIN et ses trois index, tous **comptés à partir de zéro** comme chez
+     * Fred : [glyph] 0..19, [tone] 0..12, [color] 0..4. `Resonance.kt` compte
+     * ses sceaux et ses tons à partir de 1 — c'est le même nombre décalé d'un.
+     */
+    data class Kin(val kin: Int, val glyph: Int, val tone: Int, val color: Int)
+
+    /**
+     * null si la date n'a pas de sens.
+     *
+     * ⚠ **Anomalie reproduite volontairement** : la station retranche 260 une
+     * seule fois au lieu de prendre un modulo, si bien que quelques dates de
+     * fin septembre rendent un KIN **au-delà de 260** — 263 pour le 28/09/1944.
+     * `Kin_Maya.gd` de cabine-33, lui, prend le modulo et rend 3. Nous suivons
+     * la station, parce que c'est son `kin_num` qui reviendra dans le MULTIPASS
+     * et qu'un désaccord se verrait ; le test `KinMayaTest` épingle la valeur
+     * pour que personne ne la « répare » sans le décider. À porter à Fred.
+     */
+    fun of(year: Int, month: Int, day: Int): Kin? {
+        if (month !in 1..12 || day !in 1..31) return null
+        var kin = day + MONTH_OFFSET[month - 1] + (YEAR_SUM[Math.floorMod(year, 52)] ?: 0)
+        if (kin > 260) kin -= 260
+        if (kin <= 0) kin += 260
+        return Kin(
+            kin = kin,
+            glyph = (kin - 1) % 20,
+            tone = (kin - 1) % 13,
+            color = ((kin - 1) / 13) % 5,
+        )
+    }
+
+    /** Le KIN d'une fiche d'incarnation, ou null tant qu'elle n'a pas sa date. */
+    fun of(b: BirthData): Kin? {
+        if (!b.dateComplete) return null
+        return of(b.year!!, b.month!!, b.day!!)
+    }
+}
