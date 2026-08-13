@@ -347,6 +347,12 @@ fun RadarScreen(
             }
         }
 
+        // Le flux de l'hexagone ne passe QUE par le relais du lieu, jamais par
+        // un relais public : sans lui, il n'y a pas d'abonnement, quoi qu'ait
+        // accompli le rituel. Calculé ici et non plus bas, parce que l'entête
+        // juste en dessous l'annonce.
+        val salonActive = relay?.local == true && relay.online
+
         // ── Titre ─────────────────────────────────────────────────────────
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp)) {
             Text(
@@ -370,8 +376,14 @@ fun RadarScreen(
                         null ->
                             stringResource(R.string.radar_hex_unknown_searching)
                     }
-                    unlocked ->
+                    // Le rituel accompli ne suffit pas : sans relais du lieu,
+                    // rien n'est abonné. L'entête l'annonçait quand même, et le
+                    // compteur « dans l'hexagone » disait « — » deux lignes plus
+                    // bas — deux affirmations contraires sur le même écran.
+                    unlocked && salonActive ->
                         stringResource(R.string.radar_hex_subscribed, cellHex(fix!!.cell))
+                    unlocked ->
+                        stringResource(R.string.radar_hex_no_local_relay, cellHex(fix!!.cell))
                     else ->
                         stringResource(
                             R.string.radar_hex_distance,
@@ -417,7 +429,6 @@ fun RadarScreen(
 
         // ── Compteurs de la cabine ────────────────────────────────────────
         // Le salon de cabine ne vit que sur le relais local d'une station.
-        val salonActive = relay?.local == true && relay.online
         val pensees = salon?.pensees?.collectAsStateWithLifecycle()?.value.orEmpty()
         var salonOpen by remember { mutableStateOf(false) }
 

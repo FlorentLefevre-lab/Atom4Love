@@ -25,6 +25,7 @@
     <string name="radar_hex_unknown_permission">Hexagone inconnu — la localisation résout votre cellule. Elle n\'allume aucune balise.</string>
     <string name="radar_hex_unknown_searching">Hexagone inconnu — recherche de position en cours…</string>
     <string name="radar_hex_subscribed">Hexagone %1$s — abonnement au flux de la cabine actif.</string>
+    <string name="radar_hex_no_local_relay">Hexagone %1$s — le flux de l\'hexagone attend le relais du lieu ; sans lui, rien ne s\'y échange.</string>
     <string name="radar_hex_distance">Hexagone %1$s — vous êtes à %2$.0f m du centre géométrique.</string>
 
     <string name="radar_open_app_settings">Ouvrir les réglages de l\'app</string>

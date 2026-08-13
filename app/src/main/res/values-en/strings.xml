@@ -13,6 +13,7 @@
     <string name="radar_hex_unknown_permission">Hexagon unknown — location resolves your cell. It turns on no beacon.</string>
     <string name="radar_hex_unknown_searching">Hexagon unknown — looking for a position…</string>
     <string name="radar_hex_subscribed">Hexagon %1$s — subscribed to the booth feed.</string>
+    <string name="radar_hex_no_local_relay">Hexagon %1$s — the hexagon feed waits for the venue relay; without it, nothing is exchanged there.</string>
     <string name="radar_hex_distance">Hexagon %1$s — you are %2$.0f m from the geometric centre.</string>
 
     <string name="radar_open_app_settings">Open the app settings</string>

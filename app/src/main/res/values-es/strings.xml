@@ -14,6 +14,7 @@
     <string name="radar_hex_unknown_permission">Hexágono desconocido — la ubicación resuelve tu celda. No enciende ninguna baliza.</string>
     <string name="radar_hex_unknown_searching">Hexágono desconocido — buscando la posición…</string>
     <string name="radar_hex_subscribed">Hexágono %1$s — suscripción al flujo de la cabina activa.</string>
+    <string name="radar_hex_no_local_relay">Hexágono %1$s — el flujo del hexágono espera el relé del lugar; sin él, nada se intercambia ahí.</string>
     <string name="radar_hex_distance">Hexágono %1$s — estás a %2$.0f m del centro geométrico.</string>
 
     <string name="radar_open_app_settings">Abrir los ajustes de la app</string>
