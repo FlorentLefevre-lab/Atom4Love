@@ -15,6 +15,10 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
+    <!-- Rejoindre un groupe Wi-Fi Direct par requête réseau (WifiNetworkSpecifier) :
+         c'est ConnectivityManager qui porte la connexion, pas WifiP2pManager. -->
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+
     <!-- Exigée par le scan Wi-Fi du POC, et par proximity/CellLocator pour calculer
          la cellule H3 — sur l'appareil uniquement : la position ne sort jamais du
          device, seule l'adresse 4D (D2) est diffusée (« pas de traçage de position »). -->

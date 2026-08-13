@@ -5,6 +5,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
+import android.net.wifi.WifiNetworkSpecifier
+import android.net.NetworkRequest
+import android.net.NetworkCapabilities
 import android.net.Network
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pGroup
@@ -52,6 +55,13 @@ class P2pGroup(context: Context) {
 
         /** Formation d'un groupe : quelques secondes en pratique, jamais instantané. */
         private const val FORM_TIMEOUT_MS = 20_000L
+
+        /**
+         * Ce qu'on laisse pour entrer dans un groupe — **le temps d'un humain**,
+         * pas celui d'une radio : Android demande son accord avant de connecter,
+         * et lire ce dialogue prend plus de vingt secondes.
+         */
+        private const val JOIN_TIMEOUT_MS = 90_000L
         private const val POLL_MS = 400L
 
         /**
@@ -117,6 +127,21 @@ class P2pGroup(context: Context) {
     private val appContext = context.applicationContext
     private val manager = appContext.getSystemService(WifiP2pManager::class.java)
     private var channel: WifiP2pManager.Channel? = null
+
+    /**
+     * La requête réseau qui tient notre place dans le groupe d'un autre.
+     *
+     * Rejoindre ne passe plus par `WifiP2pManager.connect()` : mesuré au banc
+     * le 13/08, il est accepté puis échoue en silence sur ce téléphone-ci
+     * (Android 17), dix secondes plus tard, en `FORMATION_FAILED`. Le même
+     * groupe rejoint par une requête réseau ordinaire marche — l'appareil y
+     * reçoit son adresse en 192.168.49.x du propriétaire.
+     *
+     * La connexion vit tant que la requête vit : la rendre, c'est sortir.
+     */
+    private var joinedCallback: ConnectivityManager.NetworkCallback? = null
+    private var joinedNetwork: Network? = null
+    private var joinedName: String? = null
 
     /**
      * Le nom du groupe engagé, écrit sur le disque — parce qu'il doit survivre
@@ -281,63 +306,94 @@ class P2pGroup(context: Context) {
      * découverte coûterait des secondes d'antenne pour retrouver quelqu'un dont
      * on sait déjà tout.
      */
-    @SuppressLint("MissingPermission")
     suspend fun join(credentials: Credentials): Boolean {
-        val manager = this.manager ?: return false
-        val channel = channel() ?: return false
         if (!JOIN_SUPPORTED) {
             Log.w(TAG, "Wi-Fi Direct : rejoindre par identifiants demande Android 10")
             return false
         }
-        if (!permissionsGranted(appContext)) {
-            Log.w(TAG, "Wi-Fi Direct : permission manquante")
-            return false
+        val connectivity = appContext.getSystemService(ConnectivityManager::class.java)
+            ?: return false
+        // Déjà dedans : la requête tient la connexion tant qu'on la garde, il
+        // n'y a rien à refaire — et en relancer une seconde couperait la
+        // première.
+        if (joinedName == credentials.networkName && joinedNetwork != null) {
+            Log.i(TAG, "déjà dans le groupe ${credentials.networkName}")
+            return true
         }
-        // Déjà dedans ? `connect` refuserait (raison 0) alors qu'il n'y a rien à
-        // faire. Un groupe survit à l'arrêt de l'app qui l'a formé — vu au banc
-        // le 2026-08-11 : après un redémarrage, l'appareil était toujours
-        // membre et n'arrivait plus à « rejoindre » ce qu'il n'avait pas quitté.
-        existingGroup(manager, channel)?.let { group ->
-            if (!group.isGroupOwner && group.networkName == credentials.networkName) {
-                Log.i(TAG, "déjà dans le groupe ${credentials.networkName}")
-                engage(group.networkName)
-                return true
-            }
-        }
-        val config = runCatching {
-            WifiP2pConfig.Builder()
-                .setNetworkName(credentials.networkName)
-                .setPassphrase(credentials.passphrase)
+        leaveJoined()
+
+        val specifier = runCatching {
+            WifiNetworkSpecifier.Builder()
+                .setSsid(credentials.networkName)
+                .setWpa2Passphrase(credentials.passphrase)
                 .build()
         }.getOrElse {
             Log.w(TAG, "identifiants de groupe refusés — $it")
             return false
         }
-        val asked = runCatching {
+        val request = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+            // un groupe ne mène nulle part : réclamer Internet ferait attendre
+            // une validation qui n'arrivera jamais
+            .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .setNetworkSpecifier(specifier)
+            .build()
+
+        // Le délai n'est PAS confié à `requestNetwork` : le sien court pendant
+        // qu'Android demande son accord à la personne, et vingt secondes se
+        // passent à lire le dialogue (mesuré au banc le 13/08, la requête est
+        // relâchée « (timeout) » à la seconde près pendant que le doigt
+        // approche). Il est donc porté ici, et taillé pour un humain.
+        return withTimeoutOrNull(JOIN_TIMEOUT_MS) {
             suspendCancellableCoroutine { cont ->
-                manager.connect(channel, config, object : WifiP2pManager.ActionListener {
-                    override fun onSuccess() = cont.resume(true)
-                    override fun onFailure(reason: Int) {
-                        Log.w(TAG, "connexion au groupe refusée (raison $reason)")
-                        cont.resume(false)
-                    }
-                })
+            val callback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    joinedNetwork = network
+                    joinedName = credentials.networkName
+                    Log.i(TAG, "groupe ${credentials.networkName} rejoint")
+                    if (cont.isActive) cont.resume(true)
+                }
+
+                override fun onLost(network: Network) {
+                    // l'hôte a refermé, ou on s'est éloigné : la connexion
+                    // n'existe plus, mais la requête vit encore et retentera
+                    Log.i(TAG, "groupe ${credentials.networkName} perdu")
+                    joinedNetwork = null
+                }
+
+                override fun onUnavailable() {
+                    Log.w(TAG, "groupe ${credentials.networkName} non rejoint")
+                    if (cont.isActive) cont.resume(false)
+                }
             }
-        }.getOrDefault(false)
-        if (!asked) return false
-        val joined = withTimeoutOrNull(FORM_TIMEOUT_MS) {
-            while (true) {
-                val info = connectionInfo(manager, channel)
-                if (info != null && info.groupFormed) return@withTimeoutOrNull true
-                delay(POLL_MS)
+            joinedCallback = callback
+            runCatching {
+                connectivity.requestNetwork(request, callback)
+            }.onFailure {
+                joinedCallback = null
+                Log.w(TAG, "requête de groupe refusée — $it")
+                if (cont.isActive) cont.resume(false)
             }
-            @Suppress("UNREACHABLE_CODE") false
-        } ?: false
-        Log.i(TAG, if (joined) "groupe ${credentials.networkName} rejoint" else "groupe non formé")
-        // Rejoindre engage autant qu'ouvrir : un membre reste membre après la
-        // mort de l'app, et c'est `removeGroup` qui l'en fait sortir.
-        if (joined) engage(credentials.networkName)
-        return joined
+            cont.invokeOnCancellation { leaveJoined() }
+            }
+        } ?: run {
+            // personne n'a répondu au dialogue, ou le groupe n'a pas répondu
+            Log.w(TAG, "groupe ${credentials.networkName} : délai dépassé")
+            leaveJoined()
+            false
+        }
+    }
+
+    /** Rend la requête réseau : la connexion au groupe s'arrête avec elle. */
+    private fun leaveJoined() {
+        val callback = joinedCallback ?: return
+        joinedCallback = null
+        joinedNetwork = null
+        joinedName = null
+        runCatching {
+            appContext.getSystemService(ConnectivityManager::class.java)
+                ?.unregisterNetworkCallback(callback)
+        }
     }
 
     /**
@@ -348,6 +404,9 @@ class P2pGroup(context: Context) {
      */
     @Suppress("DEPRECATION")
     fun network(): Network? {
+        // Invité : le réseau que la requête nous a rendu, à lier aux sockets.
+        joinedNetwork?.let { return it }
+        // Hôte : c'est notre propre interface p2p, qu'aucune requête ne porte.
         val connectivity = appContext.getSystemService(ConnectivityManager::class.java) ?: return null
         return connectivity.allNetworks.firstOrNull { network ->
             connectivity.getLinkProperties(network)?.interfaceName?.startsWith("p2p") == true
@@ -366,6 +425,8 @@ class P2pGroup(context: Context) {
      */
     @SuppressLint("MissingPermission")
     fun release() {
+        // Invité : rendre la requête suffit et se fait tout de suite.
+        leaveJoined()
         val manager = this.manager ?: return
         val channel = this.channel ?: return
         this.channel = null
