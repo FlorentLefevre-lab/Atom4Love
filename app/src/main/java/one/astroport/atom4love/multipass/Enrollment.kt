@@ -159,7 +159,11 @@ class Enrollment(
                 birthDatetime = birthDatetime(birth),
                 birthLat = coord(birth.lat),
                 birthLon = coord(birth.lon),
-                birthWeight = String.format(Locale.US, "%.1f", birth.weightKg!!),
+                // Heure et poids ne sont plus demandés à la saisie : la fiche
+                // rend alors les valeurs par défaut de la station (midi, 3,5 kg),
+                // celles-là mêmes qu'`atom4love_publish.py` applique à un
+                // argument vide. Les deux côtés dérivent la même clé LOVE.
+                birthWeight = String.format(Locale.US, "%.1f", birth.saltWeightKg),
                 polarity = birth.wave!!.sex.toString(),
                 birthPlace = birth.placeName.ifBlank { null },
                 // conception : rien n'est envoyé. La station applique sa propre
@@ -193,7 +197,7 @@ class Enrollment(
     /** « AAAA-MM-JJTHH:MM » — l'heure d'horloge du lieu de naissance. */
     private fun birthDatetime(b: BirthData): String = String.format(
         Locale.US, "%04d-%02d-%02dT%02d:%02d",
-        b.year!!, b.month!!, b.day!!, b.hour!!, b.minute!!,
+        b.year!!, b.month!!, b.day!!, b.saltHour, b.saltMinute,
     )
 
     /** Coordonnée en notation US ; « 0.00 » quand elle manque. */

@@ -208,7 +208,7 @@
 
     <string name="mp_rederive_title">Volver a derivar tu clave LOVE</string>
     <string name="mp_obtain_title">Obtener tu clave LOVE</string>
-    <string name="mp_rederive_body">La estación recalcula la clave a partir de los cinco datos de tu núcleo actual. Hazlo si has vuelto a forjar tu núcleo con otros datos — si no, devolverá exactamente la misma clave, lo que no cuesta nada. Tu cuenta, tus monederos y tu código PASS no se mueven.</string>
+    <string name="mp_rederive_body">La estación recalcula la clave a partir de los datos de nacimiento de tu núcleo actual. Hazlo si has vuelto a forjar tu núcleo con otros datos — si no, devolverá exactamente la misma clave, lo que no cuesta nada. Tu cuenta, tus monederos y tu código PASS no se mueven.</string>
 
     <string name="mp_no_account_title">Atom4Love funciona sin cuenta</string>
     <string name="mp_no_account_body">Tu núcleo forjado basta para el radar, la cabina y todo lo que ocurre al alcance de la antena. Nada te obliga a abrir una cuenta, ni ahora ni nunca.</string>
@@ -243,24 +243,24 @@
     <string name="help_kin_label">El KIN</string>
     <string name="help_kin_body">Un tono, del 1 al 13, cruzado con un sello, del 1 al 20: su KIN es una de las 260 casillas del Tzolkin. El sello da la vuelta — del vigésimo se regresa al primero —, de modo que dos KIN lejanos por el número pueden ser vecinos por el sello. No se calcula en este aparato: la estación lo devuelve con su MULTIPASS.</string>
     <string name="help_waves_label">La onda Φ, la onda Octava · ωbio</string>
-    <string name="help_waves_body">Dos polaridades, y nada más: Φ u Octava. Es todo lo que la ficha pide por ese lado, y entra tal cual en su clave. Junto al peso de nacimiento da la frecuencia de su onda biológica — el ωbio que la interfaz web de ATOM4LOVE muestra en hercios.</string>
+    <string name="help_waves_body">Dos polaridades, y nada más: Φ u Octava. Es todo lo que la ficha pide por ese lado, y entra tal cual en su clave. Es ella la que da la frecuencia de su onda biológica — el ωbio que la interfaz web de ATOM4LOVE muestra en hercios.</string>
 
     <string name="help_vibration_label">Todo es vibración</string>
     <string name="help_vibration_body">ATOM4LOVE no es astrología. En el momento exacto de tu nacimiento, la Tierra ocupaba una posición precisa en el espacio-tiempo. Llevas su huella geométrica — y se calcula, al minuto y al grado.</string>
     <string name="help_imprint_label">Tu huella · el acorde fundamental</string>
-    <string name="help_imprint_body">Imagina tu cuerpo como un instrumento. Tu lugar y tu hora de nacimiento determinan la nota que tocas permanentemente: tu fase personal. Tu peso y tu polaridad le dan la frecuencia — la onda biológica.</string>
+    <string name="help_imprint_body">Imagina tu cuerpo como un instrumento. Tu lugar y tu fecha de nacimiento determinan la nota que tocas permanentemente: tu fase personal. Tu polaridad le da la frecuencia — la onda biológica.</string>
     <string name="help_resonance_label">La resonancia · cuando dos ondas se cruzan</string>
     <string name="help_resonance_body">Encontrar a alguien es cruzar dos fases. Si encajan, es la supercoherencia: uno se entiende sin hablar. Si chocan, es la fricción creadora: estáis hechos para inventar juntos. Ninguna de las dos es una puntuación, y ninguna es mejor que la otra.</string>
     <string name="help_singularity_label">La singularidad · el espíritu y la materia</string>
     <string name="help_singularity_body">Tu concepción es el Espíritu, tu nacimiento la Materia. Al combinarlos, la estación calcula tu arquetipo — la manera en que transformas la energía a tu alrededor. No necesitas conocer esa fecha: se deduce de tu nacimiento.</string>
     <string name="help_temp_key_label">Tu clave temporal</string>
-    <string name="help_temp_key_body">En el primer arranque, la estación se forja una clave propia, derivada de tus cinco datos. Basta para todo lo que ocurre al alcance de la antena: el radar, la cabina, los enlaces de proximidad. Es temporal — algún día una estación Astroport.ONE derivará tu verdadera clave LOVE.</string>
+    <string name="help_temp_key_body">En el primer arranque, la estación se forja una clave propia, derivada de tus datos de nacimiento. Basta para todo lo que ocurre al alcance de la antena: el radar, la cabina, los enlaces de proximidad. Es temporal — algún día una estación Astroport.ONE derivará tu verdadera clave LOVE.</string>
     <string name="help_multipass_label">El MULTIPASS</string>
     <string name="help_multipass_body">Es tu identidad descentralizada en la red UPlanet: una clave NOSTR publicada, un monedero Ğ1 / Ẑen, un espacio de almacenamiento y tu clave LOVE. Se abre desde el final de la pestaña Núcleo, con una dirección de correo. UPlanet ORIGIN, donde se llega, es un cajón de arena: allí el Ẑen vale 0,1 Ğ1, y una cuenta dejada a cero sin movimiento se borra a los siete días.</string>
     <string name="help_forge_label">Forjar tu núcleo</string>
     <string name="help_forge_body">Rellena la ficha de encarnación: la línea «Por rellenar» te dice lo que falta. Para el lugar, escribe tres letras y elige tu municipio en la lista, o toca 📍 para usar tu posición. Antes de forjar, un resumen te pide una última relectura: tras confirmar, ya nada se puede modificar.</string>
     <string name="help_recover_label">Recuperar tu clave</string>
-    <string name="help_recover_body">No hay ninguna frase de recuperación que anotar: los tuyos ya la conocen. Quienes saben dónde y cuándo naciste pueden repetirte tus cinco datos — y la misma clave renacerá, en cualquier estación. Tu lugar de nacimiento cuenta con 1 km de precisión: anótalo con cuidado, es lo que reabre tu clave LOVE si pierdes este aparato. La cuenta en sí, en cambio, se recupera con el código PASS recibido por correo.</string>
+    <string name="help_recover_body">No hay ninguna frase de recuperación que anotar: los tuyos ya la conocen. Quienes saben dónde y cuándo naciste pueden repetirte tus datos de nacimiento — y la misma clave renacerá, en cualquier estación. Tu lugar de nacimiento cuenta con 1 km de precisión: anótalo con cuidado, es lo que reabre tu clave LOVE si pierdes este aparato. La cuenta en sí, en cambio, se recupera con el código PASS recibido por correo.</string>
     <string name="help_redo_label">Equivocarse, empezar de nuevo</string>
     <string name="help_redo_body">¿Un dato erróneo? En la pestaña Núcleo, «Disolver el núcleo» borra la ficha y la clave de esta estación (dos confirmaciones). Nada sale a la red: vuelve a escribir los datos correctos y forja de nuevo.</string>
     <string name="help_station_label">La estación</string>
@@ -273,16 +273,16 @@
     <string name="faq_network_body">Para la cabina no: habla por Bluetooth, o por una red Wi-Fi que ella misma crea entre los dos aparatos. Nada pasa por un servidor. El resto de la estación — los relés NOSTR, el MULTIPASS — sí necesita la red, y se ve en el «relay · x / y» de arriba.</string>
     <string name="faq_cabin_label">Lo que se dice en la cabina, ¿adónde va?</string>
     <string name="faq_cabin_body">A ningún otro sitio. El contenido va cifrado de extremo a extremo y no cruza ningún relé. Al cerrar la cabina, la conversación y los archivos recibidos se borran del aparato — es lo que promete «tocar para cerrar y borrar», y lo cumple.</string>
-    <string name="faq_weight_label">¿Por qué pide mi peso la estación?</string>
-    <string name="faq_weight_body">No sirve para ninguna medida de salud ni se compara con nada. Junto con la polaridad, da la frecuencia de su onda biológica: es lo único que la estación saca de él.</string>
+    <string name="faq_weight_label">¿Por qué ya no se pide mi peso al nacer?</string>
+    <string name="faq_weight_body">Entraba en la clave, junto con la polaridad, para dar la frecuencia de su onda biológica. Muy pocos lo conocen: la estación retiene 3,5 kg para todo el mundo — exactamente lo que hace Astroport.ONE cuando ese campo llega vacío.</string>
     <string name="faq_nobody_label">El Radar no muestra a nadie.</string>
     <string name="faq_nobody_body">Hace falta el Bluetooth encendido en ambos lados, y que la otra persona haya abierto su cabina: solo se ven los núcleos cuya cabina está abierta. Mientras nadie haga ese gesto, nada se anuncia — es deliberado.</string>
     <string name="faq_change_label">¿Puedo corregir mis datos tras la forja?</string>
-    <string name="faq_change_body">No directamente: tras confirmar, la ficha queda sellada. En la pestaña Núcleo, «Disolver el núcleo» borra la ficha y la clave de esta estación, y se vuelve a forjar con los datos correctos. Su clave depende de esos cinco datos: la menor corrección da otra distinta.</string>
+    <string name="faq_change_body">No directamente: tras confirmar, la ficha queda sellada. En la pestaña Núcleo, «Disolver el núcleo» borra la ficha y la clave de esta estación, y se vuelve a forjar con los datos correctos. Su clave depende de esos datos: la menor corrección da otra distinta.</string>
 
     <!-- ─── El dominio ────────────────────────────────────────────────── -->
-    <string name="wave_phi">Onda Φ</string>
-    <string name="wave_octave">Onda Octava</string>
+    <string name="wave_phi">Onda (Hombre)</string>
+    <string name="wave_octave">Octava (Mujer)</string>
     <string name="wave_sex">sexo %1$d</string>
     <string name="date_problem_future">esa fecha está en el futuro</string>
     <string name="date_problem_minor" tools:ignore="PluralsCandidate">Atom4Love se dirige a personas mayores de edad — %1$d años cumplidos</string>
@@ -294,9 +294,9 @@
     <string name="forge_step_identity">Identidad</string>
     <string name="forge_step_identity_sub">lo que fabrica la estación, y para quién</string>
     <string name="forge_step_anchor">Anclaje</string>
-    <string name="forge_step_anchor_sub">fecha · hora · lugar de nacimiento</string>
+    <string name="forge_step_anchor_sub">fecha · lugar de nacimiento · hora opcional</string>
     <string name="forge_step_vessel">La nave</string>
-    <string name="forge_step_vessel_sub">onda biológica · peso al nacer</string>
+    <string name="forge_step_vessel_sub">onda (hombre) u octava (mujer)</string>
     <string name="forge_step_singularity">Singularidad</string>
     <string name="forge_step_singularity_sub">la huella originaria, calculada para ti</string>
     <string name="forge_step_forge">Forjar</string>
@@ -304,14 +304,13 @@
 
     <string name="inc_lead">En el momento exacto de tu nacimiento, la Tierra ocupaba una posición precisa en el espacio-tiempo. Tu núcleo se deriva de ella: el mismo instante da siempre la misma clave, en cualquier estación.</string>
     <string name="inc_no_account_title">Ni cuenta, ni contraseña</string>
-    <string name="inc_no_account_body">Bastan cuatro pantallas: cuándo y dónde naciste, tu onda y tu peso al nacer. Nada de eso sale a la red.</string>
+    <string name="inc_no_account_body">Bastan cuatro pantallas: cuándo y dónde naciste, y tu onda. Nada de eso sale a la red.</string>
     <string name="inc_temp_key_title">Una clave temporal, para empezar</string>
     <string name="inc_temp_key_body">Te basta para todo lo que ocurre al alcance de la antena. Tu clave LOVE, en cambio, la derivará una estación Astroport.ONE el día que abras un MULTIPASS — se te propondrá justo después.</string>
 
     <string name="inc_section_datetime">Fecha y hora de nacimiento</string>
     <string name="inc_section_place">Lugar de nacimiento</string>
     <string name="inc_section_wave">Onda biológica</string>
-    <string name="inc_section_weight">Peso al nacer</string>
     <string name="inc_section_singularity">Singularidad · calculada</string>
     <string name="inc_section_incarnation">Tu encarnación</string>
     <string name="inc_dd">DD</string>
@@ -321,7 +320,7 @@
     <string name="inc_mn">MI</string>
     <string name="inc_place_placeholder">Ciudad, país…</string>
     <string name="inc_coords_warning">Coordenadas de recuperación, anótalas con cuidado: precisión de 0,01° — alrededor de 1 km. Es este par de números el que reabre tu clave si pierdes este aparato: tócalos para escribirlos tú mismo.</string>
-    <string name="inc_vessel_note">La onda y el peso dan su frecuencia a tu cuerpo — la onda biológica. Los dos entran en la clave.</string>
+    <string name="inc_vessel_note">Onda u Octava, nada más: la polaridad entra tal cual en la clave y da su frecuencia a tu onda biológica.</string>
     <string name="inc_singularity_note">Tu concepción es el Espíritu, tu nacimiento la Materia. Nada que escribir: la estación cuenta 280 días para todo el mundo, y el portal es el vértice del teselado más cercano a tu lugar.</string>
 
     <string name="inc_row_birth">Nacimiento</string>
@@ -333,15 +332,16 @@
     <string name="inc_row_gestation">Gestación</string>
     <string name="inc_row_portal">Portal Goldberg</string>
     <string name="inc_birth_datetime">%1$02d/%2$02d/%3$04d a las %4$02d:%5$02d</string>
+    <string name="inc_birth_date">%1$02d/%2$02d/%3$04d</string>
 
     <string name="inc_confirm_title">Comprueba tu encarnación</string>
-    <string name="inc_confirm_body">Tu núcleo va a sellarse con estos cinco datos. Después, ya nada se podrá modificar.</string>
+    <string name="inc_confirm_body">Tu núcleo va a sellarse con estos datos. Después, ya nada se podrá modificar.</string>
     <string name="inc_confirm_warning">⚠ Un error aquí, y la clave derivada nunca será la tuya. Tómate el tiempo de releer cada línea.</string>
     <string name="inc_confirm_forge">Forjar definitivamente</string>
     <string name="inc_confirm_recheck">Comprobar otra vez</string>
 
     <string name="inc_dissolve_title">¿Disolver el núcleo?</string>
-    <string name="inc_dissolve_body">Tu ficha de encarnación y la clave que se deriva de ella se borrarán de esta estación. Nada sale a la red: si vuelves a escribir exactamente los mismos cinco datos, renacerá la misma clave.</string>
+    <string name="inc_dissolve_body">Tu ficha de encarnación y la clave que se deriva de ella se borrarán de esta estación. Nada sale a la red: si vuelves a escribir exactamente los mismos datos, renacerá la misma clave.</string>
     <string name="inc_dissolve_warning">⚠ Un solo dato distinto producirá una clave completamente distinta.</string>
     <string name="inc_dissolve_last_title">Última confirmación</string>
     <string name="inc_dissolve_last_body">La estación va a olvidar tu núcleo, de inmediato y sin vuelta atrás. Volverás a la pantalla de forja, con la ficha en blanco.</string>
@@ -352,6 +352,10 @@
     <string name="inc_confirm">Aceptar</string>
 
     <string name="inc_time_title">Hora de nacimiento</string>
+    <string name="inc_date_title">Fecha de nacimiento</string>
+    <string name="inc_time_optional">hora opcional, pero recomendada</string>
+    <string name="inc_time_optional_body">Poca gente conoce su hora de nacimiento: sin ella, la clave se deriva al mediodía. Pero es la que sitúa con precisión tu fase personal — dala si la conoces.</string>
+    <string name="inc_time_unknown">No la conozco</string>
     <string name="inc_coords_title">Coordenadas de nacimiento</string>
     <string name="inc_coords_body">El par que has anotado, tal cual. Dos decimales — alrededor de 1 km: esa es la precisión que entra en tu clave.</string>
     <string name="inc_latitude">Latitud</string>
@@ -359,8 +363,8 @@
     <string name="inc_coords_south_west">El Sur y el Oeste se escriben en negativo: −33.45, −70.67.</string>
 
     <string name="inc_sealed_title">Tu núcleo</string>
-    <string name="inc_sealed_body">Sellado. Estos cinco datos ya no cambian: vuelven a derivar tu clave en cada arranque, en cualquier estación.</string>
-    <string name="inc_sealed_note">Estos cinco datos ya no se podrán modificar nunca. Quienes te conocen pueden repetirlos: tus allegados son tu frase de recuperación.</string>
+    <string name="inc_sealed_body">Sellado. Estos datos ya no cambian: vuelven a derivar tu clave en cada arranque, en cualquier estación.</string>
+    <string name="inc_sealed_note">Estos datos ya no se podrán modificar nunca. Quienes te conocen pueden repetirlos: tus allegados son tu frase de recuperación.</string>
     <string name="inc_provisional_note">La clave forjada aquí es provisional: te basta al alcance de la antena. Tu clave LOVE, en cambio, la derivará una estación Astroport.ONE el día que abras un MULTIPASS.</string>
     <string name="inc_multipass_active">MULTIPASS activo · clave LOVE en su sitio</string>
     <string name="inc_multipass_open">Abrir un MULTIPASS en AstroPort.ONE</string>
@@ -369,11 +373,9 @@
     <string name="inc_salt_incomplete">salt — ficha incompleta</string>
     <string name="inc_missing">Por rellenar: %1$s</string>
     <string name="inc_missing_date">fecha</string>
-    <string name="inc_missing_time">hora</string>
     <string name="inc_missing_place">lugar</string>
     <string name="inc_missing_place_pick">lugar (elige en la lista o 📍)</string>
     <string name="inc_missing_wave">onda</string>
-    <string name="inc_missing_weight">peso</string>
 
     <string name="inc_key_sealed">Clave LOVE sellada</string>
     <string name="inc_forge_action">Forjar mi núcleo</string>

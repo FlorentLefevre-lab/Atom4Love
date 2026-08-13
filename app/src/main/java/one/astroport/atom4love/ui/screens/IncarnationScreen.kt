@@ -7,14 +7,11 @@ import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -35,15 +31,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,18 +46,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.progressBarRangeInfo
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -77,9 +61,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.math.round
 import kotlinx.coroutines.delay
@@ -93,6 +75,9 @@ import one.astroport.atom4love.geo.PlaceResolver
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.domain.LoveKey
 import one.astroport.atom4love.domain.Wave
+import one.astroport.atom4love.ui.components.AtomLogo
+import one.astroport.atom4love.ui.components.BirthDateWheels
+import one.astroport.atom4love.ui.components.BirthTimeWheels
 import one.astroport.atom4love.ui.components.ComputedRow
 import one.astroport.atom4love.ui.components.SectionLabel
 import one.astroport.atom4love.ui.components.StatusDot
@@ -102,13 +87,11 @@ import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.tint
 
-private const val WEIGHT_MIN = 2.5f
-private const val WEIGHT_MAX = 4.5f
-
 /**
  * 01 · Incarnation — la forge du noyau.
  *
- * Les cinq données (instant, lieu, onde, poids) sont modifiables tant que la clé
+ * Les données de naissance (date, heure facultative, lieu, onde) sont
+ * modifiables tant que la clé
  * n'est pas forgée ; le SALT et la date de conception se recalculent à chaque
  * frappe. Une fois forgée, tout se verrouille : c'est le contrat annoncé
  * par l'avertissement ambre.
@@ -310,16 +293,30 @@ fun IncarnationScreen(
             // que sur les petits écrans, clavier ouvert et liste de communes
             // déployée, là où la troncature serait pire.
             Box(Modifier.weight(1f)) {
+                // Le logo en filigrane, dans le vide que laisse l'étape sous
+                // elle — et il tourne : c'est l'atome vectoriel du splash
+                // ([AtomLogo]), pas l'icône figée du launcher. Le GIF d'origine
+                // n'aurait rien donné de mieux, Compose ne l'anime pas sans
+                // décodeur tiers, et le dessin est le même.
+                AtomLogo(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 28.dp)
+                        .fillMaxWidth(0.55f)
+                        .aspectRatio(1f)
+                        .alpha(0.40f),
+                )
                 Column(
                     Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
-                    // `fillMaxSize` impose au Column la hauteur du viewport tant
-                    // que l'étape y tient : l'arrangement la centre alors dans
-                    // l'écran. Dès qu'elle déborde, le Column reprend la taille
-                    // de son contenu et le filet de défilement s'active.
-                    verticalArrangement = Arrangement.Center,
+                        .padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 14.dp),
+                    // L'étape commence en haut : elle se lit du même endroit
+                    // d'un écran à l'autre, au lieu de flotter à une hauteur
+                    // qui dépend de sa longueur. `fillMaxSize` ne sert plus
+                    // qu'au filet de défilement, qui s'active dès que le
+                    // contenu déborde.
+                    verticalArrangement = Arrangement.Top,
                 ) {
                     when (ForgeStep.entries[step]) {
                         ForgeStep.Identity -> IdentityStep()
@@ -388,7 +385,6 @@ fun IncarnationScreen(
                         verticalArrangement = Arrangement.spacedBy(18.dp),
                     ) {
                         WaveSection(birth = birth, editable = true, onBirthChange = onBirthChange)
-                        WeightSection(birth = birth, editable = true, onBirthChange = onBirthChange)
                         Text(
                             stringResource(R.string.inc_vessel_note),
                             style = A4LText.Caption,
@@ -501,10 +497,23 @@ fun IncarnationScreen(
                         color = A4L.TextBody,
                     )
                     Spacer(Modifier.height(2.dp))
-                    ComputedRow(stringResource(R.string.inc_row_birth), stringResource(
-                            R.string.inc_birth_datetime,
-                            birth.day!!, birth.month!!, birth.year!!, birth.hour!!, birth.minute!!,
-                        ))
+                    // L'heure n'est plus exigée pour forger : la lire sans la
+                    // vérifier faisait tomber l'écran juste avant le scellement.
+                    ComputedRow(
+                        stringResource(R.string.inc_row_birth),
+                        if (birth.timeComplete) {
+                            stringResource(
+                                R.string.inc_birth_datetime,
+                                birth.day!!, birth.month!!, birth.year!!,
+                                birth.hour!!, birth.minute!!,
+                            )
+                        } else {
+                            stringResource(
+                                R.string.inc_birth_date,
+                                birth.day!!, birth.month!!, birth.year!!,
+                            )
+                        },
+                    )
                     ComputedRow(
                         stringResource(R.string.inc_row_place),
                         birth.placeName.ifBlank { "—" },
@@ -523,10 +532,14 @@ fun IncarnationScreen(
                             )
                         } ?: "—",
                     )
-                    ComputedRow(
-                        stringResource(R.string.inc_row_weight),
-                        LoveKey.formatWeight(LocalResources.current, birth.weightKg),
-                    )
+                    // Comme au récapitulatif : la ligne du poids ne paraît que
+                    // pour les fiches qui en portent un, forgées avant son retrait.
+                    if (birth.weightKg != null) {
+                        ComputedRow(
+                            stringResource(R.string.inc_row_weight),
+                            LoveKey.formatWeight(LocalResources.current, birth.weightKg),
+                        )
+                    }
                     Spacer(Modifier.height(2.dp))
                     Text(
                         stringResource(R.string.inc_confirm_warning),
@@ -629,59 +642,83 @@ fun IncarnationScreen(
         val today = remember { LocalDate.now() }
         val oldest = remember(today) { today.minusYears(BirthData.MAX_AGE_YEARS.toLong()) }
         val youngest = remember(today) { today.minusYears(BirthData.MIN_AGE_YEARS.toLong()) }
-        val selectable = remember(oldest, youngest) {
-            object : SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                    val date = Instant.ofEpochMilli(utcTimeMillis)
-                        .atZone(ZoneOffset.UTC).toLocalDate()
-                    return !date.isBefore(oldest) && !date.isAfter(youngest)
-                }
-
-                override fun isSelectableYear(year: Int): Boolean =
-                    year in oldest.year..youngest.year
-            }
-        }
-        val state = rememberDatePickerState(
-            initialSelectedDateMillis = LoveKey.birthUtcMillis(birth),
-            yearRange = oldest.year..youngest.year,
-            selectableDates = selectable,
-        )
-        DatePickerDialog(
+        // Trois rouleaux plutôt qu'un calendrier : une date de naissance se
+        // cherche par l'année, pas par la semaine. Ils ouvrent sur ce qui est
+        // déjà saisi, ou sur la borne des 18 ans — la seule valeur que l'app
+        // connaisse sans rien supposer de qui la remplit.
+        var pickedYear by remember { mutableIntStateOf(birth.year ?: youngest.year) }
+        var pickedMonth by remember { mutableIntStateOf(birth.month ?: 1) }
+        var pickedDay by remember { mutableIntStateOf(birth.day ?: 1) }
+        AlertDialog(
             onDismissRequest = { showDatePicker = false },
+            title = { Text(stringResource(R.string.inc_date_title), style = A4LText.Title) },
+            text = {
+                BirthDateWheels(
+                    year = pickedYear,
+                    month = pickedMonth,
+                    day = pickedDay,
+                    yearRange = oldest.year..youngest.year,
+                    onChange = { y, m, d ->
+                        pickedYear = y
+                        pickedMonth = m
+                        pickedDay = d
+                    },
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
-                    state.selectedDateMillis?.let { millis ->
-                        val (y, m, d) = LoveKey.utcDateParts(millis)
-                        onBirthChange(birth.copy(year = y, month = m, day = d))
-                    }
+                    onBirthChange(
+                        birth.copy(year = pickedYear, month = pickedMonth, day = pickedDay),
+                    )
                     showDatePicker = false
                 }) { Text(stringResource(R.string.inc_confirm)) }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.inc_cancel)) }
             },
-        ) { DatePicker(state = state) }
+        )
     }
 
     if (showTimePicker) {
-        val state = rememberTimePickerState(
-            initialHour = birth.hour ?: 12,
-            initialMinute = birth.minute ?: 0,
-            is24Hour = true,
-        )
+        // Deux rouleaux plutôt que le cadran de Material : une heure de
+        // naissance se recopie d'un acte au chiffre près, elle ne s'approche
+        // pas au doigt comme une heure de rendez-vous.
+        var pickedHour by remember { mutableIntStateOf(birth.hour ?: BirthData.DEFAULT_HOUR) }
+        var pickedMinute by remember { mutableIntStateOf(birth.minute ?: BirthData.DEFAULT_MINUTE) }
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    onBirthChange(birth.copy(hour = state.hour, minute = state.minute))
+                    onBirthChange(birth.copy(hour = pickedHour, minute = pickedMinute))
                     showTimePicker = false
                 }) { Text(stringResource(R.string.inc_confirm)) }
             },
+            // L'heure est facultative : il faut donc pouvoir la retirer, pas
+            // seulement renoncer à la changer.
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.inc_cancel)) }
+                TextButton(onClick = {
+                    onBirthChange(birth.copy(hour = null, minute = null))
+                    showTimePicker = false
+                }) { Text(stringResource(R.string.inc_time_unknown)) }
             },
             title = { Text(stringResource(R.string.inc_time_title), style = A4LText.Title) },
-            text = { TimePicker(state = state) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                    Text(
+                        stringResource(R.string.inc_time_optional_body),
+                        style = A4LText.Caption,
+                        color = A4L.TextMuted,
+                    )
+                    BirthTimeWheels(
+                        hour = pickedHour,
+                        minute = pickedMinute,
+                        onChange = { h, m ->
+                            pickedHour = h
+                            pickedMinute = m
+                        },
+                    )
+                }
+            },
         )
     }
 }
@@ -846,12 +883,15 @@ private enum class ForgeStep(
     Singularity("🌀", R.string.forge_step_singularity, R.string.forge_step_singularity_sub),
     Forge("⚛", R.string.forge_step_forge, R.string.forge_step_forge_sub);
 
-    /** Ce que l'étape exige pour qu'on ait le droit de passer à la suivante. */
+    /**
+     * Ce que l'étape exige pour qu'on ait le droit de passer à la suivante.
+     * L'heure de naissance n'en fait plus partie : peu de gens la connaissent,
+     * et la fiche sait quoi mettre à sa place ([BirthData.saltHour]).
+     */
     fun isSatisfied(b: BirthData): Boolean = when (this) {
         Identity, Singularity -> true
-        Anchor -> b.dateComplete && b.timeComplete && b.isPlausible() &&
-            b.lat != null && b.lon != null
-        Vessel -> b.wave != null && b.weightKg != null
+        Anchor -> b.dateComplete && b.isPlausible() && b.lat != null && b.lon != null
+        Vessel -> b.wave != null
         Forge -> b.complete
     }
 }
@@ -965,7 +1005,20 @@ private fun BirthDateTimeSection(
     onPickTime: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        SectionLabel(stringResource(R.string.inc_section_datetime))
+        // La mention passe sous le titre plutôt qu'à sa droite : elle est trop
+        // longue pour tenir sur la même ligne dans les trois langues, et une
+        // ligne de plus coûte moins cher qu'un mot coupé.
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            SectionLabel(stringResource(R.string.inc_section_datetime))
+            // L'heure reste facultative — qui ne la connaît pas n'est pas
+            // bloqué — mais elle affine la phase personnelle : le dire ici
+            // évite qu'on la saute par simple inattention.
+            Text(
+                stringResource(R.string.inc_time_optional),
+                style = A4LText.Caption,
+                color = A4L.TextGhost,
+            )
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Les cases vides s'affichent en fantôme « JJ MM AAAA » :
             // l'utilisateur voit d'un coup d'œil ce qui reste à définir.
@@ -1149,37 +1202,6 @@ private fun WaveSection(birth: BirthData, editable: Boolean, onBirthChange: (Bir
     }
 }
 
-/** Étape 3 — le poids de naissance, au dixième de kilo. */
-@Composable
-private fun WeightSection(birth: BirthData, editable: Boolean, onBirthChange: (BirthData) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SectionLabel(stringResource(R.string.inc_section_weight))
-            Text(
-                LoveKey.formatWeight(LocalResources.current, birth.weightKg),
-                style = A4LText.Data.copy(fontSize = 13.sp),
-                color = A4L.TextHigh.copy(alpha = 0.75f),
-            )
-        }
-        WeightSlider(
-            value = birth.weightKg,
-            enabled = editable,
-            onValueChange = { onBirthChange(birth.copy(weightKg = it)) },
-        )
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text("2,5", style = A4LText.Data.copy(fontSize = 9.sp), color = A4L.TextGhost)
-            Text("4,5", style = A4LText.Data.copy(fontSize = 9.sp), color = A4L.TextGhost)
-        }
-    }
-}
-
 /** Étape 4 — ce que la station calcule sans rien demander. */
 @Composable
 private fun SingularityCard(birth: BirthData) {
@@ -1217,7 +1239,7 @@ private fun SingularityCard(birth: BirthData) {
     }
 }
 
-/** Étape 5 — les cinq données, relues d'un bloc avant le scellement. */
+/** Étape 5 — la fiche entière, relue d'un bloc avant le scellement. */
 @Composable
 private fun RecapCard(birth: BirthData) {
     Column(
@@ -1230,12 +1252,19 @@ private fun RecapCard(birth: BirthData) {
         SectionLabel(stringResource(R.string.inc_section_incarnation))
         ComputedRow(
             stringResource(R.string.inc_row_birth),
-            if (birth.dateComplete && birth.timeComplete) {
-                stringResource(
+            when {
+                !birth.dateComplete -> "—"
+                // L'heure ne s'affiche que si elle a été donnée : montrer le
+                // midi par défaut ferait croire à une heure de naissance.
+                birth.timeComplete -> stringResource(
                     R.string.inc_birth_datetime,
                     birth.day!!, birth.month!!, birth.year!!, birth.hour!!, birth.minute!!,
                 )
-            } else "—",
+                else -> stringResource(
+                    R.string.inc_birth_date,
+                    birth.day!!, birth.month!!, birth.year!!,
+                )
+            },
         )
         ComputedRow(stringResource(R.string.inc_row_place), birth.placeName.ifBlank { "—" })
         ComputedRow(stringResource(R.string.inc_row_coords), LoveKey.formatCoords(birth))
@@ -1245,10 +1274,14 @@ private fun RecapCard(birth: BirthData) {
                 stringResource(R.string.inc_wave_value, it.symbol, stringResource(it.labelRes))
             } ?: "—",
         )
-        ComputedRow(
-            stringResource(R.string.inc_row_weight),
-            LoveKey.formatWeight(LocalResources.current, birth.weightKg),
-        )
+        // Le poids n'est plus demandé à la saisie ; la ligne ne subsiste que
+        // pour les fiches qui en portent un, forgées avant son retrait.
+        if (birth.weightKg != null) {
+            ComputedRow(
+                stringResource(R.string.inc_row_weight),
+                LoveKey.formatWeight(LocalResources.current, birth.weightKg),
+            )
+        }
     }
 }
 
@@ -1318,7 +1351,6 @@ private fun MissingLine(birth: BirthData, only: ForgeStep? = null) {
     val missing = buildList {
         if (only == null || only == ForgeStep.Anchor) {
             if (!birth.dateComplete) add(stringResource(R.string.inc_missing_date))
-            if (!birth.timeComplete) add(stringResource(R.string.inc_missing_time))
             if (birth.lat == null || birth.lon == null) {
                 add(
                     stringResource(
@@ -1333,7 +1365,6 @@ private fun MissingLine(birth: BirthData, only: ForgeStep? = null) {
         }
         if (only == null || only == ForgeStep.Vessel) {
             if (birth.wave == null) add(stringResource(R.string.inc_missing_wave))
-            if (birth.weightKg == null) add(stringResource(R.string.inc_missing_weight))
         }
     }
     if (missing.isEmpty()) return
@@ -1531,78 +1562,6 @@ private fun WaveCard(
             style = A4LText.Data.copy(fontSize = 9.sp),
             color = if (selected) A4L.Mint.copy(alpha = 0.55f) else A4L.TextGhost,
         )
-    }
-}
-
-/**
- * Curseur du poids de naissance — rail de 3 px, pastille cyan halonée.
- * Tant qu'aucun poids n'est saisi (value null), le rail reste vide : le premier
- * toucher fixe la valeur.
- */
-@Composable
-private fun WeightSlider(
-    value: Float?,
-    enabled: Boolean,
-    onValueChange: (Float) -> Unit,
-) {
-    val fraction = value?.let { ((it - WEIGHT_MIN) / (WEIGHT_MAX - WEIGHT_MIN)).coerceIn(0f, 1f) }
-    // lu dans la composition : `semantics` n'est pas un contexte composable
-    val weightLabel = stringResource(R.string.inc_section_weight)
-
-    // Le poids entre dans le SALT au dixième de kilo près : on arrondit à la saisie.
-    fun updateFromFraction(f: Float) {
-        val raw = WEIGHT_MIN + f.coerceIn(0f, 1f) * (WEIGHT_MAX - WEIGHT_MIN)
-        onValueChange((round(raw * 10f) / 10f).coerceIn(WEIGHT_MIN, WEIGHT_MAX))
-    }
-
-    BoxWithConstraints(
-        Modifier
-            .fillMaxWidth()
-            .height(20.dp)
-            .semantics {
-                contentDescription = weightLabel
-                progressBarRangeInfo =
-                    ProgressBarRangeInfo(value ?: WEIGHT_MIN, WEIGHT_MIN..WEIGHT_MAX)
-            }
-            .pointerInput(enabled) {
-                if (!enabled) return@pointerInput
-                detectTapGestures { offset -> updateFromFraction(offset.x / size.width) }
-            }
-            .pointerInput(enabled) {
-                if (!enabled) return@pointerInput
-                detectHorizontalDragGestures { change, _ ->
-                    updateFromFraction(change.position.x / size.width)
-                }
-            },
-    ) {
-        val trackWidth = maxWidth
-
-        Box(
-            Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth()
-                .height(3.dp)
-                .background(A4L.Stroke.copy(alpha = 0.10f), RoundedCornerShape(2.dp)),
-        )
-        if (fraction != null) {
-            Box(
-                Modifier
-                    .align(Alignment.CenterStart)
-                    .fillMaxWidth(fraction)
-                    .height(3.dp)
-                    .background(
-                        Brush.horizontalGradient(listOf(A4L.Cyan.tint(0.30f), A4L.Cyan)),
-                        RoundedCornerShape(2.dp),
-                    ),
-            )
-            Box(
-                Modifier
-                    .align(Alignment.CenterStart)
-                    .offset(x = trackWidth * fraction - 7.5.dp)
-                    .size(15.dp)
-                    .background(A4L.Cyan, CircleShape),
-            )
-        }
     }
 }
 

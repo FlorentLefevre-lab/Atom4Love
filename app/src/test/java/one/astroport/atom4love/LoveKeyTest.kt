@@ -54,6 +54,41 @@ class LoveKeyTest {
         }
     }
 
+    /**
+     * L'heure et le poids ne sont plus demandés à la saisie. Une fiche qui n'en
+     * porte pas doit produire le SALT de midi et de 3,5 kg — les valeurs
+     * qu'`atom4love_publish.py` applique à un argument vide, sans quoi les deux
+     * côtés dériveraient deux clés LOVE différentes pour la même personne.
+     */
+    @Test
+    fun `sans heure ni poids, le SALT prend midi et 3,5 kg`() {
+        val sansRien = BirthData.Sample.copy(hour = null, minute = null, weightKg = null)
+        assertTrue(sansRien.complete)
+        assertEquals("198504171200_48.86_2.35_0_3.5", LoveKey.salt(sansRien))
+    }
+
+    /**
+     * Le verrou des noyaux déjà scellés : les valeurs par défaut ne s'appliquent
+     * qu'aux trous. Une fiche complète d'hier garde son SALT au caractère près,
+     * donc son npub — une cabine ouverte hier reconnaît toujours les mêmes gens.
+     */
+    @Test
+    fun `une fiche qui porte son heure et son poids ne bouge pas`() {
+        assertEquals("198504171530_48.86_2.35_0_3.2", LoveKey.salt(BirthData.Sample))
+        val explicite = BirthData.Sample.copy(hour = 12, minute = 0, weightKg = 3.5f)
+        val implicite = BirthData.Sample.copy(hour = null, minute = null, weightKg = null)
+        assertEquals(LoveKey.salt(explicite), LoveKey.salt(implicite))
+    }
+
+    @Test
+    fun `la date et le lieu et l'onde suffisent a forger`() {
+        val minimale = BirthData.Sample.copy(hour = null, minute = null, weightKg = null)
+        assertTrue(minimale.complete)
+        assertFalse(minimale.copy(wave = null).complete)
+        assertFalse(minimale.copy(lat = null).complete)
+        assertFalse(minimale.copy(year = null).complete)
+    }
+
     @Test
     fun `la conception est la naissance moins 280 jours, convention Astroport`() {
         val c = GregorianCalendar(TimeZone.getTimeZone("UTC")).apply {

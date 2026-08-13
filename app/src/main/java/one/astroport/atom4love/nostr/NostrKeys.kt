@@ -75,13 +75,14 @@ object LoveKeyForge {
      * des identités vivantes pour une question d'affichage.
      */
     private fun provisionalPepper(b: BirthData): Long {
-        require(b.dateComplete && b.timeComplete && b.weightKg != null) {
-            "instant ou poids de naissance manquant"
-        }
-        val gestationDays = 280.0 + (b.weightKg - 3.5) * 4.0
+        require(b.dateComplete) { "date de naissance manquante" }
+        // Heure et poids passent par les valeurs par défaut de la fiche quand
+        // ils n'ont pas été saisis : un noyau déjà scellé les portait tous les
+        // deux, son npub ne bouge donc pas d'un iota.
+        val gestationDays = 280.0 + (b.saltWeightKg - 3.5) * 4.0
         val birth = GregorianCalendar(TimeZone.getTimeZone("UTC")).apply {
             clear()
-            set(b.year!!, b.month!! - 1, b.day!!, b.hour!!, b.minute!!)
+            set(b.year!!, b.month!! - 1, b.day!!, b.saltHour, b.saltMinute)
         }
         return birth.timeInMillis - (gestationDays * 24.0 * 3600.0 * 1000.0).toLong()
     }

@@ -90,10 +90,29 @@ data class BirthData(
         }
     }
 
+    /**
+     * L'heure qui entre dans le SALT — midi quand elle n'est pas connue.
+     *
+     * Peu de gens savent l'heure de leur naissance ; l'exiger fermait la porte
+     * à qui ne peut pas la retrouver. Midi est la convention qu'Astroport.ONE
+     * applique déjà à la conception (naissance − 280 jours, à midi solaire) :
+     * on ne s'en invente pas une seconde.
+     */
+    val saltHour: Int get() = hour ?: DEFAULT_HOUR
+    val saltMinute: Int get() = minute ?: DEFAULT_MINUTE
+
+    /**
+     * Le poids qui entre dans le SALT — 3,5 kg quand il n'est pas connu.
+     *
+     * Ce n'est pas un choix d'ici : `atom4love_publish.py` retient exactement
+     * cette valeur quand son cinquième argument est vide. Une fiche sans poids
+     * donne donc la même clé LOVE des deux côtés.
+     */
+    val saltWeightKg: Float get() = weightKg ?: DEFAULT_WEIGHT_KG
+
     /** Tout ce qu'exige le SALT est là : la clé peut être forgée. */
     val complete: Boolean
-        get() = dateComplete && timeComplete && lat != null && lon != null &&
-            wave != null && weightKg != null
+        get() = dateComplete && lat != null && lon != null && wave != null
 
     companion object {
         /** L'âge minimal pour forger un noyau — décision de produit, pas technique. */
@@ -101,6 +120,13 @@ data class BirthData(
 
         /** Au-delà, c'est une faute de frappe bien plus probablement qu'un doyen. */
         const val MAX_AGE_YEARS = 120
+
+        /** Midi : l'instant retenu quand l'heure de naissance reste inconnue. */
+        const val DEFAULT_HOUR = 12
+        const val DEFAULT_MINUTE = 0
+
+        /** Le poids retenu quand il reste inconnu — celui de la station. */
+        const val DEFAULT_WEIGHT_KG = 3.5f
 
         /** La fiche vierge du premier lancement. */
         val Empty = BirthData(
@@ -126,14 +152,20 @@ object LoveKey {
 
     private val saltFormat = Locale.US   // séparateur décimal « . » dans le SALT
 
-    /** N'appeler que sur une fiche [BirthData.complete] — le SALT n'admet aucun trou. */
+    /**
+     * N'appeler que sur une fiche [BirthData.complete] — le SALT n'admet aucun
+     * trou. L'heure et le poids, eux, ne sont plus demandés à la saisie : la
+     * fiche les remplace par les valeurs par défaut de la station
+     * ([BirthData.saltHour], [BirthData.saltWeightKg]) plutôt que de laisser
+     * un blanc dans la clé.
+     */
     fun salt(b: BirthData): String {
         require(b.complete) { "fiche d'incarnation incomplète" }
         return String.format(
             saltFormat,
             "%04d%02d%02d%02d%02d_%.2f_%.2f_%d_%.1f",
-            b.year!!, b.month!!, b.day!!, b.hour!!, b.minute!!,
-            b.lat!!, b.lon!!, b.wave!!.sex, b.weightKg!!,
+            b.year!!, b.month!!, b.day!!, b.saltHour, b.saltMinute,
+            b.lat!!, b.lon!!, b.wave!!.sex, b.saltWeightKg,
         )
     }
 
@@ -165,24 +197,9 @@ object LoveKey {
         }.time
     }
 
-    /**
-     * Millisecondes UTC de la naissance — ce qu'attend le sélecteur de date
-     * Material. null tant que la date n'est pas saisie (le sélecteur s'ouvre
-     * alors sur le mois courant).
-     */
-    fun birthUtcMillis(b: BirthData): Long? {
-        if (!b.dateComplete) return null
-        return GregorianCalendar(TimeZone.getTimeZone("UTC")).apply {
-            clear()
-            set(b.year!!, b.month!! - 1, b.day!!, 0, 0, 0)
-        }.timeInMillis
-    }
-
-    /** Décompose des millisecondes UTC en (année, mois 1..12, jour). */
-    fun utcDateParts(millis: Long): Triple<Int, Int, Int> {
-        val c = GregorianCalendar(TimeZone.getTimeZone("UTC")).apply { timeInMillis = millis }
-        return Triple(c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH))
-    }
+    // `birthUtcMillis` et `utcDateParts` vivaient ici pour le sélecteur de date
+    // Material, qui parlait en millisecondes. Les rouleaux prennent et rendent
+    // trois nombres : ces deux traductions n'avaient plus d'appelant.
 
     /**
      * « 11 juil. 1984 » en français, « 11 Jul 1984 » en anglais. Le format se
