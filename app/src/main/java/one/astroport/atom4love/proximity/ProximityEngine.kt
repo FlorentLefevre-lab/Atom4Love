@@ -48,6 +48,14 @@ class ProximityEngine(
      * dans l'air — seulement le jeton de [ProximityPayload.token].
      */
     private val nostrKey: () -> ByteArray? = { null },
+    /**
+     * Ce que le noyau dit de lui sans se nommer — polarité, sceau maya, phase.
+     * Relue comme la clé à chaque tour : elle naît avec la fiche, morceau par
+     * morceau (le sceau dès la date, la phase seulement avec le lieu).
+     */
+    private val signature: () -> ProximityPayload.Signature = {
+        ProximityPayload.Signature.Unknown
+    },
 ) {
 
     companion object {
@@ -86,6 +94,7 @@ class ProximityEngine(
 
     /** Jeton actuellement dans l'air — il n'a pas à sortir d'ici. */
     private var advertisedToken: Int? = null
+    private var advertisedSignature = ProximityPayload.Signature.Unknown
 
     /**
      * Tourne jusqu'à annulation de la coroutine appelante ; l'annonce et le scan
@@ -132,13 +141,19 @@ class ProximityEngine(
                 // l'un des deux bouge, sinon un noyau forgé après le démarrage
                 // de la balise n'y figurerait jamais.
                 val token = ProximityPayload.token(nostrKey(), cell4d)
+                // La signature entre dans la même comparaison : une fiche
+                // complétée pendant que la balise tourne doit passer dans
+                // l'air, et une fiche inchangée ne doit pas relancer l'annonce.
+                val signature = signature()
                 if (advertiseCallback == null ||
                     cell4d != _state.value.advertisedCell4d ||
-                    token != advertisedToken
+                    token != advertisedToken ||
+                    signature != advertisedSignature
                 ) {
                     advertiseCallback?.let { runCatching { advertiser.stopAdvertising(it) } }
                     advertisedToken = token
-                    advertiseCallback = startAdvertising(advertiser, cell4d, token)
+                    advertisedSignature = signature
+                    advertiseCallback = startAdvertising(advertiser, cell4d, token, signature)
                 }
 
                 var waited = 0L
@@ -165,6 +180,7 @@ class ProximityEngine(
         advertiser: BluetoothLeAdvertiser,
         cell4d: Long?,
         token: Int?,
+        signature: ProximityPayload.Signature,
     ): AdvertiseCallback? {
         val settings = AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
@@ -174,7 +190,7 @@ class ProximityEngine(
         val data = AdvertiseData.Builder()
             .setIncludeDeviceName(false)
             .addServiceUuid(SERVICE_UUID)
-            .addServiceData(SERVICE_UUID, ProximityPayload.encode(cell4d, token))
+            .addServiceData(SERVICE_UUID, ProximityPayload.encode(cell4d, token, signature))
             .build()
 
         var callback: AdvertiseCallback? = null

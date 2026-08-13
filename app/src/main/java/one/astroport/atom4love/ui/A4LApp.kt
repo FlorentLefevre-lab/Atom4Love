@@ -68,6 +68,8 @@ import one.astroport.atom4love.data.MultipassAccount
 import one.astroport.atom4love.data.MultipassStore
 import one.astroport.atom4love.data.SavedIncarnation
 import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.domain.KinMaya
+import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.multipass.Enrollment
 import one.astroport.atom4love.multipass.MultipassService
 import one.astroport.atom4love.nostr.Bech32
@@ -77,6 +79,7 @@ import one.astroport.atom4love.nostr.LoveKeyForge
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.proximity.CellLocator
+import one.astroport.atom4love.proximity.ProximityPayload
 import one.astroport.atom4love.proximity.ProximityService
 import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.components.StatusDot
@@ -223,6 +226,20 @@ private fun Station(
         // La balise dérive son jeton de présence du noyau — sans quoi elle
         // n'annonce rien qui la distingue, et le portail compte des adresses.
         ProximityService.bindIdentity(keys?.publicKey)
+    }
+    // La signature suit la fiche, pas la clé : le sceau existe dès la date, la
+    // phase dès le lieu — bien avant la forge. Ce qui se croise à portée
+    // d'antenne n'a jamais eu besoin d'un compte.
+    LaunchedEffect(birth) {
+        ProximityService.bindResonance(
+            ProximityPayload.Signature(
+                sex = birth.wave?.sex,
+                glyph = KinMaya.of(birth)?.glyph,
+                phase = Phi2X.personalPhase(birth),
+            ),
+        )
+    }
+    LaunchedEffect(keys) {
         if (keys != null) {
             relay.start(keys)
             salon.start(keys)

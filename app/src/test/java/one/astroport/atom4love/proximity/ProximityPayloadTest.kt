@@ -2,7 +2,9 @@ package one.astroport.atom4love.proximity
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** L'annonce de proximité : ce qu'elle porte, et ce qu'elle refuse de porter. */
@@ -33,6 +35,88 @@ class ProximityPayloadTest {
         val decoded = ProximityPayload.decode(v1)
         assertEquals(cell, decoded?.cell4d)
         assertNull(decoded?.token)
+    }
+
+    /** Et un pair resté à la version 2 : cellule et jeton, sans signature. */
+    @Test
+    fun `la version 2 se lit encore, sans signature`() {
+        val v2 = byteArrayOf(2) +
+            java.nio.ByteBuffer.allocate(8).putLong(cell).array() +
+            java.nio.ByteBuffer.allocate(4).putInt(1234).array()
+        val decoded = ProximityPayload.decode(v2)
+        assertEquals(cell, decoded?.cell4d)
+        assertEquals(1234, decoded?.token)
+        assertEquals(ProximityPayload.Signature.Unknown, decoded?.signature)
+    }
+
+    @Test
+    fun `la signature fait l'aller-retour`() {
+        val phase = 4.852425269214   // la fiche du Pixel, calculée par Phi2X
+        val signature = ProximityPayload.Signature(sex = 1, glyph = 2, phase = phase)
+        val decoded = ProximityPayload.decode(
+            ProximityPayload.encode(cell, 1234, signature),
+        )!!
+        assertEquals(1, decoded.signature.sex)
+        assertEquals(2, decoded.signature.glyph)
+        // Deux octets pour un tour : la phase revient au pas de quantification près.
+        assertEquals(phase, decoded.signature.phase!!, 1e-4)
+    }
+
+    @Test
+    fun `une signature vide se relit vide`() {
+        val decoded = ProximityPayload.decode(
+            ProximityPayload.encode(cell, null, ProximityPayload.Signature.Unknown),
+        )!!
+        assertNull(decoded.signature.sex)
+        assertNull(decoded.signature.glyph)
+        assertNull(decoded.signature.phase)
+    }
+
+    /** Une fiche se remplit par morceaux : chaque champ doit pouvoir partir seul. */
+    @Test
+    fun `les trois champs sont independants`() {
+        val sexeSeul = ProximityPayload.decode(
+            ProximityPayload.encode(null, null, ProximityPayload.Signature(0, null, null)),
+        )!!.signature
+        assertEquals(0, sexeSeul.sex)
+        assertNull(sexeSeul.glyph)
+        assertNull(sexeSeul.phase)
+
+        val sceauSeul = ProximityPayload.decode(
+            ProximityPayload.encode(null, null, ProximityPayload.Signature(null, 19, null)),
+        )!!.signature
+        assertNull(sceauSeul.sex)
+        assertEquals(19, sceauSeul.glyph)
+    }
+
+    /** Des valeurs hors domaine ne doivent pas se faire passer pour des vraies. */
+    @Test
+    fun `une valeur aberrante se diffuse comme inconnue`() {
+        val decoded = ProximityPayload.decode(
+            ProximityPayload.encode(null, null, ProximityPayload.Signature(7, 42, Double.NaN)),
+        )!!.signature
+        assertNull(decoded.sex)
+        assertNull(decoded.glyph)
+        assertNull(decoded.phase)
+    }
+
+    /** Le tour boucle : 2π est la même chose que 0, pas une phase inconnue. */
+    @Test
+    fun `la phase reste dans le tour`() {
+        val tau = 2.0 * Math.PI
+        for (phase in listOf(0.0, tau - 1e-9, tau, tau + 0.5, -0.5)) {
+            val decoded = ProximityPayload.decode(
+                ProximityPayload.encode(null, null, ProximityPayload.Signature(null, null, phase)),
+            )!!.signature.phase
+            assertNotNull("phase $phase perdue", decoded)
+            assertTrue("phase $phase relue hors tour : $decoded", decoded!! >= 0.0 && decoded < tau)
+        }
+    }
+
+    /** 17 octets : il en reste 7 sur les 24 utiles d'une annonce legacy. */
+    @Test
+    fun `l'annonce tient dans le budget d'une annonce legacy`() {
+        assertEquals(17, ProximityPayload.encode(cell, 1234).size)
     }
 
     @Test

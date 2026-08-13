@@ -53,6 +53,7 @@ class ProximityService : Service() {
         val advertisedCell4d: StateFlow<Long?> = _advertisedCell4d.asStateFlow()
 
         private val _nostrKey = MutableStateFlow<ByteArray?>(null)
+        private val _signature = MutableStateFlow(ProximityPayload.Signature.Unknown)
 
         /**
          * Le noyau, confié à la balise pour qu'elle sache dériver son jeton de
@@ -62,6 +63,19 @@ class ProximityService : Service() {
          */
         fun bindIdentity(nostrKey: ByteArray?) {
             _nostrKey.value = nostrKey
+        }
+
+        /**
+         * La signature de résonance — polarité, sceau maya, phase — que la
+         * balise diffuse en clair, elle.
+         *
+         * Elle ne nomme personne et c'est ce qui la rend diffusable : trois
+         * nombres qui disent comment deux ondes se croiseraient, jamais qui les
+         * porte. Le npub reste dans le jeton haché, l'instrument de cabine-33
+         * n'existe pas ici.
+         */
+        fun bindResonance(signature: ProximityPayload.Signature) {
+            _signature.value = signature
         }
 
         /** Sans elles, ni l'annonce ni le scan ne peuvent démarrer (runtime dès API 31). */
@@ -142,7 +156,9 @@ class ProximityService : Service() {
             engineStarted = true
             val registry = NeighborRegistry()
             val engine = ProximityEngine(
-                this, registry, CellLocator(this), nostrKey = { _nostrKey.value },
+                this, registry, CellLocator(this),
+                nostrKey = { _nostrKey.value },
+                signature = { _signature.value },
             )
             scope.launch { engine.run() }
             scope.launch {
