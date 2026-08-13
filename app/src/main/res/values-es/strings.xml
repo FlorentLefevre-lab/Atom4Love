@@ -146,7 +146,7 @@
     <!-- ─── El indicador de enlace, arriba del todo ───────────────────── -->
     <string name="header_cabin_closed">cabina cerrada</string>
     <string name="header_cabin_open_alone">cabina abierta — nadie al alcance</string>
-    <string name="header_medium">%1$s · %2$s</string>
+    <string name="header_medium">Modo activo: %1$s</string>
     <string name="header_upgrade">pasar a %1$s</string>
 
     <string name="theme_to_light">Cambiar al tema claro</string>

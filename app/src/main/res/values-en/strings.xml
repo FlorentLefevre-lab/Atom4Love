@@ -144,7 +144,7 @@
     <!-- ─── The link indicator, at the very top ───────────────────────── -->
     <string name="header_cabin_closed">booth closed</string>
     <string name="header_cabin_open_alone">booth open — nobody in range</string>
-    <string name="header_medium">%1$s · %2$s</string>
+    <string name="header_medium">Active mode: %1$s</string>
     <string name="header_upgrade">switch to %1$s</string>
 
     <string name="theme_to_light">Switch to the light theme</string>

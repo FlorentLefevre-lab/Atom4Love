@@ -174,7 +174,7 @@
     <!-- ─── L'indicateur de liaison, tout en haut ─────────────────────── -->
     <string name="header_cabin_closed">cabine fermée</string>
     <string name="header_cabin_open_alone">cabine ouverte — personne à portée</string>
-    <string name="header_medium">%1$s · %2$s</string>
+    <string name="header_medium">Mode actif : %1$s</string>
     <string name="header_upgrade">passer en %1$s</string>
 
     <!-- Le glyphe ☀/☾ ne se lit pas à voix haute : ces deux lignes disent le geste. -->

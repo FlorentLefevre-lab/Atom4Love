@@ -446,14 +446,14 @@ private fun CabinLine(cabin: CabinChat, open: Boolean, onUpgrade: (Medium) -> Un
         Text(
             when {
                 !open -> stringResource(R.string.header_cabin_closed)
-                // le médium ne se lit qu'une fois quelqu'un joint : dire « BLE »
+                // le médium ne se lit qu'une fois quelqu'un joint : dire « BT »
                 // dans le vide ferait passer une antenne allumée pour un lien
                 medium == null -> stringResource(R.string.header_cabin_open_alone)
-                else -> stringResource(
-                    R.string.header_medium,
-                    stringResource(medium.labelRes),
-                    medium.short,
-                )
+                // Le nom court seul : dans cette ligne on ne cherche pas une
+                // description, on cherche lequel des trois porte en ce moment.
+                // La phrase longue (« par le réseau du lieu ») vit là où il y a
+                // la place de l'expliquer — les dialogues de refus.
+                else -> stringResource(R.string.header_medium, medium.short)
             },
             style = A4LText.Data.copy(fontSize = 10.sp),
             color = if (open && medium != null) A4L.Mint else A4L.TextMuted,

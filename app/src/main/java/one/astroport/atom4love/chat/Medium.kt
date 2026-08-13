@@ -37,12 +37,17 @@ enum class Medium(
      */
     @StringRes val labelRes: Int,
     /**
-     * Le nom du médium, pour l'indicateur du haut. Reste en dur : « BLE » et
-     * « Wi-Fi Direct » sont les noms des technologies, d'aucune langue.
+     * Le nom du médium, pour l'indicateur du haut. Reste en dur : ce sont les
+     * noms des technologies, d'aucune langue.
+     *
+     * « BT » plutôt que « BLE », « Wi-Fi P2P » plutôt que « Wi-Fi Direct » :
+     * trois noms courts, du même moule, qui se comparent d'un coup d'œil dans
+     * une ligne où l'on cherche lequel est actif. Le rune du glyphe est le
+     * Bluetooth générique, la paire AP / P2P se répond.
      */
     val short: String,
 ) {
-    BLE(R.string.medium_ble, "BLE"),
+    BLE(R.string.medium_ble, "BT"),
 
     /**
      * « Par la station » disait le contraire de ce qui se passe : dans cette
@@ -54,7 +59,7 @@ enum class Medium(
      * lu à côté de « sans relais » il suggérait un serveur dans la boucle.
      */
     WIFI_STATION(R.string.medium_wifi_station, "Wi-Fi AP"),
-    WIFI_DIRECT(R.string.medium_wifi_direct, "Wi-Fi Direct"),
+    WIFI_DIRECT(R.string.medium_wifi_direct, "Wi-Fi P2P"),
     ;
 
     /** Rang de routage — l'ordre de déclaration est l'échelle. */
