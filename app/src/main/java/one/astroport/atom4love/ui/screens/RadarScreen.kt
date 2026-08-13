@@ -105,6 +105,11 @@ import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.tint
 import kotlin.math.ceil
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.WifiTethering
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.Icons
 
 /** Le rituel de cabine dure 33 secondes d'immobilité (cf. CONTEXTE). */
 private const val RITUAL_SECONDS = 33f
@@ -395,6 +400,41 @@ fun RadarScreen(
             }
         }
 
+        // L'état de la cabine : par où elle parle, ce qu'elle accepte, et qui
+        // tient le groupe Wi-Fi Direct. Lu avant le radar, parce que les
+        // glyphes de médium vivent à côté du cadran.
+        val cabinStatus by (cabin?.status ?: remember { MutableStateFlow(CabinChat.Status()) })
+            .collectAsStateWithLifecycle()
+
+        // ── Compteurs de la cabine ────────────────────────────────────────
+        // Le salon de cabine ne vit que sur le relais local d'une station.
+        val salonActive = relay?.local == true && relay.online
+        val pensees = salon?.pensees?.collectAsStateWithLifecycle()?.value.orEmpty()
+        var salonOpen by remember { mutableStateOf(false) }
+
+        // ── Cabine : ce qui se dit ici, entre gens à portée ───────────────
+        // Le moteur et son cycle de vie appartiennent à la station : c'est ce
+        // qui permet à l'indicateur du haut de dire le médium depuis n'importe
+        // quel onglet. Ne restent ici que le geste d'ouverture et les
+        // permissions, qui sont affaire d'écran.
+        val cabinPeers by (cabin?.peers ?: remember { MutableStateFlow(emptyList()) })
+            .collectAsStateWithLifecycle()
+        LaunchedEffect(fix?.cell) {
+            fix?.let { salon?.setCell(cellHex(it.cell)) }
+        }
+        // Un seul geste d'ouverture/fermeture, partagé par le compteur « ici »
+        // et par la rangée de la cabine : les deux désignent la même fenêtre.
+        val toggleCabin: () -> Unit = {
+            if (cabinOpen) {
+                onCloseCabin()
+            } else if (CabinChat.permissionsGranted(context)) {
+                onOpenCabin()
+            } else {
+                permissionFor = PermissionIntent.CABIN
+                permissionLauncher.launch(CabinChat.RUNTIME_PERMISSIONS)
+            }
+        }
+
         // ── Radar ─────────────────────────────────────────────────────────
         Box(
             Modifier
@@ -405,6 +445,63 @@ fun RadarScreen(
             contentAlignment = Alignment.Center,
         ) {
             RadarRings(progress = elapsed / RITUAL_SECONDS)
+
+            // Par où la cabine parle, à côté du cadran. Les trois voies, pas
+            // trois positions : le BLE reste ouvert quand le Wi-Fi porte, et
+            // l'ensemble ne fait que grandir. Chacune dit donc son propre état.
+            MediumGlyphs(
+                status = cabinStatus,
+                open = cabinOpen,
+                modifier = Modifier.align(Alignment.CenterStart),
+            )
+
+            // Les trois fenêtres, à droite du cadran et empilées de la plus
+            // proche à la plus lointaine : ici (la cabine, à portée d'antenne),
+            // le portail (ceux qui annoncent notre cellule), l'hexagone (ce
+            // qu'on n'atteint que par un relais). En rangée sous le radar,
+            // l'ordre inverse se lisait de gauche à droite sans rien dire ;
+            // empilés, ils dessinent l'éloignement.
+            Column(
+                Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 20.dp)
+                    .width(112.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // « Ici » se compte par la cabine, pas par la balise : elle
+                // nomme des noyaux attestés, un par npub, là où la balise ne
+                // sait dire que « une radio est là ».
+                CabinStat(
+                    if (cabinOpen) cabinPeers.size.toString() else "—",
+                    stringResource(R.string.radar_stat_here_no_relay),
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = toggleCabin),
+                    accent = if (cabinOpen) A4L.Mint else null,
+                )
+                // Approximation en attendant la logique de portail D2 : les
+                // noyaux qui annoncent la même cellule que la nôtre. Comptés
+                // par jeton de présence et non par adresse — une adresse qui
+                // tourne pendant que l'ancienne survit à son TTL faisait
+                // compter deux fois le même appareil.
+                CabinStat(
+                    if (beaconRunning && ownCell4d != null) {
+                        NeighborRegistry.countIn(neighbors, ownCell4d).toString()
+                    } else {
+                        "—"
+                    },
+                    stringResource(R.string.radar_stat_in_portal),
+                    Modifier.fillMaxWidth(),
+                )
+                CabinStat(
+                    if (salonActive) pensees.size.toString() else "—",
+                    stringResource(R.string.radar_stat_in_hexagon),
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { salonOpen = !salonOpen },
+                    accent = if (salonOpen) A4L.Green else null,
+                )
+            }
 
             Box(Modifier.size(150.dp).background(A4L.Cyan.tint(0.07f), HexagonShape))
             // le tracé se fait hors composition : la teinte se prend avant
@@ -466,82 +563,37 @@ fun RadarScreen(
                 }
         }
 
-        // ── Compteurs de la cabine ────────────────────────────────────────
-        // Le salon de cabine ne vit que sur le relais local d'une station.
-        val salonActive = relay?.local == true && relay.online
-        val pensees = salon?.pensees?.collectAsStateWithLifecycle()?.value.orEmpty()
-        var salonOpen by remember { mutableStateOf(false) }
-
-        // ── Cabine : ce qui se dit ici, entre gens à portée ───────────────
-        // Le moteur et son cycle de vie appartiennent à la station : c'est ce
-        // qui permet à l'indicateur du haut de dire le médium depuis n'importe
-        // quel onglet. Ne restent ici que le geste d'ouverture et les
-        // permissions, qui sont affaire d'écran.
-        val cabinPeers by (cabin?.peers ?: remember { MutableStateFlow(emptyList()) })
-            .collectAsStateWithLifecycle()
-        // L'état de la cabine sert ici à une seule chose : dire qui tient le
-        // groupe Wi-Fi Direct, quand il y en a un.
-        val cabinStatus by (cabin?.status ?: remember { MutableStateFlow(CabinChat.Status()) })
-            .collectAsStateWithLifecycle()
-        LaunchedEffect(fix?.cell) {
-            fix?.let { salon?.setCell(cellHex(it.cell)) }
-        }
-        // Un seul geste d'ouverture/fermeture, partagé par le compteur « ici »
-        // et par la rangée de la cabine : les deux désignent la même fenêtre.
-        val toggleCabin: () -> Unit = {
-            if (cabinOpen) {
-                onCloseCabin()
-            } else if (CabinChat.permissionsGranted(context)) {
-                onOpenCabin()
-            } else {
-                permissionFor = PermissionIntent.CABIN
-                permissionLauncher.launch(CabinChat.RUNTIME_PERMISSIONS)
-            }
-        }
         Column(
             Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                CabinStat(
-                    if (salonActive) pensees.size.toString() else "—",
-                    // « ici » appartient désormais à la cabine : l'hexagone,
-                    // c'est ce qu'on n'atteint que par un relais
-                    stringResource(R.string.radar_stat_in_hexagon),
+            // Qui tient le groupe Wi-Fi Direct. En rouge, et ce n'est pas une
+            // alarme : c'est le poids du rôle. Le propriétaire EST le point
+            // d'accès, et son départ dissout le groupe pour tout le monde, là
+            // où un client qui s'en va ne retire que lui-même. Quand c'est
+            // nous, la phrase le dit — on part rarement en sachant qu'on
+            // emporte la voie des autres.
+            cabinStatus.groupHost?.let { host ->
+                Row(
                     Modifier
-                        .weight(1f)
-                        .clickable { salonOpen = !salonOpen },
-                    accent = if (salonOpen) A4L.Green else null,
-                )
-                // Approximation en attendant la logique de portail D2 : les noyaux
-                // qui annoncent la même cellule que la nôtre.
-                CabinStat(
-                    if (beaconRunning && ownCell4d != null) {
-                        // par jeton de présence, pas par adresse : une adresse
-                        // qui tourne pendant que l'ancienne survit à son TTL
-                        // faisait compter deux fois le même appareil
-                        NeighborRegistry.countIn(neighbors, ownCell4d).toString()
-                    } else {
-                        "—"
-                    },
-                    stringResource(R.string.radar_stat_in_portal),
-                    Modifier.weight(1f),
-                )
-                // « Ici » se compte par la cabine, pas par la balise. Ce
-                // compteur lisait `neighbors` : il fallait donc diffuser une
-                // annonce continue pour savoir qui est à portée, alors que la
-                // balise ne sait dire que « une radio est là » quand la cabine,
-                // elle, nomme des noyaux attestés (un par npub, dédoublonné —
-                // voir CabinChat.peers). Chaque compteur tient désormais à
-                // une seule fenêtre : le relais, la balise, la cabine.
-                CabinStat(
-                    if (cabinOpen) cabinPeers.size.toString() else "—",
-                    stringResource(R.string.radar_stat_here_no_relay),
-                    Modifier
-                        .weight(1f)
-                        .clickable(onClick = toggleCabin),
-                    accent = if (cabinOpen) A4L.Mint else null,
-                )
+                        .fillMaxWidth()
+                        .glass(12.dp, A4L.Red.tint(0.06f), A4L.Red.tint(0.22f))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    StatusDot(A4L.Red)
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        when (host) {
+                            is CabinChat.GroupHost.Self ->
+                                stringResource(R.string.radar_group_host_self)
+                            is CabinChat.GroupHost.Peer ->
+                                stringResource(R.string.radar_group_host_peer, host.short)
+                        },
+                        style = A4LText.Caption,
+                        color = A4L.Red,
+                    )
+                }
             }
             if (salonOpen && salon != null) {
                 CabinSalonPanel(salon = salon, pensees = pensees, active = salonActive)
@@ -608,49 +660,6 @@ fun RadarScreen(
                     },
                     style = A4LText.Caption,
                     color = if (beaconRunning) A4L.Mint else A4L.TextMuted,
-                )
-            }
-            // Qui tient le groupe Wi-Fi Direct. En rouge, et ce n'est pas une
-            // alarme : c'est le poids du rôle. Le propriétaire EST le point
-            // d'accès, et son départ dissout le groupe pour tout le monde, là
-            // où un client qui s'en va ne retire que lui-même. Quand c'est
-            // nous, la phrase le dit — on part rarement en sachant qu'on
-            // emporte la voie des autres.
-            cabinStatus.groupHost?.let { host ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .glass(12.dp, A4L.Red.tint(0.06f), A4L.Red.tint(0.22f))
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    StatusDot(A4L.Red)
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        when (host) {
-                            is CabinChat.GroupHost.Self ->
-                                stringResource(R.string.radar_group_host_self)
-                            is CabinChat.GroupHost.Peer ->
-                                stringResource(R.string.radar_group_host_peer, host.short)
-                        },
-                        style = A4LText.Caption,
-                        color = A4L.Red,
-                    )
-                }
-            }
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .dashedGlass(12.dp, A4L.GlassFaint, A4L.Stroke.copy(alpha = 0.14f))
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("🌙", fontSize = 13.sp)
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    stringResource(R.string.radar_antipodes),
-                    style = A4LText.Caption,
-                    color = A4L.TextMuted,
                 )
             }
         }
@@ -1147,3 +1156,71 @@ private fun CabinError.text(): String =
     } else {
         stringResource(messageRes, *args.toTypedArray())
     }
+
+/**
+ * Les trois voies de la cabine, en glyphes, à côté du radar.
+ *
+ * Ce sont les **symboles génériques de Material**, pas les marques déposées du
+ * Bluetooth SIG ni de la Wi-Fi Alliance : celles-là ont des conditions d'usage
+ * réservées aux produits certifiés. Le rune et les arcs disent la même chose et
+ * se reconnaissent aussi bien.
+ *
+ * Quatre états, parce que les médiums se cumulent :
+ *  - **engagé** — c'est lui qui porte le trafic en ce moment (plein, menthe) ;
+ *  - **ouvert** — accepté, mais un plus rapide sert (menthe éteinte) ;
+ *  - **proposé** — un pair l'annonce, il reste à l'accepter (cyan) ;
+ *  - **hors d'atteinte** — personne ne l'offre (fantôme).
+ */
+@Composable
+private fun MediumGlyphs(
+    status: CabinChat.Status,
+    open: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        // Le cadran n'a pas de marge à lui : sans ce retrait, les glyphes se
+        // collaient 16 dp plus à gauche que tout le reste de l'écran.
+        modifier.padding(start = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Medium.entries.forEach { medium ->
+            val inUse = open && status.medium == medium
+            val enabled = open && medium in status.enabled
+            val offered = open && status.offered == medium
+            // Le bleu du Bluetooth SIG, ou la marque monochrome de la Wi-Fi
+            // Alliance — la seconde suit le thème, elle n'a pas de couleur.
+            val brand = if (medium == Medium.BLE) A4L.BluetoothBrand else A4L.WifiBrand
+            Icon(
+                imageVector = when (medium) {
+                    Medium.BLE -> Icons.Filled.Bluetooth
+                    // les arcs : on est client d'un point d'accès
+                    Medium.WIFI_STATION -> Icons.Filled.Wifi
+                    // les arcs qui rayonnent d'un point : le groupe est à nous
+                    Medium.WIFI_DIRECT -> Icons.Filled.WifiTethering
+                },
+                // le nom de la technologie, d'aucune langue — comme l'indicateur du haut
+                contentDescription = medium.short,
+                // Engagé : la couleur de la marque, vérifiée à la source. Le
+                // bleu du Bluetooth SIG (#0082FC) ne change pas d'heure ; la
+                // marque Wi-Fi Alliance, elle, est monochrome — blanche sur
+                // fond sombre, noire sur fond clair — donc elle suit le thème.
+                // Les autres états restent dans la palette de la station : une
+                // marque dit « ceci marche », pas « ceci est proposé ».
+                tint = when {
+                    // engagé : la marque, pleine
+                    inUse -> brand
+                    // proposé : un accent de la station, parce que c'est une
+                    // invitation à toucher, pas un état de la technologie
+                    offered -> A4L.Cyan
+                    // ouvert : la même marque, éteinte. Un gris neutre disait
+                    // « rien ici », alors que la technologie est bel et bien
+                    // allumée — et il se confondait avec l'état suivant.
+                    enabled -> brand.copy(alpha = 0.38f)
+                    else -> A4L.TextGhost
+                },
+                modifier = Modifier.size(if (inUse) 22.dp else 18.dp),
+            )
+        }
+    }
+}

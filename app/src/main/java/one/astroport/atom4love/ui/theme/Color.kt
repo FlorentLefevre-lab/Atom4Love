@@ -50,6 +50,20 @@ data class A4LPalette(
     val violet: Color,
     val red: Color,
 
+    // --- Marques des technologies de liaison ---
+    /**
+     * Le bleu du Bluetooth SIG, `#0082FC`, **identique dans les deux
+     * lumières** : c'est une couleur de marque, pas un accent de la station.
+     * La descendre pour le thème clair en ferait un autre bleu.
+     */
+    val bluetoothBrand: Color,
+    /**
+     * La marque Wi-Fi Alliance est **monochrome** : noire sur fond clair,
+     * blanche en « reverse signature » sur fond sombre. Il n'existe pas de
+     * couleur Wi-Fi — d'où ce champ, qui suit le thème au lieu d'une teinte.
+     */
+    val wifiBrand: Color,
+
     // --- Texte, du plus appuyé au plus effacé ---
     val textHigh: Color,
     val textStrong: Color,
@@ -93,6 +107,9 @@ val A4LDark = A4LPalette(
     indigo = Color(0xFFAAB4FF),           // MULTIPASS
     violet = Color(0xFFC48AFF),           // harmonie
     red = Color(0xFFF87171),              // erreur
+
+    bluetoothBrand = Color(0xFF0082FC),   // Bluetooth SIG
+    wifiBrand = Color(0xFFF2F5F7),        // Wi-Fi Alliance, signature inversée
 
     // blanc dégressif, comme les opacités du bandeau web
     textHigh = Color.White.copy(alpha = 0.90f),
@@ -150,6 +167,9 @@ val A4LLight = A4LPalette(
     indigo = Color(0xFF5560C8),
     violet = Color(0xFF7B44C9),
     red = Color(0xFFC43D3D),
+
+    bluetoothBrand = Color(0xFF0082FC),   // une marque ne change pas d'heure
+    wifiBrand = Color(0xFF15181A),        // Wi-Fi Alliance, signature positive
 
     // noir dégressif ; les niveaux hauts descendent un peu (le noir sur blanc
     // pèse plus que l'inverse), les niveaux bas remontent pour rester lisibles
@@ -213,6 +233,11 @@ object A4L {
     val TextDim: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.textDim
     val TextFaint: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.textFaint
     val TextGhost: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.textGhost
+
+    val BluetoothBrand: Color
+        @Composable @ReadOnlyComposable get() = LocalA4L.current.bluetoothBrand
+    val WifiBrand: Color
+        @Composable @ReadOnlyComposable get() = LocalA4L.current.wifiBrand
 
     val Glass: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.glass
     val GlassSoft: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.glassSoft

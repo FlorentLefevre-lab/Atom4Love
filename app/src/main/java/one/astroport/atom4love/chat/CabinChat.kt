@@ -309,6 +309,16 @@ class CabinChat(context: Context) {
          */
         val medium: Medium? = null,
         /**
+         * Les médiums que l'utilisateur a acceptés. Le BLE y est d'office.
+         *
+         * Ce n'est **pas** un choix parmi trois : l'ensemble ne fait que
+         * grandir, et le routage prend le plus rapide de ceux qui sont là. Un
+         * écran qui montrerait trois positions exclusives mentirait — d'où cet
+         * ensemble, qui dit ce qui est ouvert, à côté de [medium] qui dit ce
+         * qui porte réellement.
+         */
+        val enabled: Set<Medium> = setOf(Medium.BLE),
+        /**
          * Qui tient le groupe Wi-Fi Direct, quand il y en a un.
          *
          * Ça mérite d'être dit, parce que ce n'est pas un détail de topologie :
@@ -2705,6 +2715,7 @@ class CabinChat(context: Context) {
                 links = ready.size,
                 unattestedLinks = ready.count { it.peerNostrKey == null },
                 medium = inUse,
+                enabled = enabledMedia.toSet(),
                 groupHost = groupHost,
                 offered = offered,
             )
