@@ -62,6 +62,9 @@ class P2pGroup(context: Context) {
          * et lire ce dialogue prend plus de vingt secondes.
          */
         private const val JOIN_TIMEOUT_MS = 90_000L
+
+        /** Répit avant de tenir un groupe perdu pour un groupe fermé. */
+        private const val LOST_GRACE_MS = 6_000L
         private const val POLL_MS = 400L
 
         /**
@@ -142,6 +145,17 @@ class P2pGroup(context: Context) {
     private var joinedCallback: ConnectivityManager.NetworkCallback? = null
     private var joinedNetwork: Network? = null
     private var joinedName: String? = null
+
+    /**
+     * Prévenu quand le groupe qu'on avait rejoint disparaît pour de bon.
+     *
+     * L'hôte, lui, l'apprend par `WIFI_P2P_CONNECTION_CHANGED` — mais depuis
+     * qu'un invité entre par requête réseau, Android ne le voit plus comme un
+     * client P2P et ne lui diffuse plus rien. Sans ce rappel, l'invité gardait
+     * une ligne affirmant que le pair tient encore un groupe fermé depuis
+     * longtemps.
+     */
+    var onGroupLost: (() -> Unit)? = null
 
     /**
      * Le nom du groupe engagé, écrit sur le disque — parce qu'il doit survivre
@@ -355,10 +369,19 @@ class P2pGroup(context: Context) {
                 }
 
                 override fun onLost(network: Network) {
-                    // l'hôte a refermé, ou on s'est éloigné : la connexion
-                    // n'existe plus, mais la requête vit encore et retentera
+                    // La requête vit encore et retentera : une perte peut n'être
+                    // qu'un trou d'antenne. On laisse donc un répit avant de
+                    // déclarer le groupe fermé — sinon le moindre clignotement
+                    // annoncerait un départ qui n'a pas eu lieu.
                     Log.i(TAG, "groupe ${credentials.networkName} perdu")
                     joinedNetwork = null
+                    val mine = joinedCallback
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        if (joinedCallback === mine && joinedNetwork == null) {
+                            Log.i(TAG, "groupe ${credentials.networkName} : parti pour de bon")
+                            onGroupLost?.invoke()
+                        }
+                    }, LOST_GRACE_MS)
                 }
 
                 override fun onUnavailable() {

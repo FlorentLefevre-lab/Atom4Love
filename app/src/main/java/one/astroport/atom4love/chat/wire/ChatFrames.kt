@@ -21,6 +21,7 @@ import java.util.zip.CRC32
  *   ADDR   [0x06][médium 1][port 2][lgHôte 1][hôte…]
  *   GROUP  [0x07][port 2][lgNom 1][nom…][lgPasse 1][passe…]
  *   CANCEL [0x08][id 4]
+ *   BYE    [0x09]
  *
  * L'id est tiré au hasard par l'émetteur ; il sert aussi à dédoublonner les
  * flux jumeaux du double lien croisé (deux connexions entre les deux mêmes
@@ -67,6 +68,18 @@ sealed interface ChatFrame {
      * jusqu'à l'élagage — trente secondes, avec un fichier à moitié écrit.
      */
     data class Cancel(val msgId: Int) : ChatFrame
+
+    /**
+     * « Je m'en vais » — un octet, avant de fermer la cabine.
+     *
+     * Ça ne peut pas se déduire de la radio : celui qui tient une connexion
+     * BLE, c'est la **centrale**, et un périphérique ne peut pas la congédier
+     * — `cancelConnection` ne vaut que pour les liens qu'il a lui-même
+     * composés (mesuré au banc le 13/08). Sans ce mot, le pair nous comptait
+     * « ici » pendant tout le délai de supervision, une quinzaine de secondes,
+     * et sa cabine proposait de nous rejoindre.
+     */
+    data object Bye : ChatFrame
 
     /**
      * Un des trois messages du handshake Noise XX. [step] vaut 1, 2 ou 3 : il
@@ -132,6 +145,7 @@ object ChatFrames {
     private const val TYPE_ADDRESS = 0x06
     private const val TYPE_GROUP = 0x07
     private const val TYPE_CANCEL = 0x08
+    private const val TYPE_BYE = 0x09
 
     /** [type][médium][port 2][longueur de l'hôte]. */
     private const val ADDRESS_FIXED = 5
@@ -306,6 +320,9 @@ object ChatFrames {
             .array()
     }
 
+    /** Un seul octet : la plus courte trame du protocole. */
+    fun encodeBye(): ByteArray = byteArrayOf(TYPE_BYE.toByte())
+
     /** [type][id] — cinq octets, la plus courte trame à identifiant. */
     fun encodeCancel(msgId: Int): ByteArray =
         ByteBuffer.allocate(5)
@@ -357,6 +374,7 @@ object ChatFrames {
             if (name.isEmpty() || passphrase.isEmpty() || port == 0) return null
             return ChatFrame.Group(name, passphrase, port)
         }
+        if (bytes.size == 1 && bytes[0].toInt() == TYPE_BYE) return ChatFrame.Bye
         // CANCEL ne porte qu'un identifiant : cinq octets, sous le plancher
         // des trames vérifié juste après
         if (bytes.isNotEmpty() && bytes[0].toInt() == TYPE_CANCEL) {

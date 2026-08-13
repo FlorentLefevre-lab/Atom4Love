@@ -614,7 +614,14 @@ fun RadarScreen(
                         // du lieu quand il est là, ou rouvrir un groupe soi-même.
                         // N'en proposer qu'une laissait sans porte de sortie qui
                         // n'a pas de box en commun avec le pair restant.
-                        if (Medium.WIFI_STATION in cabinStatus.reachable) {
+                        // Une issue ne se propose que s'il reste quelqu'un à
+                        // rejoindre. Quand le pair a fermé sa cabine et pas
+                        // seulement son groupe, il n'y a plus de voie vers
+                        // personne : offrir « repasser en Wi-Fi AP » promettait
+                        // une reconnexion impossible, qui finissait en
+                        // « injoignable ».
+                        val someoneLeft = cabinPeers.isNotEmpty()
+                        if (someoneLeft && Medium.WIFI_STATION in cabinStatus.reachable) {
                             Text(
                                 stringResource(
                                     R.string.radar_group_fallback,
@@ -624,18 +631,27 @@ fun RadarScreen(
                                 color = A4L.Cyan,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .clickable { onSelectMedium(Medium.WIFI_STATION) }
+                                    .clickable {
+                                        // la nouvelle a été lue, et on agit
+                                        // dessus : la garder à l'écran ferait
+                                        // douter que le geste ait porté
+                                        cabin?.dismissGroupClosed()
+                                        onSelectMedium(Medium.WIFI_STATION)
+                                    }
                                     .padding(vertical = 2.dp),
                             )
                         }
-                        if (Medium.WIFI_DIRECT in cabinStatus.reachable) {
+                        if (someoneLeft && Medium.WIFI_DIRECT in cabinStatus.reachable) {
                             Text(
                                 stringResource(R.string.radar_group_reopen),
                                 style = A4LText.Caption,
                                 color = A4L.Cyan,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .clickable { onSelectMedium(Medium.WIFI_DIRECT) }
+                                    .clickable {
+                                        cabin?.dismissGroupClosed()
+                                        onSelectMedium(Medium.WIFI_DIRECT)
+                                    }
                                     .padding(vertical = 2.dp),
                             )
                         }

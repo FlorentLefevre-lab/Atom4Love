@@ -91,6 +91,8 @@ import java.util.zip.CRC32
 import androidx.core.content.IntentCompat
 import android.net.wifi.p2p.WifiP2pManager
 import android.net.wifi.p2p.WifiP2pInfo
+import android.os.Handler
+import android.os.Looper
 
 /**
  * Le canal direct de la cabine : ce qui se dit **ici**, entre gens à portée.
@@ -174,6 +176,16 @@ class CabinChat(context: Context) {
 
         /** Ce qu'un récepteur accepte, quel que soit le médium d'arrivée. */
         const val MAX_TRANSFER_BYTES = MAX_TRANSFER_STREAM
+
+        /** Le temps de laisser partir les adieux avant d'éteindre les fils. */
+        private const val BYE_FLUSH_MS = 350L
+
+        /** Le temps qu'une annulation de connexion parte avant de fermer le serveur. */
+        private const val SERVER_CLOSE_DELAY_MS = 600L
+
+        /** Recomposer après la perte d'un médium : le temps qu'il revienne. */
+        private const val REDIAL_ATTEMPTS = 4
+        private const val REDIAL_DELAY_MS = 3_000L
 
         /** Tampon des lectures qui ne servent qu'à calculer un CRC. */
         private const val CRC_BUFFER = 64 * 1024
@@ -837,6 +849,10 @@ class CabinChat(context: Context) {
         )
         registerStateReceiver()
         registerGroupReceiver()
+        // L'hôte apprend la fin de son groupe par la diffusion système ; un
+        // invité entré par requête réseau, lui, ne reçoit plus rien d'Android —
+        // c'est `P2pGroup` qui le lui dit.
+        p2p.onGroupLost = { scope.launch { onGroupGone() } }
         startRadio()
         startListener()
         scope.launch {
@@ -869,6 +885,14 @@ class CabinChat(context: Context) {
         if (inGroup) runCatching { p2p.release() }
         inGroup = false
         groupHost = null
+        // Dire au revoir, tant que les fils d'émission vivent encore : après
+        // `scope.cancel()` plus rien n'écrit. Un pair ne peut pas déduire notre
+        // départ de la radio — c'est lui qui tient la connexion BLE, et un
+        // périphérique ne congédie pas une centrale. Sans ce mot, il nous
+        // comptait « ici » une quinzaine de secondes de plus.
+        val bye = ChatFrames.encodeBye()
+        links.values.forEach { if (it.ready) it.control.trySend(bye) }
+        runCatching { Thread.sleep(BYE_FLUSH_MS) }
         scope.cancel()
         // le démontage des liens passe par le fil protocole : l'executor FIFO
         // le sérialise derrière tout corps de coroutine encore en cours
@@ -876,7 +900,15 @@ class CabinChat(context: Context) {
             executor.submit {
                 links.values.forEach { link ->
                     link.failPending()
+                    // Se déconnecter AVANT de fermer. `close()` seul relâche nos
+                    // ressources sans rien dire au pair : il nous croyait encore
+                    // là jusqu'au délai de supervision Bluetooth, plusieurs
+                    // secondes pendant lesquelles sa cabine nous comptait parmi
+                    // les présents et lui proposait de nous rejoindre. Partir se
+                    // dit, ça ne se laisse pas deviner.
+                    runCatching { link.gatt?.disconnect() }
                     runCatching { link.gatt?.close() }
+                    runCatching { link.device?.let { server?.cancelConnection(it) } }
                     link.stream?.close()
                 }
                 links.clear()
@@ -886,8 +918,18 @@ class CabinChat(context: Context) {
                 synchronized(subscribedAddresses) { subscribedAddresses.clear() }
             }.get()
         }
-        runCatching { server?.close() }
+        // Fermer le serveur emporte les annulations qu'on vient de demander :
+        // `cancelConnection` est asynchrone, et `close()` dans la foulée coupe
+        // la commande avant qu'elle parte — mesuré au banc le 13/08, le pair
+        // gardait son lien CLIENT et nous comptait « ici » pendant tout le
+        // délai de supervision. Même piège que `removeGroup`, même parade : on
+        // laisse partir, puis on ferme. Le Looper principal survit à la cabine.
+        val closing = server
         server = null
+        Handler(Looper.getMainLooper()).postDelayed(
+            { runCatching { closing?.close() } },
+            SERVER_CLOSE_DELAY_MS,
+        )
         dispatcher.close()
         // fermer la cabine en plein transfert laisserait la balise muette pour
         // toujours : le silence était le nôtre, il part avec nous
@@ -1899,6 +1941,12 @@ class CabinChat(context: Context) {
             is ChatFrame.Address -> onAddressFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Group -> onGroupFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Ack -> onAck(frame)
+            // Le pair ferme sa cabine. On le retire tout de suite plutôt que
+            // d'attendre que la radio s'en aperçoive.
+            is ChatFrame.Bye -> {
+                Log.i(TAG, "$from s'en va")
+                removeLink(medium, kind, from)
+            }
             // Le réassembleur efface le partiel et rend un échec ; l'écran, lui,
             // ne doit pas dire « échec » — rien n'a raté, quelqu'un a renoncé.
             is ChatFrame.Cancel -> {
@@ -2413,7 +2461,49 @@ class CabinChat(context: Context) {
 
     fun enable(medium: Medium) {
         scope.launch {
-            if (!enabledMedia.add(medium)) return@launch
+            // Déjà accepté ne veut pas dire déjà relié : après la fermeture
+            // d'un groupe, « repasser en Wi-Fi AP » tombait sur un médium
+            // toujours dans la liste et ne faisait donc rien du tout — le
+            // bouton semblait mort. On ressort d'ici sans rien reformer, mais
+            // on recompose toujours vers ce qu'on connaît de ce pair.
+            val fresh = enabledMedia.add(medium)
+            if (!fresh) {
+                Log.i(TAG, "médium déjà accepté : ${medium.short} — on recompose")
+                // Patiemment. Quitter un groupe Wi-Fi Direct rend l'appareil au
+                // réseau du lieu, mais pas dans la seconde : composer tout de
+                // suite échouait et écrivait « Wi-Fi AP injoignable » dans la
+                // cabine, ce qui était vrai à l'instant même et faux dix
+                // secondes plus tard. On laisse à la station le temps de
+                // revenir avant de conclure quoi que ce soit.
+                offers.values.forEach { byMedium ->
+                    val entry = byMedium[medium] ?: return@forEach
+                    scope.launch {
+                        repeat(REDIAL_ATTEMPTS) { attempt ->
+                            delay(REDIAL_DELAY_MS)
+                            if (links.values.any { it.medium == medium }) return@launch
+                            // le dernier essai seul a le droit de se plaindre
+                            unreachable.remove(medium)
+                            dial(medium, entry.first, entry.second)
+                            // On se tait tant qu'il reste des essais — et aussi
+                            // quand plus personne n'est là : ce n'est alors pas
+                            // le médium qui est injoignable, c'est que le pair
+                            // est parti, et la cabine le dit déjà autrement.
+                            val alone = links.values.none { it.peerNostrKey != null && it.ready }
+                            if (attempt < REDIAL_ATTEMPTS - 1 || alone) {
+                                _status.update {
+                                    if (it.lastError is CabinError.MediumUnreachable) {
+                                        it.copy(lastError = null)
+                                    } else {
+                                        it
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                refreshLinks()
+                return@launch
+            }
             Log.i(TAG, "médium accepté : ${medium.short}")
             if (medium == Medium.WIFI_DIRECT) {
                 // Déjà invité : on entre chez le pair plutôt que d'ouvrir un

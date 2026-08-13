@@ -69,6 +69,7 @@ class Reassembler(
         is ChatFrame.Sealed -> null // déjà ouvert par le lien avant d'arriver ici
         is ChatFrame.Address -> null // affaire de médium, pas de flux
         is ChatFrame.Group -> null // idem : une invitation, pas du contenu
+        is ChatFrame.Bye -> null // affaire de lien, pas de flux
     }
 
     private fun onStart(from: String, start: ChatFrame.Start): Event? {
