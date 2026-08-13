@@ -60,6 +60,11 @@ class Reassembler(
         is ChatFrame.Start -> onStart(from, frame)
         is ChatFrame.Data -> onData(from, frame)
         is ChatFrame.Ack -> null // l'acquittement se traite côté émetteur
+        // l'émetteur renonce : le flux s'arrête ici, et son partiel avec lui —
+        // pas d'accusé en retour, il n'attend plus rien
+        is ChatFrame.Cancel -> streams[frame.msgId]?.let {
+            abandon(frame.msgId, "envoi annulé par l'expéditeur")
+        }
         is ChatFrame.Handshake -> null // le handshake appartient au lien, pas aux flux
         is ChatFrame.Sealed -> null // déjà ouvert par le lien avant d'arriver ici
         is ChatFrame.Address -> null // affaire de médium, pas de flux

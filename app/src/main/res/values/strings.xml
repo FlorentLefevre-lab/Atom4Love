@@ -156,6 +156,8 @@
     <string name="chat_sending_percent">↑ %1$d %%</string>
     <string name="chat_receiving_percent">↓ %1$d %%</string>
     <string name="chat_failed">échec</string>
+    <string name="chat_cancelled">annulé</string>
+    <string name="chat_cancel_send">✕ annuler l\'envoi</string>
 
     <!-- ─── La barre du bas : les cinq destinations ───────────────────── -->
     <string name="tab_radar">Radar</string>

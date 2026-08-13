@@ -139,6 +139,7 @@ private fun BleChatScreen(probe: CabinChat) {
             onSendText = { text -> probe.sendText(text) },
             onSendImage = { uri -> probe.sendImage(uri) },
             onSendFile = { uri -> probe.sendFile(uri) },
+            onCancel = { message -> probe.cancelSend(message.id) },
             onOpen = { message ->
                 message.file?.let { file ->
                     runCatching {

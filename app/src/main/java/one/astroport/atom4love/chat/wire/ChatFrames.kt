@@ -20,6 +20,7 @@ import java.util.zip.CRC32
  *   SEALED [0x05][chiffré…]
  *   ADDR   [0x06][médium 1][port 2][lgHôte 1][hôte…]
  *   GROUP  [0x07][port 2][lgNom 1][nom…][lgPasse 1][passe…]
+ *   CANCEL [0x08][id 4]
  *
  * L'id est tiré au hasard par l'émetteur ; il sert aussi à dédoublonner les
  * flux jumeaux du double lien croisé (deux connexions entre les deux mêmes
@@ -53,6 +54,19 @@ sealed interface ChatFrame {
         val msgId: Int,
         val status: Int,
     ) : ChatFrame
+
+    /**
+     * L'émetteur renonce à un transfert en cours.
+     *
+     * Ce n'est pas un ACK et ça ne pouvait pas l'être : l'accusé remonte du
+     * récepteur vers l'émetteur (« je l'ai eu », « je le refuse »), l'annulation
+     * fait le chemin inverse. Les confondre aurait fait passer une annulation
+     * pour un verdict de remise, et relevé un message que personne ne recevra.
+     *
+     * Sans elle, un envoi abandonné laissait le pair attendre en silence
+     * jusqu'à l'élagage — trente secondes, avec un fichier à moitié écrit.
+     */
+    data class Cancel(val msgId: Int) : ChatFrame
 
     /**
      * Un des trois messages du handshake Noise XX. [step] vaut 1, 2 ou 3 : il
@@ -117,6 +131,7 @@ object ChatFrames {
     private const val TYPE_SEALED = 0x05
     private const val TYPE_ADDRESS = 0x06
     private const val TYPE_GROUP = 0x07
+    private const val TYPE_CANCEL = 0x08
 
     /** [type][médium][port 2][longueur de l'hôte]. */
     private const val ADDRESS_FIXED = 5
@@ -291,6 +306,13 @@ object ChatFrames {
             .array()
     }
 
+    /** [type][id] — cinq octets, la plus courte trame à identifiant. */
+    fun encodeCancel(msgId: Int): ByteArray =
+        ByteBuffer.allocate(5)
+            .put(TYPE_CANCEL.toByte())
+            .putInt(msgId)
+            .array()
+
     fun encodeAck(msgId: Int, status: Int): ByteArray =
         ByteBuffer.allocate(6)
             .put(TYPE_ACK.toByte())
@@ -334,6 +356,14 @@ object ChatFrames {
             val passphrase = lengthPrefixed(buffer) ?: return null
             if (name.isEmpty() || passphrase.isEmpty() || port == 0) return null
             return ChatFrame.Group(name, passphrase, port)
+        }
+        // CANCEL ne porte qu'un identifiant : cinq octets, sous le plancher
+        // des trames vérifié juste après
+        if (bytes.isNotEmpty() && bytes[0].toInt() == TYPE_CANCEL) {
+            if (bytes.size < 5) return null
+            val buffer = ByteBuffer.wrap(bytes)
+            buffer.get()
+            return ChatFrame.Cancel(buffer.int)
         }
         if (bytes.size < 6) return null
         val buffer = ByteBuffer.wrap(bytes)

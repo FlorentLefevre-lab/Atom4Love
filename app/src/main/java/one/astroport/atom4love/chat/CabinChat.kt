@@ -175,6 +175,9 @@ class CabinChat(context: Context) {
         /** Tampon des lectures qui ne servent qu'à calculer un CRC. */
         private const val CRC_BUFFER = 64 * 1024
 
+        /** Envois annulés retenus : au-delà, plus rien n'est en vol. */
+        private const val CANCELLED_MAX = 128
+
         /**
          * Ce que l'UI doit demander avant [start]. Aucune localisation : le
          * canal direct n'a pas à savoir où il est, et le scan est déclaré
@@ -647,6 +650,16 @@ class CabinChat(context: Context) {
      * Tout le reste va droit sur le disque, fragment par fragment : c'est ce
      * qui permet à une vidéo de peser plus que ce que le téléphone peut tenir.
      */
+    /**
+     * Les envois auxquels on a renoncé. Lu à chaque fragment par les fils
+     * d'émission : un message part vers plusieurs pairs à la fois, et renoncer
+     * doit les arrêter tous, pas seulement celui qu'on regardait.
+     *
+     * Pas de synchronisation : tout ce qui touche à ce registre vit sur le fil
+     * protocole, comme les liens eux-mêmes.
+     */
+    private val cancelled = LinkedHashSet<Int>()
+
     private val reassembler = Reassembler(MAX_TRANSFER_BYTES) { start ->
         if (start.kind == ChatFrames.KIND_TEXT) {
             MemorySink(start.totalBytes)
@@ -886,6 +899,39 @@ class CabinChat(context: Context) {
             val read = Attachments.stage(appContext, uri, limit)
             withContext(dispatcher) {
                 dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, limit)
+            }
+        }
+    }
+
+    /**
+     * Renoncer à un envoi en cours.
+     *
+     * Deux gestes, et le second n'est pas une politesse : on arrête d'émettre,
+     * **et on le dit aux pairs**. Sans la trame, chacun d'eux resterait suspendu
+     * à un flux qui ne viendra plus, jusqu'à l'élagage — trente secondes de
+     * silence, avec un fichier à moitié écrit sur le disque.
+     *
+     * Un transfert déjà terminé s'annule en vain : le message est parti, le
+     * registre le retiendra pour rien. Ça ne coûte qu'une entrée, et ça évite
+     * une course entre le dernier fragment et le doigt.
+     */
+    fun cancelSend(msgId: Int) {
+        scope.launch {
+            if (!cancelled.add(msgId)) return@launch
+            // le registre ne sert qu'aux transferts en vol : au-delà, la plus
+            // vieille entrée n'arrêtera plus rien
+            while (cancelled.size > CANCELLED_MAX) cancelled.remove(cancelled.first())
+            Log.i(TAG, "envoi $msgId annulé")
+            broadcastControl(ChatFrames.encodeCancel(msgId))
+            progressPct.remove(msgId)
+            sentAtMs.remove(msgId)
+            ackWatchdogs.remove(msgId)?.cancel()
+            updateMessage(msgId) { message ->
+                if (message.status == ChatStatus.SENDING) {
+                    message.copy(status = ChatStatus.CANCELLED)
+                } else {
+                    message
+                }
             }
         }
     }
@@ -1410,6 +1456,13 @@ class CabinChat(context: Context) {
                     val control = link.control.tryReceive().getOrNull() ?: break
                     writeFrame(link, control)
                 }
+                // renoncement : on sort entre deux fragments, jamais au milieu
+                // d'une écriture — la trame d'annulation est déjà partie par le
+                // canal de contrôle, qui passe devant les fragments
+                if (out.msgId in cancelled) {
+                    Log.i(TAG, "message ${out.msgId} : émission arrêtée à $offset/$total o")
+                    return
+                }
                 val fragmentStart = SystemClock.elapsedRealtime()
                 val read = runCatching { reader.read(buffer) }.getOrDefault(-1)
                 if (read <= 0) {
@@ -1686,6 +1739,12 @@ class CabinChat(context: Context) {
             is ChatFrame.Address -> onAddressFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Group -> onGroupFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Ack -> onAck(frame)
+            // Le réassembleur efface le partiel et rend un échec ; l'écran, lui,
+            // ne doit pas dire « échec » — rien n'a raté, quelqu'un a renoncé.
+            is ChatFrame.Cancel -> {
+                reassembler.onFrame(from, frame)
+                onIncomingCancelled(frame.msgId)
+            }
             else -> when (val event = reassembler.onFrame(from, frame)) {
                 is Reassembler.Event.Started -> onIncomingStarted(medium, event)
                 is Reassembler.Event.Progress ->
@@ -1765,6 +1824,27 @@ class CabinChat(context: Context) {
         progressPct.remove(event.msgId)
         updateMessage(event.msgId) { it.copy(status = ChatStatus.FAILED) }
         event.ackStatus?.let { broadcastControl(ChatFrames.encodeAck(event.msgId, it)) }
+        maybeResumeRadio()
+    }
+
+    /**
+     * Le pair renonce à ce qu'il nous envoyait. Le réassembleur a déjà effacé
+     * son partiel ; il reste à le dire à l'écran, sans en faire un échec — rien
+     * n'a échoué, quelqu'un a changé d'avis.
+     */
+    private fun onIncomingCancelled(msgId: Int) {
+        Log.i(TAG, "réception $msgId : annulée par l'expéditeur")
+        progressPct.remove(msgId)
+        updateMessage(msgId) { message ->
+            // Une annulation partie pendant les derniers fragments arrive après
+            // la fin : le message est là, complet et vérifié. On ne le rature
+            // pas — le renoncement n'a simplement pas gagné la course.
+            if (message.status == ChatStatus.RECEIVING) {
+                message.copy(status = ChatStatus.CANCELLED)
+            } else {
+                message
+            }
+        }
         maybeResumeRadio()
     }
 

@@ -186,6 +186,62 @@ class DiskTransferTest {
         assertNull(sink.finish())
     }
 
+    // ── L'annulation d'un envoi ───────────────────────────────────────────
+
+    @Test
+    fun `une annulation emporte le flux en cours et son partiel`() {
+        val r = reassembler()
+        val content = ByteArray(200) { 2 }
+        r.onFrame("A", start(1, content))
+        r.onFrame("A", frags(1, content, 50)[0])
+        assertTrue(partial().exists())
+
+        val failed = r.onFrame("A", ChatFrame.Cancel(1)) as Reassembler.Event.Failed
+
+        assertEquals(1, failed.msgId)
+        // pas d'accusé : l'expéditeur a renoncé, il n'attend plus de verdict
+        assertNull(failed.ackStatus)
+        assertEquals(0, r.activeStreams())
+        assertFalse(partial().exists())
+        assertFalse(destination.exists())
+    }
+
+    /** Elle est partie pendant les derniers fragments et arrive trop tard. */
+    @Test
+    fun `une annulation apres la fin ne detruit pas le fichier recu`() {
+        val r = reassembler()
+        val content = ByteArray(100) { 5 }
+        r.onFrame("A", start(1, content))
+        r.onFrame("A", frags(1, content, 100)[0])
+        assertTrue(destination.exists())
+
+        assertNull(r.onFrame("A", ChatFrame.Cancel(1)))
+
+        assertTrue("le fichier reçu doit survivre", destination.exists())
+        assertArrayEquals(content, destination.readBytes())
+    }
+
+    @Test
+    fun `une annulation pour un flux inconnu ne fait rien`() {
+        val r = reassembler()
+
+        assertNull(r.onFrame("A", ChatFrame.Cancel(42)))
+    }
+
+    @Test
+    fun `la trame d'annulation survit a l'aller-retour du fil`() {
+        val encoded = ChatFrames.encodeCancel(-77)
+
+        assertEquals(5, encoded.size)
+        assertEquals(ChatFrame.Cancel(-77), ChatFrames.decode(encoded))
+    }
+
+    /** Une trame tronquée s'ignore, elle ne fait pas tomber le lien. */
+    @Test
+    fun `une annulation tronquee se decode en rien`() {
+        assertNull(ChatFrames.decode(ChatFrames.encodeCancel(1).copyOf(4)))
+    }
+
     private fun drain(source: Source): ByteArray {
         val out = ArrayList<Byte>()
         val buffer = ByteArray(64)

@@ -982,6 +982,7 @@ private fun CabinDirectPanel(chat: CabinChat) {
             onSendText = { text -> chat.sendText(text) },
             onSendImage = { uri -> chat.sendImage(uri) },
             onSendFile = { uri -> chat.sendFile(uri) },
+            onCancel = { message -> chat.cancelSend(message.id) },
             onOpen = { message ->
                 message.file?.let { file ->
                     runCatching {

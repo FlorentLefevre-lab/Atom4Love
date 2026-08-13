@@ -130,6 +130,8 @@
     <string name="chat_unnamed_video">vídeo</string>
     <string name="chat_sending_percent">↑ %1$d %%</string>
     <string name="chat_receiving_percent">↓ %1$d %%</string>
+    <string name="chat_cancelled">cancelado</string>
+    <string name="chat_cancel_send">✕ cancelar el envío</string>
     <string name="chat_failed">fallo</string>
 
     <!-- ─── La barra inferior ─────────────────────────────────────────── -->

@@ -4,7 +4,11 @@ import java.io.File
 
 enum class ChatKind { TEXT, IMAGE, FILE }
 
-enum class ChatStatus { SENDING, SENT, DELIVERED, RECEIVING, RECEIVED, FAILED }
+/**
+ * CANCELLED n'est pas un FAILED : rien n'a raté, quelqu'un a renoncé. Les deux
+ * bouts l'affichent — celui qui a renoncé, et celui qui attendait.
+ */
+enum class ChatStatus { SENDING, SENT, DELIVERED, RECEIVING, RECEIVED, FAILED, CANCELLED }
 
 /**
  * Un message affiché par le panneau de causerie — indépendant du transport :

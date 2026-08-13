@@ -83,6 +83,7 @@ fun ChatPanel(
     onSendFile: (Uri) -> Unit,
     onOpen: (ChatMessage) -> Unit,
     onDownload: (ChatMessage) -> Unit,
+    onCancel: (ChatMessage) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var draft by rememberSaveable { mutableStateOf("") }
@@ -122,7 +123,9 @@ fun ChatPanel(
             if (messages.isEmpty()) {
                 item { Text(emptyHint, style = A4LText.Caption, color = A4L.TextMuted) }
             }
-            items(messages) { message -> MessageBubble(message, onOpen, onDownload, audio, video) }
+            items(messages) { message ->
+                MessageBubble(message, onOpen, onDownload, onCancel, audio, video)
+            }
         }
 
         if (emojiOpen) {
@@ -185,6 +188,7 @@ private fun MessageBubble(
     message: ChatMessage,
     onOpen: (ChatMessage) -> Unit,
     onDownload: (ChatMessage) -> Unit,
+    onCancel: (ChatMessage) -> Unit,
     audio: AudioPlayback,
     video: VideoPlayback,
 ) {
@@ -226,6 +230,19 @@ private fun MessageBubble(
                 message.mime.startsWith("audio/") && message.file != null ->
                     AudioContent(message, audio)
                 else -> FileContent(message, onOpen)
+            }
+            // Tant que ça monte, on peut encore renoncer. Seulement sur ses
+            // propres envois : on n'annule pas ce que quelqu'un nous adresse.
+            if (message.mine && message.status == ChatStatus.SENDING) {
+                Text(
+                    stringResource(R.string.chat_cancel_send),
+                    style = A4LText.Caption,
+                    color = A4L.Amber,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { onCancel(message) }
+                        .padding(vertical = 2.dp),
+                )
             }
             if (message.kind != ChatKind.TEXT && message.file != null) {
                 Text(
@@ -274,6 +291,12 @@ private fun StatusMark(message: ChatMessage) {
             stringResource(R.string.chat_failed),
             style = A4LText.Data,
             color = A4L.Red,
+        )
+        // en ambre et non en rouge : ce n'est pas une panne, c'est une décision
+        ChatStatus.CANCELLED -> Text(
+            stringResource(R.string.chat_cancelled),
+            style = A4LText.Data,
+            color = A4L.Amber,
         )
     }
 }
