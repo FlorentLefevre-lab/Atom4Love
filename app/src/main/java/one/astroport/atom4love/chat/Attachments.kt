@@ -217,7 +217,7 @@ object Attachments {
 
     fun humanSize(res: Resources, bytes: Int): String = humanSize(res, bytes.toLong())
 
-    private fun displayName(context: Context, uri: Uri): String? = runCatching {
+    fun displayName(context: Context, uri: Uri): String? = runCatching {
         context.contentResolver
             .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
             ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }

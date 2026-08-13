@@ -70,7 +70,10 @@
          concaténation : l'ordre des mots n'est pas le même d'une langue à
          l'autre, et une bribe seule ne se traduit pas. -->
     <string name="cabin_too_big_title">Pièce trop lourde</string>
-    <string name="cabin_too_big_ok">Compris</string>
+    <string name="cabin_refused_ok">Compris</string>
+    <string name="cabin_video_wifi_title">La vidéo passe en Wi-Fi</string>
+    <string name="cabin_video_wifi_named">« %1$s » est une vidéo, et elle part telle qu\'elle a été filmée — jamais recompressée. La cabine est %2$s : la radio tient 14 Ko/s, une seconde d\'image y prendrait des minutes. Passez en Wi-Fi depuis l\'indicateur du haut.</string>
+    <string name="cabin_video_wifi_unnamed">Une vidéo part telle qu\'elle a été filmée — jamais recompressée. La cabine est %1$s : la radio tient 14 Ko/s, une seconde d\'image y prendrait des minutes. Passez en Wi-Fi depuis l\'indicateur du haut.</string>
     <string name="cabin_too_big_sized">« %1$s » fait %2$s, au-delà des %3$s que porte la cabine %4$s.</string>
     <string name="cabin_too_big_unsized">« %1$s » dépasse les %2$s que porte la cabine %3$s.</string>
     <string name="cabin_too_big_ble_advice">Le BLE tient 14 Ko/s : la même pièce y prendrait un quart d\'heure. Passez en Wi-Fi depuis l\'indicateur du haut et la limite monte à %1$s.</string>
@@ -149,6 +152,7 @@
     <string name="chat_image_receiving">image en réception…</string>
     <string name="chat_unnamed_file">fichier</string>
     <string name="chat_unnamed_audio">audio</string>
+    <string name="chat_unnamed_video">vidéo</string>
     <string name="chat_sending_percent">↑ %1$d %%</string>
     <string name="chat_receiving_percent">↓ %1$d %%</string>
     <string name="chat_failed">échec</string>

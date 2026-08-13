@@ -52,7 +52,10 @@
     <string name="cabin_save_failed">No se pudo guardar</string>
 
     <string name="cabin_too_big_title">Adjunto demasiado pesado</string>
-    <string name="cabin_too_big_ok">Entendido</string>
+    <string name="cabin_video_wifi_title">El vídeo pasa por Wi-Fi</string>
+    <string name="cabin_video_wifi_named">«%1$s» es un vídeo y sale tal como se filmó, sin recomprimir nunca. La cabina está %2$s: la radio soporta 14 kB/s, donde un segundo de imagen tardaría minutos. Cambie a Wi-Fi desde el indicador de arriba.</string>
+    <string name="cabin_video_wifi_unnamed">Un vídeo sale tal como se filmó, sin recomprimir nunca. La cabina está %1$s: la radio soporta 14 kB/s, donde un segundo de imagen tardaría minutos. Cambie a Wi-Fi desde el indicador de arriba.</string>
+    <string name="cabin_refused_ok">Entendido</string>
     <string name="cabin_too_big_sized">«%1$s» pesa %2$s, más allá de los %3$s que lleva la cabina %4$s.</string>
     <string name="cabin_too_big_unsized">«%1$s» supera los %2$s que lleva la cabina %3$s.</string>
     <string name="cabin_too_big_ble_advice">El BLE aguanta 14 KB/s: el mismo adjunto tardaría un cuarto de hora. Pasa a Wi-Fi desde el indicador de arriba y el límite sube a %1$s.</string>
@@ -124,6 +127,7 @@
     <string name="chat_image_receiving">imagen entrando…</string>
     <string name="chat_unnamed_file">archivo</string>
     <string name="chat_unnamed_audio">audio</string>
+    <string name="chat_unnamed_video">vídeo</string>
     <string name="chat_sending_percent">↑ %1$d %%</string>
     <string name="chat_receiving_percent">↓ %1$d %%</string>
     <string name="chat_failed">fallo</string>

@@ -351,13 +351,64 @@ class CabinChat(context: Context) {
      * un dialogue : quelqu'un vient de choisir un fichier dans un sélecteur
      * système, il doit apprendre pourquoi il ne part pas, et de combien.
      */
-    data class TooBig(val name: String, val bytes: Long, val limit: Int, val medium: Medium)
+    /**
+     * La cabine refuse une pièce, et dit pourquoi. Deux raisons aujourd'hui, et
+     * elles ne se disent pas pareil : l'une est une question de patience, l'autre
+     * une règle. Toutes deux méritent un dialogue — le sélecteur système vient
+     * de se refermer, sans quoi il ne se passerait visiblement rien.
+     */
+    sealed interface Refusal {
+        val name: String
 
-    private val _tooBig = MutableStateFlow<TooBig?>(null)
-    val tooBig: StateFlow<TooBig?> = _tooBig.asStateFlow()
+        /** Le médium le plus lent qu'on emprunterait : c'est lui qui décide. */
+        val medium: Medium
 
-    fun dismissTooBig() {
-        _tooBig.value = null
+        /** Trop lourde pour ce que ce médium accepte. [bytes] < 0 si inconnue. */
+        data class TooBig(
+            override val name: String,
+            val bytes: Long,
+            val limit: Int,
+            override val medium: Medium,
+        ) : Refusal
+
+        /**
+         * Une vidéo part **à la qualité où elle a été filmée**, jamais
+         * recompressée : c'est le médium qui l'autorise, pas la compression.
+         * Le Wi-Fi la porte, la radio non — et ce n'est pas une affaire de
+         * plafond, c'est la règle.
+         */
+        data class VideoNeedsWifi(
+            override val name: String,
+            override val medium: Medium,
+        ) : Refusal
+    }
+
+    private val _refusal = MutableStateFlow<Refusal?>(null)
+    val refusal: StateFlow<Refusal?> = _refusal.asStateFlow()
+
+    fun dismissRefusal() {
+        _refusal.value = null
+    }
+
+    /**
+     * Le médium le plus lent parmi ceux qu'on emprunterait — celui qui décide
+     * du plafond, et celui qu'on nomme dans un refus. Sans lien du tout, la
+     * radio : c'est le pire cas, et promettre mieux serait mentir.
+     */
+    private fun slowestMedium(): Medium =
+        routes().minByOrNull { it.medium.rank }?.medium ?: Medium.BLE
+
+    /**
+     * Une vidéo ne part que par Wi-Fi — pair à pair ou par le réseau du lieu.
+     *
+     * Ce n'est pas un plafond déguisé : elle part **telle qu'elle a été
+     * filmée**, et la radio tient 14 Ko/s. Sans aucun lien, on laisse passer :
+     * l'échec qui suit dira « aucun lien pour émettre », ce qui est la vraie
+     * raison, plutôt que de réclamer un Wi-Fi qui ne changerait rien.
+     */
+    private fun videoAllowed(): Boolean {
+        val media = attachmentTargets(routes()).map { it.medium }
+        return media.isEmpty() || media.none { it == Medium.BLE }
     }
 
     /**
@@ -808,9 +859,16 @@ class CabinChat(context: Context) {
         return true
     }
 
-    /** Prépare (recompression) puis envoie une image. */
+    /**
+     * Prépare (recompression) puis envoie une image.
+     *
+     * Le sélecteur visuel propose aussi les vidéos : une vidéo choisie là
+     * n'est pas une image, et surtout **ne doit pas être recompressée**. Elle
+     * repart donc par le chemin des vidéos, quel que soit le bouton touché.
+     */
     fun sendImage(uri: Uri) {
         scope.launch(Dispatchers.IO) {
+            if (isVideo(uri)) return@launch sendVideo(uri)
             val read = Attachments.prepareImage(appContext, uri)
             withContext(dispatcher) {
                 dispatchAttachment(ChatKind.IMAGE, ChatFrames.KIND_IMAGE, read, transferLimit())
@@ -821,6 +879,7 @@ class CabinChat(context: Context) {
     /** Envoie un fichier tel quel, plafonné selon le médium ([transferLimit]). */
     fun sendFile(uri: Uri) {
         scope.launch(Dispatchers.IO) {
+            if (isVideo(uri)) return@launch sendVideo(uri)
             // le plafond se lit AVANT la copie : inutile de recopier deux cents
             // mégaoctets pour découvrir ensuite qu'ils ne passeront pas
             val limit = withContext(dispatcher) { transferLimit() }
@@ -828,6 +887,35 @@ class CabinChat(context: Context) {
             withContext(dispatcher) {
                 dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, limit)
             }
+        }
+    }
+
+    /** Le type déclaré par le fournisseur, connu avant toute copie. */
+    private fun isVideo(uri: Uri): Boolean =
+        appContext.contentResolver.getType(uri)?.startsWith("video/") == true
+
+    /**
+     * Envoie une vidéo, ou refuse franchement.
+     *
+     * Elle part telle qu'elle a été filmée — aucun ré-encodage nulle part dans
+     * cette application — donc seul le Wi-Fi la porte. Le refus se décide
+     * **avant** la copie : recopier deux cents mégaoctets pour dire non
+     * ensuite serait une minute perdue pour rien.
+     */
+    private suspend fun sendVideo(uri: Uri) {
+        val verdict = withContext(dispatcher) {
+            Triple(videoAllowed(), slowestMedium(), transferLimit())
+        }
+        val (allowed, medium, limit) = verdict
+        if (!allowed) {
+            val name = Attachments.displayName(appContext, uri) ?: ""
+            Log.w(TAG, "vidéo refusée : le médium est ${medium.short}, pas du Wi-Fi")
+            withContext(dispatcher) { _refusal.value = Refusal.VideoNeedsWifi(name, medium) }
+            return
+        }
+        val read = Attachments.stage(appContext, uri, limit)
+        withContext(dispatcher) {
+            dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, limit)
         }
     }
 
@@ -842,9 +930,8 @@ class CabinChat(context: Context) {
                 // un dialogue, pas une ligne d'état : la personne vient de
                 // choisir ce fichier dans un sélecteur système, elle attend
                 // qu'il parte
-                _tooBig.value = TooBig(
-                    read.name, read.bytes, limit,
-                    routes().minByOrNull { it.medium.rank }?.medium ?: Medium.BLE,
+                _refusal.value = Refusal.TooBig(
+                    read.name, read.bytes, limit, slowestMedium(),
                 )
                 Log.w(TAG, "pièce refusée : ${read.name} (${read.bytes} o > $limit)")
             }
@@ -856,9 +943,8 @@ class CabinChat(context: Context) {
                     // le plafond a pu descendre pendant la copie : un lien BLE
                     // qui s'ouvre ramène les dix mégaoctets promis à deux
                     read.file.delete()
-                    _tooBig.value = TooBig(
-                        read.name, read.size.toLong(), limit,
-                        routes().minByOrNull { it.medium.rank }?.medium ?: Medium.BLE,
+                    _refusal.value = Refusal.TooBig(
+                        read.name, read.size.toLong(), limit, slowestMedium(),
                     )
                     return
                 }

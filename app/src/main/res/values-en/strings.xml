@@ -50,7 +50,10 @@
     <string name="cabin_save_failed">Could not save</string>
 
     <string name="cabin_too_big_title">Attachment too heavy</string>
-    <string name="cabin_too_big_ok">Got it</string>
+    <string name="cabin_video_wifi_title">Video travels over Wi-Fi</string>
+    <string name="cabin_video_wifi_named">“%1$s” is a video, and it leaves exactly as it was filmed — never re-encoded. The cabin is %2$s: the radio carries 14 kB/s, where one second of footage would take minutes. Switch to Wi-Fi from the indicator at the top.</string>
+    <string name="cabin_video_wifi_unnamed">A video leaves exactly as it was filmed — never re-encoded. The cabin is %1$s: the radio carries 14 kB/s, where one second of footage would take minutes. Switch to Wi-Fi from the indicator at the top.</string>
+    <string name="cabin_refused_ok">Got it</string>
     <string name="cabin_too_big_sized">“%1$s” is %2$s, beyond the %3$s the booth carries %4$s.</string>
     <string name="cabin_too_big_unsized">“%1$s” goes beyond the %2$s the booth carries %3$s.</string>
     <string name="cabin_too_big_ble_advice">BLE holds 14 KB/s: the same attachment would take a quarter of an hour. Switch to Wi-Fi from the indicator at the top and the limit rises to %1$s.</string>
@@ -122,6 +125,7 @@
     <string name="chat_image_receiving">image coming in…</string>
     <string name="chat_unnamed_file">file</string>
     <string name="chat_unnamed_audio">audio</string>
+    <string name="chat_unnamed_video">video</string>
     <string name="chat_sending_percent">↑ %1$d%%</string>
     <string name="chat_receiving_percent">↓ %1$d%%</string>
     <string name="chat_failed">failed</string>

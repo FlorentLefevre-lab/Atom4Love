@@ -1,5 +1,6 @@
 package one.astroport.atom4love.chat.ui
 
+import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -10,6 +11,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -39,12 +41,18 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.compose.PlayerSurface
 import coil3.compose.AsyncImage
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import one.astroport.atom4love.R
@@ -93,6 +101,12 @@ fun ChatPanel(
     val audio = remember { AudioPlayback() }
     DisposableEffect(Unit) { onDispose { audio.release() } }
 
+    // même raison que pour le son, en plus coûteux : un ExoPlayer par bulle
+    // relâchée au défilement laisserait des décodeurs matériels ouverts
+    val context = LocalContext.current
+    val video = remember { VideoPlayback(context) }
+    DisposableEffect(Unit) { onDispose { video.release() } }
+
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
     }
@@ -108,7 +122,7 @@ fun ChatPanel(
             if (messages.isEmpty()) {
                 item { Text(emptyHint, style = A4LText.Caption, color = A4L.TextMuted) }
             }
-            items(messages) { message -> MessageBubble(message, onOpen, onDownload, audio) }
+            items(messages) { message -> MessageBubble(message, onOpen, onDownload, audio, video) }
         }
 
         if (emojiOpen) {
@@ -121,8 +135,11 @@ fun ChatPanel(
         ) {
             GlyphButton("😊", enabled = true) { emojiOpen = !emojiOpen }
             GlyphButton("🖼️", enabled = canSend) {
+                // Vidéos comprises : elles ne sont jamais recompressées, et
+                // c'est le médium qui décide si elles partent — la cabine le
+                // dit franchement plutôt que de les cacher du sélecteur.
                 imagePicker.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
                 )
             }
             GlyphButton("📎", enabled = canSend) { filePicker.launch("*/*") }
@@ -169,6 +186,7 @@ private fun MessageBubble(
     onOpen: (ChatMessage) -> Unit,
     onDownload: (ChatMessage) -> Unit,
     audio: AudioPlayback,
+    video: VideoPlayback,
 ) {
     Row(
         Modifier.fillMaxWidth(),
@@ -203,6 +221,8 @@ private fun MessageBubble(
                     Text(message.text, style = A4LText.Body, color = A4L.TextHigh)
                 message.kind == ChatKind.IMAGE || message.mime.startsWith("image/") ->
                     ImageContent(message, onOpen)
+                message.mime.startsWith("video/") && message.file != null ->
+                    VideoContent(message, video)
                 message.mime.startsWith("audio/") && message.file != null ->
                     AudioContent(message, audio)
                 else -> FileContent(message, onOpen)
@@ -327,6 +347,58 @@ private fun FileContent(message: ChatMessage, onOpen: (ChatMessage) -> Unit) {
 }
 
 /**
+ * La vidéo en cours, et elle est unique.
+ *
+ * Un `ExoPlayer` par bulle tiendrait autant de décodeurs matériels ouverts
+ * qu'il y a de vidéos dans la conversation, et l'appareil n'en a que quelques
+ * uns : le panneau n'en garde qu'un, réattribué à celle qu'on touche.
+ */
+@Stable
+private class VideoPlayback(private val context: Context) {
+
+    private var player: ExoPlayer? = null
+
+    /** Chemin en cours de lecture, null si rien ne joue. */
+    var playing by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * Le lecteur, mais seulement pour la bulle qui a la parole.
+     *
+     * L'ordre compte : `playing` se lit **avant** toute autre condition. Écrit
+     * `player?.takeIf { playing == path }`, le `?.` court-circuitait sur un
+     * lecteur nul — c'est-à-dire à la toute première composition — et la bulle
+     * ne s'abonnait donc jamais à l'état qu'elle attendait. Elle restait fermée
+     * pendant que la vidéo jouait derrière, sans surface où se montrer.
+     */
+    fun playerFor(path: String): ExoPlayer? = if (playing == path) player else null
+
+    fun play(path: String) {
+        stop()
+        val fresh = ExoPlayer.Builder(context).build()
+        val ready = runCatching {
+            fresh.setMediaItem(MediaItem.fromUri(File(path).toURI().toString()))
+            fresh.prepare()
+            fresh.playWhenReady = true
+        }.isSuccess
+        if (!ready) {
+            runCatching { fresh.release() }
+            return
+        }
+        player = fresh
+        playing = path
+    }
+
+    fun stop() {
+        runCatching { player?.release() }
+        player = null
+        playing = null
+    }
+
+    fun release() = stop()
+}
+
+/**
  * Un seul lecteur pour tout le panneau : deux pièces audio ne doivent jamais
  * jouer ensemble, et le lecteur survit au recyclage des bulles par la liste.
  */
@@ -375,6 +447,55 @@ private class AudioPlayback {
 }
 
 /** Mini-lecteur pour les pièces audio, adossé au lecteur unique du panneau. */
+/**
+ * Une vidéo se relit **dans la bulle**, sans passer la main à la visionneuse
+ * du système : ce qui se dit en cabine ne sort pas de la cabine, et une pièce
+ * ouverte ailleurs serait une pièce qu'on regarde ailleurs.
+ *
+ * Fermée, elle montre son nom et son poids ; touchée, elle prend la place et
+ * joue. Une seule à la fois — [VideoPlayback] arrête la précédente.
+ */
+@androidx.annotation.OptIn(UnstableApi::class)
+@Composable
+private fun VideoContent(message: ChatMessage, video: VideoPlayback) {
+    val file = message.file ?: return
+    val player = video.playerFor(file.path)
+    if (player != null) {
+        PlayerSurface(
+            player = player,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(10.dp))
+                .clickable { video.stop() },
+        )
+        return
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { video.play(file.path) },
+    ) {
+        Text("▶", fontSize = 24.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                message.name.ifBlank { stringResource(R.string.chat_unnamed_video) },
+                style = A4LText.ItemTitle,
+                color = A4L.TextHigh,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                Attachments.humanSize(LocalResources.current, message.sizeBytes),
+                style = A4LText.Caption,
+                color = A4L.TextMuted,
+            )
+        }
+    }
+}
+
 @Composable
 private fun AudioContent(message: ChatMessage, audio: AudioPlayback) {
     val file = message.file ?: return

@@ -813,7 +813,7 @@ private fun CabinDirectPanel(chat: CabinChat) {
     val status by chat.status.collectAsStateWithLifecycle()
     val messages by chat.messages.collectAsStateWithLifecycle()
     val sounds = remember { ChatSounds() }
-    val tooBig by chat.tooBig.collectAsStateWithLifecycle()
+    val refusal by chat.refusal.collectAsStateWithLifecycle()
     // Lus dans la composition, pas dans le rappel : une ressource lue depuis un
     // lambda ne serait pas réévaluée si la langue change sous l'application.
     val savedLabel = stringResource(R.string.cabin_saved_to_downloads)
@@ -821,23 +821,28 @@ private fun CabinDirectPanel(chat: CabinChat) {
 
     // Une pièce refusée mérite un dialogue : le sélecteur système vient de se
     // refermer, et sans lui il ne se passerait visiblement rien.
-    tooBig?.let { refusal ->
+    refusal?.let { refused ->
         AlertDialog(
-            onDismissRequest = { chat.dismissTooBig() },
+            onDismissRequest = { chat.dismissRefusal() },
             confirmButton = {
                 Text(
-                    stringResource(R.string.cabin_too_big_ok),
+                    stringResource(R.string.cabin_refused_ok),
                     style = A4LText.Caption,
                     color = A4L.Mint,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { chat.dismissTooBig() }
+                        .clickable { chat.dismissRefusal() }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                 )
             },
             title = {
                 Text(
-                    stringResource(R.string.cabin_too_big_title),
+                    stringResource(
+                        when (refused) {
+                            is CabinChat.Refusal.TooBig -> R.string.cabin_too_big_title
+                            is CabinChat.Refusal.VideoNeedsWifi -> R.string.cabin_video_wifi_title
+                        },
+                    ),
                     style = A4LText.H2,
                     color = A4L.TextHigh,
                 )
@@ -846,41 +851,55 @@ private fun CabinDirectPanel(chat: CabinChat) {
                 // Deux phrases entières, jamais des bribes recollées : l'ordre
                 // des mots n'est pas le même d'une langue à l'autre, et
                 // « au-delà des » seul ne se traduit pas.
-                val medium = stringResource(refusal.medium.labelRes)
+                val medium = stringResource(refused.medium.labelRes)
                 val res = LocalResources.current
-                val limit = Attachments.humanSize(res, refusal.limit)
                 Text(
-                    buildString {
-                        append(
-                            if (refusal.bytes > 0) {
-                                stringResource(
-                                    R.string.cabin_too_big_sized,
-                                    refusal.name,
-                                    Attachments.humanSize(res, refusal.bytes),
-                                    limit,
-                                    medium,
+                    when (refused) {
+                        is CabinChat.Refusal.TooBig -> buildString {
+                            val limit = Attachments.humanSize(res, refused.limit)
+                            append(
+                                if (refused.bytes > 0) {
+                                    stringResource(
+                                        R.string.cabin_too_big_sized,
+                                        refused.name,
+                                        Attachments.humanSize(res, refused.bytes),
+                                        limit,
+                                        medium,
+                                    )
+                                } else {
+                                    stringResource(
+                                        R.string.cabin_too_big_unsized,
+                                        refused.name,
+                                        limit,
+                                        medium,
+                                    )
+                                },
+                            )
+                            // le plafond radio n'est pas une limite technique mais
+                            // une limite d'attente : 10 Mo en BLE, c'est un quart
+                            // d'heure
+                            if (refused.medium == Medium.BLE) {
+                                append("\n\n")
+                                append(
+                                    stringResource(
+                                        R.string.cabin_too_big_ble_advice,
+                                        Attachments.humanSize(res, CabinChat.MAX_TRANSFER_STREAM),
+                                    ),
                                 )
+                            }
+                        }
+                        // Ni un plafond ni une panne : la règle. Une vidéo part
+                        // telle qu'elle a été filmée, et la radio ne la porte pas.
+                        is CabinChat.Refusal.VideoNeedsWifi ->
+                            if (refused.name.isBlank()) {
+                                stringResource(R.string.cabin_video_wifi_unnamed, medium)
                             } else {
                                 stringResource(
-                                    R.string.cabin_too_big_unsized,
-                                    refusal.name,
-                                    limit,
+                                    R.string.cabin_video_wifi_named,
+                                    refused.name,
                                     medium,
                                 )
-                            },
-                        )
-                        // le plafond radio n'est pas une limite technique mais
-                        // une limite d'attente : 10 Mo en BLE, c'est un quart
-                        // d'heure
-                        if (refusal.medium == Medium.BLE) {
-                            append("\n\n")
-                            append(
-                                stringResource(
-                                    R.string.cabin_too_big_ble_advice,
-                                    Attachments.humanSize(res, CabinChat.MAX_TRANSFER_STREAM),
-                                ),
-                            )
-                        }
+                            }
                     },
                     style = A4LText.Body,
                     color = A4L.TextBody,
