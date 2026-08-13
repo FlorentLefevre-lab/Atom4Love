@@ -35,6 +35,15 @@ data class MultipassAccount(
     val loveNpub: String = "",
     val loveHex: String = "",
     val loveNsec: String = "",
+    /**
+     * Ce que la station calcule et que cet appareil ne sait pas refaire : le KIN
+     * du Tzolkin et la phase personnelle. Ils arrivaient avec l'activation et
+     * repartaient avec le corps de réponse — gardés ici, faute de pouvoir les
+     * dériver. 0 signifie « pas encore rendus », l'activation étant refusée à
+     * ce jour.
+     */
+    val kinNum: Int = 0,
+    val personalPhase: Double = 0.0,
 ) {
     /** La clé LOVE définitive est arrivée : le noyau provisoire peut céder la place. */
     val loveActivated: Boolean get() = loveNsec.isNotEmpty()
@@ -104,6 +113,8 @@ class MultipassStore(context: Context) : AccountVault {
             loveNpub = activation.loveNpub,
             loveHex = activation.loveHex,
             loveNsec = activation.loveNsec,
+            kinNum = activation.kinNum,
+            personalPhase = activation.personalPhase,
         )
         save(updated)
         return updated
