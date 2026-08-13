@@ -479,6 +479,10 @@ fun RadarScreen(
         // permissions, qui sont affaire d'écran.
         val cabinPeers by (cabin?.peers ?: remember { MutableStateFlow(emptyList()) })
             .collectAsStateWithLifecycle()
+        // L'état de la cabine sert ici à une seule chose : dire qui tient le
+        // groupe Wi-Fi Direct, quand il y en a un.
+        val cabinStatus by (cabin?.status ?: remember { MutableStateFlow(CabinChat.Status()) })
+            .collectAsStateWithLifecycle()
         LaunchedEffect(fix?.cell) {
             fix?.let { salon?.setCell(cellHex(it.cell)) }
         }
@@ -605,6 +609,34 @@ fun RadarScreen(
                     style = A4LText.Caption,
                     color = if (beaconRunning) A4L.Mint else A4L.TextMuted,
                 )
+            }
+            // Qui tient le groupe Wi-Fi Direct. En rouge, et ce n'est pas une
+            // alarme : c'est le poids du rôle. Le propriétaire EST le point
+            // d'accès, et son départ dissout le groupe pour tout le monde, là
+            // où un client qui s'en va ne retire que lui-même. Quand c'est
+            // nous, la phrase le dit — on part rarement en sachant qu'on
+            // emporte la voie des autres.
+            cabinStatus.groupHost?.let { host ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .glass(12.dp, A4L.Red.tint(0.06f), A4L.Red.tint(0.22f))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    StatusDot(A4L.Red)
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        when (host) {
+                            is CabinChat.GroupHost.Self ->
+                                stringResource(R.string.radar_group_host_self)
+                            is CabinChat.GroupHost.Peer ->
+                                stringResource(R.string.radar_group_host_peer, host.short)
+                        },
+                        style = A4LText.Caption,
+                        color = A4L.Red,
+                    )
+                }
             }
             Row(
                 Modifier

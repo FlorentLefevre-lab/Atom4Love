@@ -45,6 +45,11 @@
     <string name="radar_beacon_with_cell">Balise active — annonce l\'hexagone %1$s</string>
     <string name="radar_beacon_presence_only">Balise active — présence seule, sans position</string>
     <string name="radar_beacon_needs_bluetooth">Balise de proximité — Bluetooth requis</string>
+    <!-- L'hôte d'un groupe Wi-Fi Direct. Dit en entier : « propriétaire » ne
+         veut rien dire pour qui n'a pas lu la spec Wi-Fi, alors que la
+         conséquence, elle, se comprend. -->
+    <string name="radar_group_host_self">Vous tenez le groupe Wi-Fi Direct — en sortant, vous le refermez pour tous.</string>
+    <string name="radar_group_host_peer">%1$s tient le groupe Wi-Fi Direct — s\'il sort, le groupe se referme pour tous.</string>
     <string name="radar_antipodes">Après 22 h, cette cabine écoute l\'hexagone aux antipodes.</string>
 
     <!-- ─── La cabine : ce qui se dit ici, entre gens à portée ────────── -->

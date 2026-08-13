@@ -309,6 +309,16 @@ class CabinChat(context: Context) {
          */
         val medium: Medium? = null,
         /**
+         * Qui tient le groupe Wi-Fi Direct, quand il y en a un.
+         *
+         * Ça mérite d'être dit, parce que ce n'est pas un détail de topologie :
+         * le propriétaire **est** le point d'accès du groupe, et son départ le
+         * dissout **pour tout le monde** — y compris pour deux pairs qui se
+         * parlaient par lui sans avoir besoin de lui. Un client qui s'en va, lui,
+         * ne retire que lui-même.
+         */
+        val groupHost: GroupHost? = null,
+        /**
          * Un médium plus rapide qu'un pair nous a annoncé et que l'utilisateur
          * n'a pas encore accepté. C'est de là que vient la proposition de
          * montée : on ne bascule jamais dans son dos.
@@ -354,6 +364,23 @@ class CabinChat(context: Context) {
      * un dialogue : quelqu'un vient de choisir un fichier dans un sélecteur
      * système, il doit apprendre pourquoi il ne part pas, et de combien.
      */
+    /**
+     * Qui possède le groupe Wi-Fi Direct en cours.
+     *
+     * On ne porte que la clé **publique** : un pair n'a jamais d'autre identité
+     * chez nous, et sa clé privée ne quitte pas son appareil.
+     */
+    sealed interface GroupHost {
+        /** Nous. C'est donc nous qui l'emporterions en partant. */
+        data object Self : GroupHost
+
+        /** Un pair, par son npub attesté — jamais une adresse. */
+        data class Peer(val npub: String) : GroupHost {
+            /** Abrégé comme partout ailleurs : `npub1u9v…eqx2`. */
+            val short: String get() = "${npub.take(8)}…${npub.takeLast(4)}"
+        }
+    }
+
     /**
      * La cabine refuse une pièce, et dit pourquoi. Deux raisons aujourd'hui, et
      * elles ne se disent pas pareil : l'une est une question de patience, l'autre
@@ -636,6 +663,9 @@ class CabinChat(context: Context) {
     /** Vrai dès qu'on tient un groupe ou qu'on en a rejoint un. */
     private var inGroup = false
 
+    /** Qui tient le groupe — nul tant qu'aucun n'est formé. */
+    private var groupHost: GroupHost? = null
+
     /** MTU annoncés côté serveur, parfois avant l'abonnement CCCD. */
     private val serverMtus = HashMap<String, Int>()
 
@@ -773,6 +803,7 @@ class CabinChat(context: Context) {
         // montée, et un groupe ouvert est un réseau que personne ne surveille
         if (inGroup) runCatching { p2p.release() }
         inGroup = false
+        groupHost = null
         scope.cancel()
         // le démontage des liens passe par le fil protocole : l'executor FIFO
         // le sérialise derrière tout corps de coroutine encore en cours
@@ -2112,8 +2143,46 @@ class CabinChat(context: Context) {
         groupOffers[who] = P2pGroup.Credentials(frame.networkName, frame.passphrase) to frame.port
         Log.i(TAG, "Wi-Fi Direct proposé par ${who.take(12)}… : ${frame.networkName}")
         // Règle C : le pair a ouvert un groupe pour nous, il a engagé le médium.
-        if (Medium.WIFI_DIRECT in enabledMedia) scope.launch { joinGroup(who) }
+        if (Medium.WIFI_DIRECT in enabledMedia) {
+            if (groupHost is GroupHost.Self) {
+                // Collision : nous hébergeons déjà. Les deux ont touché dans la
+                // même seconde, avant que l'invitation de l'autre arrive. Le
+                // départage se fait sans un message de plus — voir
+                // [GroupArbitration].
+                if (GroupArbitration.shouldYield(nostrKeys?.publicKeyHex, who)) {
+                    Log.i(TAG, "collision de groupe : on cède le nôtre à ${who.take(12)}…")
+                    scope.launch { yieldGroupTo(who) }
+                } else {
+                    // L'autre fera le calcul inverse et viendra chez nous.
+                    Log.i(TAG, "collision de groupe : on garde le nôtre, ${who.take(12)}… cédera")
+                }
+            } else {
+                scope.launch { joinGroup(who) }
+            }
+        }
         refreshLinks()
+    }
+
+    /**
+     * Fil protocole. Referme notre groupe, puis entre dans celui de [who].
+     *
+     * L'attente n'est pas une précaution de style : rejoindre pendant qu'on
+     * possède encore son propre groupe échoue — `P2pGroup.join` ne sait sortir
+     * que d'un groupe dont on est **client**. Si le retrait n'aboutit pas, on
+     * garde le nôtre : mieux vaut deux groupes qu'aucun.
+     */
+    private suspend fun yieldGroupTo(who: String) {
+        if (!p2p.releaseAndWait()) {
+            Log.w(TAG, "groupe non retiré à temps : on garde le nôtre")
+            return
+        }
+        inGroup = false
+        groupHost = null
+        // les liens Direct passaient par le groupe qu'on vient de fermer
+        links.values.filter { it.medium == Medium.WIFI_DIRECT }.toList().forEach { link ->
+            removeLink(link.medium, link.kind, link.address)
+        }
+        joinGroup(who)
     }
 
     /** Fil protocole. Entre dans le groupe d'un pair, puis compose vers lui. */
@@ -2124,6 +2193,10 @@ class CabinChat(context: Context) {
             return
         }
         inGroup = true
+        // c'est le pair qui tient le groupe : son npub, celui-là même que la
+        // liste des présents affiche
+        groupHost = GroupHost.Peer(Bech32.encode("npub", Hex.decode(who)))
+        refreshLinks()
         dial(Medium.WIFI_DIRECT, P2pGroup.OWNER_ADDRESS, port)
     }
 
@@ -2139,6 +2212,8 @@ class CabinChat(context: Context) {
             return
         }
         inGroup = true
+        groupHost = GroupHost.Self
+        refreshLinks()
         val frame = ChatFrames.encodeGroup(credentials.networkName, credentials.passphrase, listenPort)
         links.values.forEach { link ->
             if (link.medium == Medium.BLE && link.ready && link.peerNostrKey != null) {
@@ -2630,6 +2705,7 @@ class CabinChat(context: Context) {
                 links = ready.size,
                 unattestedLinks = ready.count { it.peerNostrKey == null },
                 medium = inUse,
+                groupHost = groupHost,
                 offered = offered,
             )
         }

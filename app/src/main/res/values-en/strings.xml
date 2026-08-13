@@ -33,6 +33,8 @@
     <string name="radar_beacon_with_cell">Beacon on — announcing hexagon %1$s</string>
     <string name="radar_beacon_presence_only">Beacon on — presence only, no position</string>
     <string name="radar_beacon_needs_bluetooth">Proximity beacon — Bluetooth required</string>
+    <string name="radar_group_host_self">You hold the Wi-Fi Direct group — leaving it closes it for everyone.</string>
+    <string name="radar_group_host_peer">%1$s holds the Wi-Fi Direct group — if they leave, it closes for everyone.</string>
     <string name="radar_antipodes">After 10 pm, this booth listens to the hexagon at the antipodes.</string>
 
     <!-- ─── The booth ─────────────────────────────────────────────────── -->

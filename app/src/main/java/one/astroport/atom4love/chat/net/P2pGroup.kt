@@ -38,6 +38,10 @@ import kotlinx.coroutines.withTimeoutOrNull
 class P2pGroup(context: Context) {
 
     companion object {
+        /** Attente maximale d'un retrait de groupe avant d'en rejoindre un autre. */
+        private const val RELEASE_WAIT_MS = 6_000L
+        private const val RELEASE_POLL_MS = 250L
+
         private const val TAG = "CabinChat"
 
         /** Le propriétaire d'un groupe Wi-Fi Direct est toujours à cette adresse. */
@@ -397,6 +401,27 @@ class P2pGroup(context: Context) {
             }.onFailure { done(false) }
         }
         attempt(REMOVE_ATTEMPTS)
+    }
+
+    /**
+     * Referme le groupe **et attend** que le système l'ait vraiment retiré.
+     *
+     * [release] rend la main aussitôt, ce qui suffit à une fermeture de cabine :
+     * personne n'attend derrière. Céder son groupe à un pair, en revanche,
+     * enchaîne sur un `join` — et rejoindre pendant qu'on possède encore le
+     * sien échouerait. Rend faux si le groupe est toujours là au bout du délai.
+     */
+    suspend fun releaseAndWait(timeoutMs: Long = RELEASE_WAIT_MS): Boolean {
+        release()
+        val manager = this.manager ?: return true
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            // le canal a été fermé par release() : on en rouvre un pour lire
+            val channel = channel() ?: return true
+            if (existingGroup(manager, channel) == null) return true
+            delay(RELEASE_POLL_MS)
+        }
+        return false
     }
 
     /**
