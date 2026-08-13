@@ -80,6 +80,48 @@ class NeighborRegistryTest {
         assertEquals(signature, registry.neighbors.value.single().signature)
     }
 
+    /**
+     * Le cas mesuré le 13/08 : un pair sans localisation n'a pas de cellule,
+     * donc pas de jeton. Ses adresses tournent et il s'affichait trois fois.
+     * La signature suffit à le reconnaître.
+     */
+    @Test
+    fun `sans jeton, la signature regroupe les adresses d'un meme voisin`() {
+        val signature = ProximityPayload.Signature(sex = 0, glyph = 2, phase = 4.852)
+        registry.report("AA:BB", cell4d = null, token = null, rssi = -60, signature = signature)
+        registry.report("CC:DD", cell4d = null, token = null, rssi = -62, signature = signature)
+        registry.report("EE:FF", cell4d = null, token = null, rssi = -58, signature = signature)
+        assertEquals(3, registry.neighbors.value.size)
+        assertEquals(1, registry.neighbors.value.distinctBy { it.identity }.size)
+    }
+
+    @Test
+    fun `deux signatures distinctes restent deux voisins`() {
+        registry.report(
+            "AA:BB", null, null, -60, ProximityPayload.Signature(0, 2, 4.852),
+        )
+        registry.report(
+            "CC:DD", null, null, -62, ProximityPayload.Signature(1, 11, 1.220),
+        )
+        assertEquals(2, registry.neighbors.value.distinctBy { it.identity }.size)
+    }
+
+    /** Le jeton passe avant la signature : c'est lui qui tient quand elle bouge. */
+    @Test
+    fun `le jeton prime sur la signature`() {
+        registry.report("AA:BB", 7L, 42, -60, ProximityPayload.Signature(0, 2, 4.852))
+        registry.report("CC:DD", 7L, 42, -62, ProximityPayload.Signature(1, 11, 1.220))
+        assertEquals(1, registry.neighbors.value.distinctBy { it.identity }.size)
+    }
+
+    /** Sans jeton ni signature, on retombe sur l'adresse — deux voisins comptés. */
+    @Test
+    fun `sans rien, l'adresse fait foi`() {
+        registry.report("AA:BB", cell4d = null, token = null, rssi = -60)
+        registry.report("CC:DD", cell4d = null, token = null, rssi = -62)
+        assertEquals(2, registry.neighbors.value.distinctBy { it.identity }.size)
+    }
+
     /** Un pair d'une version antérieure reste un voisin, simplement sans signature. */
     @Test
     fun `sans signature le voisin existe quand meme`() {

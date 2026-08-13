@@ -563,10 +563,10 @@ fun RadarScreen(
             // une adresse qui vient de tourner et l'ancienne, pas encore
             // évincée, faisaient scintiller deux points pour un seul appareil.
             neighbors
-                .distinctBy { it.token ?: it.address }
+                .distinctBy { it.identity }
                 .take(MAX_NEIGHBOR_DOTS)
                 .forEach { neighbor ->
-                    key(neighbor.token ?: neighbor.address) {
+                    key(neighbor.identity) {
                         NeighborDot(neighbor = neighbor, ownCell4d = ownCell4d)
                     }
                 }
@@ -871,7 +871,9 @@ private fun BoxScope.NeighborDot(
     neighbor: NeighborRegistry.Neighbor,
     ownCell4d: Long?,
 ) {
-    val hash = neighbor.address.hashCode()
+    // L'angle tenait à l'adresse, qui tourne toutes les 20 à 40 s : le point
+    // sautait alors ailleurs sur le radar sans que personne n'ait bougé.
+    val hash = neighbor.identity.hashCode()
     val angleRad = Math.toRadians(((hash % 360 + 360) % 360).toDouble())
 
     // RSSI −55 dBm (très proche) → bord du hexagone central ; −95 dBm → bord du radar.
@@ -927,7 +929,7 @@ private fun ResonancePanel(
     // Une ligne par personne, comme les points : deux adresses d'un même jeton
     // sont un seul appareil qui vient de changer de visage.
     val signed = neighbors
-        .distinctBy { it.token ?: it.address }
+        .distinctBy { it.identity }
         .filter { it.signature != ProximityPayload.Signature.Unknown }
         .sortedByDescending { neighbor ->
             val theirs = neighbor.signature.phase
@@ -945,7 +947,7 @@ private fun ResonancePanel(
     ) {
         SectionLabel(stringResource(R.string.radar_resonance_title))
         signed.forEach { neighbor ->
-            key(neighbor.token ?: neighbor.address) {
+            key(neighbor.identity) {
                 ResonanceRow(signature = neighbor.signature, own = own)
             }
         }

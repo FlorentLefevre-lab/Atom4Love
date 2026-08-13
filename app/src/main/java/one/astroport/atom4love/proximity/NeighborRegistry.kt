@@ -59,7 +59,33 @@ class NeighborRegistry(
         val signature: ProximityPayload.Signature = ProximityPayload.Signature.Unknown,
         val firstSeenMillis: Long,
         val lastSeenMillis: Long,
-    )
+    ) {
+        /**
+         * De quoi reconnaître deux annonces d'une même personne, du plus sûr au
+         * plus faible.
+         *
+         * Le jeton d'abord — mais il se dérive du noyau **et** de la cellule :
+         * localisation coupée, pas de cellule, pas de jeton. Un appareil dans ce
+         * cas se présentait alors sous chacune de ses adresses, qui tournent
+         * toutes les 20 à 40 s pendant que les anciennes finissent leur TTL :
+         * trois lignes de résonance pour un seul voisin, mesuré le 2026-08-13.
+         *
+         * La signature prend le relais. Elle ne dit pas qui, et ne révèle rien
+         * de plus que ce qui est déjà dans l'air ; mais une phase sur 16 bits
+         * croisée d'un sceau et d'une polarité ne se confond pas entre deux
+         * inconnus tenant dans la même portée BLE.
+         *
+         * Faute des deux, l'adresse : compter quelqu'un deux fois vaut mieux que
+         * de le faire disparaître.
+         */
+        val identity: String
+            get() = when {
+                token != null -> "t:$token"
+                signature != ProximityPayload.Signature.Unknown ->
+                    "s:${signature.sex}/${signature.glyph}/${signature.phase}"
+                else -> "a:$address"
+            }
+    }
 
     private val byAddress = LinkedHashMap<String, Neighbor>()
     private val _neighbors = MutableStateFlow<List<Neighbor>>(emptyList())
