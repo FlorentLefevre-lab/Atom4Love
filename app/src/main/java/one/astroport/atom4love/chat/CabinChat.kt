@@ -740,6 +740,16 @@ class CabinChat(context: Context) {
     /** Qui vient de le fermer — nul tant que personne n'est parti, ou une fois lu. */
     private var groupClosedBy: String? = null
 
+    /**
+     * Fil protocole. Vrai le temps qu'on retire soi-même son groupe.
+     *
+     * Le retrait fait naître la diffusion système qui annonce la fin d'un
+     * groupe, et cette annonce nous revient — elle décrit alors ce qu'on est en
+     * train de faire, pas ce qui nous arrive. Sans ce drapeau, elle défaisait
+     * l'état que le geste en cours allait poser lui-même.
+     */
+    private var releasingGroup = false
+
     /** MTU annoncés côté serveur, parfois avant l'abonnement CCCD. */
     private val serverMtus = HashMap<String, Int>()
 
@@ -880,9 +890,7 @@ class CabinChat(context: Context) {
         listener = null
         listenPort = 0
         releaseWifiLock()
-        // le groupe P2P ne survit pas à la cabine : l'interface resterait
-        // montée, et un groupe ouvert est un réseau que personne ne surveille
-        if (inGroup) runCatching { p2p.release() }
+        p2p.onGroupLost = null
         inGroup = false
         groupHost = null
         // Dire au revoir, tant que les fils d'émission vivent encore : après
@@ -918,6 +926,20 @@ class CabinChat(context: Context) {
                 synchronized(subscribedAddresses) { subscribedAddresses.clear() }
             }.get()
         }
+        // Le groupe P2P ne survit pas à la cabine : l'interface resterait
+        // montée, et un groupe ouvert est un réseau que personne ne surveille.
+        //
+        // APRÈS le mot d'adieu et la fermeture des sockets, jamais avant : côté
+        // invité, rendre la requête coupe le réseau sur-le-champ, et le `bye`
+        // écrit dans une socket Direct dont l'interface vient de disparaître ne
+        // part jamais — le pair nous comptait alors présent sans fin, faute
+        // même d'un FIN à recevoir.
+        //
+        // Et sans condition : `inGroup` dit où en est la conversation, pas ce
+        // qu'on tient. Une requête réseau restée inscrite après un groupe
+        // perdu, ou après un dialogue décliné, n'était plus rendue par
+        // personne — l'instance qui la portait part avec la cabine.
+        runCatching { p2p.release() }
         // Fermer le serveur emporte les annulations qu'on vient de demander :
         // `cancelConnection` est asynchrone, et `close()` dans la foulée coupe
         // la commande avant qu'elle parte — mesuré au banc le 13/08, le pair
@@ -999,9 +1021,21 @@ class CabinChat(context: Context) {
      * sait, il vient de le faire. [stop] a déjà remis `groupHost` à null.
      */
     private fun onGroupGone() {
+        // Notre propre `removeGroup` déclenche la même diffusion. Elle arrive
+        // sur le fil protocole pendant que [yieldGroupTo] y est suspendu, donc
+        // avant qu'il ait pu dire ce qu'il fait : elle vidait `groupOffers` et
+        // retirait le médium, si bien que la jointure qui suivait sortait en
+        // silence sur une invitation qu'on venait d'effacer soi-même. Celui qui
+        // cède fermait son groupe et n'en rejoignait aucun.
+        if (releasingGroup) return
         val host = groupHost ?: return
         groupHost = null
         inGroup = false
+        // On n'est plus nulle part : la requête réseau qui tenait notre place
+        // n'a plus de place à tenir. Non rendue, elle reste inscrite auprès du
+        // système, qui court après un SSID mort et fait attendre la requête
+        // suivante — c'est ce qui bloquait la jointure d'après.
+        runCatching { p2p.leave() }
         links.values.filter { it.medium == Medium.WIFI_DIRECT }.toList().forEach { link ->
             removeLink(link.medium, link.kind, link.address)
         }
@@ -1945,7 +1979,22 @@ class CabinChat(context: Context) {
             // d'attendre que la radio s'en aperçoive.
             is ChatFrame.Bye -> {
                 Log.i(TAG, "$from s'en va")
-                removeLink(medium, kind, from)
+                // Le mot arrive par une voie ; la personne, elle, en tenait
+                // peut-être deux. Un lien Wi-Fi Direct dont le groupe se ferme
+                // dans la même seconde ne recevra jamais son FIN — l'interface
+                // aura disparu avant — et resterait ouvert pour toujours, à
+                // compter présent quelqu'un qui vient de dire qu'il partait.
+                // Le routage regroupe déjà par npub attesté ; le départ le
+                // fait maintenant aussi.
+                val leaving = links[key(medium, kind, from)]?.peerNostrKey
+                if (leaving == null) {
+                    removeLink(medium, kind, from)
+                } else {
+                    links.values
+                        .filter { it.peerNostrKey?.contentEquals(leaving) == true }
+                        .toList()
+                        .forEach { removeLink(it.medium, it.kind, it.address) }
+                }
             }
             // Le réassembleur efface le partiel et rend un échec ; l'écran, lui,
             // ne doit pas dire « échec » — rien n'a raté, quelqu'un a renoncé.
@@ -2349,7 +2398,13 @@ class CabinChat(context: Context) {
      * garde le nôtre : mieux vaut deux groupes qu'aucun.
      */
     private suspend fun yieldGroupTo(who: String) {
-        if (!p2p.releaseAndWait()) {
+        releasingGroup = true
+        val released = try {
+            p2p.releaseAndWait()
+        } finally {
+            releasingGroup = false
+        }
+        if (!released) {
             Log.w(TAG, "groupe non retiré à temps : on garde le nôtre")
             return
         }
@@ -2432,7 +2487,13 @@ class CabinChat(context: Context) {
                 // tient encore condamne toute jointure suivante — elle échouera
                 // sur un `connect()` lancé alors qu'on possède toujours le sien,
                 // et rien ne dira pourquoi.
-                if (p2p.releaseAndWait()) {
+                releasingGroup = true
+                val released = try {
+                    p2p.releaseAndWait()
+                } finally {
+                    releasingGroup = false
+                }
+                if (released) {
                     inGroup = false
                     groupHost = null
                     groupOffers.clear()
