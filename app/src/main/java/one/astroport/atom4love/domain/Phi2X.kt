@@ -200,6 +200,15 @@ object Phi2X {
     const val F_WATER = 429.62
 
     /**
+     * Le second canal du binaural de cabine-33 — que Fred écrit « 462,79 Hz → D ».
+     *
+     * Il n'est pas choisi : c'est [F_WATER] décalé de [F_PHI], si bien que le
+     * troisième son, celui que les deux oreilles fabriquent, vaut exactement
+     * F_Φ. Le battement du rituel est une constante, pas une mesure.
+     */
+    const val F_WATER_D = F_WATER + F_PHI
+
+    /**
      * Le corps de référence de la formule : 70 kg d'eau valent F_WATER.
      */
     private const val REFERENCE_BODY_KG = 70.0

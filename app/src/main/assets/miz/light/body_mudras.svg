@@ -1,0 +1,46 @@
+<svg viewBox="0 0 265 185" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,sans-serif">
+                        
+                        <!-- Paume -->
+                        <rect x="82" y="105" width="76" height="62" rx="12" fill="#ffd700" fill-opacity="0.05" stroke="#ffd700" stroke-opacity="0.18" stroke-width="1"/>
+                        <!-- Pouce -->
+                        <rect x="64" y="115" width="18" height="40" rx="7" fill="#dc2626" fill-opacity="0.1" stroke="#dc2626" stroke-opacity="0.45" stroke-width="1.3" transform="rotate(-18 73 135)"/>
+                        <!-- Index -->
+                        <rect x="86" y="57" width="15" height="53" rx="7" fill="#12121c" fill-opacity="0.07" stroke="#12121c" stroke-opacity="0.3" stroke-width="1.3"/>
+                        <!-- Majeur (le plus long) -->
+                        <rect x="103" y="46" width="15" height="63" rx="7" fill="#9b30ff" fill-opacity="0.09" stroke="#9b30ff" stroke-opacity="0.4" stroke-width="1.3"/>
+                        <!-- Annulaire -->
+                        <rect x="120" y="58" width="15" height="52" rx="7" fill="#00c968" fill-opacity="0.08" stroke="#00c968" stroke-opacity="0.4" stroke-width="1.3"/>
+                        <!-- Auriculaire -->
+                        <rect x="137" y="72" width="13" height="38" rx="6" fill="#00b4ff" fill-opacity="0.08" stroke="#00b4ff" stroke-opacity="0.38" stroke-width="1.3"/>
+                        <!-- Spirale Fibonacci paume (simplifée) -->
+                        <path d="M110 165 Q110 140 128 134 Q146 128 144 112 Q142 96 128 96 Q114 96 113 110" fill="none" stroke="#ffd700" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="2,3"/>
+                        <!-- Labels au-dessus des doigts -->
+                        <!-- Pouce : Feu / Guide -->
+                        <text x="52" y="107" fill="#d92323" fill-opacity="0.95" font-size="11">🔥</text>
+                        <text x="49" y="118" fill="#d92323" fill-opacity="0.85" font-size="7" font-weight="bold">Agni</text>
+                        <text x="50" y="128" fill="#d92323" fill-opacity="0.85" font-size="6.5">Guide</text>
+                        <!-- Index : Air / Antipode -->
+                        <text x="86" y="50" fill="#12121c" fill-opacity="0.85" font-size="11">🌬️</text>
+                        <text x="86" y="61" fill="#12121c" fill-opacity="0.85" font-size="7" font-weight="bold">Vayu</text>
+                        <text x="84" y="71" fill="#12121c" fill-opacity="0.85" font-size="6.5">Antipode</text>
+                        <!-- Majeur : Espace / Soi -->
+                        <text x="103" y="40" fill="#9a2eff" fill-opacity="0.9" font-size="11">✨</text>
+                        <text x="101" y="51" fill="#9a2eff" fill-opacity="0.85" font-size="7" font-weight="bold">Ākāsha</text>
+                        <text x="107" y="61" fill="#9a2eff" fill-opacity="0.85" font-size="6.5">Soi</text>
+                        <!-- Annulaire : Terre / Analogue -->
+                        <text x="120" y="52" fill="#008143" fill-opacity="0.9" font-size="11">🌍</text>
+                        <text x="119" y="63" fill="#008143" fill-opacity="0.85" font-size="7" font-weight="bold">Prithvi</text>
+                        <text x="118" y="73" fill="#008143" fill-opacity="0.85" font-size="6.5">Analogue</text>
+                        <!-- Auriculaire : Eau / Occulte -->
+                        <text x="137" y="65" fill="#0077a8" fill-opacity="0.9" font-size="11">💧</text>
+                        <text x="137" y="76" fill="#0077a8" fill-opacity="0.85" font-size="7" font-weight="bold">Jal</text>
+                        <text x="136" y="86" fill="#0077a8" fill-opacity="0.85" font-size="6.5">Occulte</text>
+                        <!-- φ label paume -->
+                        <text x="85" y="175" fill="#836e00" fill-opacity="0.85" font-size="7.5" font-family="serif">φ — Fibonacci dans les phalanges</text>
+                        <!-- Titre -->
+                        <text x="175" y="115" fill="#836e00" fill-opacity="0.85" font-size="8" font-weight="bold">Mudra =</text>
+                        <text x="175" y="126" fill="#836e00" fill-opacity="0.85" font-size="7.5">intention + fréquence</text>
+                        <text x="175" y="140" fill="#12121c" fill-opacity="0.85" font-size="7">Geste → émet un signal</text>
+                        <text x="175" y="151" fill="#12121c" fill-opacity="0.85" font-size="7">bio-électrique orienté</text>
+                        <text x="175" y="162" fill="#12121c" fill-opacity="0.85" font-size="7">vers l'élément associé</text>
+                    </svg>

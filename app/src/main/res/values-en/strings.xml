@@ -288,6 +288,72 @@
     <string name="faq_change_label">Can I correct my data after forging?</string>
     <string name="faq_change_body">Not directly: once confirmed, the record is sealed. In the Core tab, “Dissolve the core” erases this station\'s record and key, and you forge again with the right data. Your key depends on that data: the smallest correction yields a different one.</string>
 
+    <!-- ─── Zion — the third tab. Everything below comes from
+         u.copylaradio.com/earth/miz.html; the plates are its own SVGs. -->
+    <string name="zion_title">Zion</string>
+    <string name="zion_lead">Made In Zion: what makes the station work, in the words of those who wrote it.</string>
+
+    <string name="zion_group_goldberg">Goldberg sphere</string>
+    <string name="zion_goldberg_intro">How your birth calibrates a secret address on Earth — and lets you find each other without revealing who you are.</string>
+    <string name="zion_sphere_label">🌍 The Goldberg sphere</string>
+    <string name="zion_sphere_body">The Earth\'s surface is cut into 12 pentagons — the vertices of the icosahedron — surrounded by thousands of hexagons, like a football projected onto the globe. Each hexagon covers 1 to 50 km² depending on the resolution.</string>
+    <string name="zion_phase_label">🌀 Your personal phase φᵢ</string>
+    <string name="zion_phase_body">Your date, time and place of birth define an angle φᵢ ∈ [0, 2π) within the sidereal year. That is your celestial imprint: immutable, computed on the device, with no database at all.</string>
+    <string name="zion_precession_label">♾ Golden precession</string>
+    <string name="zion_precession_body">The grid turns continuously at the speed of the golden ratio φ — one full revolution every 14 h 50. The same GPS coordinates yield a different address from one hour to the next: without the exact instant, a relay scraper cannot recover the position.</string>
+    <string name="zion_rendezvous_label">🤝 Meeting without identity</string>
+    <string name="zion_rendezvous_body">Two people who know their phases φ compute the meeting hexagon and its geometric centre. No server knows the place. Physical presence is proved by the Cabin-33 ritual: 33 seconds still, within 50 m of the centre.</string>
+    <string name="zion_trust_path_caption">Path of trust — from birth to the meeting</string>
+    <string name="zion_antiscraping_label">🛡 Anti-scraping</string>
+    <string name="zion_antiscraping_body">The a4l: address published in a NOSTR event reveals no GPS position. Without the golden precession formula and the event\'s exact timestamp, the hexagonal coordinates cannot be turned into latitude and longitude.</string>
+    <string name="zion_cooperative_label">🔑 Cooperative decoding</string>
+    <string name="zion_cooperative_body">Two people who exchange their phases φ compute their shared hexagon and confirm presence through Cabin-33, with no intermediary. Resonance k is computed on each device.</string>
+    <string name="zion_binaural_anchor_label">🎵 Binaural anchoring</string>
+    <string name="zion_binaural_anchor_body">The 33-second ritual is accompanied by a binaural tone at 429.62 Hz + 33.17 Hz. The constant F_Φ = 33.17 Hz is the very one that enters the calculation of your phase: body and place become coherent on the same number.</string>
+
+    <string name="zion_group_maya">Mayan Kin and Tzolkin calendar</string>
+    <string name="zion_maya_intro">Your birth number in the galactic calendar — a 260-day compass for coordinating meetings without a recommendation algorithm.</string>
+    <string name="zion_tzolkin_label">📅 The 260-day cycle</string>
+    <string name="zion_tzolkin_body">The Tzolkin crosses 20 seals — archetypes — with 13 tones — energy levels: 260 Kin. Everyone is born on one precise day of that cycle, and their Kin stays their galactic imprint for life. The 52-year cycle, the Calendar Round, is the mathematical intersection of 260 and 365.</string>
+    <string name="zion_oracle_label">🔮 The five Oracle powers</string>
+    <string name="zion_oracle_body">Each Kin generates five correspondences: the Guide (natural mentor), the Antipode (creative challenge), the Analogue (complement of the same tone), the Occult (hidden partner, K + K\' = 261) and the Self. These five powers form the Oracle of the Kin.</string>
+    <string name="zion_maya_universal_label">🌍 Universal, without religion</string>
+    <string name="zion_maya_universal_body">A number from 1 to 260. No doctrine, no dogma — a mathematical structure independent of any culture and any calendar.</string>
+    <string name="zion_maya_routing_label">🧭 Social routing without an algorithm</string>
+    <string name="zion_maya_routing_body">Analogue, Guide, Antipode, Occult: four kinds of relation defined mathematically from birth. No behavioural tracking.</string>
+    <string name="zion_maya_filter_label">🔒 Combined with φᵢ: a double filter</string>
+    <string name="zion_maya_filter_body">The Mayan Kin says who to meet structurally, the phase φ says how strongly it resonates. Together they rule out meeting at random.</string>
+    <string name="zion_maya_moons_label">🌊 Nine moons, a biological rhythm</string>
+    <string name="zion_maya_moons_body">260 days is roughly 9 × 28 days: a rhythm close to the lunar cycle, and distinct from the some 270 days of gestation used by the conception calculation. A calendar written into biology, not into a social convention.</string>
+    <string name="zion_maya_tone_label">🎵 The tone, a part in the orchestra</string>
+    <string name="zion_maya_tone_body">T1, Magnetic: the steady foundation. T7, Resonant: the catalysing pivot. T13, Cosmic: the rhythmic drive. The Tzolkin assigns a natural part within any collective.</string>
+
+    <string name="zion_group_body">The body as a water antenna</string>
+    <string name="zion_body_intro">429.62 Hz: the resonance frequency of water. The body — 70 % water, proportions in φ — is a biological antenna tuned by gesture and by sound.</string>
+    <string name="zion_water_label">💧 The body as a water antenna</string>
+    <string name="zion_water_body">Marc Henry measured water resonating at 429.62 Hz — a frequency neither tempered nor arbitrary, derived from the constants of liquid water. The human body, 70 % water, is therefore a natural resonator; the golden-ratio proportions of the phalanges and the hand form a geometric antenna able to receive that signal and to emit it.</string>
+    <string name="zion_mudras_label">✋ Mudras — five fingers, five elements, five powers</string>
+    <string name="zion_mudras_body">In the Vedic Pancha Mahabhuta, each finger takes in a primordial element. And the five Oracle powers of the Mayan Kin follow the same fivefold structure: the hand becomes the living gesture of the galactic calendar, a mudra tuned to the element of the moment.</string>
+    <string name="zion_binaural_caption">Cabin-33 binaural spectrum — tuning to the frequency of water</string>
+    <string name="zion_water_freq_label">🌊 429.62 Hz — water speaks</string>
+    <string name="zion_water_freq_body">Marc Henry measured liquid water entering maximum resonance at this frequency: neither the 440 Hz A of equal temperament, nor the esoteric “432 Hz”, but a measurable physical constant. The whole body, like water, vibrates on that carrier.</string>
+    <string name="zion_mudra_kin_label">🖐 Mudra × Mayan Kin</string>
+    <string name="zion_mudra_kin_body">The galactic tone of your Kin — from T1, Magnetic, to T13, Cosmic — sets your rhythm in the cooperative orchestra, and the matching mudra anchors it in the body. T7, Resonant, calls for the Vayu mudra: the index finger, Air, maximum vibration within the collective.</string>
+    <string name="zion_cabin33_label">🎵 Cabin-33 — tuning to φ</string>
+    <string name="zion_cabin33_body">At the geometric centre of a hexagon, 33 seconds still, the binaural tone — 429.62 Hz on the left, 462.79 Hz on the right — creates a 33.17 Hz beat in the brain: F_Φ. That beat synchronises the body\'s antenna with the hexagonal node; it is a biological proof of presence.</string>
+
+    <string name="zion_group_forge">Forging the identity</string>
+    <string name="zion_forge_intro">Four nested cryptographic functions — the same ones in the browser, in Ẑelkova and in this application.</string>
+    <string name="zion_forge_caption">From the birth record to the two keys</string>
+    <string name="zion_forge_pbkdf2_label">1 · PBKDF2-SHA-256</string>
+    <string name="zion_forge_pbkdf2_body">The salt and the pepper of your record are stretched separately, 600,000 rounds each, over the domain “uplanet-a4l-v1”. Out come a stretched salt and a stretched pepper.</string>
+    <string name="zion_forge_scrypt_label">2 · Scrypt</string>
+    <string name="zion_forge_scrypt_body">The stretched pepper goes through scrypt — N = 4096, r = 16, p = 1 — with the stretched salt as its salt. Out comes a 32-byte seed, shared by both keys.</string>
+    <string name="zion_forge_nostr_label">3a · secp256k1 → NOSTR</string>
+    <string name="zion_forge_nostr_body">The private key is the SHA-256 of the seed; the public key follows from it on the secp256k1 curve. Both are written in bech32, per NIP-19: nsec and npub.</string>
+    <string name="zion_forge_g1_label">3b · Ed25519 → G1 / Ẑen</string>
+    <string name="zion_forge_g1_body">The same seed generates an Ed25519 pair. The public key, in Base58, gives the 44-character G1 address that Cesium reads — the free currency, on the Duniter v2 chain.</string>
+
     <!-- ─── The domain ────────────────────────────────────────────────── -->
     <string name="wave_phi">Wave (Man)</string>
     <string name="wave_octave">Octave (Woman)</string>

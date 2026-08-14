@@ -1,0 +1,122 @@
+<svg viewBox="0 -3 282 183" xmlns="http://www.w3.org/2000/svg" >
+                        
+                        <!-- En-tête tonalités (T1…T13) -->
+                        <g fill="#12121c" fill-opacity="0.35" font-size="6" font-family="sans-serif" text-anchor="middle">
+                            <text x="22" y="10">T1</text><text x="34" y="10">T2</text><text x="46" y="10">T3</text>
+                            <text x="58" y="10">T4</text><text x="70" y="10">T5</text><text x="82" y="10">T6</text>
+                            <text x="94" y="10">T7</text><text x="106" y="10">T8</text><text x="118" y="10">T9</text>
+                            <text x="130" y="10">T10</text><text x="143" y="10">T11</text><text x="155" y="10">T12</text>
+                            <text x="167" y="10">T13</text>
+                        </g>
+                        <!-- Grille 20 sceaux × 13 tonalités — 4 familles de couleurs -->
+                        <!-- Sceau 0 (Rouge) : ligne 0 -->
+                        <g fill="#dc2626" fill-opacity="0.35" stroke="#dc2626" stroke-opacity="0.2" stroke-width=".5">
+                            <rect x="16" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="28" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="40" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="52" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="64" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="76" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="88" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="100" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="112" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="124" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="136" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="148" y="14" width="10" height="7" rx="1.5"/>
+                            <rect x="160" y="14" width="10" height="7" rx="1.5"/>
+                        </g>
+                        <!-- Sceau 1 (Blanc) -->
+                        <g fill="#12121c" fill-opacity="0.2" stroke="#12121c" stroke-opacity="0.15" stroke-width=".5">
+                            <rect x="16" y="23" width="10" height="7" rx="1.5"/><rect x="28" y="23" width="10" height="7" rx="1.5"/>
+                            <rect x="40" y="23" width="10" height="7" rx="1.5"/><rect x="52" y="23" width="10" height="7" rx="1.5"/>
+                            <rect x="64" y="23" width="10" height="7" rx="1.5"/><rect x="76" y="23" width="10" height="7" rx="1.5"/>
+                            <rect x="88" y="23" width="10" height="7" rx="1.5"/><rect x="100" y="23" width="10" height="7" rx="1.5"/>
+                            <rect x="112" y="23" width="10" height="7" rx="1.5"/><rect x="124" y="23" width="10" height="7" rx="1.5"/>
+                            <rect x="136" y="23" width="10" height="7" rx="1.5"/><rect x="148" y="23" width="10" height="7" rx="1.5"/>
+                            <rect x="160" y="23" width="10" height="7" rx="1.5"/>
+                        </g>
+                        <!-- Sceau 2 (Bleu) -->
+                        <g fill="#2563eb" fill-opacity="0.35" stroke="#2563eb" stroke-opacity="0.2" stroke-width=".5">
+                            <rect x="16" y="32" width="10" height="7" rx="1.5"/><rect x="28" y="32" width="10" height="7" rx="1.5"/>
+                            <rect x="40" y="32" width="10" height="7" rx="1.5"/><rect x="52" y="32" width="10" height="7" rx="1.5"/>
+                            <rect x="64" y="32" width="10" height="7" rx="1.5"/><rect x="76" y="32" width="10" height="7" rx="1.5"/>
+                            <rect x="88" y="32" width="10" height="7" rx="1.5"/><rect x="100" y="32" width="10" height="7" rx="1.5"/>
+                            <rect x="112" y="32" width="10" height="7" rx="1.5"/><rect x="124" y="32" width="10" height="7" rx="1.5"/>
+                            <rect x="136" y="32" width="10" height="7" rx="1.5"/><rect x="148" y="32" width="10" height="7" rx="1.5"/>
+                            <rect x="160" y="32" width="10" height="7" rx="1.5"/>
+                        </g>
+                        <!-- Sceau 3 (Jaune) -->
+                        <g fill="#f59e0b" fill-opacity="0.35" stroke="#f59e0b" stroke-opacity="0.2" stroke-width=".5">
+                            <rect x="16" y="41" width="10" height="7" rx="1.5"/><rect x="28" y="41" width="10" height="7" rx="1.5"/>
+                            <rect x="40" y="41" width="10" height="7" rx="1.5"/><rect x="52" y="41" width="10" height="7" rx="1.5"/>
+                            <rect x="64" y="41" width="10" height="7" rx="1.5"/><rect x="76" y="41" width="10" height="7" rx="1.5"/>
+                            <rect x="88" y="41" width="10" height="7" rx="1.5"/><rect x="100" y="41" width="10" height="7" rx="1.5"/>
+                            <rect x="112" y="41" width="10" height="7" rx="1.5"/><rect x="124" y="41" width="10" height="7" rx="1.5"/>
+                            <rect x="136" y="41" width="10" height="7" rx="1.5"/><rect x="148" y="41" width="10" height="7" rx="1.5"/>
+                            <rect x="160" y="41" width="10" height="7" rx="1.5"/>
+                        </g>
+                        <!-- 4 répétitions de la séquence (lignes 4-7, 8-11, 12-15, 16-19) simplifiées -->
+                        <g fill="#dc2626" fill-opacity="0.22" stroke="#dc2626" stroke-opacity="0.12" stroke-width=".4">
+                            <rect x="16" y="50" width="10" height="7" rx="1.5"/><rect x="28" y="50" width="10" height="7" rx="1.5"/>
+                            <rect x="40" y="50" width="10" height="7" rx="1.5"/><rect x="52" y="50" width="10" height="7" rx="1.5"/>
+                            <rect x="64" y="50" width="10" height="7" rx="1.5"/><rect x="76" y="50" width="10" height="7" rx="1.5"/>
+                            <rect x="88" y="50" width="10" height="7" rx="1.5"/><rect x="100" y="50" width="10" height="7" rx="1.5"/>
+                            <rect x="112" y="50" width="10" height="7" rx="1.5"/><rect x="124" y="50" width="10" height="7" rx="1.5"/>
+                            <rect x="136" y="50" width="10" height="7" rx="1.5"/><rect x="148" y="50" width="10" height="7" rx="1.5"/>
+                            <rect x="160" y="50" width="10" height="7" rx="1.5"/>
+                        </g>
+                        <g fill="#12121c" fill-opacity="0.1" stroke="#12121c" stroke-opacity="0.07" stroke-width=".4">
+                            <rect x="16" y="59" width="10" height="7" rx="1.5"/><rect x="28" y="59" width="10" height="7" rx="1.5"/>
+                            <rect x="40" y="59" width="10" height="7" rx="1.5"/><rect x="52" y="59" width="10" height="7" rx="1.5"/>
+                            <rect x="64" y="59" width="10" height="7" rx="1.5"/><rect x="76" y="59" width="10" height="7" rx="1.5"/>
+                            <rect x="88" y="59" width="10" height="7" rx="1.5"/><rect x="100" y="59" width="10" height="7" rx="1.5"/>
+                            <rect x="112" y="59" width="10" height="7" rx="1.5"/><rect x="124" y="59" width="10" height="7" rx="1.5"/>
+                            <rect x="136" y="59" width="10" height="7" rx="1.5"/><rect x="148" y="59" width="10" height="7" rx="1.5"/>
+                            <rect x="160" y="59" width="10" height="7" rx="1.5"/>
+                        </g>
+                        <g fill="#2563eb" fill-opacity="0.18" stroke="#2563eb" stroke-opacity="0.1" stroke-width=".4">
+                            <rect x="16" y="68" width="10" height="7" rx="1.5"/><rect x="28" y="68" width="10" height="7" rx="1.5"/>
+                            <rect x="40" y="68" width="10" height="7" rx="1.5"/><rect x="52" y="68" width="10" height="7" rx="1.5"/>
+                            <rect x="64" y="68" width="10" height="7" rx="1.5"/><rect x="76" y="68" width="10" height="7" rx="1.5"/>
+                            <rect x="88" y="68" width="10" height="7" rx="1.5"/><rect x="100" y="68" width="10" height="7" rx="1.5"/>
+                            <rect x="112" y="68" width="10" height="7" rx="1.5"/><rect x="124" y="68" width="10" height="7" rx="1.5"/>
+                            <rect x="136" y="68" width="10" height="7" rx="1.5"/><rect x="148" y="68" width="10" height="7" rx="1.5"/>
+                            <rect x="160" y="68" width="10" height="7" rx="1.5"/>
+                        </g>
+                        <g fill="#f59e0b" fill-opacity="0.18" stroke="#f59e0b" stroke-opacity="0.1" stroke-width=".4">
+                            <rect x="16" y="77" width="10" height="7" rx="1.5"/><rect x="28" y="77" width="10" height="7" rx="1.5"/>
+                            <rect x="40" y="77" width="10" height="7" rx="1.5"/><rect x="52" y="77" width="10" height="7" rx="1.5"/>
+                            <rect x="64" y="77" width="10" height="7" rx="1.5"/><rect x="76" y="77" width="10" height="7" rx="1.5"/>
+                            <rect x="88" y="77" width="10" height="7" rx="1.5"/><rect x="100" y="77" width="10" height="7" rx="1.5"/>
+                            <rect x="112" y="77" width="10" height="7" rx="1.5"/><rect x="124" y="77" width="10" height="7" rx="1.5"/>
+                            <rect x="136" y="77" width="10" height="7" rx="1.5"/><rect x="148" y="77" width="10" height="7" rx="1.5"/>
+                            <rect x="160" y="77" width="10" height="7" rx="1.5"/>
+                        </g>
+                        <!-- Lignes restantes (fade) -->
+                        <g opacity=".25">
+                            <g fill="#dc2626" fill-opacity="0.4"><rect x="16" y="86" width="10" height="7" rx="1.5"/><rect x="28" y="86" width="10" height="7" rx="1.5"/><rect x="40" y="86" width="10" height="7" rx="1.5"/><rect x="52" y="86" width="10" height="7" rx="1.5"/><rect x="64" y="86" width="10" height="7" rx="1.5"/><rect x="76" y="86" width="10" height="7" rx="1.5"/><rect x="88" y="86" width="10" height="7" rx="1.5"/><rect x="100" y="86" width="10" height="7" rx="1.5"/><rect x="112" y="86" width="10" height="7" rx="1.5"/><rect x="124" y="86" width="10" height="7" rx="1.5"/><rect x="136" y="86" width="10" height="7" rx="1.5"/><rect x="148" y="86" width="10" height="7" rx="1.5"/><rect x="160" y="86" width="10" height="7" rx="1.5"/></g>
+                            <g fill="#12121c" fill-opacity="0.3"><rect x="16" y="95" width="10" height="7" rx="1.5"/><rect x="28" y="95" width="10" height="7" rx="1.5"/><rect x="40" y="95" width="10" height="7" rx="1.5"/><rect x="52" y="95" width="10" height="7" rx="1.5"/><rect x="64" y="95" width="10" height="7" rx="1.5"/><rect x="76" y="95" width="10" height="7" rx="1.5"/><rect x="88" y="95" width="10" height="7" rx="1.5"/><rect x="100" y="95" width="10" height="7" rx="1.5"/><rect x="112" y="95" width="10" height="7" rx="1.5"/><rect x="124" y="95" width="10" height="7" rx="1.5"/><rect x="136" y="95" width="10" height="7" rx="1.5"/><rect x="148" y="95" width="10" height="7" rx="1.5"/><rect x="160" y="95" width="10" height="7" rx="1.5"/></g>
+                            <g fill="#2563eb" fill-opacity="0.5"><rect x="16" y="104" width="10" height="7" rx="1.5"/><rect x="28" y="104" width="10" height="7" rx="1.5"/><rect x="40" y="104" width="10" height="7" rx="1.5"/><rect x="52" y="104" width="10" height="7" rx="1.5"/><rect x="64" y="104" width="10" height="7" rx="1.5"/><rect x="76" y="104" width="10" height="7" rx="1.5"/><rect x="88" y="104" width="10" height="7" rx="1.5"/><rect x="100" y="104" width="10" height="7" rx="1.5"/><rect x="112" y="104" width="10" height="7" rx="1.5"/><rect x="124" y="104" width="10" height="7" rx="1.5"/><rect x="136" y="104" width="10" height="7" rx="1.5"/><rect x="148" y="104" width="10" height="7" rx="1.5"/><rect x="160" y="104" width="10" height="7" rx="1.5"/></g>
+                            <g fill="#f59e0b" fill-opacity="0.5"><rect x="16" y="113" width="10" height="7" rx="1.5"/><rect x="28" y="113" width="10" height="7" rx="1.5"/><rect x="40" y="113" width="10" height="7" rx="1.5"/><rect x="52" y="113" width="10" height="7" rx="1.5"/><rect x="64" y="113" width="10" height="7" rx="1.5"/><rect x="76" y="113" width="10" height="7" rx="1.5"/><rect x="88" y="113" width="10" height="7" rx="1.5"/><rect x="100" y="113" width="10" height="7" rx="1.5"/><rect x="112" y="113" width="10" height="7" rx="1.5"/><rect x="124" y="113" width="10" height="7" rx="1.5"/><rect x="136" y="113" width="10" height="7" rx="1.5"/><rect x="148" y="113" width="10" height="7" rx="1.5"/><rect x="160" y="113" width="10" height="7" rx="1.5"/></g>
+                        </g>
+                        <!-- Kin mis en évidence (ex: Kin 119) -->
+                        <rect x="88" y="68" width="10" height="7" rx="1.5" fill="#9b30ff" stroke="#c78bff" stroke-width="1.2"/>
+                        <text x="93" y="74" text-anchor="middle" fill="#12121c" font-size="5" font-family="sans-serif" font-weight="bold">119</text>
+                        <!-- Légende couleurs à droite -->
+                        <g font-size="7" font-family="sans-serif">
+                            <rect x="185" y="20" width="8" height="6" rx="1" fill="#dc2626" fill-opacity="0.6"/>
+                            <text x="196" y="26" fill="#d92323" fill-opacity="0.85">Rouge (Dragon…)</text>
+                            <rect x="185" y="30" width="8" height="6" rx="1" fill="#12121c" fill-opacity="0.4"/>
+                            <text x="196" y="36" fill="#12121c" fill-opacity="0.85">Blanc (Vent…)</text>
+                            <rect x="185" y="40" width="8" height="6" rx="1" fill="#2563eb" fill-opacity="0.6"/>
+                            <text x="196" y="46" fill="#2563eb" fill-opacity="0.85">Bleu (Nuit…)</text>
+                            <rect x="185" y="50" width="8" height="6" rx="1" fill="#f59e0b" fill-opacity="0.6"/>
+                            <text x="196" y="56" fill="#9b6406" fill-opacity="0.85">Jaune (Graine…)</text>
+                        </g>
+                        <!-- Statistiques -->
+                        <text x="20" y="130" fill="#9a2eff" fill-opacity="0.85" font-size="8" font-family="sans-serif" font-weight="bold">260 Kin = 20 Sceaux × 13 Tonalités</text>
+                        <text x="20" y="141" fill="#12121c" fill-opacity="0.85" font-size="7.5" font-family="sans-serif">Cycle lunaire galactique : 260 jours ≈ 9 lunes de 28 jours</text>
+                        <text x="20" y="152" fill="#12121c" fill-opacity="0.85" font-size="7.5" font-family="sans-serif">Round du Calendrier : 52 ans = LCM(260, 365) / 365</text>
+                        <!-- Kin du jour marqué -->
+                        <text x="20" y="166" fill="#9a2eff" fill-opacity="0.85" font-size="7.5" font-family="sans-serif">★ Kin 119 = Tempête Bleue T3 (exemple)</text>
+                    </svg>

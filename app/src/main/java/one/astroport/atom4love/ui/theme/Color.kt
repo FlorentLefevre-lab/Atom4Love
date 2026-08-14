@@ -205,6 +205,15 @@ val LocalA4L = staticCompositionLocalOf { A4LLight }
  * nomme [A4LDark] ou [A4LLight] explicitement.
  */
 object A4L {
+    /**
+     * Laquelle des deux lumières est servie.
+     *
+     * À n'employer que pour ce qu'aucune couleur ne peut porter — une image
+     * qui existe en deux versions, par exemple. Choisir une couleur avec ce
+     * booléen serait refaire à la main ce que la palette fait déjà.
+     */
+    val IsDark: Boolean @Composable @ReadOnlyComposable get() = LocalA4L.current.dark
+
     val Void: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.void
     val Deep: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.deep
     val DeepAlt: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.deepAlt

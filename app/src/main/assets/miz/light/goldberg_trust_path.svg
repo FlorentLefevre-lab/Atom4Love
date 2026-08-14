@@ -1,0 +1,47 @@
+<svg viewBox="-4 -4 764 129" xmlns="http://www.w3.org/2000/svg" style="font-family:'Segoe UI',sans-serif">
+            <defs>
+                <marker id="arr-gd" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+                    <polygon points="0 0,7 3.5,0 7" fill="#00c968" fill-opacity="0.65"/></marker>
+            </defs>
+            <!-- Étape 1 — Naissance/Conception -->
+            <rect x="8" y="28" width="118" height="54" rx="8" fill="#ffd700" fill-opacity="0.07" stroke="#ffd700" stroke-opacity="0.3" stroke-width="1"/>
+            <text x="67" y="50" text-anchor="middle" fill="#836e00" font-size="10.5" font-weight="bold">🌱 Naissance</text>
+            <text x="67" y="64" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="8.5">date · heure · lieu</text>
+            <text x="67" y="75" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="8">poids · conception</text>
+            <!-- flèche 1→2 -->
+            <line x1="126" y1="55" x2="154" y2="55" stroke="#00c968" stroke-opacity="0.55" stroke-width="1.3" marker-end="url(#arr-gd)"/>
+            <text x="140" y="49" text-anchor="middle" fill="#008143" fill-opacity="0.85" font-size="7.5">local</text>
+            <!-- Étape 2 — Phase φ -->
+            <rect x="156" y="28" width="118" height="54" rx="8" fill="#00c968" fill-opacity="0.07" stroke="#00c968" stroke-opacity="0.3" stroke-width="1"/>
+            <text x="215" y="50" text-anchor="middle" fill="#008143" font-size="10.5" font-weight="bold">⚛ Phase φᵢ</text>
+            <text x="215" y="64" text-anchor="middle" fill="#008143" fill-opacity="0.85" font-size="8.5">∈ [0, 2π) immuable</text>
+            <text x="215" y="75" text-anchor="middle" fill="#008143" fill-opacity="0.85" font-size="8">KIN Maya + k</text>
+            <!-- flèche 2→3 -->
+            <line x1="274" y1="55" x2="302" y2="55" stroke="#00c968" stroke-opacity="0.55" stroke-width="1.3" marker-end="url(#arr-gd)"/>
+            <text x="288" y="49" text-anchor="middle" fill="#008143" fill-opacity="0.85" font-size="7.5">+ timestamp</text>
+            <!-- Étape 3 — Adresse a4l: opaque -->
+            <rect x="304" y="18" width="138" height="74" rx="8" fill="#00ccff" fill-opacity="0.06" stroke="#00ccff" stroke-opacity="0.3" stroke-width="1.2"/>
+            <text x="373" y="42" text-anchor="middle" fill="#007998" font-size="10.5" font-weight="bold">🔒 Adresse a4l:</text>
+            <text x="373" y="56" text-anchor="middle" fill="#007998" fill-opacity="0.85" font-size="8" font-family="monospace">P04H8F2AC3B1</text>
+            <text x="373" y="68" text-anchor="middle" fill="#007998" fill-opacity="0.85" font-size="8">opaque pour scrapers</text>
+            <text x="373" y="79" text-anchor="middle" fill="#007998" fill-opacity="0.85" font-size="7.5">rotation toutes ≈14h50</text>
+            <!-- flèche 3→4 -->
+            <line x1="442" y1="55" x2="470" y2="55" stroke="#00c968" stroke-opacity="0.55" stroke-width="1.3" marker-end="url(#arr-gd)"/>
+            <text x="456" y="49" text-anchor="middle" fill="#008143" fill-opacity="0.85" font-size="7.5">k partagé</text>
+            <!-- Étape 4 — RDV Cabine -->
+            <rect x="472" y="28" width="118" height="54" rx="8" fill="#9b30ff" fill-opacity="0.07" stroke="#9b30ff" stroke-opacity="0.3" stroke-width="1"/>
+            <text x="531" y="50" text-anchor="middle" fill="#9a2eff" font-size="10.5" font-weight="bold">📍 Cabine-33</text>
+            <text x="531" y="64" text-anchor="middle" fill="#9a2eff" fill-opacity="0.85" font-size="8.5">33s immobile</text>
+            <text x="531" y="75" text-anchor="middle" fill="#9a2eff" fill-opacity="0.85" font-size="8">≤ 50m du centre hex</text>
+            <!-- flèche 4→5 -->
+            <line x1="590" y1="55" x2="618" y2="55" stroke="#ffd700" stroke-opacity="0.55" stroke-width="1.3" marker-end="url(#arr-gd)"/>
+            <text x="604" y="49" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="7.5">physique</text>
+            <!-- Étape 5 — Identité révélée -->
+            <rect x="620" y="18" width="132" height="74" rx="8" fill="#ffd700" fill-opacity="0.08" stroke="#ffd700" stroke-opacity="0.38" stroke-width="1.2"/>
+            <text x="686" y="42" text-anchor="middle" fill="#836e00" font-size="10.5" font-weight="bold">✨ Révélation</text>
+            <text x="686" y="56" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="8.5">identité à 2</text>
+            <text x="686" y="68" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="8">canal NOSTR privé</text>
+            <text x="686" y="79" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="7.5">zéro serveur central</text>
+            <!-- Note anonymat -->
+            <text x="380" y="112" text-anchor="middle" fill="#12121c" fill-opacity="0.85" font-size="8" font-family="sans-serif">⬅  Totalement anonyme tant qu'aucune rencontre physique n'a eu lieu  ➡</text>
+        </svg>

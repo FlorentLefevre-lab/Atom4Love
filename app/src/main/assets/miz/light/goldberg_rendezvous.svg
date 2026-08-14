@@ -1,0 +1,34 @@
+<svg viewBox="-4 -4 244 199" xmlns="http://www.w3.org/2000/svg" >
+                        
+                        <!-- Grille nid d'abeille -->
+                        <!-- Hexagone central (RDV) -->
+                        <polygon points="120,76 142,89 142,115 120,128 98,115 98,89" fill="#00c968" fill-opacity="0.11" stroke="#00C968" stroke-width="1.6"/>
+                        <!-- Adjacents -->
+                        <polygon points="120,24 142,37 142,63 120,76 98,63 98,37" fill="#00c968" fill-opacity="0.04" stroke="#00c968" stroke-opacity="0.18" stroke-width=".8"/>
+                        <polygon points="142,63 164,76 164,102 142,115 120,102 120,76" fill="#00c968" fill-opacity="0.04" stroke="#00c968" stroke-opacity="0.18" stroke-width=".8"/>
+                        <polygon points="142,115 164,128 164,154 142,167 120,154 120,128" fill="#00c968" fill-opacity="0.04" stroke="#00c968" stroke-opacity="0.18" stroke-width=".8"/>
+                        <polygon points="120,128 142,141 142,167 120,180 98,167 98,141" fill="#00c968" fill-opacity="0.04" stroke="#00c968" stroke-opacity="0.18" stroke-width=".8"/>
+                        <polygon points="98,115 120,128 120,154 98,167 76,154 76,128" fill="#00c968" fill-opacity="0.04" stroke="#00c968" stroke-opacity="0.18" stroke-width=".8"/>
+                        <polygon points="98,63 120,76 120,102 98,115 76,102 76,76" fill="#00c968" fill-opacity="0.04" stroke="#00c968" stroke-opacity="0.18" stroke-width=".8"/>
+                        <!-- Centre + cercle 50m -->
+                        <circle cx="120" cy="102" r="16" fill="none" stroke="#ffd700" stroke-opacity="0.3" stroke-width=".9" stroke-dasharray="3,3"/>
+                        <circle cx="120" cy="102" r="7" fill="#ffd700" fill-opacity="0.25" stroke="#ffd700" stroke-width="1.6"/>
+                        <circle cx="120" cy="102" r="2.8" fill="#ffd700" opacity=".95"/>
+                        <text x="138" y="93" fill="#836e00" fill-opacity="0.85" font-size="6.5" font-family="sans-serif">50m</text>
+                        <!-- Personne A -->
+                        <circle cx="58" cy="46" r="9" fill="#ffd700" fill-opacity="0.18" stroke="#ffd700" stroke-width="1.3"/>
+                        <text x="58" y="51" text-anchor="middle" fill="#836e00" font-size="10" font-family="sans-serif" font-weight="bold">A</text>
+                        <line x1="67" y1="53" x2="107" y2="92" stroke="#ffd700" stroke-opacity="0.5" stroke-width="1.2" stroke-dasharray="5,3"/>
+                        <polygon points="107,92 97,86 103,98" fill="#ffd700" fill-opacity="0.55"/>
+                        <!-- Personne B -->
+                        <circle cx="190" cy="162" r="9" fill="#9b30ff" fill-opacity="0.18" stroke="#9b30ff" stroke-width="1.3"/>
+                        <text x="190" y="167" text-anchor="middle" fill="#9a2eff" font-size="10" font-family="sans-serif" font-weight="bold">B</text>
+                        <line x1="180" y1="156" x2="133" y2="112" stroke="#9b30ff" stroke-opacity="0.5" stroke-width="1.2" stroke-dasharray="5,3"/>
+                        <polygon points="133,112 142,118 137,106" fill="#9b30ff" fill-opacity="0.55"/>
+                        <!-- Adresse opaque -->
+                        <rect x="80" y="133" width="80" height="16" rx="5" fill="#00ccff" fill-opacity="0.05" stroke="#00ccff" stroke-opacity="0.22" stroke-width=".8"/>
+                        <text x="120" y="144" text-anchor="middle" fill="#007998" fill-opacity="0.85" font-size="7.5" font-family="monospace">a4l:P04H8F2AC3B1</text>
+                        <!-- Son binaural -->
+                        <text x="120" y="12" text-anchor="middle" fill="#0077a8" fill-opacity="0.85" font-size="7.5" font-family="sans-serif">Cabine-33 : 33s immobile, v &lt; 2 km/h</text>
+                        <text x="120" y="185" text-anchor="middle" fill="#0077a8" fill-opacity="0.85" font-size="7.5" font-family="sans-serif">♪ 429,62 Hz + 33,17 Hz (binaural F_Φ)</text>
+                    </svg>

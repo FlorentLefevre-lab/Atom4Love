@@ -1,0 +1,42 @@
+<svg viewBox="-4 -4 274 179" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,sans-serif">
+                        
+                        <!-- Silhouette humaine stylisée -->
+                        <!-- Tête -->
+                        <ellipse cx="130" cy="28" rx="13" ry="15" fill="#00b4ff" fill-opacity="0.1" stroke="#00b4ff" stroke-opacity="0.45" stroke-width="1.3"/>
+                        <!-- Corps -->
+                        <rect x="121" y="43" width="18" height="38" rx="5" fill="#00b4ff" fill-opacity="0.06" stroke="#00b4ff" stroke-opacity="0.3" stroke-width="1"/>
+                        <!-- Bras gauche -->
+                        <line x1="121" y1="50" x2="98" y2="70" stroke="#00b4ff" stroke-opacity="0.3" stroke-width="1.4" stroke-linecap="round"/>
+                        <!-- Main gauche -->
+                        <ellipse cx="95" cy="72" rx="5" ry="4" fill="#ffd700" fill-opacity="0.15" stroke="#ffd700" stroke-opacity="0.5" stroke-width="1"/>
+                        <!-- Bras droit -->
+                        <line x1="139" y1="50" x2="162" y2="70" stroke="#00b4ff" stroke-opacity="0.3" stroke-width="1.4" stroke-linecap="round"/>
+                        <!-- Main droite -->
+                        <ellipse cx="165" cy="72" rx="5" ry="4" fill="#ffd700" fill-opacity="0.15" stroke="#ffd700" stroke-opacity="0.5" stroke-width="1"/>
+                        <!-- Jambes -->
+                        <line x1="127" y1="81" x2="122" y2="112" stroke="#00b4ff" stroke-opacity="0.28" stroke-width="1.4" stroke-linecap="round"/>
+                        <line x1="133" y1="81" x2="138" y2="112" stroke="#00b4ff" stroke-opacity="0.28" stroke-width="1.4" stroke-linecap="round"/>
+                        <!-- Spirale de Fibonacci sur le corps (φ) -->
+                        <path d="M130 13 Q148 13 148 31 Q148 49 130 49 Q112 49 112 67 Q112 85 130 85" fill="none" stroke="#ffd700" stroke-opacity="0.3" stroke-width="1.2" stroke-dasharray="3,2"/>
+                        <!-- Ondes concentriques eau (coeur = source) -->
+                        <ellipse cx="130" cy="62" rx="18" ry="12" fill="none" stroke="#00b4ff" stroke-opacity="0.35" stroke-width="1.2" stroke-dasharray="2,3"/>
+                        <ellipse cx="130" cy="62" rx="35" ry="24" fill="none" stroke="#00b4ff" stroke-opacity="0.22" stroke-width="1" stroke-dasharray="2,4"/>
+                        <ellipse cx="130" cy="62" rx="56" ry="38" fill="none" stroke="#00b4ff" stroke-opacity="0.12" stroke-width=".8" stroke-dasharray="2,6"/>
+                        <ellipse cx="130" cy="62" rx="80" ry="54" fill="none" stroke="#00b4ff" stroke-opacity="0.06" stroke-width=".6" stroke-dasharray="2,8"/>
+                        <!-- Centre coeur -->
+                        <circle cx="130" cy="62" r="3.5" fill="#00b4ff" fill-opacity="0.4" stroke="#00b4ff" stroke-opacity="0.7" stroke-width="1"/>
+                        <!-- Labels fréquences -->
+                        <text x="8" y="14" fill="#0077a8" fill-opacity="0.85" font-size="9" font-weight="bold">429,62 Hz</text>
+                        <text x="8" y="24" fill="#0077a8" fill-opacity="0.85" font-size="7.5">Résonance eau (Marc Heny)</text>
+                        <!-- φ label -->
+                        <text x="150" y="35" fill="#836e00" fill-opacity="0.85" font-size="11" font-family="serif">φ</text>
+                        <text x="152" y="46" fill="#836e00" fill-opacity="0.85" font-size="7">= 1.618…</text>
+                        <!-- 70% eau -->
+                        <text x="155" y="65" fill="#0077a8" fill-opacity="0.85" font-size="9">70% eau</text>
+                        <text x="155" y="76" fill="#0077a8" fill-opacity="0.85" font-size="7">→ résonateur</text>
+                        <!-- Formule ω_bio -->
+                        <rect x="6" y="128" width="248" height="38" rx="6" fill="#000000" fill-opacity="0.5" stroke="#ffd700" stroke-opacity="0.2" stroke-width=".8"/>
+                        <text x="12" y="142" fill="#ffd700" fill-opacity="0.7" font-size="8" font-family="'Courier New',monospace">ω_bio = 429.62 × (masse_eau_kg / 70)</text>
+                        <text x="12" y="155" fill="#00b4ff" fill-opacity="0.45" font-size="7.5">Ta fréquence personnelle — publiée dans ATOM4LOVE (kind 30078)</text>
+                        <text x="12" y="165" fill="#ffffff" fill-opacity="0.2" font-size="7">Ex: 70kg → 70% eau → 49kg → ω = 429.62 × 49/70 ≈ 300.73 Hz</text>
+                    </svg>

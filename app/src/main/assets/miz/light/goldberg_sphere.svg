@@ -1,0 +1,45 @@
+<svg viewBox="-3 -3 243 193" xmlns="http://www.w3.org/2000/svg" >
+                        <!-- Globe de fond -->
+                        <circle cx="120" cy="95" r="80" fill="#000f23" fill-opacity="0.7" stroke="#00b4ff" stroke-opacity="0.25" stroke-width="1.5"/>
+                        <!-- Parallèles / méridiens suggérés -->
+                        <ellipse cx="120" cy="95" rx="80" ry="24" fill="none" stroke="#00b4ff" stroke-opacity="0.09" stroke-width=".7"/>
+                        <ellipse cx="120" cy="71" rx="64" ry="19" fill="none" stroke="#00b4ff" stroke-opacity="0.07" stroke-width=".6"/>
+                        <ellipse cx="120" cy="119" rx="64" ry="19" fill="none" stroke="#00b4ff" stroke-opacity="0.07" stroke-width=".6"/>
+                        <line x1="120" y1="15" x2="120" y2="175" stroke="#00b4ff" stroke-opacity="0.08" stroke-width=".7"/>
+                        <line x1="45" y1="42" x2="195" y2="148" stroke="#00b4ff" stroke-opacity="0.06" stroke-width=".5"/>
+                        <line x1="195" y1="42" x2="45" y2="148" stroke="#00b4ff" stroke-opacity="0.06" stroke-width=".5"/>
+                        <!-- Hexagones centraux -->
+                        <polygon points="120,72 136,81 136,99 120,108 104,99 104,81" fill="#00c968" fill-opacity="0.08" stroke="#00c968" stroke-opacity="0.4" stroke-width="1.1"/>
+                        <polygon points="120,45 136,54 136,72 120,81 104,72 104,54" fill="#00c968" fill-opacity="0.05" stroke="#00c968" stroke-opacity="0.22" stroke-width=".8"/>
+                        <polygon points="136,72 152,81 152,99 136,108 120,99 120,81" fill="#00c968" fill-opacity="0.05" stroke="#00c968" stroke-opacity="0.22" stroke-width=".8"/>
+                        <polygon points="104,72 120,81 120,99 104,108 88,99 88,81" fill="#00c968" fill-opacity="0.05" stroke="#00c968" stroke-opacity="0.22" stroke-width=".8"/>
+                        <polygon points="120,99 136,108 136,126 120,135 104,126 104,108" fill="#00c968" fill-opacity="0.05" stroke="#00c968" stroke-opacity="0.22" stroke-width=".8"/>
+                        <polygon points="136,45 152,54 152,72 136,81 120,72 120,54" fill="#00c968" fill-opacity="0.03" stroke="#00c968" stroke-opacity="0.14" stroke-width=".6"/>
+                        <polygon points="104,45 120,54 120,72 104,81 88,72 88,54" fill="#00c968" fill-opacity="0.03" stroke="#00c968" stroke-opacity="0.14" stroke-width=".6"/>
+                        <polygon points="152,72 168,81 168,99 152,108 136,99 136,81" fill="#00c968" fill-opacity="0.03" stroke="#00c968" stroke-opacity="0.12" stroke-width=".6"/>
+                        <polygon points="88,72 104,81 104,99 88,108 72,99 72,81" fill="#00c968" fill-opacity="0.03" stroke="#00c968" stroke-opacity="0.12" stroke-width=".6"/>
+                        <!-- 12 pentagones -->
+                        <!-- Pôle Nord -->
+                        <circle cx="120" cy="15" r="5.5" fill="#ff5050" fill-opacity="0.75" stroke="#ff5050" stroke-width="1.2"/>
+                        <!-- Pôle Sud -->
+                        <circle cx="120" cy="175" r="5.5" fill="#ff5050" fill-opacity="0.75" stroke="#ff5050" stroke-width="1.2"/>
+                        <!-- Ceinture Nord (×5) -->
+                        <circle cx="162" cy="55" r="4.5" fill="#ffd700" fill-opacity="0.65" stroke="#ffd700" stroke-width="1"/>
+                        <circle cx="78" cy="55" r="4.5" fill="#ffd700" fill-opacity="0.65" stroke="#ffd700" stroke-width="1"/>
+                        <circle cx="177" cy="95" r="4" fill="#ffd700" fill-opacity="0.55" stroke="#ffd700" stroke-width=".9"/>
+                        <circle cx="63" cy="95" r="4" fill="#ffd700" fill-opacity="0.55" stroke="#ffd700" stroke-width=".9"/>
+                        <circle cx="143" cy="40" r="3.5" fill="#ffd700" fill-opacity="0.45" stroke="#ffd700" stroke-width=".8"/>
+                        <!-- Ceinture Sud (×5) -->
+                        <circle cx="162" cy="135" r="4.5" fill="#9b30ff" fill-opacity="0.7" stroke="#9b30ff" stroke-width="1"/>
+                        <circle cx="78" cy="135" r="4.5" fill="#9b30ff" fill-opacity="0.7" stroke="#9b30ff" stroke-width="1"/>
+                        <circle cx="177" cy="110" r="4" fill="#9b30ff" fill-opacity="0.5" stroke="#9b30ff" stroke-width=".9"/>
+                        <circle cx="97" cy="150" r="3.5" fill="#9b30ff" fill-opacity="0.45" stroke="#9b30ff" stroke-width=".8"/>
+                        <circle cx="147" cy="158" r="3.5" fill="#9b30ff" fill-opacity="0.45" stroke="#9b30ff" stroke-width=".8"/>
+                        <!-- Légende -->
+                        <circle cx="22" cy="148" r="4" fill="#ff5050" fill-opacity="0.75" stroke="#ff5050" stroke-width="1"/>
+                        <text x="30" y="152" fill="#12121c" fill-opacity="0.85" font-size="8.5" font-family="sans-serif">Pôles fixes (×2)</text>
+                        <circle cx="22" cy="162" r="4" fill="#ffd700" fill-opacity="0.6" stroke="#ffd700" stroke-width="1"/>
+                        <text x="30" y="166" fill="#12121c" fill-opacity="0.85" font-size="8.5" font-family="sans-serif">Pentagones Nord (×5)</text>
+                        <circle cx="22" cy="176" r="4" fill="#9b30ff" fill-opacity="0.7" stroke="#9b30ff" stroke-width="1"/>
+                        <text x="30" y="180" fill="#12121c" fill-opacity="0.85" font-size="8.5" font-family="sans-serif">Pentagones Sud (×5)</text>
+                    </svg>

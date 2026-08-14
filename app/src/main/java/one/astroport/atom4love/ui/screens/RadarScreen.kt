@@ -185,9 +185,17 @@ private fun appSettingsIntent(context: Context): Intent =
 /**
  * 02 · Radar Phi2X — la cabine à portée et le rituel de phase.
  *
- * Le compteur tourne réellement : 33 s d'immobilité déverrouillent la cabine.
- * Un appui sur le radar relance le rituel (en attendant le vrai verrou GPS, qui
- * devra réinitialiser le compteur dès que l'utilisateur s'éloigne du centre).
+ * Le compteur tourne réellement : 33 s d'immobilité déverrouillent la cabine, et
+ * un appui sur le radar relance le rituel.
+ *
+ * **Il manque toujours le lieu, et pas faute d'avoir essayé.** `miz.html` écrit
+ * « 33 secondes immobile à moins de 50 m du centre de l'hexagone » — mais son
+ * hexagone est celui du **rendez-vous**, déduit des deux phases φ, un point
+ * qu'on va rejoindre exprès à deux. Nous ne savons calculer que la cellule H3
+ * où l'on se tient déjà, et son centre n'est le rendez-vous de personne : en
+ * résolution 8 il est à 460 m d'arête, donc presque toujours à plus de 50 m —
+ * un verrou posé dessus fermerait la cabine partout. Tant que l'hexagone de
+ * rencontre n'est pas calculé, le rituel reste une durée et rien d'autre.
  */
 @Composable
 fun RadarScreen(
@@ -284,6 +292,14 @@ fun RadarScreen(
         }
     }
 
+    // Le binaural appartient au rituel, et à lui seul : chez Fred les 33 s
+    // d'immobilité sont « accompagnées d'un son binaural 429,62 Hz + 33,17 Hz ».
+    // Il se joue donc une fois, au moment où le compteur touche le fond.
+    val ritualSounds = remember { ChatSounds() }
+    LaunchedEffect(unlocked) {
+        if (unlocked) ritualSounds.binaural()
+    }
+
     // ── Le vrai fix : cellule H3, distance au centre, portail Goldberg ────
     val locator = remember { CellLocator(context.applicationContext) }
     var fix by remember { mutableStateOf<CellLocator.Fix?>(null) }
@@ -303,6 +319,7 @@ fun RadarScreen(
     }
     val portal = fix?.let { GoldbergPortal.nearest(it.lat, it.lon) }
     val heading = rememberHeadingDegrees()
+
 
     // Le défilement de l'écran est tenu ici, et non posé au vol : ouvrir la
     // cabine doit amener la conversation sous les yeux. Sur un écran de 677 dp
@@ -1215,13 +1232,10 @@ private fun CabinDirectPanel(chat: CabinChat) {
         }
     }
 
-    // Le battement de la rencontre : il se joue une fois, quand l'autre annonce
-    // son onde — c'est-à-dire au moment où la cabine s'ouvre pour de bon.
-    LaunchedEffect(chat) {
-        chat.resonances.collect { (mine, theirs) ->
-            sounds.binaural(mine.toDouble(), theirs.toDouble())
-        }
-    }
+    // Le binaural ne se joue plus ici. Chez Fred il appartient au rituel des
+    // 33 secondes, pas à la rencontre : c'est le radar qui l'ouvre désormais.
+    // Les deux ω_bio continuent de s'échanger (trame 0x0A) et de s'afficher —
+    // seule leur mise en son était de nous.
 
     Column(
         Modifier

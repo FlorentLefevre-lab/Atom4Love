@@ -217,6 +217,8 @@ fun HelpScreen(
                         ),
                     )
                     }
+
+                    HelpTab.Zion -> ZionTab()
                 }
             }
         }
@@ -232,17 +234,22 @@ fun HelpScreen(
  * reste de la station : plus de couleur qui prétendrait classer.
  */
 /**
- * Les deux façons d'arriver. Pas un titre et son sous-chapitre : deux pairs.
- * L'une explique le monde à qui le découvre, l'autre répond à qui bute sur
- * quelque chose — et personne n'arrive jamais avec les deux besoins à la fois.
+ * Trois façons d'arriver. Pas un titre et ses sous-chapitres : trois pairs.
+ * La première explique la station à qui la découvre, la deuxième répond à qui
+ * bute sur quelque chose — et personne n'arrive jamais avec les deux besoins à
+ * la fois. La troisième ne parle pas de la station du tout : elle donne le
+ * monde d'où viennent ses nombres, dans les mots et les planches de Made In
+ * Zion. Elle vient en dernier parce qu'on n'en a jamais besoin pour se servir
+ * de l'application — seulement pour comprendre pourquoi elle est ainsi.
  */
 private enum class HelpTab(val title: Int, val lead: Int) {
     Help(R.string.help_title, R.string.help_lead),
     Faq(R.string.faq_title, R.string.faq_lead),
+    Zion(R.string.zion_title, R.string.zion_lead),
 }
 
 @Composable
-private fun HelpGroup(title: String, answers: List<Answer>) {
+internal fun HelpGroup(title: String, answers: List<Answer>) {
     Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
         // Pas le [SectionLabel] partagé : il sert cinq écrans, et ce qu'on veut
         // ici ne vaut qu'ici. Un nom de thème n'est pas une étiquette de plus
@@ -270,7 +277,7 @@ private fun HelpGroup(title: String, answers: List<Answer>) {
  * reviendrait à la ranger deux fois.
  */
 @Composable
-private fun HelpPanel(answers: List<Answer>) {
+internal fun HelpPanel(answers: List<Answer>) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -302,7 +309,7 @@ private fun HelpPanel(answers: List<Answer>) {
 }
 
 /** Une question du lecteur et ce que la station y répond. */
-private data class Answer(val label: String, val body: String)
+internal data class Answer(val label: String, val body: String)
 
 @Composable
-private fun answer(label: Int, body: Int) = Answer(stringResource(label), stringResource(body))
+internal fun answer(label: Int, body: Int) = Answer(stringResource(label), stringResource(body))

@@ -1,0 +1,92 @@
+<svg viewBox="-5 -4 805 254" xmlns="http://www.w3.org/2000/svg" style="font-family:'Courier New',monospace">
+            <defs>
+                <marker id="a0" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+                    <polygon points="0 0,7 3.5,0 7" fill="#00c968" fill-opacity="0.75"/></marker>
+                <marker id="a1" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+                    <polygon points="0 0,7 3.5,0 7" fill="#ffd700" fill-opacity="0.8"/></marker>
+                <marker id="a2" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+                    <polygon points="0 0,7 3.5,0 7" fill="#9b30ff" fill-opacity="0.8"/></marker>
+                <marker id="a3" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+                    <polygon points="0 0,7 3.5,0 7" fill="#00ccff" fill-opacity="0.8"/></marker>
+            </defs>
+
+            <!-- ENTRÉES -->
+            <rect x="4" y="58" width="96" height="26" rx="6" fill="#00c968" fill-opacity="0.1" stroke="#00c968" stroke-opacity="0.4" stroke-width="1"/>
+            <text x="52" y="76" text-anchor="middle" fill="#008143" font-size="10.5">email</text>
+            <rect x="4" y="92" width="96" height="26" rx="6" fill="#00c968" fill-opacity="0.06" stroke="#00c968" stroke-opacity="0.22" stroke-width="1"/>
+            <text x="52" y="110" text-anchor="middle" fill="#008143" fill-opacity="0.85" font-size="9.5">"miz."+email</text>
+            <!-- Entrées biométriques -->
+            <rect x="4" y="130" width="96" height="24" rx="6" fill="#ffd700" fill-opacity="0.06" stroke="#ffd700" stroke-opacity="0.22" stroke-width="1"/>
+            <text x="52" y="146" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="9">date · lieu · taille</text>
+            <rect x="4" y="162" width="96" height="24" rx="6" fill="#9b30ff" fill-opacity="0.06" stroke="#9b30ff" stroke-opacity="0.2" stroke-width="1"/>
+            <text x="52" y="178" text-anchor="middle" fill="#9a2eff" fill-opacity="0.85" font-size="9">date conception · lieu</text>
+
+            <!-- Lignes → PBKDF2 -->
+            <line x1="101" y1="71"  x2="140" y2="83"  stroke="#00c968" stroke-opacity="0.6" stroke-width="1.5" marker-end="url(#a0)"/>
+            <line x1="101" y1="105" x2="140" y2="97"  stroke="#00c968" stroke-opacity="0.45" stroke-width="1.5" marker-end="url(#a0)"/>
+            <line x1="101" y1="142" x2="140" y2="120" stroke="#ffd700" stroke-opacity="0.45" stroke-width="1.5" marker-end="url(#a1)"/>
+            <line x1="101" y1="174" x2="140" y2="132" stroke="#9b30ff" stroke-opacity="0.4" stroke-width="1.5" marker-end="url(#a2)"/>
+
+            <!-- PBKDF2 -->
+            <rect x="144" y="58" width="136" height="84" rx="10" fill="#ffd700" fill-opacity="0.07" stroke="#ffd700" stroke-opacity="0.45" stroke-width="1.5"/>
+            <text x="212" y="77" text-anchor="middle" fill="var(--gold)" font-size="11" font-weight="bold">PBKDF2-SHA-256</text>
+            <text x="212" y="91" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="8.5">× 600 000 itérations</text>
+            <text x="212" y="104" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="8">sel = "uplanet-a4l-v1"</text>
+            <text x="212" y="116" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="7.5">saltRaw, pepperRaw → base64url</text>
+            <text x="212" y="130" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="7">atomic.html _pbkdf2StretchKey()</text>
+            <!-- → Scrypt -->
+            <line x1="281" y1="100" x2="320" y2="100" stroke="#ffd700" stroke-opacity="0.7" stroke-width="1.5" marker-end="url(#a1)"/>
+
+            <!-- Scrypt -->
+            <rect x="324" y="66" width="128" height="68" rx="10" fill="#00c968" fill-opacity="0.07" stroke="#00c968" stroke-opacity="0.4" stroke-width="1.5"/>
+            <text x="388" y="84" text-anchor="middle" fill="var(--em)" font-size="11" font-weight="bold">Scrypt</text>
+            <text x="388" y="97" text-anchor="middle" fill="#008143" fill-opacity="0.85" font-size="8.5">N=4096  r=16  p=1</text>
+            <text x="388" y="109" text-anchor="middle" fill="#008143" fill-opacity="0.85" font-size="8">password=sp  salt=ss</text>
+            <text x="388" y="122" text-anchor="middle" fill="#008143" fill-opacity="0.85" font-size="7.5">→ seed [32 octets]</text>
+
+            <!-- seed → SHA-256 (haut) -->
+            <line x1="453" y1="88"  x2="492" y2="78" stroke="#00ccff" stroke-opacity="0.65" stroke-width="1.5" marker-end="url(#a3)"/>
+            <!-- seed → Ed25519 (bas) -->
+            <line x1="388" y1="135" x2="388" y2="168" stroke="#9b30ff" stroke-opacity="0.6" stroke-width="1.5"/>
+            <line x1="388" y1="168" x2="492" y2="168" stroke="#9b30ff" stroke-opacity="0.6" stroke-width="1.5" marker-end="url(#a2)"/>
+
+            <!-- SHA-256 -->
+            <rect x="496" y="52" width="110" height="52" rx="10" fill="#00ccff" fill-opacity="0.07" stroke="#00ccff" stroke-opacity="0.38" stroke-width="1.5"/>
+            <text x="551" y="70" text-anchor="middle" fill="var(--cy)" font-size="11" font-weight="bold">SHA-256</text>
+            <text x="551" y="83" text-anchor="middle" fill="#007998" fill-opacity="0.85" font-size="8">privkey ← seed</text>
+            <text x="551" y="95" text-anchor="middle" fill="#007998" fill-opacity="0.85" font-size="7.5">atomic.html l.2216</text>
+
+            <!-- Ed25519 -->
+            <rect x="496" y="148" width="110" height="44" rx="10" fill="#9b30ff" fill-opacity="0.08" stroke="#9b30ff" stroke-opacity="0.4" stroke-width="1.5"/>
+            <text x="551" y="166" text-anchor="middle" fill="var(--mv)" font-size="11" font-weight="bold">Ed25519</text>
+            <text x="551" y="179" text-anchor="middle" fill="#9a2eff" fill-opacity="0.85" font-size="8">nacl.sign.fromSeed()</text>
+
+            <!-- SHA-256 → secp256k1 -->
+            <line x1="607" y1="78"  x2="646" y2="78"  stroke="#00ccff" stroke-opacity="0.65" stroke-width="1.5" marker-end="url(#a3)"/>
+            <!-- Ed25519 → Base58 -->
+            <line x1="607" y1="170" x2="646" y2="170" stroke="#9b30ff" stroke-opacity="0.65" stroke-width="1.5" marker-end="url(#a2)"/>
+
+            <!-- secp256k1 -->
+            <rect x="650" y="52" width="118" height="52" rx="10" fill="#00ccff" fill-opacity="0.07" stroke="#00ccff" stroke-opacity="0.38" stroke-width="1.5"/>
+            <text x="709" y="70" text-anchor="middle" fill="var(--cy)" font-size="10" font-weight="bold">secp256k1</text>
+            <text x="709" y="82" text-anchor="middle" fill="#007998" fill-opacity="0.85" font-size="8">getPublicKey(privkey)</text>
+            <text x="709" y="96" text-anchor="middle" fill="#007f65" font-size="9" font-weight="bold">→ npub / nsec</text>
+
+            <!-- Base58 -->
+            <rect x="650" y="148" width="118" height="50" rx="10" fill="#9b30ff" fill-opacity="0.08" stroke="#9b30ff" stroke-opacity="0.4" stroke-width="1.5"/>
+            <text x="709" y="166" text-anchor="middle" fill="var(--mv)" font-size="10" font-weight="bold">Base58Encode</text>
+            <text x="709" y="179" text-anchor="middle" fill="#9a2eff" fill-opacity="0.85" font-size="8">kp.publicKey → 44c</text>
+            <text x="709" y="192" text-anchor="middle" fill="#a123ff" font-size="9" font-weight="bold">→ g1pub (Ğ1)</text>
+
+            <!-- Worker badge -->
+            <rect x="144" y="154" width="306" height="18" rx="5" fill="#ffd700" fill-opacity="0.05" stroke="#ffd700" stroke-opacity="0.18" stroke-width="1"/>
+            <text x="297" y="166" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="8.5">⚙ Web Worker — calcul hors thread UI</text>
+
+            <!-- légende -->
+            <rect x="4" y="208" width="50" height="3" rx="1" fill="#00c968" fill-opacity="0.4"/>
+            <text x="60" y="213" fill="#008143" fill-opacity="0.85" font-size="8.5">atomic.html</text>
+            <rect x="130" y="208" width="50" height="3" rx="1" fill="#9b30ff" fill-opacity="0.5"/>
+            <text x="186" y="213" fill="#9a2eff" fill-opacity="0.85" font-size="8.5">Ẑelkova</text>
+            <rect x="240" y="208" width="50" height="3" rx="1" fill="#00ccff" fill-opacity="0.4"/>
+            <text x="296" y="213" fill="#007998" fill-opacity="0.85" font-size="8.5">Commun</text>
+        </svg>

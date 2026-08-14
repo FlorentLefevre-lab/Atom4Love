@@ -1,0 +1,52 @@
+<svg viewBox="-4 -4 244 194" xmlns="http://www.w3.org/2000/svg" >
+                        <!-- Fond -->
+                        <circle cx="120" cy="98" r="75" fill="#000014" fill-opacity="0.45" stroke="#ffd700" stroke-opacity="0.1" stroke-width="1"/>
+                        <circle cx="120" cy="98" r="68" fill="none" stroke="#ffd700" stroke-opacity="0.07" stroke-width=".6" stroke-dasharray="3,8"/>
+                        <!-- 12 graduations (mois) -->
+                        <g stroke="#ffd700" stroke-opacity="0.18" stroke-width=".8">
+                            <line x1="120" y1="30" x2="120" y2="23"/>
+                            <line x1="154" y1="38" x2="157" y2="32"/>
+                            <line x1="179" y1="63" x2="184" y2="60"/>
+                            <line x1="188" y1="98" x2="195" y2="98"/>
+                            <line x1="179" y1="133" x2="184" y2="137"/>
+                            <line x1="154" y1="158" x2="157" y2="164"/>
+                            <line x1="120" y1="166" x2="120" y2="173"/>
+                            <line x1="86"  y1="158" x2="83"  y2="164"/>
+                            <line x1="61"  y1="133" x2="56"  y2="137"/>
+                            <line x1="52"  y1="98"  x2="45"  y2="98"/>
+                            <line x1="61"  y1="63"  x2="56"  y2="60"/>
+                            <line x1="86"  y1="38"  x2="83"  y2="32"/>
+                        </g>
+                        <!-- Label -->
+                        <text x="120" y="17" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="7.5" font-family="sans-serif">T_sid = 365.25 jours</text>
+                        <!-- 12 nœuds pentagones (offsets non adjacents) -->
+                        <g fill="#00c968" fill-opacity="0.22" stroke="#00c968" stroke-opacity="0.4" stroke-width=".6">
+                            <circle cx="120" cy="30" r="2.8"/>
+                            <circle cx="186" cy="63" r="2.8"/>
+                            <circle cx="188" cy="133" r="2.8"/>
+                            <circle cx="120" cy="166" r="2.8"/>
+                            <circle cx="52" cy="133" r="2.8"/>
+                            <circle cx="52" cy="63" r="2.8"/>
+                        </g>
+                        <text x="176" y="20" fill="#008143" fill-opacity="0.85" font-size="7" font-family="sans-serif">12 nœuds</text>
+                        <!-- Arc Δφ (zone de cohérence) -->
+                        <path d="M 174,56 A 68,68 0 0,1 155,165" fill="none" stroke="#00ccff" stroke-opacity="0.18" stroke-width="5" opacity=".6"/>
+                        <!-- Vecteur A -->
+                        <line x1="120" y1="98" x2="174" y2="55" stroke="#ffd700" stroke-opacity="0.75" stroke-width="1.6"/>
+                        <circle cx="174" cy="55" r="8" fill="#ffd700" fill-opacity="0.13" stroke="#ffd700" stroke-width="1.5"/>
+                        <text x="183" y="52" fill="#836e00" font-size="9.5" font-family="sans-serif" font-weight="bold">A</text>
+                        <text x="182" y="63" fill="#836e00" fill-opacity="0.85" font-size="7" font-family="sans-serif">φ_A</text>
+                        <!-- Vecteur B -->
+                        <line x1="120" y1="98" x2="155" y2="165" stroke="#9b30ff" stroke-opacity="0.75" stroke-width="1.6"/>
+                        <circle cx="155" cy="165" r="8" fill="#9b30ff" fill-opacity="0.13" stroke="#9b30ff" stroke-width="1.5"/>
+                        <text x="165" y="163" fill="#9a2eff" font-size="9.5" font-family="sans-serif" font-weight="bold">B</text>
+                        <text x="164" y="174" fill="#9a2eff" fill-opacity="0.85" font-size="7" font-family="sans-serif">φ_B</text>
+                        <!-- Centre -->
+                        <circle cx="120" cy="98" r="3.5" fill="#12121c" fill-opacity="0.3"/>
+                        <!-- Formule k -->
+                        <rect x="20" y="64" width="74" height="36" rx="7" fill="#000000" fill-opacity="0.55" stroke="#00ccff" stroke-opacity="0.22" stroke-width="1"/>
+                        <text x="57" y="79" text-anchor="middle" fill="#00ccff" fill-opacity="0.6" font-size="8" font-family="sans-serif">k = 1/(1+|sin Δφ|)</text>
+                        <text x="57" y="92" text-anchor="middle" fill="#00ccff" font-size="9" font-family="sans-serif" font-weight="bold">k ∈ [0.5, 1.0]</text>
+                        <!-- Étiquette k ≥ 0.95 -->
+                        <text x="120" y="115" text-anchor="middle" fill="#007998" fill-opacity="0.85" font-size="7.5" font-family="sans-serif">k ≥ 0.95 → super-cohérence</text>
+                    </svg>

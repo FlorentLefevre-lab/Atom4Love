@@ -341,6 +341,77 @@
     <string name="faq_change_label">Puis-je corriger mes données après la forge ?</string>
     <string name="faq_change_body">Pas directement : après confirmation, la fiche est scellée. Dans l\'onglet Noyau, « Dissoudre le noyau » efface la fiche et la clé de cette station, et vous reforgez avec les bonnes données. Votre clé dépend de ces données : la moindre correction en donne une autre.</string>
 
+    <!-- ─── Zion — le troisième onglet ─────────────────────────────────────
+         Tout ce qui suit vient de u.copylaradio.com/earth/miz.html : les mots
+         sont ceux de Fred, les planches sont ses SVG repris tels quels dans
+         assets/miz/. Rien n'est ajouté ici — là où une notion manque, elle
+         manque aussi chez lui. Deux libertés de forme, et seulement deux : on
+         vouvoie, comme partout ailleurs dans la station ; et le nom du
+         chimiste s'écrit Marc Henry, que miz.html orthographie « Heny ». -->
+    <string name="zion_title">Zion</string>
+    <string name="zion_lead">Made In Zion : ce qui fait tourner la station, dit par ceux qui l\'ont écrite.</string>
+
+    <string name="zion_group_goldberg">Sphère de Goldberg</string>
+    <string name="zion_goldberg_intro">Comment votre naissance calibre une adresse secrète sur la Terre — et vous permet de vous y retrouver sans révéler qui vous êtes.</string>
+    <string name="zion_sphere_label">🌍 La sphère de Goldberg</string>
+    <string name="zion_sphere_body">La surface de la Terre est découpée en 12 pentagones — les sommets de l\'icosaèdre — entourés de milliers d\'hexagones, comme un ballon de foot projeté sur le globe. Chaque hexagone couvre 1 à 50 km² selon la résolution.</string>
+    <string name="zion_phase_label">🌀 Votre phase personnelle φᵢ</string>
+    <string name="zion_phase_body">Votre date, votre heure et votre lieu de naissance définissent un angle φᵢ ∈ [0, 2π) dans le cycle de l\'année sidérale. C\'est votre empreinte céleste : immuable, calculée sur l\'appareil, sans aucune base de données.</string>
+    <string name="zion_precession_label">♾ La précession dorée</string>
+    <string name="zion_precession_body">La grille tourne en permanence à la vitesse du nombre d\'or φ — un tour complet toutes les 14 h 50. Les mêmes coordonnées GPS donnent une adresse différente d\'une heure à l\'autre : sans l\'instant exact, un moissonneur de relais ne peut pas remonter à la position.</string>
+    <string name="zion_rendezvous_label">🤝 Le rendez-vous sans identité</string>
+    <string name="zion_rendezvous_body">Deux personnes qui connaissent leurs phases φ calculent l\'hexagone de rencontre et son centre géométrique. Aucun serveur ne connaît le lieu. La présence physique se prouve par le rituel Cabine-33 : 33 secondes immobile à moins de 50 m du centre.</string>
+    <string name="zion_trust_path_caption">Chemin de confiance — de la naissance à la rencontre</string>
+    <string name="zion_antiscraping_label">🛡 Anti-moissonnage</string>
+    <string name="zion_antiscraping_body">L\'adresse a4l: publiée dans un événement NOSTR ne révèle aucune position GPS. Sans la formule de précession dorée et l\'horodatage exact de l\'événement, les coordonnées hexagonales ne se convertissent pas en latitude et longitude.</string>
+    <string name="zion_cooperative_label">🔑 Décodage coopératif</string>
+    <string name="zion_cooperative_body">Deux personnes qui s\'échangent leurs phases φ calculent leur hexagone commun et valident la présence par Cabine-33, sans aucun intermédiaire. La résonance k se calcule sur chaque appareil.</string>
+    <string name="zion_binaural_anchor_label">🎵 Ancrage binaural</string>
+    <string name="zion_binaural_anchor_body">Le rituel de 33 secondes est accompagné d\'un son binaural à 429,62 Hz + 33,17 Hz. La constante F_Φ = 33,17 Hz est celle qui entre dans le calcul de votre phase : le corps et le lieu deviennent cohérents sur le même nombre.</string>
+
+    <string name="zion_group_maya">Kin Maya et calendrier Tzolkin</string>
+    <string name="zion_maya_intro">Votre nombre de naissance dans le calendrier galactique — une boussole de 260 jours pour coordonner les rencontres sans algorithme de recommandation.</string>
+    <string name="zion_tzolkin_label">📅 Le cycle de 260 jours</string>
+    <string name="zion_tzolkin_body">Le Tzolkin croise 20 sceaux — des archétypes — et 13 tonalités — des niveaux d\'énergie : 260 Kin. Chacun naît un jour précis de ce cycle, et son Kin reste son empreinte galactique à vie. Le cycle de 52 ans, le Round du calendrier, est l\'intersection mathématique de 260 et 365.</string>
+    <string name="zion_oracle_label">🔮 Les cinq pouvoirs Oracle</string>
+    <string name="zion_oracle_body">Chaque Kin engendre cinq correspondances : le Guide (mentor naturel), l\'Antipode (défi créateur), l\'Analogue (complément de même tonalité), l\'Occulte (partenaire caché, K + K\' = 261) et Soi-même. Ces cinq pouvoirs forment l\'Oracle du Kin.</string>
+    <string name="zion_maya_universal_label">🌍 Universel, sans religion</string>
+    <string name="zion_maya_universal_body">Un nombre de 1 à 260. Pas de doctrine, pas de dogme — une structure mathématique indépendante de toute culture et de tout calendrier.</string>
+    <string name="zion_maya_routing_label">🧭 Un routage social sans algorithme</string>
+    <string name="zion_maya_routing_body">Analogue, Guide, Antipode, Occulte : quatre types de relation définis mathématiquement dès la naissance. Aucun suivi de comportement.</string>
+    <string name="zion_maya_filter_label">🔒 Combiné à φᵢ : un double filtre</string>
+    <string name="zion_maya_filter_body">Le Kin Maya dit qui rencontrer structurellement, la phase φ dit avec quelle intensité ça résonne. Les deux ensemble écartent la rencontre au hasard.</string>
+    <string name="zion_maya_moons_label">🌊 Neuf lunes, un rythme biologique</string>
+    <string name="zion_maya_moons_body">260 jours, c\'est à peu près 9 × 28 jours : un rythme proche du cycle lunaire, et distinct des quelque 270 jours de gestation que retient le calcul de conception. Un calendrier inscrit dans la biologie, pas dans une convention sociale.</string>
+    <string name="zion_maya_tone_label">🎵 La tonalité, un rôle dans l\'orchestre</string>
+    <string name="zion_maya_tone_body">T1, Magnétique : la fondation stable. T7, Résonnante : le pivot catalyseur. T13, Cosmique : la conduite rythmique. Le Tzolkin assigne un rôle naturel dans chaque collectif.</string>
+
+    <string name="zion_group_body">Le corps, antenne à eau</string>
+    <string name="zion_body_intro">429,62 Hz : la fréquence de résonance de l\'eau. Le corps — 70 % d\'eau, des proportions en φ — est une antenne biologique qu\'on accorde par le geste et par le son.</string>
+    <string name="zion_water_label">💧 Le corps comme antenne à eau</string>
+    <string name="zion_water_body">Marc Henry a mesuré que l\'eau résonne à 429,62 Hz — une fréquence ni tempérée ni arbitraire, dérivée des constantes de l\'eau liquide. Le corps humain, composé à 70 % d\'eau, est donc un résonateur naturel ; les proportions en nombre d\'or des phalanges et de la main forment une antenne géométrique capable de capter ce signal et de l\'émettre.</string>
+    <string name="zion_mudras_label">✋ Mudras — cinq doigts, cinq éléments, cinq pouvoirs</string>
+    <string name="zion_mudras_body">Dans le Pancha Mahabhuta védique, chaque doigt capte un élément primordial. Or les cinq pouvoirs Oracle du Kin Maya suivent la même structure quintuple : la main devient le geste vivant du calendrier galactique, un mudra accordé sur l\'élément du moment.</string>
+    <string name="zion_binaural_caption">Spectre binaural de Cabine-33 — l\'accordage sur la fréquence de l\'eau</string>
+    <string name="zion_water_freq_label">🌊 429,62 Hz — l\'eau parle</string>
+    <string name="zion_water_freq_body">Marc Henry a mesuré que l\'eau liquide entre en résonance maximale à cette fréquence : ni le la 440 Hz du tempérament égal, ni le « 432 Hz » d\'usage ésotérique, mais une constante physique mesurable. Le corps entier, comme l\'eau, vibre sur cette porteuse.</string>
+    <string name="zion_mudra_kin_label">🖐 Mudra × Kin Maya</string>
+    <string name="zion_mudra_kin_body">La tonalité galactique de votre Kin — de T1, Magnétique, à T13, Cosmique — donne votre rythme dans l\'orchestre coopératif, et le mudra correspondant l\'ancre dans le corps. T7, Résonnante, appelle le mudra Vayu : l\'index, l\'Air, la vibration maximale dans le collectif.</string>
+    <string name="zion_cabin33_label">🎵 Cabine-33 — l\'accordage φ</string>
+    <string name="zion_cabin33_body">Au centre géométrique d\'un hexagone, 33 secondes immobile, le binaural — 429,62 Hz à gauche, 462,79 Hz à droite — crée dans le cerveau un battement de 33,17 Hz : F_Φ. Ce battement synchronise l\'antenne du corps avec le nœud hexagonal ; c\'est une preuve de présence biologique.</string>
+
+    <string name="zion_group_forge">La forge de l\'identité</string>
+    <string name="zion_forge_intro">Quatre fonctions cryptographiques imbriquées — les mêmes dans le navigateur, dans Ẑelkova et dans cette application.</string>
+    <string name="zion_forge_caption">De la fiche de naissance aux deux clés</string>
+    <string name="zion_forge_pbkdf2_label">1 · PBKDF2-SHA-256</string>
+    <string name="zion_forge_pbkdf2_body">Le sel et le poivre de votre fiche sont étirés séparément, 600 000 tours chacun, sur le domaine « uplanet-a4l-v1 ». Il en sort un sel étiré et un poivre étiré.</string>
+    <string name="zion_forge_scrypt_label">2 · Scrypt</string>
+    <string name="zion_forge_scrypt_body">Le poivre étiré passe dans scrypt — N = 4096, r = 16, p = 1 — avec le sel étiré pour sel. Il en sort une graine de 32 octets, commune aux deux clés.</string>
+    <string name="zion_forge_nostr_label">3a · secp256k1 → NOSTR</string>
+    <string name="zion_forge_nostr_body">La clé privée est le SHA-256 de la graine ; la clé publique s\'en déduit sur la courbe secp256k1. Les deux s\'écrivent en bech32, selon le NIP-19 : nsec et npub.</string>
+    <string name="zion_forge_g1_label">3b · Ed25519 → G1 / Ẑen</string>
+    <string name="zion_forge_g1_body">La même graine engendre une paire Ed25519. La clé publique, en Base58, donne l\'adresse G1 de 44 caractères que lit Cesium — la monnaie libre, sur la chaîne Duniter v2.</string>
+
     <!-- ─── Le domaine : ondes, dates, formats d'affichage ────────────── -->
     <string name="wave_phi">Onde (Homme)</string>
     <string name="wave_octave">Octave (Femme)</string>

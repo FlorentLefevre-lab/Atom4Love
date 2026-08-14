@@ -1,0 +1,46 @@
+<svg viewBox="-3 -3 253 188" xmlns="http://www.w3.org/2000/svg" >
+                        
+                        <!-- Connexions entre les 5 pouvoirs -->
+                        <g stroke="#12121c" stroke-opacity="0.1" stroke-width=".8" stroke-dasharray="3,3">
+                            <!-- Soi → Guide -->
+                            <line x1="120" y1="90" x2="120" y2="35"/>
+                            <!-- Soi → Antipode -->
+                            <line x1="120" y1="90" x2="185" y2="120"/>
+                            <!-- Soi → Analogue -->
+                            <line x1="120" y1="90" x2="55" y2="120"/>
+                            <!-- Soi → Occulte -->
+                            <line x1="120" y1="90" x2="120" y2="155"/>
+                            <!-- Liens entre pouvoirs -->
+                            <line x1="120" y1="35" x2="185" y2="120"/>
+                            <line x1="185" y1="120" x2="120" y2="155"/>
+                            <line x1="120" y1="155" x2="55" y2="120"/>
+                            <line x1="55" y1="120" x2="120" y2="35"/>
+                        </g>
+                        <!-- Centre : SOI -->
+                        <circle cx="120" cy="90" r="20" fill="#9b30ff" fill-opacity="0.25" stroke="#9b30ff" stroke-width="1.8"/>
+                        <text x="120" y="86" text-anchor="middle" fill="#9a2eff" font-size="8" font-family="sans-serif" font-weight="bold">🌀 SOI</text>
+                        <text x="120" y="96" text-anchor="middle" fill="#9a2eff" fill-opacity="0.85" font-size="7" font-family="sans-serif">Kin K</text>
+                        <!-- GUIDE (haut) -->
+                        <circle cx="120" cy="28" r="18" fill="#ffd700" fill-opacity="0.15" stroke="#ffd700" stroke-width="1.5"/>
+                        <text x="120" y="24" text-anchor="middle" fill="#836e00" font-size="7.5" font-family="sans-serif" font-weight="bold">🧭 GUIDE</text>
+                        <text x="120" y="34" text-anchor="middle" fill="#836e00" fill-opacity="0.85" font-size="6.5" font-family="sans-serif">Même famille</text>
+                        <!-- ANTIPODE (droite) -->
+                        <circle cx="192" cy="120" r="18" fill="#dc2626" fill-opacity="0.15" stroke="#dc2626" stroke-opacity="0.6" stroke-width="1.5"/>
+                        <text x="192" y="116" text-anchor="middle" fill="#e10000" font-size="7.5" font-family="sans-serif" font-weight="bold">⚡ DÉFI</text>
+                        <text x="192" y="126" text-anchor="middle" fill="#d92323" fill-opacity="0.85" font-size="6.5" font-family="sans-serif">Sceau+10</text>
+                        <!-- ANALOGUE (gauche) -->
+                        <circle cx="48" cy="120" r="18" fill="#00c968" fill-opacity="0.15" stroke="#00c968" stroke-opacity="0.55" stroke-width="1.5"/>
+                        <text x="48" y="116" text-anchor="middle" fill="#008143" font-size="7.5" font-family="sans-serif" font-weight="bold">🌀 ALTERN.</text>
+                        <text x="48" y="126" text-anchor="middle" fill="#008143" fill-opacity="0.85" font-size="6.5" font-family="sans-serif">Sceau±10</text>
+                        <!-- OCCULTE (bas) -->
+                        <circle cx="120" cy="162" r="18" fill="#00b4ff" fill-opacity="0.15" stroke="#00b4ff" stroke-opacity="0.55" stroke-width="1.5"/>
+                        <text x="120" y="158" text-anchor="middle" fill="#007998" font-size="7.5" font-family="sans-serif" font-weight="bold">🌙 OCCULTE</text>
+                        <text x="120" y="168" text-anchor="middle" fill="#0077a8" fill-opacity="0.85" font-size="6.5" font-family="sans-serif">261−K</text>
+                        <!-- Formules clés -->
+                        <g fill="#12121c" fill-opacity="0.28" font-size="6.5" font-family="sans-serif">
+                            <text x="5" y="10">Guide  : même famille-couleur</text>
+                            <text x="5" y="19">Antipode : sceau+10, même ton.</text>
+                            <text x="5" y="28">Analogue : même sceau, ton complém. (14−ton)</text>
+                            <text x="5" y="37">Occulte  : K+K′ = 261</text>
+                        </g>
+                    </svg>

@@ -128,6 +128,9 @@ play-services-location = { group = "com.google.android.gms", name = "play-servic
 # --- Images ---
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+# Les planches de `miz.html` sont des SVG, texte compris — le VectorDrawable
+# d'Android ne sait pas dessiner de texte, lui. On les rend telles quelles.
+coil-svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil" }
 
 # --- Vidéo ---
 # Pas de `media3-transformer` ici, et c'est une décision : la vidéo part telle
@@ -166,6 +169,6 @@ compose = [
 ]
 room = ["androidx-room-runtime", "androidx-room-ktx"]
 okhttp = ["okhttp", "okhttp-logging"]
-coil = ["coil-compose", "coil-network-okhttp"]
+coil = ["coil-compose", "coil-network-okhttp", "coil-svg"]
 adaptive = ["androidx-adaptive", "androidx-adaptive-layout", "androidx-adaptive-navigation"]
 media3 = ["media3-exoplayer", "media3-ui-compose"]
