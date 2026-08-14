@@ -5,6 +5,8 @@ import androidx.annotation.StringRes
 import one.astroport.atom4love.R
 import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.Calendar
 import java.util.Date
 import java.util.GregorianCalendar
@@ -114,6 +116,39 @@ data class BirthData(
     val complete: Boolean
         get() = dateComplete && lat != null && lon != null && wave != null
 
+    /**
+     * **L'instant** de naissance, tel que la station le scelle : l'heure
+     * d'horloge du lieu ramenée en UTC par la longitude et l'équation du temps
+     * ([SolarTime.localSolarToUtc]).
+     *
+     * C'est la seule date qui compte — SALT, PEPPER, phase personnelle et KIN
+     * en dérivent tous. Elle ne vaut null que si la date ou la longitude
+     * manque : sans longitude, il n'y a pas d'instant, seulement une heure
+     * d'horloge qui ne dit pas où elle a sonné.
+     */
+    val birthInstantUtc: LocalDateTime?
+        get() {
+            val date = birthDate ?: return null
+            val lon = lon ?: return null
+            return SolarTime.localSolarToUtc(date, saltHour, saltMinute, lon)
+        }
+
+    /**
+     * L'instant de conception que scelle le PEPPER : 280 jours avant la
+     * naissance, à **midi de l'horloge locale** ramené en UTC de la même façon.
+     *
+     * La station prend bien midi civil et non l'heure de naissance
+     * (`local_solar_to_utc(…, 12, 0, lon)`), et 280 jours pour tout le monde —
+     * `compute_conception_unix` de `phi2x.py` module cette durée par le poids,
+     * mais ce n'est pas elle qui fabrique la clé.
+     */
+    val conceptionInstantUtc: LocalDateTime?
+        get() {
+            val date = birthDate?.minusDays(LoveKey.GESTATION_DAYS) ?: return null
+            val lon = lon ?: return null
+            return SolarTime.localSolarToUtc(date, DEFAULT_HOUR, DEFAULT_MINUTE, lon)
+        }
+
     companion object {
         /** L'âge minimal pour forger un noyau — décision de produit, pas technique. */
         const val MIN_AGE_YEARS = 18
@@ -127,6 +162,13 @@ data class BirthData(
 
         /** Le poids retenu quand il reste inconnu — celui de la station. */
         const val DEFAULT_WEIGHT_KG = 3.5f
+
+        /**
+         * Les bornes du rouleau du poids de naissance. Un nouveau-né, pas un
+         * adulte : c'est ce qui empêche de confondre cette case avec celle du
+         * corps d'aujourd'hui, juste en dessous à l'écran.
+         */
+        val BIRTH_WEIGHT_RANGE_KG = 0.5f..7.0f
 
         /** La fiche vierge du premier lancement. */
         val Empty = BirthData(
@@ -144,17 +186,36 @@ data class BirthData(
 }
 
 /**
- * Le SALT et ce que la station en calcule.
+ * Le SALT, le PEPPER, et ce que la station en calcule.
  *
- * SALT = `AAAAMMJJHHmn_lat_lon_sexe_poids`
+ * ```
+ * SALT   = AAAAMMJJHHmm_lat_lon_sexe_poids_50_170
+ * PEPPER = AAAAMMJJHHmm_lat_lon_poids_50
+ * ```
+ *
+ * Les deux tampons sont l'instant UTC de [BirthData.birthInstantUtc] et
+ * [BirthData.conceptionInstantUtc], pas l'heure d'horloge.
  */
 object LoveKey {
 
     private val saltFormat = Locale.US   // séparateur décimal « . » dans le SALT
 
     /**
+     * Les deux tailles du SALT, en dur — `BIRTH_HEIGHT_CM_DEFAULT` et
+     * `CURRENT_HEIGHT_CM_DEFAULT` d'`atom4love_publish.py`, où elles portent le
+     * commentaire « non collectée ».
+     *
+     * ⚠ **Elles doivent le rester.** Cette station collecte désormais une
+     * taille réelle ([BodyMetrics]) : la glisser ici ferait diverger notre clé
+     * de celle de la station à la première personne qui ne mesure pas 1,70 m.
+     * La taille sert à ω_bio, jamais au SALT.
+     */
+    private const val BIRTH_HEIGHT_CM = 50
+    private const val CURRENT_HEIGHT_CM = 170
+
+    /**
      * N'appeler que sur une fiche [BirthData.complete] — le SALT n'admet aucun
-     * trou. L'heure et le poids, eux, ne sont plus demandés à la saisie : la
+     * trou. L'heure et le poids, eux, restent facultatifs à la saisie : la
      * fiche les remplace par les valeurs par défaut de la station
      * ([BirthData.saltHour], [BirthData.saltWeightKg]) plutôt que de laisser
      * un blanc dans la clé.
@@ -163,33 +224,53 @@ object LoveKey {
         require(b.complete) { "fiche d'incarnation incomplète" }
         return String.format(
             saltFormat,
-            "%04d%02d%02d%02d%02d_%.2f_%.2f_%d_%.1f",
-            b.year!!, b.month!!, b.day!!, b.saltHour, b.saltMinute,
+            "%s_%.2f_%.2f_%d_%.1f_%d_%d",
+            SolarTime.stamp(b.birthInstantUtc!!),
             b.lat!!, b.lon!!, b.wave!!.sex, b.saltWeightKg,
+            BIRTH_HEIGHT_CM, CURRENT_HEIGHT_CM,
         )
     }
 
     /**
-     * La gestation, telle qu'Astroport.ONE la compte : 280 jours pour tout le
-     * monde.
+     * Le PEPPER — la conception, et le poids qui l'accompagne.
+     *
+     * La station en dérive la seconde moitié du secret ; ici il complète le
+     * SALT dans le noyau provisoire. Même exigence : une fiche complète.
+     */
+    fun pepper(b: BirthData): String {
+        require(b.complete) { "fiche d'incarnation incomplète" }
+        return String.format(
+            saltFormat,
+            "%s_%.2f_%.2f_%.1f_%d",
+            SolarTime.stamp(b.conceptionInstantUtc!!),
+            b.lat!!, b.lon!!, b.saltWeightKg, BIRTH_HEIGHT_CM,
+        )
+    }
+
+    /**
+     * La gestation que compte le PEPPER d'Astroport.ONE : 280 jours pour tout
+     * le monde.
      *
      * L'app calculait autrefois une durée dérivée du poids de naissance
-     * (280 + (poids − 3,5) × 4). C'était une invention locale, et la station
-     * ne la connaît pas : son PEPPER prend la date de naissance moins 280 jours,
-     * à midi solaire local. Afficher autre chose que ce qui fait la clé serait
-     * mentir à qui relit sa fiche.
+     * (280 + (poids − 3,5) × 4). Ce n'est pas une invention locale — c'est
+     * `phi2x.py::compute_conception_unix`, à la ligne près. Mais ce n'est pas
+     * elle qui fabrique la clé : `atom4love_publish.py` prend 280 jours secs
+     * pour son PEPPER. On suit ce qui fait la clé, pas ce qui l'entoure.
      */
     const val GESTATION_DAYS = 280L
 
     /**
-     * La conception : [GESTATION_DAYS] jours avant la naissance, à midi.
+     * La conception telle qu'elle s'affiche : l'instant du PEPPER.
      *
-     * La station affine ce midi en heure solaire du lieu avant de le convertir
-     * en UTC — quelques minutes d'écart sous nos longitudes, sans effet sur le
-     * jour affiché ici.
+     * Sans longitude on ne peut pas convertir, et la fiche n'en a pas toujours
+     * une quand cette date paraît à l'écran : on retombe alors sur midi UTC,
+     * qui donne le même jour à quelques minutes près.
      */
     fun conception(b: BirthData): Date {
         require(b.dateComplete) { "date de naissance manquante" }
+        b.conceptionInstantUtc?.let {
+            return Date(it.toEpochSecond(ZoneOffset.UTC) * 1000L)
+        }
         return GregorianCalendar(TimeZone.getTimeZone("UTC")).apply {
             clear()
             set(b.year!!, b.month!! - 1, b.day!!, 12, 0)

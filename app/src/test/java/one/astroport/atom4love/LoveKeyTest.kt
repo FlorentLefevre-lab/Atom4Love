@@ -22,14 +22,18 @@ import org.junit.Test
 class LoveKeyTest {
 
     @Test
-    fun `le SALT suit le format AAAAMMJJHHmn_lat_lon_sexe_poids`() {
-        assertEquals("198504171530_48.86_2.35_0_3.2", LoveKey.salt(BirthData.Sample))
+    fun `le SALT suit le format de la station`() {
+        // Sortie de `atom4love_publish.py::build_salt_raw` pour la même fiche.
+        assertEquals(
+            "198504171520_48.86_2.35_0_3.2_50_170",
+            LoveKey.salt(BirthData.Sample),
+        )
     }
 
     @Test
     fun `l'onde Octave bascule le sexe a 1 dans le SALT`() {
         val octave = BirthData.Sample.copy(wave = Wave.Octave)
-        assertEquals("198504171530_48.86_2.35_1_3.2", LoveKey.salt(octave))
+        assertEquals("198504171520_48.86_2.35_1_3.2_50_170", LoveKey.salt(octave))
     }
 
     /**
@@ -64,7 +68,7 @@ class LoveKeyTest {
     fun `sans heure ni poids, le SALT prend midi et 3,5 kg`() {
         val sansRien = BirthData.Sample.copy(hour = null, minute = null, weightKg = null)
         assertTrue(sansRien.complete)
-        assertEquals("198504171200_48.86_2.35_0_3.5", LoveKey.salt(sansRien))
+        assertEquals("198504171150_48.86_2.35_0_3.5_50_170", LoveKey.salt(sansRien))
     }
 
     /**
@@ -74,7 +78,7 @@ class LoveKeyTest {
      */
     @Test
     fun `une fiche qui porte son heure et son poids ne bouge pas`() {
-        assertEquals("198504171530_48.86_2.35_0_3.2", LoveKey.salt(BirthData.Sample))
+        assertEquals("198504171520_48.86_2.35_0_3.2_50_170", LoveKey.salt(BirthData.Sample))
         val explicite = BirthData.Sample.copy(hour = 12, minute = 0, weightKg = 3.5f)
         val implicite = BirthData.Sample.copy(hour = null, minute = null, weightKg = null)
         assertEquals(LoveKey.salt(explicite), LoveKey.salt(implicite))

@@ -84,9 +84,22 @@ object KinMaya {
         )
     }
 
-    /** Le KIN d'une fiche d'incarnation, ou null tant qu'elle n'a pas sa date. */
+    /**
+     * Le KIN d'une fiche d'incarnation, ou null tant qu'elle n'a pas sa date.
+     *
+     * Le jour est celui de l'**instant scellé** ([BirthData.birthInstantUtc]),
+     * comme chez la station qui appelle `calc_kin_unix(birth_unix)` sur son
+     * horodatage converti. Ce n'est pas un détail d'arrondi : une naissance
+     * juste après minuit à Tokyo tombe la veille en UTC, et change de sceau.
+     *
+     * Sans longitude, il n'y a pas d'instant : on prend alors la date
+     * d'horloge. Le KIN qui s'affiche avant que le lieu soit saisi est donc
+     * provisoire — mais l'assistant exige le lieu avant de le montrer.
+     */
     fun of(b: BirthData): Kin? {
         if (!b.dateComplete) return null
-        return of(b.year!!, b.month!!, b.day!!)
+        val instant = b.birthInstantUtc
+            ?: return of(b.year!!, b.month!!, b.day!!)
+        return of(instant.year, instant.monthValue, instant.dayOfMonth)
     }
 }

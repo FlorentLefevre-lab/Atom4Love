@@ -15,15 +15,28 @@ class NostrEventTest {
      * Le noyau provisoire de la fiche d'exemple, figé.
      *
      * Ce npub n'a aucune valeur de protocole — la clé LOVE vient de la station.
-     * Mais il vaut engagement : toute retouche à la forge provisoire déplacerait
+     * Mais il vaut engagement : toute retouche à la forge provisoire déplace
      * l'identité de chaque appareil déjà en service, et les cabines ouvertes la
-     * veille ne reconnaîtraient plus personne. Si ce test tombe, c'est une
+     * veille ne reconnaissent plus personne. Si ce test tombe, c'est une
      * décision à prendre, jamais un effet de bord à entériner.
+     *
+     * **Il est tombé deux fois le 2026-08-14, et c'était la décision.** D'abord
+     * en alignant le SALT et le PEPPER sur `atom4love_publish.py` (instant
+     * solaire converti en UTC, sept champs au lieu de cinq), puis en remplaçant
+     * le hachage maison par la vraie chaîne de la station — PBKDF2, scrypt de
+     * Duniter, SHA-256. Les noyaux forgés avant cette date ne se reforgent plus
+     * à l'identique. Valeurs précédentes, pour mémoire :
+     * `npub17c7fnw5…` (avant l'alignement), `npub18g7lgar…` (entre les deux).
+     *
+     * Celui-ci n'est plus « provisoire » au même sens : **c'est le npub que la
+     * station doit dériver de la même fiche**, sous réserve de l'ordre des
+     * arguments de scrypt (cf. [LoveKeyForge.forge]). C'est donc aussi le
+     * premier chiffre à confronter au premier MULTIPASS activé.
      */
     @Test
-    fun `la forge provisoire ne bouge pas sous les pieds des appareils en service`() {
+    fun `la forge ne bouge pas sous les pieds des appareils en service`() {
         assertEquals(
-            "npub17c7fnw5jrmhurkn09k8j842sr9md3sdhr94zg34xdru08gqs2hhswxqdp6",
+            "npub1khpq9n6mpfzusn0ym4a5lptwhtrqr4vfzdx2dvm5qu765y0r574s3u7gn7",
             keys.npub,
         )
     }

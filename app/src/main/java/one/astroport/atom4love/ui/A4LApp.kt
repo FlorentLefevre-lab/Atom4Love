@@ -63,6 +63,7 @@ import one.astroport.atom4love.BuildConfig
 import one.astroport.atom4love.chat.CabinChat
 import one.astroport.atom4love.chat.Medium
 import one.astroport.atom4love.chat.net.P2pGroup
+import one.astroport.atom4love.data.LoveKeyStore
 import one.astroport.atom4love.data.IncarnationStore
 import one.astroport.atom4love.data.MultipassAccount
 import one.astroport.atom4love.data.MultipassStore
@@ -75,7 +76,6 @@ import one.astroport.atom4love.multipass.MultipassService
 import one.astroport.atom4love.nostr.Bech32
 import one.astroport.atom4love.nostr.CabinSalon
 import one.astroport.atom4love.nostr.LocalRelayScout
-import one.astroport.atom4love.nostr.LoveKeyForge
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.proximity.CellLocator
@@ -210,9 +210,19 @@ private fun Station(
     }
     // Pas de noyau, pas d'identité : une clé LOVE au coffre ne rallume pas à
     // elle seule une station dont la fiche a été dissoute.
-    val keys = remember(birth, forged, loveKeys) {
-        if (!forged) null else loveKeys ?: LoveKeyForge.forge(birth)
+    //
+    // La dérivation ne tient plus dans une composition : elle refait la chaîne
+    // complète d'Astroport.ONE — 1 200 000 tours de PBKDF2 puis scrypt —, soit
+    // quelques secondes la toute première fois. Elle part donc en arrière-plan,
+    // et le coffre la rend instantanément aux démarrages suivants.
+    val loveKeyStore = remember { LoveKeyStore(context.applicationContext) }
+    var derivedKeys by remember { mutableStateOf<NostrKeys?>(null) }
+    LaunchedEffect(birth, forged) {
+        derivedKeys = if (forged) loveKeyStore.loadOrDerive(birth) else null
     }
+    // La clé de la station prime dès qu'elle existe : c'est elle qui fait
+    // autorité sur qui l'on est, celle d'ici ne fait que la précéder.
+    val keys = if (!forged) null else loveKeys ?: derivedKeys
 
     // L'antenne suit le noyau : allumée dès que la clé existe, coupée à la
     // dissolution, et avec la station quand l'activité disparaît. L'éclaireur
@@ -440,7 +450,10 @@ private fun Station(
                                     birth = BirthData.Empty
                                     forged = false
                                     tab = A4LTab.Radar
-                                    scope.launch { store.clear() }
+                                    scope.launch {
+                                        store.clear()
+                                        loveKeyStore.clear()
+                                    }
                                 },
                             )
                             A4LTab.Help -> HelpScreen()

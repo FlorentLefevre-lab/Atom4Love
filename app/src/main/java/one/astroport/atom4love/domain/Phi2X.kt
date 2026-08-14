@@ -1,6 +1,5 @@
 package one.astroport.atom4love.domain
 
-import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -163,8 +162,9 @@ object Phi2X {
      * ce qui fait dire au sélecteur que l'heure est « recommandée ».
      */
     fun personalPhase(b: BirthData): Double? {
-        if (!b.dateComplete || b.lat == null || b.lon == null) return null
-        return personalPhase(birthUnixUtc(b), b.lat, b.lon)
+        if (b.lat == null || b.lon == null) return null
+        val unix = birthUnixUtc(b) ?: return null
+        return personalPhase(unix, b.lat, b.lon)
     }
 
     /**
@@ -195,11 +195,19 @@ object Phi2X {
     }
 
     /**
-     * L'instant de naissance en secondes Unix, l'heure d'horloge du lieu étant
-     * lue comme si elle était UTC — c'est ce qu'attend `compute_personal_phase`,
-     * qui rattrape ensuite le décalage par la longitude.
+     * L'instant de naissance en secondes Unix — celui que scelle le SALT.
+     *
+     * ⚠ Ce commentaire disait le contraire jusqu'au 2026-08-14 : que
+     * `compute_personal_phase` attendait l'heure d'horloge brute et rattrapait
+     * elle-même la longitude. Elle rattrape bien quelque chose — le
+     * `solar_corr_s` de son angle journalier — mais `atom4love_publish.py` lui
+     * passe l'instant **déjà converti** (`birth_dt_utc.timestamp()`). Lire
+     * l'heure d'horloge ici nous donnait donc une phase que la station ne
+     * confirmerait pas : dix minutes d'écart sous nos longitudes, et le Radar
+     * compare des phases.
+     *
+     * Null quand la longitude manque : sans elle, il n'y a pas d'instant.
      */
-    fun birthUnixUtc(b: BirthData): Long = LocalDateTime.of(
-        b.year!!, b.month!!, b.day!!, b.saltHour, b.saltMinute,
-    ).toEpochSecond(ZoneOffset.UTC)
+    fun birthUnixUtc(b: BirthData): Long? =
+        b.birthInstantUtc?.toEpochSecond(ZoneOffset.UTC)
 }
