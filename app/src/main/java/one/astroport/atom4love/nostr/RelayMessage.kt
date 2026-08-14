@@ -22,6 +22,11 @@ data class NostrFilter(
     val kinds: List<Int>? = null,
     /** Tag `h` (NIP-01 `#h`) : la cellule H3 du salon de cabine. */
     @SerialName("#h") val hexagons: List<String>? = null,
+    /**
+     * Tag `d` (NIP-01 `#d`) : l'identifiant d'un événement remplaçable
+     * paramétré (NIP-33). `atom4love` est le certificat de clé LOVE.
+     */
+    @SerialName("#d") val identifiers: List<String>? = null,
     val since: Long? = null,
     val until: Long? = null,
     val limit: Int? = null,

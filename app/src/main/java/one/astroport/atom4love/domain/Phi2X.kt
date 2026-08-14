@@ -184,6 +184,34 @@ object Phi2X {
     fun resonanceK(phaseA: Double, phaseB: Double): Double =
         1.0 / (1.0 + kotlin.math.abs(kotlin.math.sin(phaseA - phaseB)))
 
+    /** Ce que deux phases se disent : combien, et de quelle sorte. */
+    data class Classification(
+        val k: Double,
+        /** k ramené sur 0..100 — `(k − 0,5) × 200`, arrondi comme chez Fred. */
+        val percent: Int,
+        /** L'écart replié dans [0, π]. */
+        val deltaPhi: Double,
+        val union: Boolean,
+    )
+
+    /**
+     * Portage de `classifyResonance()` : [resonanceK] seul ne distingue pas
+     * l'union (Δφ ≈ 0) de la friction (Δφ ≈ π) — il vaut 1 aux deux bouts. Le
+     * signe de l'écart, lui, tranche : en deçà du quart de tour c'est une
+     * union, au-delà une friction. C'est le 🤝 et le ⚡ de ses écrans.
+     */
+    fun classifyResonance(phaseA: Double, phaseB: Double): Classification {
+        val k = resonanceK(phaseA, phaseB)
+        var delta = floorMod(kotlin.math.abs(phaseA - phaseB), TAU)
+        if (delta > PI) delta = TAU - delta
+        return Classification(
+            k = k,
+            percent = kotlin.math.round((k - 0.5) * 200).toInt(),
+            deltaPhi = delta,
+            union = delta < PI / 2,
+        )
+    }
+
     /**
      * En phase ou en opposition, à [tolerance] près — la singularité optique.
      * La distance se mesure sur le cercle : 0 et 2π sont le même endroit.

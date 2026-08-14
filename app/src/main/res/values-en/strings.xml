@@ -153,8 +153,26 @@
     <string name="chat_cancel_send">✕ cancel sending</string>
     <string name="chat_failed">failed</string>
 
+    <!-- ─── 03 · Constellation: the map of activated LOVE keys ────────── -->
+    <string name="map_title">Constellation</string>
+    <string name="map_birthplaces">Every dot is a birthplace, to the kilometre — not a whereabouts.</string>
+    <plurals name="map_count">
+        <item quantity="one">%1$d nucleus</item>
+        <item quantity="other">%1$d nuclei</item>
+    </plurals>
+    <string name="map_reading">Reading the relay…</string>
+    <string name="map_relay">Read from %1$s</string>
+    <string name="map_unreachable">Relay unreachable — the constellation is not held on this device.</string>
+    <string name="map_empty">The relay answered: nobody yet.</string>
+    <string name="map_empty_detail">No LOVE key activated on this relay.</string>
+    <string name="map_refresh">Reload</string>
+    <string name="map_by_resonance">By resonance with your wave</string>
+    <string name="map_by_arrival">Latest arrivals</string>
+    <string name="map_no_kin">Unknown seal</string>
+
     <!-- ─── The bottom bar ────────────────────────────────────────────── -->
     <string name="tab_radar">Radar</string>
+    <string name="tab_map">Map</string>
     <string name="tab_board">Board</string>
     <string name="tab_bonds">Resonance</string>
     <string name="tab_nucleus">Nucleus</string>

@@ -89,9 +89,9 @@ import one.astroport.atom4love.ui.screens.BoardScreen
 import one.astroport.atom4love.ui.screens.HelpScreen
 import one.astroport.atom4love.ui.screens.SettingsScreen
 import one.astroport.atom4love.ui.screens.IncarnationScreen
+import one.astroport.atom4love.ui.screens.MapScreen
 import one.astroport.atom4love.ui.screens.MultipassScreen
 import one.astroport.atom4love.ui.screens.RadarScreen
-import one.astroport.atom4love.ui.screens.ResonanceScreen
 import one.astroport.atom4love.ui.screens.SPLASH_HOLD_MS
 import one.astroport.atom4love.R
 import one.astroport.atom4love.ui.screens.SplashScreen
@@ -108,8 +108,12 @@ enum class A4LTab(
     @StringRes val labelRes: Int,
 ) {
     Radar("🌀", R.string.tab_radar),
+    // La carte prend la place que tenait « Résonance » : celui-ci montrait trois
+    // liaisons écrites en dur, celle-là montre qui a réellement activé sa clé.
+    // `ResonanceScreen` reste dans le dépôt, hors de la barre, le temps qu'il
+    // ait des liaisons à montrer.
+    Map("🌍", R.string.tab_map),
     Board("🎴", R.string.tab_board),
-    Bonds("💜", R.string.tab_bonds),
     Nucleus("⚛", R.string.tab_nucleus),
     Help("❓", R.string.tab_help),
     // U+FE0F : sans lui, U+2699 tombe sur la police TEXTE du système, qui
@@ -125,7 +129,7 @@ enum class A4LTab(
     val accent: Color
         @Composable @ReadOnlyComposable get() = when (this) {
             Radar, Board, Nucleus -> A4L.Cyan
-            Bonds -> A4L.Mint
+            Map -> A4L.Mint
             Help -> A4L.Indigo
             Settings -> A4L.TextStrong
         }
@@ -457,8 +461,8 @@ private fun Station(
                                 onOpenCabin = { cabinHost.open(keys) },
                                 onCloseCabin = closeCabin,
                             )
+                            A4LTab.Map -> MapScreen(birth = birth)
                             A4LTab.Board -> BoardScreen(npub = keys?.npubShort)
-                            A4LTab.Bonds -> ResonanceScreen()
                             A4LTab.Nucleus -> IncarnationScreen(
                                 birth = birth,
                                 onBirthChange = ::updateBirth,

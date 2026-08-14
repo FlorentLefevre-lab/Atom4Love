@@ -85,6 +85,26 @@ object KinMaya {
     }
 
     /**
+     * Le KIN tel qu'il arrive déjà calculé — le tag `kin` d'un certificat lu sur
+     * le relais. Portage de `calcKinFromNum()` : mêmes trois index que [of],
+     * mais rien à dériver, le nombre est donné.
+     *
+     * Hors de 1..260, null — comme chez Fred, y compris pour les KIN au-delà de
+     * 260 que la station produit sur quelques dates (voir [of]) : sa carte et
+     * son projecteur les affichent alors sans sceau, et nous faisons pareil
+     * plutôt que d'inventer un glyphe qu'eux ne montrent pas.
+     */
+    fun ofNumber(num: Int): Kin? {
+        if (num !in 1..260) return null
+        return Kin(
+            kin = num,
+            glyph = (num - 1) % 20,
+            tone = (num - 1) % 13,
+            color = ((num - 1) / 13) % 5,
+        )
+    }
+
+    /**
      * Le KIN d'une fiche d'incarnation, ou null tant qu'elle n'a pas sa date.
      *
      * Le jour est celui de l'**instant scellé** ([BirthData.birthInstantUtc]),

@@ -194,8 +194,27 @@
     <string name="chat_cancelled">annulé</string>
     <string name="chat_cancel_send">✕ annuler l\'envoi</string>
 
+    <!-- ─── 03 · Constellation : la carte des clés LOVE activées ──────── -->
+    <string name="map_title">Constellation</string>
+    <string name="map_birthplaces">Chaque point est un lieu de naissance, à la maille du kilomètre — pas une position.</string>
+    <plurals name="map_count">
+        <item quantity="one">%1$d noyau</item>
+        <item quantity="many">%1$d noyaux</item>
+        <item quantity="other">%1$d noyaux</item>
+    </plurals>
+    <string name="map_reading">Lecture du relais…</string>
+    <string name="map_relay">Lu sur %1$s</string>
+    <string name="map_unreachable">Relais injoignable — la constellation n\'est pas dans l\'appareil.</string>
+    <string name="map_empty">Le relais a répondu : personne pour l\'instant.</string>
+    <string name="map_empty_detail">Aucune clé LOVE activée sur ce relais.</string>
+    <string name="map_refresh">Relire</string>
+    <string name="map_by_resonance">Par résonance avec votre onde</string>
+    <string name="map_by_arrival">Derniers arrivés</string>
+    <string name="map_no_kin">Sceau inconnu</string>
+
     <!-- ─── La barre du bas : les cinq destinations ───────────────────── -->
     <string name="tab_radar">Radar</string>
+    <string name="tab_map">Carte</string>
     <string name="tab_board">Plateau</string>
     <string name="tab_bonds">Résonance</string>
     <string name="tab_nucleus">Noyau</string>
