@@ -216,6 +216,24 @@
     <string name="map_by_arrival">Derniers arrivés</string>
     <string name="map_no_kin">Sceau inconnu</string>
 
+    <!-- ─── Publier son certificat : le geste qui nous met sur la carte ─
+         Il part vers un relais public et ne se reprend pas. Le texte de
+         confirmation ne demande donc pas « êtes-vous sûr » : il montre. -->
+    <string name="cert_checking">Recherche de votre certificat sur le relais…</string>
+    <string name="cert_absent">Vous n\'êtes pas sur cette carte. Votre certificat n\'a jamais été publié.</string>
+    <string name="cert_incomplete">Votre fiche n\'a pas encore de lieu de naissance — sans lui, ni phase ni adresse à publier.</string>
+    <string name="cert_present">Votre certificat est sur le relais. Le republier remplacera celui qui s\'y trouve.</string>
+    <string name="cert_from_station">Votre certificat a été publié par une station Astroport, sous un secret qu\'elle est seule à détenir. Le remplacer d\'ici effacerait le lien chiffré vers votre compte : c\'est à la station de le refaire.</string>
+    <string name="cert_publishing">Publication…</string>
+    <string name="cert_published">✅ Publié. Vous êtes sur la carte.</string>
+    <string name="cert_refused">Le relais a refusé : %1$s</string>
+    <string name="cert_publish">⚡ Rejoindre la constellation</string>
+    <string name="cert_republish">Republier</string>
+    <string name="cert_confirm_title">Ce qui part sur %1$s</string>
+    <string name="cert_confirm_body">Voici l\'événement, tel quel. Le lieu n\'y figure qu\'à la maille du kilomètre, et votre adresse n\'y est pas du tout. Une fois publié sur un relais public, il ne se reprend pas.</string>
+    <string name="cert_confirm_ok">Publier</string>
+    <string name="cert_confirm_cancel">Pas maintenant</string>
+
     <!-- ─── La barre du bas : les cinq destinations ───────────────────── -->
     <string name="tab_radar">Radar</string>
     <string name="tab_map">Carte</string>

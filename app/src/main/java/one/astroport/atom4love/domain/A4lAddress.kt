@@ -1,8 +1,10 @@
 package one.astroport.atom4love.domain
 
+import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.round
 import kotlin.math.sqrt
 
 /**
@@ -20,10 +22,8 @@ import kotlin.math.sqrt
  * résidence ; celle-ci fait l'objet d'un événement séparé, `d=atom4love-home`,
  * que l'on ne publie que si on l'a choisi.
  *
- * On ne sait ici que **décoder**. Écrire une adresse demanderait la grille des
- * pentagones de Fred, qui tourne avec le temps et n'est pas celle des douze
- * portails de [GoldbergPortal] — ça viendra avec la publication de notre propre
- * certificat, pas avant.
+ * [encode] et [decode] sont l'un l'inverse de l'autre au kilomètre près : la
+ * maille arrondit, et rien ne fait revenir un point au centre de sa case.
  */
 object A4lAddress {
 
@@ -79,5 +79,52 @@ object A4lAddress {
     /** La première adresse trouvée dans les tags `g` d'un événement, s'il y en a une. */
     fun fromTags(tags: List<List<String>>): Place? = tags.firstNotNullOfOrNull { tag ->
         if (tag.size >= 2 && tag[0] == "g") decode(tag[1]) else null
+    }
+
+    /** Les deux tags `g` d'un certificat : le pentagone seul, puis la maille. */
+    data class Tag(val pentagon: String, val hex: String, val pentagonId: Int, val q: Int, val r: Int)
+
+    /**
+     * Écrit l'adresse d'un lieu — `geoTagA4L()`, à la lettre.
+     *
+     * [unixTs] est l'instant qui choisit le pentagone : la grille tourne, et
+     * `atom4love_publish.py` lui passe **l'instant de naissance**, pas celui de
+     * la publication. Une adresse est donc stable, republiée dix fois.
+     *
+     * ```
+     * x = lat·π/180·R                    q = (√3/3·x − y/3) / taille
+     * y = lon·π/180·R·cos(lat)           r = (2/3·y) / taille
+     * ```
+     */
+    fun encode(latDeg: Double, lonDeg: Double, unixTs: Double): Tag {
+        val degPerKm = EARTH_RADIUS_KM * PI / 180.0
+        val x = latDeg * degPerKm
+        val y = lonDeg * degPerKm * cos(latDeg * PI / 180.0)
+        val (q, r) = hexRound(
+            (sqrt(3.0) / 3.0 * x - y / 3.0) / HEX_SIZE_KM,
+            (2.0 / 3.0 * y) / HEX_SIZE_KM,
+        )
+        val pid = Phi2X.nearestPentagonId(latDeg, lonDeg, unixTs)
+        val pentagon = "a4l:P%02d".format(Locale.US, pid)
+        val qEnc = "%04X".format(Locale.US, (q + 32768) and 0xFFFF)
+        val rEnc = "%04X".format(Locale.US, (r + 32768) and 0xFFFF)
+        return Tag(pentagon, "${pentagon}H$qEnc$rEnc", pid, q, r)
+    }
+
+    /**
+     * L'arrondi hexagonal cubique : on arrondit les trois axes, puis on refait
+     * porter l'écart au plus fautif des trois pour que leur somme reste nulle.
+     * `_hexRound()` de `phi2x.js`, au caractère près.
+     */
+    private fun hexRound(q: Double, r: Double): Pair<Int, Int> {
+        val y = -q - r
+        var rx = round(q)
+        var ry = round(y)
+        var rz = round(r)
+        val dx = abs(rx - q)
+        val dy = abs(ry - y)
+        val dz = abs(rz - r)
+        if (dx > dy && dx > dz) rx = -ry - rz else if (dy > dz) ry = -rx - rz else rz = -rx - ry
+        return rx.toInt() to rz.toInt()
     }
 }

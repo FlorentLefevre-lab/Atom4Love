@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import one.astroport.atom4love.BuildConfig
@@ -38,7 +41,9 @@ import one.astroport.atom4love.R
 import one.astroport.atom4love.domain.BirthData
 import one.astroport.atom4love.domain.KinMaya
 import one.astroport.atom4love.domain.Phi2X
+import one.astroport.atom4love.nostr.Certificate
 import one.astroport.atom4love.nostr.Constellation
+import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.ui.components.A4LChip
 import one.astroport.atom4love.ui.components.DataBadge
 import one.astroport.atom4love.ui.components.LatLon
@@ -82,6 +87,8 @@ private data class Sighting(
 fun MapScreen(
     birth: BirthData,
     modifier: Modifier = Modifier,
+    /** Le noyau qui signerait notre certificat. Null tant qu'il n'y en a pas. */
+    keys: NostrKeys? = null,
 ) {
     val scope = rememberCoroutineScope()
     val constellation = remember(scope) { Constellation(scope) }
@@ -216,6 +223,16 @@ fun MapScreen(
             )
         }
 
+        // ── Notre place dans la constellation, ou son absence ──────────────
+        if (keys != null) {
+            CertificateCard(
+                keys = keys,
+                birth = birth,
+                onPublished = { constellation.refresh() },
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp),
+            )
+        }
+
         // ── La liste ──────────────────────────────────────────────────────
         if (sightings.isNotEmpty()) {
             SectionLabel(
@@ -256,6 +273,182 @@ fun MapScreen(
         }
 
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+/**
+ * Notre propre place — ou son absence, qui est ce qu'on voit d'abord.
+ *
+ * Publier son certificat est un geste **irréversible et vers l'extérieur** : un
+ * relais public le garde, et d'autres l'auront recopié avant qu'on y repense.
+ * D'où la confirmation, qui ne dit pas « êtes-vous sûr » mais montre exactement
+ * ce qui partira — l'adresse à la maille du kilomètre, le sceau, les trois
+ * nombres, et la clé qui signe.
+ */
+@Composable
+private fun CertificateCard(
+    keys: NostrKeys,
+    birth: BirthData,
+    onPublished: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scope = rememberCoroutineScope()
+    val certificate = remember(scope) { Certificate(scope) }
+    val state by certificate.state.collectAsState()
+    var confirming by remember { mutableStateOf(false) }
+
+    LaunchedEffect(keys) { certificate.check(keys) }
+    LaunchedEffect(state) { if (state is Certificate.State.Published) onPublished() }
+
+    // Ce que le certificat dirait, construit sans rien envoyer.
+    val draft = remember(keys, birth) { certificate.build(keys, birth) }
+
+    if (confirming && draft != null) {
+        AlertDialog(
+            onDismissRequest = { confirming = false },
+            containerColor = A4L.Deep,
+            title = {
+                Text(
+                    stringResource(R.string.cert_confirm_title, RELAY_LABEL),
+                    style = A4LText.H2,
+                    color = A4L.TextHigh,
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text(
+                        stringResource(R.string.cert_confirm_body),
+                        style = A4LText.Body,
+                        color = A4L.TextBody,
+                    )
+                    // Les tags tels quels : c'est la seule façon honnête de dire
+                    // « voilà ce qui part » — une paraphrase en oublierait un.
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .glass(12.dp)
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        draft.tags.forEach { tag ->
+                            if (tag.size >= 2) {
+                                Text(
+                                    "${tag[0]} · ${tag[1]}",
+                                    style = A4LText.Data.copy(fontSize = 9.5.sp),
+                                    color = A4L.TextDim,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                        Text(
+                            draft.content,
+                            style = A4LText.Data.copy(fontSize = 9.5.sp),
+                            color = A4L.TextDim,
+                        )
+                        Text(
+                            keys.npub,
+                            style = A4LText.Data.copy(fontSize = 9.5.sp),
+                            color = A4L.TextFaint,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Text(
+                    stringResource(R.string.cert_confirm_ok),
+                    style = A4LText.Caption,
+                    color = A4L.Mint,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            confirming = false
+                            certificate.publish(keys, birth)
+                        }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            },
+            dismissButton = {
+                Text(
+                    stringResource(R.string.cert_confirm_cancel),
+                    style = A4LText.Caption,
+                    color = A4L.TextMuted,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { confirming = false }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            },
+        )
+    }
+
+    val accent = when (state) {
+        is Certificate.State.Published -> A4L.Mint
+        is Certificate.State.Refused -> A4L.Orange
+        else -> A4L.Cyan
+    }
+    // La station a écrit ce certificat sous un secret qui n'est pas le nôtre :
+    // le remplacer effacerait le lien chiffré vers son compte, sans retour.
+    val stationOwned = (state as? Certificate.State.Present)?.fromStation == true
+    val actionable = draft != null && !stationOwned &&
+        state !is Certificate.State.Publishing && state !is Certificate.State.Checking
+
+    Column(
+        modifier
+            .fillMaxWidth()
+            .glass(15.dp, accent.tint(0.05f), accent.tint(0.22f))
+            .padding(horizontal = 15.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = when (val s = state) {
+                Certificate.State.Unknown, Certificate.State.Checking ->
+                    stringResource(R.string.cert_checking)
+                Certificate.State.Absent ->
+                    if (draft == null) {
+                        stringResource(R.string.cert_incomplete)
+                    } else {
+                        stringResource(R.string.cert_absent)
+                    }
+                is Certificate.State.Present ->
+                    if (s.fromStation) {
+                        stringResource(R.string.cert_from_station)
+                    } else {
+                        stringResource(R.string.cert_present)
+                    }
+                Certificate.State.Publishing -> stringResource(R.string.cert_publishing)
+                is Certificate.State.Published -> stringResource(R.string.cert_published)
+                is Certificate.State.Refused -> stringResource(R.string.cert_refused, s.reason)
+            },
+            style = A4LText.Body,
+            color = if (state is Certificate.State.Refused) A4L.Orange else A4L.TextBody,
+        )
+        if (actionable) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .glass(12.dp, accent.tint(0.10f), accent.tint(0.34f))
+                    .clickable { confirming = true },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    stringResource(
+                        if (state is Certificate.State.Present ||
+                            state is Certificate.State.Published
+                        ) {
+                            R.string.cert_republish
+                        } else {
+                            R.string.cert_publish
+                        },
+                    ),
+                    style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                    color = accent,
+                )
+            }
+        }
     }
 }
 

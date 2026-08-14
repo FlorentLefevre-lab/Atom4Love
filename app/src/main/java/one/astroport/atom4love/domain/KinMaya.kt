@@ -49,9 +49,34 @@ object KinMaya {
         "Caban", "Etznab", "Cauac", "Ahau",
     )
 
+    /**
+     * Les mêmes vingt sceaux, et les cinq familles-couleurs, **sous les noms
+     * français de Fred** — `KIN_GLYPHS_FR` et `KIN_COLORS` de `phi2x.py`.
+     *
+     * Ils ne servent qu'aux tags `glyph` et `color` du certificat, qui les
+     * portent tels quels : c'est le vocabulaire du relais, pas celui de
+     * l'interface. Celle-ci garde les noms mayas de [GLYPH_NAMES], qui sont des
+     * noms propres et se disent pareil dans les trois langues.
+     */
+    private val GLYPH_NAMES_FR = arrayOf(
+        "Dragon", "Vent", "Nuit", "Graine", "Serpent", "Lieur", "Main", "Étoile",
+        "Lune", "Chien", "Singe", "Chemin", "Roseau", "Jaguar", "Aigle", "Guerrier",
+        "Terre", "Miroir", "Tempête", "Soleil",
+    )
+
+    private val COLOR_NAMES_FR = arrayOf("Rouge", "Blanc", "Bleu", "Jaune", "Vert")
+
     /** Le nom du sceau 0..19, ou null hors de la table. */
     fun glyphName(glyph: Int?): String? = glyph?.takeIf { it in GLYPH_NAMES.indices }
         ?.let { GLYPH_NAMES[it] }
+
+    /** Le nom français du sceau, celui qu'attend le tag `glyph`. */
+    fun glyphNameFr(glyph: Int?): String? = glyph?.takeIf { it in GLYPH_NAMES_FR.indices }
+        ?.let { GLYPH_NAMES_FR[it] }
+
+    /** Le nom français de la famille-couleur, celui qu'attend le tag `color`. */
+    fun colorNameFr(color: Int?): String? = color?.takeIf { it in COLOR_NAMES_FR.indices }
+        ?.let { COLOR_NAMES_FR[it] }
 
     /**
      * Un KIN et ses trois index, tous **comptés à partir de zéro** comme chez

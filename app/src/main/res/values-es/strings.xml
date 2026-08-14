@@ -177,6 +177,22 @@
     <string name="map_by_arrival">Últimas llegadas</string>
     <string name="map_no_kin">Sello desconocido</string>
 
+    <!-- ─── Publicar tu certificado ──────────────────────────────────── -->
+    <string name="cert_checking">Buscando tu certificado en el relé…</string>
+    <string name="cert_absent">No estás en este mapa. Tu certificado nunca se ha publicado.</string>
+    <string name="cert_incomplete">Tu ficha aún no tiene lugar de nacimiento — sin él no hay fase ni dirección que publicar.</string>
+    <string name="cert_present">Tu certificado está en el relé. Republicarlo reemplazará el que ya está allí.</string>
+    <string name="cert_from_station">Tu certificado lo publicó una estación Astroport, bajo un secreto que solo ella tiene. Reemplazarlo desde aquí borraría el enlace cifrado a tu cuenta: le toca a la estación rehacerlo.</string>
+    <string name="cert_publishing">Publicando…</string>
+    <string name="cert_published">✅ Publicado. Estás en el mapa.</string>
+    <string name="cert_refused">El relé rechazó: %1$s</string>
+    <string name="cert_publish">⚡ Unirse a la constelación</string>
+    <string name="cert_republish">Republicar</string>
+    <string name="cert_confirm_title">Lo que sale hacia %1$s</string>
+    <string name="cert_confirm_body">Aquí está el evento, tal cual. El lugar solo aparece con precisión de un kilómetro, y tu dirección no aparece en absoluto. Una vez en un relé público, no se puede retirar.</string>
+    <string name="cert_confirm_ok">Publicar</string>
+    <string name="cert_confirm_cancel">Ahora no</string>
+
     <!-- ─── La barra inferior ─────────────────────────────────────────── -->
     <string name="tab_radar">Radar</string>
     <string name="tab_map">Mapa</string>

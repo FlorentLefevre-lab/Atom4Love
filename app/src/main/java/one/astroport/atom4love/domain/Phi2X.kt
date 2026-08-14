@@ -1,6 +1,7 @@
 package one.astroport.atom4love.domain
 
 import java.time.ZoneOffset
+import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -104,19 +105,9 @@ object Phi2X {
      * à l'instant demandé. La station appelle toujours avec l'instant.
      */
     fun pentagonOffset(lat: Double, lon: Double, unixTs: Double? = null): Double {
-        val rotationDeg = unixTs?.let { Math.toDegrees(floorMod(it, GRID_ROT_S) / GRID_ROT_S * TAU) }
         var sumSin = 0.0
         var sumCos = 0.0
-        for (i in PENTAGONS.indices) {
-            val (plat, plon0) = PENTAGONS[i]
-            // Les deux pôles restent en place : les faire tourner autour de
-            // l'axe polaire ne veut rien dire.
-            val plon = if (rotationDeg == null || i <= 1) {
-                plon0
-            } else {
-                val turned = floorMod(plon0 + rotationDeg, 360.0)
-                if (turned > 180.0) turned - 360.0 else turned
-            }
+        dynamicPentagons(unixTs).forEachIndexed { i, (plat, plon) ->
             val weight = exp(-haversineKm(lat, lon, plat, plon) / PENTAGON_FALLOFF_KM)
             val angle = i / 12.0 * TAU
             sumSin += sin(angle) * weight
@@ -124,6 +115,76 @@ object Phi2X {
         }
         val result = atan2(sumSin, sumCos)
         return if (result >= 0.0) result else result + TAU
+    }
+
+    /**
+     * La grille pentagonale à l'instant donné — `get_dynamic_pentagons()`.
+     *
+     * Les dix pentagones non polaires tournent autour de l'axe des pôles, un
+     * tour complet par [GRID_ROT_S]. Les deux pôles restent en place : les faire
+     * tourner autour de cet axe-là ne veut rien dire. [unixTs] null rend la
+     * grille figée de J2000.
+     */
+    fun dynamicPentagons(unixTs: Double?): List<Pair<Double, Double>> {
+        val rotationDeg = unixTs?.let { Math.toDegrees(floorMod(it, GRID_ROT_S) / GRID_ROT_S * TAU) }
+        return PENTAGONS.mapIndexed { i, (plat, plon0) ->
+            if (rotationDeg == null || i <= 1) {
+                plat to plon0
+            } else {
+                val turned = floorMod(plon0 + rotationDeg, 360.0)
+                plat to (if (turned > 180.0) turned - 360.0 else turned)
+            }
+        }
+    }
+
+    /**
+     * Le pentagone le plus proche à cet instant, **compté à partir de zéro** —
+     * `get_nearest_pentagon_id()`. C'est le `P<pp>` d'une adresse `a4l:`.
+     *
+     * ⚠ Rien à voir avec les douze portails de [GoldbergPortal], numérotés de 1
+     * à 12 et dérivés de la grille H3 : ceux-là ne tournent pas. Deux grilles,
+     * deux numérotations — ne jamais confondre l'une pour l'autre.
+     */
+    fun nearestPentagonId(lat: Double, lon: Double, unixTs: Double): Int {
+        val pentagons = dynamicPentagons(unixTs)
+        var best = 0
+        var bestKm = Double.MAX_VALUE
+        pentagons.forEachIndexed { i, (plat, plon) ->
+            val d = haversineKm(lat, lon, plat, plon)
+            if (d < bestKm) {
+                bestKm = d
+                best = i
+            }
+        }
+        return best
+    }
+
+    /**
+     * Ψ ∈ [0, 1] — l'amplitude du champ de résonance cymatique planétaire en ce
+     * lieu, à cet instant. Portage de `compute_resonance_field()`.
+     *
+     * Chaque pentagone envoie une onde dont la phase est sa distance rapportée
+     * au rayon terrestre et étirée par [WAVE_STRETCH], amortie en `exp(−d/1500)`.
+     * La somme des douze vit dans [−12, 12] ; on la ramène sur [0, 1].
+     *
+     * ⚠ Sur des coordonnées réelles elle ne bouge presque pas — Fred a mesuré
+     * qu'elle reste dans [0,50 ; 0,545] et a retiré de son projecteur la teinte
+     * qui en dépendait. Elle vaut comme donnée du certificat, pas comme signal
+     * visuel.
+     */
+    fun resonanceField(lat: Double, lon: Double, unixTs: Double): Double {
+        var amplitude = 0.0
+        dynamicPentagons(unixTs).forEach { (plat, plon) ->
+            val d = haversineKm(lat, lon, plat, plon)
+            amplitude += cos(d / EARTH_RADIUS_KM * WAVE_STRETCH) * exp(-d / PENTAGON_FALLOFF_KM)
+        }
+        return (amplitude + 12.0) / 24.0
+    }
+
+    /** `a5l:<XXXX>` — Ψ quantifié sur seize bits. Portage de `encode_a5l_tag()`. */
+    fun encodeA5lTag(amplitude: Double): String {
+        val v = amplitude.coerceIn(0.0, 1.0)
+        return "a5l:%04X".format(Locale.US, kotlin.math.round(v * 65535.0).toInt())
     }
 
     /**
@@ -298,6 +359,32 @@ object Phi2X {
         val kg = body.weightKg ?: return null
         val sex = wave?.sex ?: return null
         return F_WATER * waterKg(cm, kg, sex) / REFERENCE_BODY_KG
+    }
+
+    /**
+     * L'ω_bio **tel que le certificat le porte** : `F_WATER × (poids de
+     * naissance × ratio / 70)`, ratio 0,65 pour l'onde Φ et 0,60 pour l'octave.
+     *
+     * ⚠ Ce n'est **pas** [omegaBio], et c'est délibéré. Les deux formules de
+     * Fred sont décrites ci-dessus ; celle-ci est celle d'`atom4love_publish.py`,
+     * le seul programme qui écrive réellement un `d=atom4love` sur le relais.
+     * Les deux certificats qu'il y a mis à ce jour portent 12,15 et 11,04 Hz,
+     * l'ordre de grandeur d'un poids de naissance — publier ici les ~300 Hz que
+     * rend Watson sur un corps d'adulte rendrait notre atome incomparable à tous
+     * les autres. On publie donc dans la langue de la constellation, et l'écran
+     * du Noyau continue d'afficher [omegaBio], qui est la formule canonique.
+     * **La contradiction est chez Fred, pas ici** : à lui de trancher laquelle
+     * des deux survit.
+     *
+     * Null sans poids de naissance ou sans onde.
+     */
+    fun omegaBioAsPublished(birthWeightKg: Float?, wave: Wave?): Double? {
+        val kg = birthWeightKg ?: return null
+        val ratio = when (wave?.sex ?: return null) {
+            0 -> 0.65
+            else -> 0.60
+        }
+        return F_WATER * (kg * ratio / REFERENCE_BODY_KG)
     }
 
     /**

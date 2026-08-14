@@ -88,7 +88,7 @@ fun StationScreen(
                         onOpenCabin = onOpenCabin,
                         onCloseCabin = onCloseCabin,
                     )
-                    PlaceView.World -> MapScreen(birth = birth)
+                    PlaceView.World -> MapScreen(birth = birth, keys = keys)
                 }
             }
         }
