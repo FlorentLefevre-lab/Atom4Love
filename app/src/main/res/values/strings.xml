@@ -194,6 +194,10 @@
     <string name="chat_cancelled">annulé</string>
     <string name="chat_cancel_send">✕ annuler l\'envoi</string>
 
+    <!-- ─── La Carte : ses deux échelles ─────────────────────────────── -->
+    <string name="place_here">Ici</string>
+    <string name="place_world">Le monde</string>
+
     <!-- ─── 03 · Constellation : la carte des clés LOVE activées ──────── -->
     <string name="map_title">Constellation</string>
     <string name="map_birthplaces">Chaque point est un lieu de naissance, à la maille du kilomètre — pas une position.</string>
@@ -550,6 +554,7 @@
     <string name="inc_sealed_note">Ces données ne seront plus jamais modifiables. Ceux qui vous connaissent peuvent les redire : vos proches sont votre phrase de récupération.</string>
     <string name="inc_provisional_note">La clé forgée ici est provisoire : elle vous suffit à portée d\'antenne. Votre clé LOVE, elle, sera dérivée par une station Astroport.ONE le jour où vous ouvrirez un MULTIPASS.</string>
     <string name="inc_multipass_active">MULTIPASS actif · clé LOVE en place</string>
+    <string name="inc_board_open">🎴 Plateau « Qui est-ce ? » — maquette, sans partie</string>
     <string name="inc_multipass_open">Ouvrir un MULTIPASS sur AstroPort.ONE</string>
     <string name="inc_footer" translatable="false">Atom4Love · by AstroPort.ONE</string>
 

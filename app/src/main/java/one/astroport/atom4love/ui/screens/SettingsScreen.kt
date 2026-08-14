@@ -1,16 +1,22 @@
 package one.astroport.atom4love.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,7 +34,7 @@ import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 
 /**
- * 06 · Réglages — ce qui appartient à la personne, pas à la station.
+ * Réglages — ce qui appartient à la personne, pas à la station.
  *
  * L'écran n'a encore rien à régler : il ne porte que le numéro de version, et
  * **il est le seul à le porter**. Le pied de l'Aide l'affichait, ce qui n'a
@@ -37,12 +43,16 @@ import one.astroport.atom4love.ui.theme.A4LText
  *
  * C'est donc une place tenue, volontairement vide en attendant ce qu'on y
  * mettra. Rien n'y a été déménagé : le thème et la langue restent en haut,
- * la balise et la cabine sur le Radar, le MULTIPASS sur le Noyau. Ces
+ * la balise et la cabine sur la Carte, le MULTIPASS sur le Noyau. Ces
  * gestes-là engagent la radio ou l'identité — les enfouir dans un menu leur
  * ferait perdre ce qu'ils disent là où ils agissent.
+ *
+ * Il **a quitté la barre du bas** pour la poignée ⚙️ de l'en-tête : une place
+ * tenue et vide n'est pas une destination, et une barre à six entrées se lisait
+ * moins bien qu'elle ne menait quelque part.
  */
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier) {
+fun SettingsScreen(modifier: Modifier = Modifier, onClose: (() -> Unit)? = null) {
     Column(
         modifier
             .fillMaxSize()
@@ -53,22 +63,37 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             Modifier
                 .fillMaxWidth()
                 .padding(start = 20.dp, end = 20.dp, top = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("⚛", color = A4L.Cyan, fontSize = 13.sp)
-            Spacer(Modifier.width(7.dp))
-            Text(
-                "ATOM4LOVE",
-                style = A4LText.Data.copy(letterSpacing = 1.7.sp),
-                color = A4L.TextMuted,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("⚛", color = A4L.Cyan, fontSize = 13.sp)
+                Spacer(Modifier.width(7.dp))
+                Text(
+                    "ATOM4LOVE",
+                    style = A4LText.Data.copy(letterSpacing = 1.7.sp),
+                    color = A4L.TextMuted,
+                )
+            }
+            if (onClose != null) {
+                Box(
+                    Modifier
+                        .size(30.dp)
+                        .background(A4L.Glass, CircleShape)
+                        .clickable(onClick = onClose),
+                    contentAlignment = Alignment.Center,
+                ) { Text("✕", fontSize = 13.sp, color = A4L.TextStrong) }
+            }
         }
 
         Column(
             Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 20.dp)
+                // Plus de barre de menus dessous : l'encoche du système est à
+                // nous.
+                .navigationBarsPadding(),
         ) {
             Text(
                 stringResource(R.string.settings_title),

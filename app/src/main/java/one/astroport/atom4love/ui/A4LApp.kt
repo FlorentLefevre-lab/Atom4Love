@@ -1,5 +1,6 @@
 package one.astroport.atom4love.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
@@ -89,36 +90,39 @@ import one.astroport.atom4love.ui.screens.BoardScreen
 import one.astroport.atom4love.ui.screens.HelpScreen
 import one.astroport.atom4love.ui.screens.SettingsScreen
 import one.astroport.atom4love.ui.screens.IncarnationScreen
-import one.astroport.atom4love.ui.screens.MapScreen
 import one.astroport.atom4love.ui.screens.MultipassScreen
-import one.astroport.atom4love.ui.screens.RadarScreen
+import one.astroport.atom4love.ui.screens.PlaceView
 import one.astroport.atom4love.ui.screens.SPLASH_HOLD_MS
 import one.astroport.atom4love.R
 import one.astroport.atom4love.ui.screens.SplashScreen
+import one.astroport.atom4love.ui.screens.StationScreen
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.AlertDialog
 
-/** Les six destinations de la barre du bas. */
+/**
+ * Les deux destinations de la barre du bas : dehors, et soi.
+ *
+ * Il y en avait six. Quatre sont parties, chacune pour une raison différente :
+ * - **Radar** et **Constellation** n'étaient pas deux endroits mais deux façons
+ *   de regarder qui est là — elles sont les deux segments de [A4LTab.Map]
+ *   (`StationScreen`).
+ * - **Aide** et **Réglages** ne sont pas des lieux, ce sont des poignées : elles
+ *   vivent dans la ligne d'en-tête, à côté du thème et des langues.
+ * - **Plateau** attend d'avoir une partie ; on y entre depuis le Noyau.
+ * - **Résonance** montrait trois liaisons écrites en dur. Elle reste dans le
+ *   dépôt et ne reviendra que quand elle aura de vraies liaisons à montrer —
+ *   une barre ne se remplit pas pour être pleine.
+ */
 enum class A4LTab(
     /** L'emoji reste en dur : un pictogramme n'est d'aucune langue. */
     val icon: String,
     @StringRes val labelRes: Int,
 ) {
-    Radar("🌀", R.string.tab_radar),
-    // La carte prend la place que tenait « Résonance » : celui-ci montrait trois
-    // liaisons écrites en dur, celle-là montre qui a réellement activé sa clé.
-    // `ResonanceScreen` reste dans le dépôt, hors de la barre, le temps qu'il
-    // ait des liaisons à montrer.
     Map("🌍", R.string.tab_map),
-    Board("🎴", R.string.tab_board),
     Nucleus("⚛", R.string.tab_nucleus),
-    Help("❓", R.string.tab_help),
-    // U+FE0F : sans lui, U+2699 tombe sur la police TEXTE du système, qui
-    // le dessine en cercle à rayons — une roue de bateau, pas un engrenage.
-    Settings("⚙️", R.string.tab_settings),
     ;
 
     /**
@@ -128,12 +132,13 @@ enum class A4LTab(
      */
     val accent: Color
         @Composable @ReadOnlyComposable get() = when (this) {
-            Radar, Board, Nucleus -> A4L.Cyan
             Map -> A4L.Mint
-            Help -> A4L.Indigo
-            Settings -> A4L.TextStrong
+            Nucleus -> A4L.Cyan
         }
 }
+
+/** Ce qui s'ouvre par-dessus la station, en plein écran, et se referme. */
+private enum class Overlay { None, Multipass, Help, Settings, Board }
 
 /**
  * Le parcours complet : le splash (l'atome au cœur battant) couvre la
@@ -185,7 +190,11 @@ private fun Station(
     // Premier lancement : fiche entièrement vierge — aucune donnée d'exemple.
     var birth by remember { mutableStateOf(restored?.birth ?: BirthData.Empty) }
     var forged by remember { mutableStateOf(restored?.forged ?: false) }
-    var tab by rememberSaveable { mutableStateOf(A4LTab.Radar) }
+    var tab by rememberSaveable { mutableStateOf(A4LTab.Map) }
+    // La Carte s'ouvre sur ce qui est à portée : c'est là qu'on vit. Le monde
+    // n'est l'accueil qu'une fois, au sortir de la forge — voir la constellation
+    // où l'on ne figure pas encore est ce qui donne envie d'y entrer.
+    var place by rememberSaveable { mutableStateOf(PlaceView.Here) }
 
     // ── Le compte Astroport.ONE, s'il y en a un ───────────────────────────
     val context = LocalContext.current
@@ -203,7 +212,7 @@ private fun Station(
     }
     val enrollStep by enrollment.step.collectAsState()
     var account by remember { mutableStateOf<MultipassAccount?>(null) }
-    var showMultipass by rememberSaveable { mutableStateOf(false) }
+    var overlay by rememberSaveable { mutableStateOf(Overlay.None) }
     LaunchedEffect(Unit) { account = enrollment.restore() }
     // Le coffre fait foi, à chaque étape et pas seulement au succès : la
     // création réussit parfois là où l'activation échoue — le compte existe
@@ -342,14 +351,17 @@ private fun Station(
     fun forge() {
         forged = true
         scope.launch { store.save(birth, forged = true) }
-        // Le noyau vient d'être scellé : c'est le moment où la proposition
-        // d'ouvrir un compte a du sens. On atterrit derrière sur le Noyau, là
-        // où la porte se retrouve — refuser ne la fait pas revenir d'elle-même.
+        // Le seul moment où la Carte s'ouvre sur le monde : le noyau vient
+        // d'être scellé, la constellation est là, et on n'y est pas encore.
+        place = PlaceView.World
+        // C'est aussi le moment où la proposition d'ouvrir un compte a du sens.
+        // On atterrit derrière sur le Noyau, là où la porte se retrouve —
+        // refuser ne la fait pas revenir d'elle-même.
         if (account == null) {
             tab = A4LTab.Nucleus
-            showMultipass = true
+            overlay = Overlay.Multipass
         } else {
-            tab = A4LTab.Radar
+            tab = A4LTab.Map
         }
     }
 
@@ -374,6 +386,7 @@ private fun Station(
                 // justement en allant chercher de quoi comprendre.
                 Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
                     AppearanceLine()
+                    BackHandler { showHelp = false }
                     HelpScreen(
                         modifier = Modifier.weight(1f),
                         onClose = { showHelp = false },
@@ -401,28 +414,54 @@ private fun Station(
                     )
                 }
             }
-        } else if (showMultipass) {
-            // Plein écran, comme l'aide avant la forge : ouvrir un compte n'est
-            // pas une manœuvre qu'on mène d'un œil, entre deux onglets.
+        } else if (overlay != Overlay.None) {
+            // Plein écran, comme l'aide avant la forge : ce qui s'ouvre ici est
+            // ce dont la barre a été débarrassée. Un lieu où l'on va se garde
+            // dans la barre ; une chose qu'on consulte et qu'on referme, non.
             Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
                 AppearanceLine()
-                MultipassScreen(
-                    step = enrollStep,
-                    account = account,
-                    onSubmit = { email, passCode ->
-                        scope.launch {
-                            val (lat, lon) = currentCoords()
-                            enrollment.enroll(email, birth, lat, lon, passCode)
-                        }
-                    },
-                    onRetryActivation = { enrollment.retryActivation(birth) },
-                    onReset = { enrollment.reset() },
-                    onClose = {
-                        showMultipass = false
-                        enrollment.reset()
-                    },
-                    modifier = Modifier.weight(1f),
-                )
+                val close = { overlay = Overlay.None }
+                // Ces écrans ne sont plus des onglets : le geste de retour du
+                // système doit les refermer, pas quitter la station. Le
+                // MULTIPASS remet en plus son inscription à zéro, comme sa ✕.
+                BackHandler {
+                    if (overlay == Overlay.Multipass) enrollment.reset()
+                    close()
+                }
+                when (overlay) {
+                    Overlay.Multipass -> MultipassScreen(
+                        step = enrollStep,
+                        account = account,
+                        onSubmit = { email, passCode ->
+                            scope.launch {
+                                val (lat, lon) = currentCoords()
+                                enrollment.enroll(email, birth, lat, lon, passCode)
+                            }
+                        },
+                        onRetryActivation = { enrollment.retryActivation(birth) },
+                        onReset = { enrollment.reset() },
+                        onClose = {
+                            close()
+                            enrollment.reset()
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    Overlay.Help -> HelpScreen(
+                        modifier = Modifier.weight(1f),
+                        onClose = close,
+                        atWindowBottom = true,
+                    )
+                    Overlay.Settings -> SettingsScreen(
+                        modifier = Modifier.weight(1f),
+                        onClose = close,
+                    )
+                    Overlay.Board -> BoardScreen(
+                        npub = keys?.npubShort,
+                        modifier = Modifier.weight(1f),
+                        onClose = close,
+                    )
+                    Overlay.None -> Unit // impossible : la branche l'exclut
+                }
             }
         } else {
             // `statusBarsPadding` consomme l'encoche pour ses enfants : celui
@@ -433,6 +472,8 @@ private fun Station(
                     open = cabinOpen,
                     onUpgrade = upgrade,
                     onSelect = selectMedium,
+                    onHelp = { overlay = Overlay.Help },
+                    onSettings = { overlay = Overlay.Settings },
                 )
                 Box(Modifier.weight(1f)) {
                     AnimatedContent(
@@ -451,7 +492,10 @@ private fun Station(
                         label = "tab",
                     ) { t ->
                         when (t) {
-                            A4LTab.Radar -> RadarScreen(
+                            A4LTab.Map -> StationScreen(
+                                view = place,
+                                onSelectView = { place = it },
+                                birth = birth,
                                 relay = relayStatus,
                                 salon = salon,
                                 keys = keys,
@@ -461,8 +505,6 @@ private fun Station(
                                 onOpenCabin = { cabinHost.open(keys) },
                                 onCloseCabin = closeCabin,
                             )
-                            A4LTab.Map -> MapScreen(birth = birth)
-                            A4LTab.Board -> BoardScreen(npub = keys?.npubShort)
                             A4LTab.Nucleus -> IncarnationScreen(
                                 birth = birth,
                                 onBirthChange = ::updateBirth,
@@ -472,8 +514,13 @@ private fun Station(
                                 onBodyChange = ::updateBody,
                                 npub = keys?.npub,
                                 relay = relayStatus,
-                                onMultipass = { showMultipass = true },
+                                onMultipass = { overlay = Overlay.Multipass },
                                 multipassActive = account?.loveActivated == true,
+                                // Le Plateau a quitté la barre : il n'a pas de
+                                // partie, et un onglet promet un lieu où l'on
+                                // revient. On y entre depuis le noyau, dont il
+                                // tire de toute façon sa main.
+                                onBoard = { overlay = Overlay.Board },
                                 onDissolve = {
                                     // La station oublie tout : fiche vierge, retour à la
                                     // forge — et les mesures du corps partent avec, sans
@@ -481,7 +528,8 @@ private fun Station(
                                     birth = BirthData.Empty
                                     body = BodyMetrics.Empty
                                     forged = false
-                                    tab = A4LTab.Radar
+                                    tab = A4LTab.Map
+                                    place = PlaceView.Here
                                     scope.launch {
                                         store.clear()
                                         bodyStore.clear()
@@ -489,8 +537,6 @@ private fun Station(
                                     }
                                 },
                             )
-                            A4LTab.Help -> HelpScreen()
-                            A4LTab.Settings -> SettingsScreen()
                         }
                     }
                     ElectronSweep(trigger = tab)
@@ -517,6 +563,8 @@ private fun CabinLine(
     open: Boolean,
     onUpgrade: (Medium) -> Unit,
     onSelect: (Medium) -> Unit,
+    onHelp: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val status by cabin.status.collectAsState()
     val peers by cabin.peers.collectAsState()
@@ -577,7 +625,43 @@ private fun CabinLine(
             )
         }
         Spacer(Modifier.width(8.dp))
+        // Les deux poignées descendues de la barre du bas. Elles se rangent
+        // AVANT le thème et les langues : celles-là sont toujours au même bout
+        // de la ligne, sur tous les écrans, et c'est à ça qu'on les retrouve.
+        HeaderButton("❓", R.string.tab_help, A4L.Indigo, onHelp)
+        Spacer(Modifier.width(5.dp))
+        // U+FE0F : sans lui, U+2699 tombe sur la police TEXTE du système, qui
+        // le dessine en cercle à rayons — une roue de bateau, pas un engrenage.
+        HeaderButton("⚙️", R.string.tab_settings, A4L.TextStrong, onSettings)
+        Spacer(Modifier.width(8.dp))
         AppearanceControls()
+    }
+}
+
+/**
+ * Une poignée de l'en-tête — même pastille que l'interrupteur jour/nuit, pour
+ * qu'on lise du premier coup que ce sont des gestes de même nature : on les
+ * touche, quelque chose s'ouvre, on referme et on est revenu où l'on était.
+ */
+@Composable
+private fun HeaderButton(
+    glyph: String,
+    @StringRes labelRes: Int,
+    tint: Color,
+    onClick: () -> Unit,
+) {
+    val label = stringResource(labelRes)
+    Box(
+        Modifier
+            .size(26.dp)
+            .clip(CircleShape)
+            .background(A4L.Glass)
+            .border(1.dp, A4L.StrokeSoft, CircleShape)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(glyph, style = A4LText.Data.copy(fontSize = 12.sp), color = tint)
     }
 }
 

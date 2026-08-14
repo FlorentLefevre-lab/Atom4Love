@@ -19,10 +19,13 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -90,7 +93,12 @@ private val BOARD_FILTERS = listOf(
  * Toucher la carte déposée la reprend en main.
  */
 @Composable
-fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
+fun BoardScreen(
+    modifier: Modifier = Modifier,
+    npub: String? = null,
+    /** Non nul quand le Plateau s'ouvre en plein écran depuis le Noyau. */
+    onClose: (() -> Unit)? = null,
+) {
 
     // Le npub réel (tronqué) une fois la clé forgée ; celui de la maquette sinon.
     val youLabel = stringResource(R.string.board_you)
@@ -145,11 +153,21 @@ fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
                     color = A4L.TextHigh,
                 )
             }
-            Text(
-                stringResource(R.string.board_relay_cards),
-                style = A4LText.Data.copy(fontSize = 10.sp),
-                color = A4L.TextDim,
-            )
+            if (onClose != null) {
+                Box(
+                    Modifier
+                        .size(30.dp)
+                        .background(A4L.Glass, CircleShape)
+                        .clickable(onClick = onClose),
+                    contentAlignment = Alignment.Center,
+                ) { Text("✕", fontSize = 13.sp, color = A4L.TextStrong) }
+            } else {
+                Text(
+                    stringResource(R.string.board_relay_cards),
+                    style = A4LText.Data.copy(fontSize = 10.sp),
+                    color = A4L.TextDim,
+                )
+            }
         }
 
         // ── Filtres ───────────────────────────────────────────────────────
@@ -260,7 +278,11 @@ fun BoardScreen(modifier: Modifier = Modifier, npub: String? = null) {
 
         // ── Votre main ────────────────────────────────────────────────────
         Column(
-            Modifier.padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+            Modifier
+                .padding(start = 20.dp, end = 20.dp, bottom = 16.dp)
+                // Le Plateau a quitté la barre du bas : plus personne ne porte
+                // l'encoche du système sous lui, il la prend lui-même.
+                .then(if (onClose != null) Modifier.navigationBarsPadding() else Modifier),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
