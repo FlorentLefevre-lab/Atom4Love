@@ -211,6 +211,82 @@ fun BirthDateWheels(
 }
 
 /**
+ * Un poids, au dixième de kilo : les kilos d'un côté, la décimale de l'autre.
+ *
+ * Le même composant sert au poids de naissance et à celui d'aujourd'hui —
+ * seule la plage change. C'est elle qui empêche de composer un poids de
+ * nouveau-né dans la case de l'adulte, et l'inverse.
+ */
+@Composable
+fun WeightWheels(
+    weightKg: Float,
+    range: ClosedFloatingPointRange<Float>,
+    onChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val whole = remember(range) { (range.start.toInt()..range.endInclusive.toInt()).toList() }
+    val tenths = remember { (0..9).toList() }
+    val safe = weightKg.coerceIn(range)
+    // Le dixième se lit sur l'écriture décimale plutôt que par un reste : à
+    // 3,5f près, `(safe * 10) % 10` rend parfois 4,999… et affiche un 4.
+    val currentWhole = safe.toInt()
+    val currentTenth = ((Math.round(safe * 10f) - currentWhole * 10).coerceIn(0, 9))
+
+    WheelWindow(modifier) {
+        WheelColumn(
+            items = remember(whole) { whole.map { it.toString() } },
+            selectedIndex = whole.indexOf(currentWhole).coerceAtLeast(0),
+            onSelected = { onChange((whole[it] + currentTenth / 10f).coerceIn(range)) },
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            ",",
+            style = A4LText.Data.copy(fontSize = 17.sp),
+            color = A4L.TextHigh,
+            modifier = Modifier.align(Alignment.CenterVertically),
+        )
+        WheelColumn(
+            items = remember { tenths.map { it.toString() } },
+            selectedIndex = currentTenth,
+            onSelected = { onChange((currentWhole + it / 10f).coerceIn(range)) },
+            modifier = Modifier.weight(0.6f),
+        )
+        Text(
+            "kg",
+            style = A4LText.Data.copy(fontSize = 13.sp),
+            color = A4L.TextMuted,
+            modifier = Modifier.align(Alignment.CenterVertically),
+        )
+    }
+}
+
+/** Une taille, au centimètre — un seul rouleau, et son unité en regard. */
+@Composable
+fun HeightWheels(
+    heightCm: Int,
+    range: IntRange,
+    onChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val values = remember(range) { range.toList() }
+
+    WheelWindow(modifier) {
+        WheelColumn(
+            items = remember(values) { values.map { it.toString() } },
+            selectedIndex = values.indexOf(heightCm.coerceIn(range)).coerceAtLeast(0),
+            onSelected = { onChange(values[it]) },
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            "cm",
+            style = A4LText.Data.copy(fontSize = 13.sp),
+            color = A4L.TextMuted,
+            modifier = Modifier.align(Alignment.CenterVertically),
+        )
+    }
+}
+
+/**
  * Les deux rouleaux d'une heure de naissance : heures et minutes.
  *
  * Le cadran de Material vise une heure de rendez-vous, qu'on approche ; une

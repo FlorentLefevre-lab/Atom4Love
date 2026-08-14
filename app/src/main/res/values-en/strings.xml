@@ -249,7 +249,9 @@
     <string name="help_kin_label">The KIN</string>
     <string name="help_kin_body">A tone, 1 to 13, crossed with a seal, 1 to 20: your KIN is one of the 260 cells of the Tzolkin. The seal wraps around — past the twentieth you are back at the first — so two KIN far apart by number can be neighbours by seal. Your date of birth is enough to compute it: this station does so itself, and you read it under "Singularity · computed". An Astroport.ONE station returns the same number with your MULTIPASS.</string>
     <string name="help_waves_label">The Φ wave, the Octave wave</string>
-    <string name="help_waves_body">Two polarities, and nothing else: Φ or Octave. That is all the record asks on that side, and it goes into your key exactly as it stands. It says which side of the interference you vibrate on; your frequency comes from body measurements this station does not ask for.</string>
+    <string name="help_waves_body">Two polarities, and nothing else: Φ or Octave. It goes into your key exactly as it stands, and says which side of the interference you vibrate on. Your frequency does not follow from it: that one needs your height and your weight — it is the biological wave, just below.</string>
+    <string name="help_omega_label">The biological wave · ω_bio</string>
+    <string name="help_omega_body">It is the frequency of the water you carry. The station first works out that water from your height and today\'s weight — Watson\'s formula, two equations depending on polarity — then brings it back to a frequency in hertz, on a basis of 429.62 Hz for a body holding 70 kg of water. Neither height nor weight enters your key: they change with you, a key does not. Without them there is no biological wave at all — which is why the record asks for them again.</string>
 
     <string name="help_vibration_label">Everything is vibration</string>
     <string name="help_vibration_body">ATOM4LOVE is not astrology. At the exact moment of your birth, the Earth held a precise position in space-time. You carry its geometric imprint — and it can be computed, to the minute and to the degree.</string>
@@ -279,8 +281,8 @@
     <string name="faq_network_body">Not for the cabin: it speaks over Bluetooth, or over a Wi-Fi network it builds itself between the two devices. Nothing passes through a server. The rest of the station — the NOSTR relays, the MULTIPASS — does need the network, and you can see it in the “relay · x / y” at the top of the screen.</string>
     <string name="faq_cabin_label">What is said in the cabin, where does it go?</string>
     <string name="faq_cabin_body">Nowhere else. The content is end-to-end encrypted and crosses no relay. On closing the cabin, the conversation and the attachments you received are wiped from the device — that is what “touch to close and erase” promises, and it keeps it.</string>
-    <string name="faq_weight_label">Why is my birth weight no longer asked for?</string>
-    <string name="faq_weight_body">It used to enter the key, together with polarity. Too few people know it: the station now keeps 3.5 kg for everyone — exactly what Astroport.ONE does when that field arrives empty.</string>
+    <string name="faq_weight_label">Why two weights: my birth weight and today\'s?</string>
+    <string name="faq_weight_body">They do not serve the same purpose. Birth weight enters your key, together with polarity: it is optional, and without it the station keeps 3.5 kg — exactly what Astroport.ONE does when that field arrives empty. Your height and weight today enter no key at all: they give your biological wave, and you can correct them whenever you like.</string>
     <string name="faq_nobody_label">The Radar shows nobody.</string>
     <string name="faq_nobody_body">Bluetooth must be on at both ends, and the other person must have opened their cabin: you only see cores whose cabin is open. Until someone makes that gesture, nothing announces itself — by design.</string>
     <string name="faq_change_label">Can I correct my data after forging?</string>
@@ -295,6 +297,7 @@
     <string name="date_problem_too_old" tools:ignore="PluralsCandidate">beyond %1$d years, the date is most likely a typo</string>
     <string name="format_gestation" tools:ignore="PluralsCandidate">%1$d days</string>
     <string name="format_weight">%1$.1f kg</string>
+    <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Incarnation: forging the nucleus ─────────────────────── -->
     <string name="forge_step_identity">Identity</string>
@@ -302,7 +305,7 @@
     <string name="forge_step_anchor">Anchor</string>
     <string name="forge_step_anchor_sub">date · place of birth · time optional</string>
     <string name="forge_step_vessel">The vessel</string>
-    <string name="forge_step_vessel_sub">wave (man) or octave (woman)</string>
+    <string name="forge_step_vessel_sub">wave · birth weight · today\'s body</string>
     <string name="forge_step_singularity">Singularity</string>
     <string name="forge_step_singularity_sub">the original trace, computed for you</string>
     <string name="forge_step_forge">Forge</string>
@@ -317,6 +320,13 @@
     <string name="inc_section_datetime">Date and time of birth</string>
     <string name="inc_section_place">Place of birth</string>
     <string name="inc_section_wave">Your wave</string>
+    <string name="inc_section_birth_weight">Birth weight</string>
+    <string name="inc_birth_weight_optional">optional — 3.5 kg by default</string>
+    <string name="inc_weight_is_default">the station\'s value</string>
+    <string name="inc_weight_default_suffix"> · by default</string>
+    <string name="inc_section_body">Your body today</string>
+    <string name="inc_height_placeholder">height</string>
+    <string name="inc_weight_placeholder">weight</string>
     <string name="inc_section_singularity">Singularity · computed</string>
     <string name="inc_section_incarnation">Your incarnation</string>
     <string name="inc_dd">DD</string>
@@ -326,7 +336,15 @@
     <string name="inc_mn">MI</string>
     <string name="inc_place_placeholder">Town, country…</string>
     <string name="inc_coords_warning">Recovery coordinates, to be written down carefully: 0.01° precision — about 1 km. This pair of numbers is what reopens your key if you lose this device: tap them to enter them yourself.</string>
-    <string name="inc_vessel_note">Wave or Octave, nothing else: the polarity enters the key exactly as it stands. It says which side of the interference you vibrate on.</string>
+    <string name="inc_vessel_note">Polarity and birth weight both enter your key exactly as they stand. The weight stays optional: without it the station keeps 3.5 kg — exactly what Astroport.ONE does when that field arrives empty.</string>
+    <string name="inc_body_note">Neither measurement enters any key, and you can change them whenever you like: they serve only your biological wave, which does not exist without them.</string>
+    <string name="inc_body_dialog_body">Your body today, not the one you were born with. None of this enters your key: you can correct it after forging, as often as the body changes.</string>
+    <string name="inc_height_title">Your height</string>
+    <string name="inc_weight_title">Your weight</string>
+    <string name="inc_measure_clear">Leave it out</string>
+    <string name="inc_birth_weight_title">Birth weight</string>
+    <string name="inc_birth_weight_body">The one from the day you were born, in kilos — it enters your key. Few people know it: without it the station keeps 3.5 kg, and the key derives all the same.</string>
+    <string name="inc_weight_unknown">I don\'t know it</string>
     <string name="inc_singularity_note">Your conception is Spirit, your birth is Matter. Nothing to enter: the station counts 280 days for everyone, and the portal is the vertex of the tiling nearest your place.</string>
 
     <string name="inc_row_birth">Birth</string>
@@ -339,6 +357,8 @@
     <string name="inc_row_portal">Goldberg portal</string>
     <string name="inc_row_kin">KIN</string>
     <string name="inc_row_phase">Personal phase</string>
+    <string name="inc_row_omega_bio">Biological wave</string>
+    <string name="inc_omega_bio_value">%1$s Hz · %2$s kg of water</string>
     <string name="inc_birth_datetime">%3$04d-%2$02d-%1$02d at %4$02d:%5$02d</string>
     <string name="inc_birth_date">%3$04d-%2$02d-%1$02d</string>
 

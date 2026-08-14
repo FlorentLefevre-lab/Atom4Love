@@ -63,12 +63,14 @@ import one.astroport.atom4love.BuildConfig
 import one.astroport.atom4love.chat.CabinChat
 import one.astroport.atom4love.chat.Medium
 import one.astroport.atom4love.chat.net.P2pGroup
+import one.astroport.atom4love.data.BodyStore
 import one.astroport.atom4love.data.LoveKeyStore
 import one.astroport.atom4love.data.IncarnationStore
 import one.astroport.atom4love.data.MultipassAccount
 import one.astroport.atom4love.data.MultipassStore
 import one.astroport.atom4love.data.SavedIncarnation
 import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.domain.BodyMetrics
 import one.astroport.atom4love.domain.KinMaya
 import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.multipass.Enrollment
@@ -183,6 +185,14 @@ private fun Station(
 
     // ── Le compte Astroport.ONE, s'il y en a un ───────────────────────────
     val context = LocalContext.current
+
+    // ── Le corps d'aujourd'hui ────────────────────────────────────────────
+    // Son propre magasin, chargé après coup : contrairement à la fiche, rien ne
+    // dépend de lui au démarrage — ni la clé, ni l'antenne, ni la balise. Le
+    // splash n'a donc aucune raison de l'attendre.
+    val bodyStore = remember { BodyStore(context.applicationContext) }
+    var body by remember { mutableStateOf(BodyMetrics.Empty) }
+    LaunchedEffect(Unit) { body = bodyStore.load() }
     val multipassStore = remember { MultipassStore(context.applicationContext) }
     val enrollment = remember {
         Enrollment(scope, MultipassService(BuildConfig.ASTROPORT_USPOT), multipassStore)
@@ -314,6 +324,11 @@ private fun Station(
         scope.launch { store.save(b, forged) }
     }
 
+    fun updateBody(b: BodyMetrics) {
+        body = b
+        scope.launch { bodyStore.save(b) }
+    }
+
     fun forge() {
         forged = true
         scope.launch { store.save(birth, forged = true) }
@@ -369,6 +384,8 @@ private fun Station(
                         forged = false,
                         onForge = ::forge,
                         modifier = Modifier.weight(1f),
+                        body = body,
+                        onBodyChange = ::updateBody,
                         relay = relayStatus,
                         onHelp = { showHelp = true },
                     )
@@ -441,17 +458,23 @@ private fun Station(
                                 onBirthChange = ::updateBirth,
                                 forged = true,
                                 onForge = {},
+                                body = body,
+                                onBodyChange = ::updateBody,
                                 npub = keys?.npub,
                                 relay = relayStatus,
                                 onMultipass = { showMultipass = true },
                                 multipassActive = account?.loveActivated == true,
                                 onDissolve = {
-                                    // La station oublie tout : fiche vierge, retour à la forge.
+                                    // La station oublie tout : fiche vierge, retour à la
+                                    // forge — et les mesures du corps partent avec, sans
+                                    // quoi la promesse d'oubli serait tenue à moitié.
                                     birth = BirthData.Empty
+                                    body = BodyMetrics.Empty
                                     forged = false
                                     tab = A4LTab.Radar
                                     scope.launch {
                                         store.clear()
+                                        bodyStore.clear()
                                         loveKeyStore.clear()
                                     }
                                 },

@@ -251,7 +251,9 @@
     <string name="help_kin_label">El KIN</string>
     <string name="help_kin_body">Un tono, del 1 al 13, cruzado con un sello, del 1 al 20: su KIN es una de las 260 casillas del Tzolkin. El sello da la vuelta — del vigésimo se regresa al primero —, de modo que dos KIN lejanos por el número pueden ser vecinos por el sello. Su fecha de nacimiento basta para calcularlo: esta estación lo hace ella misma, y usted lo lee en «Singularidad · calculada». Una estación Astroport.ONE devuelve el mismo número con su MULTIPASS.</string>
     <string name="help_waves_label">La onda Φ, la onda Octava</string>
-    <string name="help_waves_body">Dos polaridades, y nada más: Φ u Octava. Es todo lo que la ficha pide por ese lado, y entra tal cual en su clave. Dice de qué lado de la interferencia vibra usted; su frecuencia, en cambio, se deduce de medidas del cuerpo que esta estación no pide.</string>
+    <string name="help_waves_body">Dos polaridades, y nada más: Φ u Octava. Entra tal cual en su clave y dice de qué lado de la interferencia vibra usted. Su frecuencia, en cambio, no se deduce de ella: necesita su estatura y su peso — es la onda biológica, justo debajo.</string>
+    <string name="help_omega_label">La onda biológica · ω_bio</string>
+    <string name="help_omega_body">Es la frecuencia del agua que usted lleva. La estación calcula primero esa agua a partir de su estatura y su peso de hoy — la fórmula de Watson, dos ecuaciones según la polaridad — y luego la lleva a una frecuencia en hercios, sobre la base de 429,62 Hz para un cuerpo con 70 kg de agua. Ni la estatura ni el peso entran en su clave: cambian con usted, una clave no. Sin ellos no hay onda biológica alguna — por eso la ficha vuelve a pedirlos.</string>
 
     <string name="help_vibration_label">Todo es vibración</string>
     <string name="help_vibration_body">ATOM4LOVE no es astrología. En el momento exacto de tu nacimiento, la Tierra ocupaba una posición precisa en el espacio-tiempo. Llevas su huella geométrica — y se calcula, al minuto y al grado.</string>
@@ -281,8 +283,8 @@
     <string name="faq_network_body">Para la cabina no: habla por Bluetooth, o por una red Wi-Fi que ella misma crea entre los dos aparatos. Nada pasa por un servidor. El resto de la estación — los relés NOSTR, el MULTIPASS — sí necesita la red, y se ve en el «relay · x / y» de arriba.</string>
     <string name="faq_cabin_label">Lo que se dice en la cabina, ¿adónde va?</string>
     <string name="faq_cabin_body">A ningún otro sitio. El contenido va cifrado de extremo a extremo y no cruza ningún relé. Al cerrar la cabina, la conversación y los archivos recibidos se borran del aparato — es lo que promete «tocar para cerrar y borrar», y lo cumple.</string>
-    <string name="faq_weight_label">¿Por qué ya no se pide mi peso al nacer?</string>
-    <string name="faq_weight_body">Entraba en la clave, junto con la polaridad. Muy pocos lo conocen: la estación retiene 3,5 kg para todo el mundo — exactamente lo que hace Astroport.ONE cuando ese campo llega vacío.</string>
+    <string name="faq_weight_label">¿Por qué dos pesos: el de mi nacimiento y el de hoy?</string>
+    <string name="faq_weight_body">No sirven para lo mismo. El peso al nacer entra en su clave, junto con la polaridad: es opcional, y sin él la estación retiene 3,5 kg — exactamente lo que hace Astroport.ONE cuando ese campo llega vacío. Su estatura y su peso de hoy no entran en ninguna clave: dan su onda biológica, y puede corregirlos cuando quiera.</string>
     <string name="faq_nobody_label">El Radar no muestra a nadie.</string>
     <string name="faq_nobody_body">Hace falta el Bluetooth encendido en ambos lados, y que la otra persona haya abierto su cabina: solo se ven los núcleos cuya cabina está abierta. Mientras nadie haga ese gesto, nada se anuncia — es deliberado.</string>
     <string name="faq_change_label">¿Puedo corregir mis datos tras la forja?</string>
@@ -297,6 +299,7 @@
     <string name="date_problem_too_old" tools:ignore="PluralsCandidate">más allá de %1$d años, la fecha es seguramente una errata</string>
     <string name="format_gestation" tools:ignore="PluralsCandidate">%1$d días</string>
     <string name="format_weight">%1$.1f kg</string>
+    <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Encarnación: la forja del núcleo ─────────────────────── -->
     <string name="forge_step_identity">Identidad</string>
@@ -304,7 +307,7 @@
     <string name="forge_step_anchor">Anclaje</string>
     <string name="forge_step_anchor_sub">fecha · lugar de nacimiento · hora opcional</string>
     <string name="forge_step_vessel">La nave</string>
-    <string name="forge_step_vessel_sub">onda (hombre) u octava (mujer)</string>
+    <string name="forge_step_vessel_sub">onda · peso al nacer · cuerpo de hoy</string>
     <string name="forge_step_singularity">Singularidad</string>
     <string name="forge_step_singularity_sub">la huella originaria, calculada para ti</string>
     <string name="forge_step_forge">Forjar</string>
@@ -319,6 +322,13 @@
     <string name="inc_section_datetime">Fecha y hora de nacimiento</string>
     <string name="inc_section_place">Lugar de nacimiento</string>
     <string name="inc_section_wave">Tu onda</string>
+    <string name="inc_section_birth_weight">Peso al nacer</string>
+    <string name="inc_birth_weight_optional">opcional — 3,5 kg por defecto</string>
+    <string name="inc_weight_is_default">valor de la estación</string>
+    <string name="inc_weight_default_suffix"> · por defecto</string>
+    <string name="inc_section_body">Tu cuerpo de hoy</string>
+    <string name="inc_height_placeholder">estatura</string>
+    <string name="inc_weight_placeholder">peso</string>
     <string name="inc_section_singularity">Singularidad · calculada</string>
     <string name="inc_section_incarnation">Tu encarnación</string>
     <string name="inc_dd">DD</string>
@@ -328,7 +338,15 @@
     <string name="inc_mn">MI</string>
     <string name="inc_place_placeholder">Ciudad, país…</string>
     <string name="inc_coords_warning">Coordenadas de recuperación, anótalas con cuidado: precisión de 0,01° — alrededor de 1 km. Es este par de números el que reabre tu clave si pierdes este aparato: tócalos para escribirlos tú mismo.</string>
-    <string name="inc_vessel_note">Onda u Octava, nada más: la polaridad entra tal cual en la clave. Dice de qué lado de la interferencia vibras.</string>
+    <string name="inc_vessel_note">La polaridad y el peso al nacer entran tal cual en tu clave. El peso sigue siendo opcional: sin él la estación retiene 3,5 kg — exactamente lo que hace Astroport.ONE cuando ese campo llega vacío.</string>
+    <string name="inc_body_note">Estas dos medidas no entran en ninguna clave, y podrás cambiarlas cuando quieras: solo sirven para tu onda biológica, que no existe sin ellas.</string>
+    <string name="inc_body_dialog_body">Tu cuerpo de hoy, no el de tu nacimiento. Nada de esto entra en tu clave: podrás corregirlo después de forjar, tantas veces como cambie el cuerpo.</string>
+    <string name="inc_height_title">Tu estatura</string>
+    <string name="inc_weight_title">Tu peso</string>
+    <string name="inc_measure_clear">Dejarlo en blanco</string>
+    <string name="inc_birth_weight_title">Peso al nacer</string>
+    <string name="inc_birth_weight_body">El del día en que naciste, en kilos — entra en tu clave. Pocos lo conocen: sin él la estación retiene 3,5 kg, y la clave se deriva igualmente.</string>
+    <string name="inc_weight_unknown">No lo sé</string>
     <string name="inc_singularity_note">Tu concepción es el Espíritu, tu nacimiento la Materia. Nada que escribir: la estación cuenta 280 días para todo el mundo, y el portal es el vértice del teselado más cercano a tu lugar.</string>
 
     <string name="inc_row_birth">Nacimiento</string>
@@ -341,6 +359,8 @@
     <string name="inc_row_portal">Portal Goldberg</string>
     <string name="inc_row_kin">KIN</string>
     <string name="inc_row_phase">Fase personal</string>
+    <string name="inc_row_omega_bio">Onda biológica</string>
+    <string name="inc_omega_bio_value">%1$s Hz · %2$s kg de agua</string>
     <string name="inc_birth_datetime">%1$02d/%2$02d/%3$04d a las %4$02d:%5$02d</string>
     <string name="inc_birth_date">%1$02d/%2$02d/%3$04d</string>
 

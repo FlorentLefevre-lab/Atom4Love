@@ -68,6 +68,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.R
 import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.domain.BodyMetrics
 import one.astroport.atom4love.domain.DateProblem
 import one.astroport.atom4love.domain.GoldbergPortal
 import one.astroport.atom4love.geo.CommuneApi
@@ -81,6 +82,8 @@ import one.astroport.atom4love.ui.components.AtomLogo
 import one.astroport.atom4love.ui.components.BirthDateWheels
 import one.astroport.atom4love.ui.components.BirthTimeWheels
 import one.astroport.atom4love.ui.components.ComputedRow
+import one.astroport.atom4love.ui.components.HeightWheels
+import one.astroport.atom4love.ui.components.WeightWheels
 import one.astroport.atom4love.ui.components.SectionLabel
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.components.glass
@@ -92,11 +95,17 @@ import one.astroport.atom4love.ui.theme.tint
 /**
  * 01 · Incarnation — la forge du noyau.
  *
- * Les données de naissance (date, heure facultative, lieu, onde) sont
- * modifiables tant que la clé
- * n'est pas forgée ; le SALT et la date de conception se recalculent à chaque
- * frappe. Une fois forgée, tout se verrouille : c'est le contrat annoncé
- * par l'avertissement ambre.
+ * Les données de naissance (date, heure facultative, lieu, onde, poids
+ * facultatif) sont modifiables tant que la clé n'est pas forgée ; le SALT et la
+ * date de conception se recalculent à chaque frappe. Une fois forgée, tout se
+ * verrouille : c'est le contrat annoncé par l'avertissement ambre.
+ *
+ * Les mesures du corps ([body]) échappent à ce contrat, et c'est le seul
+ * endroit de l'écran où deux régimes cohabitent : elles n'entrent dans aucune
+ * clé, se modifient après le scellement, et ne servent qu'à ω_bio. L'étape du
+ * vaisseau les tient donc dans un bloc séparé, de couleur différente, avec la
+ * raison écrite dessous — la confusion des deux poids serait autrement
+ * inévitable.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,6 +115,8 @@ fun IncarnationScreen(
     forged: Boolean,
     onForge: () -> Unit,
     modifier: Modifier = Modifier,
+    body: BodyMetrics = BodyMetrics.Empty,
+    onBodyChange: (BodyMetrics) -> Unit = {},
     npub: String? = null,
     onDissolve: (() -> Unit)? = null,
     relay: RelayStation.Status? = null,
@@ -127,6 +138,9 @@ fun IncarnationScreen(
     var showCoordsEditor by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showBirthWeightPicker by remember { mutableStateOf(false) }
+    var showHeightPicker by remember { mutableStateOf(false) }
+    var showWeightPicker by remember { mutableStateOf(false) }
     var showForgeConfirm by remember { mutableStateOf(false) }
     var showDissolveWarning by remember { mutableStateOf(false) }
     var showDissolveFinal by remember { mutableStateOf(false) }
@@ -234,6 +248,9 @@ fun IncarnationScreen(
                 multipassActive = multipassActive,
                 onDissolve = { showDissolveWarning = true },
                 modifier = Modifier.weight(1f),
+                body = body,
+                onPickHeight = { showHeightPicker = true },
+                onPickWeight = { showWeightPicker = true },
             )
         } else {
             // L'assistant, calqué sur celui d'ATOM4LOVE : cinq stations, une
@@ -384,13 +401,24 @@ fun IncarnationScreen(
                         }
 
                     ForgeStep.Vessel -> Column(
-                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         WaveSection(birth = birth, editable = true, onBirthChange = onBirthChange)
+                        BirthWeightSection(
+                            birth = birth,
+                            editable = true,
+                            onPick = { showBirthWeightPicker = true },
+                        )
                         Text(
                             stringResource(R.string.inc_vessel_note),
                             style = A4LText.Caption,
                             color = A4L.TextMuted,
+                        )
+                        BodySection(
+                            body = body,
+                            wave = birth.wave,
+                            onPickHeight = { showHeightPicker = true },
+                            onPickWeight = { showWeightPicker = true },
                         )
                     }
 
@@ -534,14 +562,17 @@ fun IncarnationScreen(
                             )
                         } ?: "—",
                     )
-                    // Comme au récapitulatif : la ligne du poids ne paraît que
-                    // pour les fiches qui en portent un, forgées avant son retrait.
-                    if (birth.weightKg != null) {
-                        ComputedRow(
-                            stringResource(R.string.inc_row_weight),
-                            LoveKey.formatWeight(LocalResources.current, birth.weightKg),
-                        )
-                    }
+                    // Comme au récapitulatif : le poids paraît toujours, saisi
+                    // ou non — c'est celui-là qui va être scellé dans la clé.
+                    ComputedRow(
+                        stringResource(R.string.inc_row_weight),
+                        LoveKey.formatWeight(LocalResources.current, birth.saltWeightKg) +
+                            if (birth.weightKg == null) {
+                                stringResource(R.string.inc_weight_default_suffix)
+                            } else {
+                                ""
+                            },
+                    )
                     Spacer(Modifier.height(2.dp))
                     Text(
                         stringResource(R.string.inc_confirm_warning),
@@ -723,6 +754,123 @@ fun IncarnationScreen(
             },
         )
     }
+
+    // ── Le poids de naissance : dans la clé, mais facultatif ─────────────
+    // Comme l'heure : peu de gens le connaissent, et la station sait quoi
+    // mettre à sa place — 3,5 kg, exactement ce que retient
+    // `atom4love_publish.py` quand son cinquième argument arrive vide.
+    if (showBirthWeightPicker) {
+        var picked by remember { mutableStateOf(birth.saltWeightKg) }
+        OptionalMeasureDialog(
+            title = stringResource(R.string.inc_birth_weight_title),
+            body = stringResource(R.string.inc_birth_weight_body),
+            unknownLabel = stringResource(R.string.inc_weight_unknown),
+            onConfirm = {
+                onBirthChange(birth.copy(weightKg = picked))
+                showBirthWeightPicker = false
+            },
+            onUnknown = {
+                onBirthChange(birth.copy(weightKg = null))
+                showBirthWeightPicker = false
+            },
+            onDismiss = { showBirthWeightPicker = false },
+        ) {
+            WeightWheels(
+                weightKg = picked,
+                range = BirthData.BIRTH_WEIGHT_RANGE_KG,
+                onChange = { picked = it },
+            )
+        }
+    }
+
+    // ── Le corps d'aujourd'hui : hors clé, modifiable à jamais ───────────
+    if (showHeightPicker) {
+        var picked by remember {
+            mutableIntStateOf(body.heightCm ?: BodyMetrics.DEFAULT_HEIGHT_CM)
+        }
+        OptionalMeasureDialog(
+            title = stringResource(R.string.inc_height_title),
+            body = stringResource(R.string.inc_body_dialog_body),
+            unknownLabel = stringResource(R.string.inc_measure_clear),
+            onConfirm = {
+                onBodyChange(body.copy(heightCm = picked))
+                showHeightPicker = false
+            },
+            onUnknown = {
+                onBodyChange(body.copy(heightCm = null))
+                showHeightPicker = false
+            },
+            onDismiss = { showHeightPicker = false },
+        ) {
+            HeightWheels(
+                heightCm = picked,
+                range = BodyMetrics.HEIGHT_RANGE_CM,
+                onChange = { picked = it },
+            )
+        }
+    }
+
+    if (showWeightPicker) {
+        var picked by remember {
+            mutableStateOf(body.weightKg ?: BodyMetrics.DEFAULT_WEIGHT_KG)
+        }
+        OptionalMeasureDialog(
+            title = stringResource(R.string.inc_weight_title),
+            body = stringResource(R.string.inc_body_dialog_body),
+            unknownLabel = stringResource(R.string.inc_measure_clear),
+            onConfirm = {
+                onBodyChange(body.copy(weightKg = picked))
+                showWeightPicker = false
+            },
+            onUnknown = {
+                onBodyChange(body.copy(weightKg = null))
+                showWeightPicker = false
+            },
+            onDismiss = { showWeightPicker = false },
+        ) {
+            WeightWheels(
+                weightKg = picked,
+                range = BodyMetrics.WEIGHT_RANGE_KG,
+                onChange = { picked = it },
+            )
+        }
+    }
+}
+
+/**
+ * Le dialogue d'une mesure qu'on a le droit de ne pas donner.
+ *
+ * Les trois mesures facultatives partagent la même forme, et surtout le même
+ * troisième bouton : « annuler » ne retire pas une valeur déjà là. Sans lui,
+ * une taille saisie par erreur ne pourrait plus jamais s'effacer — c'est la
+ * leçon du sélecteur d'heure, qui a dû apprendre le même geste.
+ */
+@Composable
+private fun OptionalMeasureDialog(
+    title: String,
+    body: String,
+    unknownLabel: String,
+    onConfirm: () -> Unit,
+    onUnknown: () -> Unit,
+    onDismiss: () -> Unit,
+    wheels: @Composable () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title, style = A4LText.Title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                Text(body, style = A4LText.Caption, color = A4L.TextMuted)
+                wheels()
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.inc_confirm)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onUnknown) { Text(unknownLabel, color = A4L.TextBody) }
+        },
+    )
 }
 
 /**
@@ -1204,6 +1352,119 @@ private fun WaveSection(birth: BirthData, editable: Boolean, onBirthChange: (Bir
     }
 }
 
+/**
+ * Étape 3 — le poids de naissance. Facultatif, mais il entre dans la clé :
+ * la case montre donc toujours ce qui y entrera, défaut compris.
+ */
+@Composable
+private fun BirthWeightSection(birth: BirthData, editable: Boolean, onPick: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            SectionLabel(stringResource(R.string.inc_section_birth_weight))
+            Text(
+                stringResource(R.string.inc_birth_weight_optional),
+                style = A4LText.Caption,
+                color = A4L.TextGhost,
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            DigitBox(
+                LoveKey.formatWeight(LocalResources.current, birth.saltWeightKg),
+                84.dp,
+                enabled = editable,
+                // Rien n'a été saisi : la valeur affichée est celle de la
+                // station, pas la sienne — elle se montre donc en fantôme.
+                placeholder = birth.weightKg == null,
+                onClick = onPick,
+            )
+            if (birth.weightKg == null) {
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    stringResource(R.string.inc_weight_is_default),
+                    style = A4LText.Caption,
+                    color = A4L.TextGhost,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Étape 3 — le corps d'aujourd'hui, et l'onde biologique qui s'en déduit.
+ *
+ * Séparé du reste, dans son propre cadre indigo : tout ce qui est cyan ou or
+ * dans cet écran entre dans la clé, ces deux mesures non. Elles se modifient
+ * après la forge, et la note le dit.
+ */
+@Composable
+private fun BodySection(
+    body: BodyMetrics,
+    wave: Wave?,
+    onPickHeight: () -> Unit,
+    onPickWeight: () -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .glass(12.dp, A4L.Indigo.tint(0.05f), A4L.Indigo.tint(0.22f))
+            .padding(horizontal = 14.dp, vertical = 13.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        SectionLabel(
+            stringResource(R.string.inc_section_body),
+            color = A4L.Indigo.copy(alpha = 0.75f),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            DigitBox(
+                body.heightCm?.let { stringResource(R.string.format_height, it) }
+                    ?: stringResource(R.string.inc_height_placeholder),
+                84.dp,
+                placeholder = body.heightCm == null,
+                onClick = onPickHeight,
+            )
+            Spacer(Modifier.width(8.dp))
+            DigitBox(
+                body.weightKg?.let { LoveKey.formatWeight(LocalResources.current, it) }
+                    ?: stringResource(R.string.inc_weight_placeholder),
+                84.dp,
+                placeholder = body.weightKg == null,
+                onClick = onPickWeight,
+            )
+        }
+        // ω_bio ne paraît que lorsqu'il existe vraiment : sans les deux mesures
+        // et la polarité, la station n'a rien à en dire, et un zéro serait faux.
+        OmegaBioRow(body = body, wave = wave)
+        Text(
+            stringResource(R.string.inc_body_note),
+            style = A4LText.Caption,
+            color = A4L.TextMuted,
+        )
+    }
+}
+
+/** L'onde biologique et l'eau qui la porte — les deux nombres d'`atomic.html`. */
+@Composable
+private fun OmegaBioRow(body: BodyMetrics, wave: Wave?) {
+    val omega = Phi2X.omegaBio(body, wave)
+    ComputedRow(
+        stringResource(R.string.inc_row_omega_bio),
+        if (omega == null) {
+            "—"
+        } else {
+            stringResource(
+                R.string.inc_omega_bio_value,
+                String.format(Locale.getDefault(), "%.2f", omega),
+                String.format(
+                    Locale.getDefault(),
+                    "%.1f",
+                    Phi2X.waterKg(body.heightCm!!, body.weightKg!!, wave!!.sex),
+                ),
+            )
+        },
+        valueColor = if (omega == null) A4L.TextMuted else A4L.Indigo,
+    )
+}
+
 /** Étape 4 — ce que la station calcule sans rien demander. */
 @Composable
 private fun SingularityCard(birth: BirthData) {
@@ -1304,16 +1565,20 @@ private fun RecapCard(birth: BirthData) {
                 stringResource(R.string.inc_wave_value, it.symbol, stringResource(it.labelRes))
             } ?: "—",
         )
-        // Le poids n'est plus demandé à la saisie ; la ligne ne subsiste que
-        // pour les fiches qui en portent un, forgées avant son retrait.
-        if (birth.weightKg != null) {
-            ComputedRow(
-                stringResource(R.string.inc_row_weight),
-                LoveKey.formatWeight(LocalResources.current, birth.weightKg),
-            )
-        }
+        // Le poids paraît toujours, saisi ou non : c'est celui-là qui entre
+        // dans la clé, et une ligne absente laisserait croire le contraire.
+        ComputedRow(
+            stringResource(R.string.inc_row_weight),
+            LoveKey.formatWeight(LocalResources.current, birth.saltWeightKg) +
+                if (birth.weightKg == null) {
+                    stringResource(R.string.inc_weight_default_suffix)
+                } else {
+                    ""
+                },
+        )
     }
 }
+
 
 /** L'avertissement d'irréversibilité, et la nature provisoire de la clé. */
 @Composable
@@ -1425,6 +1690,9 @@ private fun ColumnScope.SealedNucleus(
     multipassActive: Boolean,
     onDissolve: () -> Unit,
     modifier: Modifier = Modifier,
+    body: BodyMetrics = BodyMetrics.Empty,
+    onPickHeight: () -> Unit = {},
+    onPickWeight: () -> Unit = {},
 ) {
     Column(
         modifier.verticalScroll(rememberScrollState()),
@@ -1448,6 +1716,15 @@ private fun ColumnScope.SealedNucleus(
         ) {
             RecapCard(birth)
             SingularityCard(birth)
+            // La seule carte encore vivante sous un noyau scellé : un corps
+            // change, ces deux nombres doivent pouvoir suivre sans qu'on
+            // dissolve quoi que ce soit.
+            BodySection(
+                body = body,
+                wave = birth.wave,
+                onPickHeight = onPickHeight,
+                onPickWeight = onPickWeight,
+            )
         }
     }
 

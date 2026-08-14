@@ -292,15 +292,17 @@
 
     <!-- Le vocabulaire maya, tel que le code l'implémente (domain/Resonance.kt)
          et tel que l'interface web de Fred le nomme (Φ²). On ne décrit ici que
-         ce que l'application fait ou reçoit vraiment — d'où l'absence de ωbio,
-         qui demande une taille et un poids que la fiche ne demande plus. -->
+         ce que l'application fait ou reçoit vraiment — ωbio y a repris sa place
+         le jour où la taille et le poids sont revenus dans la fiche. -->
     <string name="help_group_maya">Le compte maya</string>
     <string name="help_tzolkin_label">Le Tzolkin · 260 jours</string>
     <string name="help_tzolkin_body">Treize tons croisés de vingt sceaux : 260 combinaisons qui bouclent sur elles-mêmes. Le compte ne suit ni le soleil ni la lune — il ne sert pas à dater, mais à situer. C\'est de cette grille que sort votre KIN, et c\'est sur elle que la station mesure ce qui vous rapproche d\'un autre.</string>
     <string name="help_kin_label">Le KIN</string>
     <string name="help_kin_body">Un ton, de 1 à 13, croisé d\'un sceau, de 1 à 20 : votre KIN est l\'une des 260 cases du Tzolkin. Le sceau boucle — du vingtième on revient au premier —, si bien que deux KIN éloignés par le numéro peuvent être voisins par le sceau. Votre date de naissance suffit à le calculer : cette station le fait elle-même, et vous le lisez dans « Singularité · calculée ». Une station Astroport.ONE rend le même nombre avec votre MULTIPASS.</string>
     <string name="help_waves_label">L\'onde Φ, l\'onde Octave</string>
-    <string name="help_waves_body">Deux polarités, et rien d\'autre : Φ ou Octave. C\'est tout ce que la fiche demande de ce côté-là, et elle entre telle quelle dans votre clé. Elle dit de quel côté de l\'interférence vous vibrez ; votre fréquence, elle, se déduit de mesures du corps que cette station ne demande pas.</string>
+    <string name="help_waves_body">Deux polarités, et rien d\'autre : Φ ou Octave. Elle entre telle quelle dans votre clé, et dit de quel côté de l\'interférence vous vibrez. Votre fréquence, elle, ne s\'en déduit pas : elle demande votre taille et votre poids — c\'est l\'onde biologique, juste en dessous.</string>
+    <string name="help_omega_label">L\'onde biologique · ω_bio</string>
+    <string name="help_omega_body">C\'est la fréquence de l\'eau que vous portez. La station calcule d\'abord cette eau à partir de votre taille et de votre poids d\'aujourd\'hui — la formule de Watson, deux équations selon la polarité —, puis la ramène à une fréquence en hertz, sur la base de 429,62 Hz pour un corps de 70 kg d\'eau. Ni la taille ni le poids n\'entrent dans votre clé : ils changent avec vous, une clé non. Sans eux, il n\'y a pas d\'onde biologique du tout — c\'est pour cela que la fiche les redemande.</string>
 
     <string name="help_vibration_label">Tout est vibration</string>
     <string name="help_vibration_body">ATOM4LOVE n\'est pas de l\'astrologie. Au moment exact de votre naissance, la Terre occupait une position précise dans l\'espace-temps. Vous en portez l\'empreinte géométrique — et elle se calcule, à la minute et au degré près.</string>
@@ -332,8 +334,8 @@
     <string name="faq_network_body">Pas pour la cabine : elle parle en Bluetooth, ou par un réseau Wi-Fi qu\'elle fabrique elle-même entre les deux appareils. Rien ne transite par un serveur. Le reste de la station — les relais NOSTR, le MULTIPASS — a besoin du réseau, et vous le voyez au « relay · x / y » en haut de l\'écran.</string>
     <string name="faq_cabin_label">Ce qui se dit en cabine, où va-t-il ?</string>
     <string name="faq_cabin_body">Nulle part ailleurs. Le contenu est chiffré de bout en bout et ne franchit aucun relais. En fermant la cabine, la conversation et les pièces jointes reçues sont effacées de l\'appareil — c\'est ce que promet la ligne « toucher pour fermer et effacer », et elle le tient.</string>
-    <string name="faq_weight_label">Pourquoi ne me demande-t-on plus mon poids de naissance ?</string>
-    <string name="faq_weight_body">Il entrait dans la clé, avec la polarité. Trop peu de gens le connaissent : la station retient 3,5 kg pour tout le monde — exactement ce que fait Astroport.ONE quand ce champ arrive vide.</string>
+    <string name="faq_weight_label">Pourquoi deux poids : celui de ma naissance et celui d\'aujourd\'hui ?</string>
+    <string name="faq_weight_body">Ils ne servent pas à la même chose. Le poids de naissance entre dans votre clé, avec la polarité : il est facultatif, et sans lui la station retient 3,5 kg — exactement ce que fait Astroport.ONE quand ce champ arrive vide. Votre poids et votre taille d\'aujourd\'hui, eux, n\'entrent dans aucune clé : ils donnent votre onde biologique, et vous pouvez les corriger quand vous voulez.</string>
     <string name="faq_nobody_label">Le Radar ne montre personne.</string>
     <string name="faq_nobody_body">Il faut le Bluetooth allumé des deux côtés, et que l\'autre ait ouvert sa cabine : on ne voit que les noyaux dont la cabine est ouverte. Tant que personne ne fait ce geste, rien ne s\'annonce — c\'est voulu.</string>
     <string name="faq_change_label">Puis-je corriger mes données après la forge ?</string>
@@ -351,6 +353,7 @@
          Locale.US : un test le verrouille. -->
     <string name="format_gestation" tools:ignore="PluralsCandidate">%1$d jours</string>
     <string name="format_weight">%1$.1f kg</string>
+    <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Incarnation : la forge du noyau ──────────────────────── -->
     <string name="forge_step_identity">Identité</string>
@@ -358,7 +361,7 @@
     <string name="forge_step_anchor">Ancrage</string>
     <string name="forge_step_anchor_sub">date · lieu de naissance · heure facultative</string>
     <string name="forge_step_vessel">Le vaisseau</string>
-    <string name="forge_step_vessel_sub">onde (homme) ou octave (femme)</string>
+    <string name="forge_step_vessel_sub">onde · poids de naissance · corps d\'aujourd\'hui</string>
     <string name="forge_step_singularity">Singularité</string>
     <string name="forge_step_singularity_sub">la trace originelle, calculée pour vous</string>
     <string name="forge_step_forge">Forger</string>
@@ -375,6 +378,13 @@
     <string name="inc_section_datetime">Date et heure de naissance</string>
     <string name="inc_section_place">Lieu de naissance</string>
     <string name="inc_section_wave">Votre onde</string>
+    <string name="inc_section_birth_weight">Poids de naissance</string>
+    <string name="inc_birth_weight_optional">optionnel — 3,5 kg à défaut</string>
+    <string name="inc_weight_is_default">valeur de la station</string>
+    <string name="inc_weight_default_suffix"> · par défaut</string>
+    <string name="inc_section_body">Votre corps aujourd\'hui</string>
+    <string name="inc_height_placeholder">taille</string>
+    <string name="inc_weight_placeholder">poids</string>
     <string name="inc_section_singularity">Singularité · calculée</string>
     <string name="inc_section_incarnation">Votre incarnation</string>
     <string name="inc_dd">JJ</string>
@@ -384,7 +394,15 @@
     <string name="inc_mn">MN</string>
     <string name="inc_place_placeholder">Ville, pays…</string>
     <string name="inc_coords_warning">Coordonnées de récupération, à noter précieusement : précision 0,01° — environ 1 km. C\'est ce couple de nombres qui rouvre votre clé si vous perdez cet appareil : touchez-les pour les saisir vous-même.</string>
-    <string name="inc_vessel_note">Onde ou Octave, rien d\'autre : la polarité entre telle quelle dans la clé. Elle dit de quel côté de l\'interférence vous vibrez.</string>
+    <string name="inc_vessel_note">La polarité et le poids de naissance entrent tels quels dans votre clé. Le poids reste optionnel : sans lui, la station retient 3,5 kg — exactement ce que fait Astroport.ONE quand ce champ arrive vide.</string>
+    <string name="inc_body_note">Ces deux mesures n\'entrent dans aucune clé, et vous pourrez les changer quand vous voudrez : elles ne servent qu\'à votre onde biologique, qui n\'existe pas sans elles.</string>
+    <string name="inc_body_dialog_body">Votre corps d\'aujourd\'hui, pas celui de votre naissance. Rien de ceci n\'entre dans votre clé : vous pourrez le corriger après la forge, autant de fois que le corps change.</string>
+    <string name="inc_height_title">Votre taille</string>
+    <string name="inc_weight_title">Votre poids</string>
+    <string name="inc_measure_clear">Ne pas renseigner</string>
+    <string name="inc_birth_weight_title">Poids de naissance</string>
+    <string name="inc_birth_weight_body">Celui du jour de votre naissance, en kilos — il entre dans votre clé. Peu de gens le connaissent : sans lui, la station retient 3,5 kg, et la clé se dérive quand même.</string>
+    <string name="inc_weight_unknown">Je ne le connais pas</string>
     <string name="inc_singularity_note">Votre conception est l\'Esprit, votre naissance la Matière. Rien à saisir : la station compte 280 jours pour tout le monde, et le portail est le sommet du pavage le plus proche de votre lieu.</string>
 
     <string name="inc_row_birth">Naissance</string>
@@ -397,6 +415,10 @@
     <string name="inc_row_portal">Portail Goldberg</string>
     <string name="inc_row_kin">KIN</string>
     <string name="inc_row_phase">Phase personnelle</string>
+    <string name="inc_row_omega_bio">Onde biologique</string>
+    <!-- La fréquence, puis l'eau qui la porte : les deux nombres qu'affiche
+         atomic.html sous le même intitulé. -->
+    <string name="inc_omega_bio_value">%1$s Hz · %2$s kg d\'eau</string>
     <string name="inc_birth_datetime">%1$02d/%2$02d/%3$04d à %4$02d:%5$02d</string>
     <string name="inc_birth_date">%1$02d/%2$02d/%3$04d</string>
     <string name="inc_wave_value" translatable="false">%1$s %2$s</string>

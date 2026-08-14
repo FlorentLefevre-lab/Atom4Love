@@ -180,6 +180,10 @@ fun HelpScreen(
                             answer(R.string.help_resonance_label, R.string.help_resonance_body),
                             answer(R.string.help_singularity_label, R.string.help_singularity_body),
                             answer(R.string.help_waves_label, R.string.help_waves_body),
+                            // Juste après la polarité : c'est la question que
+                            // pose la réponse d'au-dessus — d'où vient la
+                            // fréquence, si ce n'est pas de l'onde.
+                            answer(R.string.help_omega_label, R.string.help_omega_body),
                         ),
                     )
                     // Le vocabulaire maya a son propre panneau : ce sont des
