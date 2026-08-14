@@ -1215,6 +1215,14 @@ private fun CabinDirectPanel(chat: CabinChat) {
         }
     }
 
+    // Le battement de la rencontre : il se joue une fois, quand l'autre annonce
+    // son onde — c'est-à-dire au moment où la cabine s'ouvre pour de bon.
+    LaunchedEffect(chat) {
+        chat.resonances.collect { (mine, theirs) ->
+            sounds.binaural(mine.toDouble(), theirs.toDouble())
+        }
+    }
+
     Column(
         Modifier
             .fillMaxWidth()

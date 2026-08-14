@@ -565,6 +565,32 @@ class CabinChat(context: Context) {
     private val _chimes = MutableSharedFlow<Chime>(extraBufferCapacity = 8)
     val chimes: SharedFlow<Chime> = _chimes.asSharedFlow()
 
+    /**
+     * Notre onde biologique, à annoncer aux pairs attestés — null tant que la
+     * fiche n'a pas de quoi la calculer, et la cabine n'annonce alors rien.
+     */
+    @Volatile
+    private var myOmegaBio: Float? = null
+
+    private val _resonances = MutableSharedFlow<Pair<Float, Float>>(extraBufferCapacity = 4)
+
+    /**
+     * Le couple d'ondes d'une rencontre : la nôtre, puis la sienne.
+     *
+     * Émis une fois par pair, à l'instant où il annonce la sienne — c'est ce
+     * que l'écran attend pour faire battre les deux ensemble.
+     */
+    val resonances: SharedFlow<Pair<Float, Float>> = _resonances.asSharedFlow()
+
+    /**
+     * Donne à la cabine l'onde qu'elle annoncera. Se rappelle quand le corps
+     * change : la valeur ne part qu'aux liens qui s'ouvrent ensuite, un pair
+     * déjà là garde celle qu'il a reçue.
+     */
+    fun bindResonance(omegaBio: Double?) {
+        myOmegaBio = omegaBio?.toFloat()?.takeIf { it.isFinite() && it > 0f }
+    }
+
     private val executor = Executors.newSingleThreadExecutor { Thread(it, "BleChat") }
     private val dispatcher = executor.asCoroutineDispatcher()
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -1542,6 +1568,7 @@ class CabinChat(context: Context) {
             // parade `isHandshake` ne protège que le handshake lui-même. Depuis
             // onHandshakeDone, la file contient déjà HELLO 3 : l'ordre tient.
             announceAddress(link)
+            announceResonance(link)
             followMedium(link)
             refreshLinks()
         }
@@ -2018,6 +2045,7 @@ class CabinChat(context: Context) {
             is ChatFrame.Sealed, is ChatFrame.Handshake ->
                 Log.w(TAG, "trame ${frame::class.simpleName} imbriquée de $from : ignorée")
             is ChatFrame.Address -> onAddressFrame(links[key(medium, kind, from)], frame)
+            is ChatFrame.Resonance -> onResonanceFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Group -> onGroupFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Ack -> onAck(frame)
             // Le pair ferme sa cabine. On le retire tout de suite plutôt que
@@ -2405,6 +2433,37 @@ class CabinChat(context: Context) {
             ChatFrames.encodeAddress(Medium.WIFI_STATION.ordinal, host, listenPort),
         )
         Log.i(TAG, "adresse ${Medium.WIFI_STATION.short} annoncée à ${link.address} : $host:$listenPort")
+    }
+
+    /**
+     * Fil protocole. Notre onde biologique, annoncée une fois le pair attesté.
+     *
+     * Même règle que pour l'adresse : rien ne se confie à quelqu'un dont on ne
+     * sait pas qui il est. La trame part par la file de contrôle, donc scellée
+     * comme le reste dès que la session Noise est établie.
+     */
+    private fun announceResonance(link: Link) {
+        val omega = myOmegaBio ?: return
+        if (link.peerNostrKey == null) return
+        link.control.trySend(ChatFrames.encodeResonance(omega))
+    }
+
+    /**
+     * Fil protocole. Le pair annonce son onde : on émet le couple, et l'écran
+     * en fait un battement.
+     *
+     * Sans attestation, on ne sait pas de qui vient ce nombre — une cabine
+     * ouverte fait entendre la rencontre, pas n'importe quelle onde passée à
+     * portée. Et sans la nôtre, il n'y a rien à faire battre : une seule
+     * fréquence n'est pas un accord.
+     */
+    private fun onResonanceFrame(link: Link?, frame: ChatFrame.Resonance) {
+        if (link?.peerNostrKey == null) {
+            Log.w(TAG, "onde annoncée par un pair non attesté : ignorée")
+            return
+        }
+        val mine = myOmegaBio ?: return
+        _resonances.tryEmit(mine to frame.omegaBio)
     }
 
     /**

@@ -56,6 +56,9 @@ sealed interface ChatFrame {
         val status: Int,
     ) : ChatFrame
 
+    /** L'onde biologique du pair, en hertz. Voir [ChatFrames.encodeResonance]. */
+    data class Resonance(val omegaBio: Float) : ChatFrame
+
     /**
      * L'émetteur renonce à un transfert en cours.
      *
@@ -146,6 +149,8 @@ object ChatFrames {
     private const val TYPE_GROUP = 0x07
     private const val TYPE_CANCEL = 0x08
     private const val TYPE_BYE = 0x09
+    private const val TYPE_RESONANCE = 0x0A
+    private const val RESONANCE_LEN = 5
 
     /** [type][médium][port 2][longueur de l'hôte]. */
     private const val ADDRESS_FIXED = 5
@@ -323,6 +328,22 @@ object ChatFrames {
     /** Un seul octet : la plus courte trame du protocole. */
     fun encodeBye(): ByteArray = byteArrayOf(TYPE_BYE.toByte())
 
+    /**
+     * L'onde biologique de celui qui parle — cinq octets, une seule fois par
+     * lien, scellée comme le reste.
+     *
+     * Elle ne dit ni la taille ni le poids : ω_bio les mélange dans une somme
+     * dont on ne les ressort pas (deux inconnues, une équation). C'est ce qui
+     * la rend échangeable là où les mesures ne le sont pas — Fred, le
+     * 2026-08-14 : ces données ne se divulguent qu'entre gens qui se suivent.
+     * Ici, il a fallu ouvrir une cabine et mener un handshake attesté.
+     */
+    fun encodeResonance(omegaBio: Float): ByteArray =
+        ByteBuffer.allocate(RESONANCE_LEN)
+            .put(TYPE_RESONANCE.toByte())
+            .putFloat(omegaBio)
+            .array()
+
     /** [type][id] — cinq octets, la plus courte trame à identifiant. */
     fun encodeCancel(msgId: Int): ByteArray =
         ByteBuffer.allocate(5)
@@ -375,6 +396,16 @@ object ChatFrames {
             return ChatFrame.Group(name, passphrase, port)
         }
         if (bytes.size == 1 && bytes[0].toInt() == TYPE_BYE) return ChatFrame.Bye
+        // La taille d'abord : `decode` reçoit aussi des trames vides, et lire
+        // l'octet de tête avant de l'avoir vérifié coûte une exception.
+        if (bytes.size >= RESONANCE_LEN && bytes[0].toInt() == TYPE_RESONANCE) {
+            val omega = ByteBuffer.wrap(bytes, 1, 4).float
+            // Une onde biologique vaut quelques centaines de hertz ; ni un NaN
+            // ni un négatif n'en est une, et les deux se propageraient jusqu'au
+            // synthétiseur.
+            if (!omega.isFinite() || omega <= 0f) return null
+            return ChatFrame.Resonance(omega)
+        }
         // CANCEL ne porte qu'un identifiant : cinq octets, sous le plancher
         // des trames vérifié juste après
         if (bytes.isNotEmpty() && bytes[0].toInt() == TYPE_CANCEL) {

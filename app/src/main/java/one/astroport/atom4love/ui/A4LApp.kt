@@ -289,6 +289,12 @@ private fun Station(
     val cabinHost: CabinHost = viewModel()
     val cabin = cabinHost.chat
     val cabinOpen = cabinHost.open
+    // L'onde biologique ne va pas dans la balise : elle vient du corps, et le
+    // corps ne s'annonce pas à la cantonade. Elle n'est confiée qu'en cabine,
+    // à un pair attesté, sous Noise — c'est la règle de Fred du 2026-08-14.
+    LaunchedEffect(body, birth.wave) {
+        cabin.bindResonance(Phi2X.omegaBio(body, birth.wave))
+    }
     val closeCabin: () -> Unit = { cabinHost.close() }
     // Le Wi-Fi Direct est le seul médium qui demande une permission de plus.
     // Elle se demande ICI, au moment d'accepter la montée — pas à l'ouverture
