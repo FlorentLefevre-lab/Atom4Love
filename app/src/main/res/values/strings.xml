@@ -198,6 +198,11 @@
     <string name="place_here">Ici</string>
     <string name="place_world">Le monde</string>
 
+    <!-- ─── Le monde, fermé tant que la station n'a pas rendu la clé ──── -->
+    <string name="world_locked_title">Le monde attend votre clé</string>
+    <string name="world_locked_body">La constellation est faite des certificats que scelle une station Astroport. Tant que la vôtre n\'est pas activée, vous restez ici : le radar, la cabine, ce qui est à portée d\'antenne. Rien n\'est lu sur le relais public.</string>
+    <string name="world_locked_open">Ouvrir un MULTIPASS</string>
+
     <!-- ─── 03 · Constellation : la carte des clés LOVE activées ──────── -->
     <string name="map_title">Constellation</string>
     <string name="map_birthplaces">Chaque point est un lieu de naissance, à la maille du kilomètre — pas une position.</string>

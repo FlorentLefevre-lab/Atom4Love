@@ -351,10 +351,10 @@ private fun Station(
     fun forge() {
         forged = true
         scope.launch { store.save(birth, forged = true) }
-        // Le seul moment où la Carte s'ouvre sur le monde : le noyau vient
-        // d'être scellé, la constellation est là, et on n'y est pas encore.
-        place = PlaceView.World
-        // C'est aussi le moment où la proposition d'ouvrir un compte a du sens.
+        // La Carte reste sur « Ici » : le monde est fermé tant que la station
+        // n'a pas rendu la clé LOVE, et atterrir sur une porte close n'accueille
+        // personne. (J'avais posé l'inverse le 15/08 — Florent a tranché.)
+        // C'est en revanche le moment où la proposition d'ouvrir un compte a du sens.
         // On atterrit derrière sur le Noyau, là où la porte se retrouve —
         // refuser ne la fait pas revenir d'elle-même.
         if (account == null) {
@@ -495,6 +495,11 @@ private fun Station(
                             A4LTab.Map -> StationScreen(
                                 view = place,
                                 onSelectView = { place = it },
+                                // La clé rendue par la station, jamais celle
+                                // qu'on dérive ici : le monde est fait de ses
+                                // certificats.
+                                worldUnlocked = account?.loveActivated == true,
+                                onOpenMultipass = { overlay = Overlay.Multipass },
                                 birth = birth,
                                 relay = relayStatus,
                                 salon = salon,
