@@ -32,6 +32,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Man
+import androidx.compose.material.icons.filled.Woman
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -49,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalFocusManager
@@ -77,9 +82,8 @@ import one.astroport.atom4love.domain.LoveKey
 import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.domain.KinMaya
 import one.astroport.atom4love.domain.Wave
-import one.astroport.atom4love.ui.components.AtomLogo
-import one.astroport.atom4love.ui.components.LanguageChoice
-import one.astroport.atom4love.ui.components.ThemeChoice
+import one.astroport.atom4love.ui.components.Bmi
+import one.astroport.atom4love.ui.components.Silhouette
 import one.astroport.atom4love.ui.components.BirthDateWheels
 import one.astroport.atom4love.ui.components.BirthTimeWheels
 import one.astroport.atom4love.ui.components.ComputedRow
@@ -122,6 +126,12 @@ fun IncarnationScreen(
     onDissolve: (() -> Unit)? = null,
     relay: RelayStation.Status? = null,
     onHelp: (() -> Unit)? = null,
+    /**
+     * Les Réglages, depuis l'assistant. La langue et la lumière y vivent seules
+     * depuis qu'elles ne sont plus une étape ; l'écran y renvoie, il doit donc
+     * pouvoir y mener.
+     */
+    onSettings: (() -> Unit)? = null,
     /** La porte vers Astroport.ONE, en bas de l'écran : on peut y revenir
      *  quand on veut, y compris après avoir dit « plus tard ». */
     onMultipass: (() -> Unit)? = null,
@@ -250,8 +260,6 @@ fun IncarnationScreen(
                 onDissolve = { showDissolveWarning = true },
                 modifier = Modifier.weight(1f),
                 body = body,
-                onPickHeight = { showHeightPicker = true },
-                onPickWeight = { showWeightPicker = true },
             )
         } else {
             // L'assistant, calqué sur celui d'ATOM4LOVE : cinq stations, une
@@ -279,26 +287,48 @@ fun IncarnationScreen(
                     }
                     // Avant la forge, la barre de menus n'existe pas encore :
                     // l'aide vit à côté du titre, là où le regard se pose.
-                    if (onHelp != null) {
-                        Box(
-                            Modifier
-                                .size(36.dp)
-                                .glass(
-                                    radius = 18.dp,
-                                    background = A4L.Indigo.tint(0.10f),
-                                    border = A4L.Indigo.tint(0.40f),
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (onHelp != null) {
+                            Box(
+                                Modifier
+                                    .size(36.dp)
+                                    .glass(
+                                        radius = 18.dp,
+                                        background = A4L.Indigo.tint(0.10f),
+                                        border = A4L.Indigo.tint(0.40f),
+                                    )
+                                    .clickable(onClick = onHelp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    "?",
+                                    style = A4LText.Body.copy(
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    ),
+                                    color = A4L.Indigo,
                                 )
-                                .clickable(onClick = onHelp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                "?",
-                                style = A4LText.Body.copy(
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                ),
-                                color = A4L.Indigo,
-                            )
+                            }
+                        }
+                        // Le rouage rejoint le « ? » depuis que la langue et la
+                        // lumière ne sont plus une étape : l'assistant renvoie
+                        // aux Réglages, il faut donc pouvoir y aller d'ici. Sans
+                        // lui, « modifiable dans les Réglages » désignerait un
+                        // endroit qui n'existe pas encore.
+                        if (onSettings != null) {
+                            Box(
+                                Modifier
+                                    .size(36.dp)
+                                    .glass(
+                                        radius = 18.dp,
+                                        background = A4L.Glass,
+                                        border = A4L.Stroke,
+                                    )
+                                    .clickable(onClick = onSettings),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text("⚙️", fontSize = 15.sp)
+                            }
                         }
                     }
                 }
@@ -313,19 +343,12 @@ fun IncarnationScreen(
             // que sur les petits écrans, clavier ouvert et liste de communes
             // déployée, là où la troncature serait pire.
             Box(Modifier.weight(1f)) {
-                // Le logo en filigrane, dans le vide que laisse l'étape sous
-                // elle — et il tourne : c'est l'atome vectoriel du splash
-                // ([AtomLogo]), pas l'icône figée du launcher. Le GIF d'origine
-                // n'aurait rien donné de mieux, Compose ne l'anime pas sans
-                // décodeur tiers, et le dessin est le même.
-                AtomLogo(
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 28.dp)
-                        .fillMaxWidth(0.55f)
-                        .aspectRatio(1f)
-                        .alpha(0.40f),
-                )
+                // ⚠ L'atome battait ici en filigrane, à 40 % d'opacité, dans le
+                // vide que l'étape laissait sous elle. **Retiré le 15/08** : le
+                // vide a disparu avec la refonte en trois étapes — la première
+                // remplit l'écran et déborde — et un cœur derrière un texte à
+                // lire ne fait plus décor, il fait obstacle. Le logo reste où il
+                // est chez lui : le splash, où il est le sujet.
                 Column(
                     Modifier
                         .fillMaxSize()
@@ -339,22 +362,15 @@ fun IncarnationScreen(
                     verticalArrangement = Arrangement.Top,
                 ) {
                     when (ForgeStep.entries[step]) {
-                        // Changer de langue recrée l'activité : l'étape courante
-                        // est `rememberSaveable`, on revient donc exactement ici,
-                        // dans la nouvelle langue.
-                        ForgeStep.Appearance -> Column(
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        // ── 1. La fiche : tout ce qui se saisit ────────────
+                        ForgeStep.Card -> Column(
+                            verticalArrangement = Arrangement.spacedBy(15.dp),
                         ) {
-                            LanguageChoice()
-                            Spacer(Modifier.height(6.dp))
-                            SectionLabel(stringResource(R.string.settings_theme_label))
-                            ThemeChoice()
-                        }
-                        ForgeStep.Identity -> IdentityStep()
-
-                        ForgeStep.Anchor -> Column(
-                            verticalArrangement = Arrangement.spacedBy(13.dp),
-                        ) {
+                            SexSection(
+                                birth = birth,
+                                editable = true,
+                                onBirthChange = onBirthChange,
+                            )
                             BirthDateTimeSection(
                                 birth = birth,
                                 editable = true,
@@ -410,48 +426,55 @@ fun IncarnationScreen(
                                 style = A4LText.Caption,
                                 color = A4L.Amber.copy(alpha = 0.75f),
                             )
+                            BirthWeightSection(
+                                birth = birth,
+                                editable = true,
+                                onPick = { showBirthWeightPicker = true },
+                            )
+                            BodySection(
+                                body = body,
+                                onPickHeight = { showHeightPicker = true },
+                                onPickWeight = { showWeightPicker = true },
+                            )
+                            // La langue ne se demande plus : Android l'a déjà
+                            // choisie. L'encart le dit, et dit où en changer —
+                            // sans quoi « on suit le téléphone » ressemblerait
+                            // à « vous n'avez pas le choix ».
+                            NoteCard(
+                                glyph = "🗣",
+                                title = stringResource(R.string.inc_language_auto_title),
+                                body = stringResource(R.string.inc_language_auto_body),
+                                accent = A4L.Indigo,
+                            )
                         }
 
-                    ForgeStep.Vessel -> Column(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        WaveSection(birth = birth, editable = true, onBirthChange = onBirthChange)
-                        BirthWeightSection(
+                        // ── 2. Le récapitulatif : ce qui se scelle ─────────
+                        ForgeStep.Confirm -> Column(
+                            verticalArrangement = Arrangement.spacedBy(13.dp),
+                        ) {
+                            RecapCard(birth)
+                            ImmutableWarning()
+                            // Ce que la station calcule toute seule à partir de
+                            // ce qui précède. Sa place est ici et non dans une
+                            // étape à elle : rien ne s'y saisit, et le montrer
+                            // au moment de sceller dit exactement ce que la
+                            // date et le lieu fabriquent.
+                            SingularityCard(birth)
+                            Text(
+                                stringResource(R.string.inc_singularity_note),
+                                style = A4LText.Caption,
+                                color = A4L.TextMuted,
+                            )
+                            if (!birth.complete) MissingLine(birth)
+                        }
+
+                        // ── 3. La silhouette, et la forge ──────────────────
+                        ForgeStep.Shape -> ShapeStep(
                             birth = birth,
-                            editable = true,
-                            onPick = { showBirthWeightPicker = true },
-                        )
-                        Text(
-                            stringResource(R.string.inc_vessel_note),
-                            style = A4LText.Caption,
-                            color = A4L.TextMuted,
-                        )
-                        BodySection(
                             body = body,
-                            wave = birth.wave,
                             onPickHeight = { showHeightPicker = true },
                             onPickWeight = { showWeightPicker = true },
                         )
-                    }
-
-                    ForgeStep.Singularity -> Column(
-                        verticalArrangement = Arrangement.spacedBy(13.dp),
-                    ) {
-                        SingularityCard(birth)
-                        Text(
-                            stringResource(R.string.inc_singularity_note),
-                            style = A4LText.Caption,
-                            color = A4L.TextMuted,
-                        )
-                    }
-
-                    ForgeStep.Forge -> Column(
-                        verticalArrangement = Arrangement.spacedBy(13.dp),
-                    ) {
-                        RecapCard(birth)
-                        ImmutableWarning()
-                        if (!birth.complete) MissingLine(birth)
-                    }
                     }
                 }
             }
@@ -565,13 +588,9 @@ fun IncarnationScreen(
                         LoveKey.formatCoords(birth),
                     )
                     ComputedRow(
-                        stringResource(R.string.inc_row_wave),
+                        stringResource(R.string.inc_row_sex),
                         birth.wave?.let {
-                            stringResource(
-                                R.string.inc_wave_value,
-                                it.symbol,
-                                stringResource(it.labelRes),
-                            )
+                            stringResource(it.labelRes)
                         } ?: "—",
                     )
                     // Comme au récapitulatif : le poids paraît toujours, saisi
@@ -1040,34 +1059,47 @@ private enum class ForgeStep(
     @StringRes val subtitleRes: Int,
 ) {
     /**
-     * La première question, et la seule qui ne parle pas de la personne : dans
-     * quelle langue on va lui parler, et sous quelle lumière. Elle passe avant
-     * tout le reste parce qu'on ne remplit pas une fiche d'état civil dans une
-     * langue qu'on ne lit pas — et parce qu'au premier lancement, Android a
-     * déjà résolu la sienne : on ne devine rien, on montre ce qu'il a choisi et
-     * on laisse corriger.
+     * Tout ce qu'il faut saisir, en une fois : le sexe, la naissance, le corps.
      *
-     * En dessous d'Android 13 la langue par application n'existe pas et la
-     * ligne le dit ; la lumière, elle, se change toujours — l'étape a donc
-     * toujours quelque chose à faire.
+     * ⚠ Elles étaient **six** jusqu'au 15/08 — langue et lumière, une page
+     * d'explications, l'ancrage, le vaisseau, la singularité, la forge. Six
+     * écrans pour cinq données, dont deux qui ne demandaient rien du tout.
+     * L'assistant se lit maintenant en trois : ce qu'on donne, ce qu'on scelle,
+     * ce qu'on est.
+     *
+     * La langue a quitté l'assistant avec cette refonte : **Android l'a déjà
+     * résolue** au premier lancement, on la suit, et l'encart le dit — avec le
+     * chemin des Réglages pour qui veut en changer. Ce qu'on ne demande pas ne
+     * mérite pas une étape.
      */
-    Appearance("🗣", R.string.forge_step_appearance, R.string.forge_step_appearance_sub),
-    Identity("🪪", R.string.forge_step_identity, R.string.forge_step_identity_sub),
-    Anchor("⚓", R.string.forge_step_anchor, R.string.forge_step_anchor_sub),
-    Vessel("🧬", R.string.forge_step_vessel, R.string.forge_step_vessel_sub),
-    Singularity("🌀", R.string.forge_step_singularity, R.string.forge_step_singularity_sub),
-    Forge("⚛", R.string.forge_step_forge, R.string.forge_step_forge_sub);
+    Card("🪪", R.string.forge_step_card, R.string.forge_step_card_sub),
+
+    /**
+     * La relecture. C'est la seule étape qui n'apprend rien à la station : elle
+     * existe parce que ce qui suit est **irréversible**, et qu'on ne scelle pas
+     * une date de naissance sans l'avoir vue écrite une fois de plus.
+     */
+    Confirm("📜", R.string.forge_step_confirm, R.string.forge_step_confirm_sub),
+
+    /**
+     * La silhouette, et le bouton. Le corps d'aujourd'hui n'entre dans aucune
+     * clé — il ferme pourtant la marche, parce que c'est la seule chose de tout
+     * l'assistant qui se **vérifie à l'œil** : deux mesures fausses se lisent
+     * comme deux mesures justes, une silhouette fausse ne se lit pas comme soi.
+     */
+    Shape("🧍", R.string.forge_step_shape, R.string.forge_step_shape_sub);
 
     /**
      * Ce que l'étape exige pour qu'on ait le droit de passer à la suivante.
-     * L'heure de naissance n'en fait plus partie : peu de gens la connaissent,
-     * et la fiche sait quoi mettre à sa place ([BirthData.saltHour]).
+     * L'heure de naissance n'en fait pas partie : peu de gens la connaissent,
+     * et la fiche sait quoi mettre à sa place ([BirthData.saltHour]). La taille
+     * et le poids non plus — sans eux la silhouette est neutre, et c'est tout.
      */
     fun isSatisfied(b: BirthData): Boolean = when (this) {
-        Appearance, Identity, Singularity -> true
-        Anchor -> b.dateComplete && b.isPlausible() && b.lat != null && b.lon != null
-        Vessel -> b.wave != null
-        Forge -> b.complete
+        Card -> b.dateComplete && b.isPlausible() && b.lat != null && b.lon != null &&
+            b.wave != null
+        Confirm -> b.complete
+        Shape -> b.complete
     }
 }
 
@@ -1123,55 +1155,7 @@ private fun StepBar(current: Int, reached: (Int) -> Boolean, onSelect: (Int) -> 
     }
 }
 
-/** Étape 1 — ce qu'on s'apprête à faire, et avec quelle clé. */
-@Composable
-private fun IdentityStep() {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            stringResource(R.string.inc_lead),
-            style = A4LText.Body,
-            color = A4L.TextBody,
-        )
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .glass(12.dp, A4L.Glass, A4L.Stroke)
-                .padding(13.dp),
-            verticalArrangement = Arrangement.spacedBy(7.dp),
-        ) {
-            Text(
-                stringResource(R.string.inc_no_account_title),
-                style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
-                color = A4L.TextHigh,
-            )
-            Text(
-                stringResource(R.string.inc_no_account_body),
-                style = A4LText.Caption,
-                color = A4L.TextMuted,
-            )
-        }
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .glass(12.dp, A4L.Gold.tint(0.05f), A4L.Gold.tint(0.22f))
-                .padding(13.dp),
-            verticalArrangement = Arrangement.spacedBy(7.dp),
-        ) {
-            Text(
-                stringResource(R.string.inc_temp_key_title),
-                style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
-                color = A4L.Gold,
-            )
-            Text(
-                stringResource(R.string.inc_temp_key_body),
-                style = A4LText.Caption,
-                color = A4L.TextMuted,
-            )
-        }
-    }
-}
-
-/** Étape 2 — la ligne des six cases : JJ MM AAAA · HH MN. */
+/** La ligne des six cases : JJ MM AAAA · HH MN. Chacune ouvre son rouleau. */
 @Composable
 private fun BirthDateTimeSection(
     birth: BirthData,
@@ -1359,13 +1343,23 @@ private fun BirthPlaceSection(
 }
 
 /** Étape 3 — l'onde biologique, Φ ou Octave. */
+/**
+ * Le sexe — deux cartes, et rien d'autre à comprendre.
+ *
+ * ⚠ Cette section s'appelait « Votre onde » et proposait « Onde Φ » et
+ * « Octave », avec le numéro du sexe écrit dessous en petit. **Le vocabulaire
+ * d'onde a quitté l'écran le 15/08** : il vient de chez Fred, il est juste, et
+ * il ne dit rien à qui ouvre l'application pour la première fois. Le domaine le
+ * garde intact — [Wave] n'a pas bougé, `sex` vaut toujours 0 ou 1 et entre tel
+ * quel dans le SALT. Seul le mot affiché change.
+ */
 @Composable
-private fun WaveSection(birth: BirthData, editable: Boolean, onBirthChange: (BirthData) -> Unit) {
+private fun SexSection(birth: BirthData, editable: Boolean, onBirthChange: (BirthData) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        SectionLabel(stringResource(R.string.inc_section_wave))
+        SectionLabel(stringResource(R.string.inc_section_sex))
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
             Wave.entries.forEach { wave ->
-                WaveCard(
+                SexCard(
                     wave = wave,
                     selected = birth.wave == wave,
                     enabled = editable,
@@ -1373,6 +1367,31 @@ private fun WaveSection(birth: BirthData, editable: Boolean, onBirthChange: (Bir
                     modifier = Modifier.weight(1f),
                 )
             }
+        }
+    }
+}
+
+/**
+ * Un encart : un glyphe, un titre, un paragraphe. Pour ce que l'écran doit
+ * dire sans le demander — une ligne de texte nue se saute, un bloc se lit.
+ */
+@Composable
+private fun NoteCard(glyph: String, title: String, body: String, accent: Color) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .glass(12.dp, accent.tint(0.05f), accent.tint(0.22f))
+            .padding(horizontal = 14.dp, vertical = 13.dp),
+    ) {
+        Text(glyph, fontSize = 15.sp)
+        Spacer(Modifier.width(11.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(
+                title,
+                style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                color = accent,
+            )
+            Text(body, style = A4LText.Caption, color = A4L.TextMuted)
         }
     }
 }
@@ -1415,16 +1434,20 @@ private fun BirthWeightSection(birth: BirthData, editable: Boolean, onPick: () -
 }
 
 /**
- * Étape 3 — le corps d'aujourd'hui, et l'onde biologique qui s'en déduit.
+ * Le corps d'aujourd'hui — taille et poids, et rien de plus.
  *
  * Séparé du reste, dans son propre cadre indigo : tout ce qui est cyan ou or
  * dans cet écran entre dans la clé, ces deux mesures non. Elles se modifient
- * après la forge, et la note le dit.
+ * dans les Réglages après la forge, et la note le dit.
+ *
+ * ⚠ **L'onde biologique a quitté cette section le 15/08**, sur décision de
+ * Florent, et le dépôt entier avec : plus de formule de Watson, plus de trame
+ * 0x0A en cabine, plus de sixième question, plus d'`omega_bio` dans le
+ * certificat publié. Ces deux mesures ne nourrissent plus que la silhouette.
  */
 @Composable
 private fun BodySection(
     body: BodyMetrics,
-    wave: Wave?,
     onPickHeight: () -> Unit,
     onPickWeight: () -> Unit,
 ) {
@@ -1456,9 +1479,6 @@ private fun BodySection(
                 onClick = onPickWeight,
             )
         }
-        // ω_bio ne paraît que lorsqu'il existe vraiment : sans les deux mesures
-        // et la polarité, la station n'a rien à en dire, et un zéro serait faux.
-        OmegaBioRow(body = body, wave = wave)
         Text(
             stringResource(R.string.inc_body_note),
             style = A4LText.Caption,
@@ -1467,30 +1487,86 @@ private fun BodySection(
     }
 }
 
-/** L'onde biologique et l'eau qui la porte — les deux nombres d'`atomic.html`. */
+/**
+ * Étape 3 — la silhouette, l'IMC, et le bouton qui scelle.
+ *
+ * Pourquoi le corps ferme la marche alors qu'il n'entre dans aucune clé : parce
+ * qu'il est la seule chose de tout l'assistant qu'on puisse **vérifier d'un
+ * regard**. Une date fausse ressemble à une date juste ; une silhouette fausse
+ * ne ressemble à personne, et surtout pas à soi. C'est le dernier filet avant
+ * l'irréversible.
+ *
+ * Les deux mesures restent facultatives. Sans elles, la silhouette est neutre,
+ * l'IMC se tait, et le bouton forge quand même : rien de tout cela n'entre dans
+ * le SALT, et bloquer la forge sur un chiffre hors clé serait mentir.
+ */
 @Composable
-private fun OmegaBioRow(body: BodyMetrics, wave: Wave?) {
-    val omega = Phi2X.omegaBio(body, wave)
-    ComputedRow(
-        stringResource(R.string.inc_row_omega_bio),
-        if (omega == null) {
-            "—"
-        } else {
-            stringResource(
-                R.string.inc_omega_bio_value,
-                String.format(Locale.getDefault(), "%.2f", omega),
-                String.format(
-                    Locale.getDefault(),
-                    "%.1f",
-                    Phi2X.waterKg(body.heightCm!!, body.weightKg!!, wave!!.sex),
-                ),
-            )
-        },
-        valueColor = if (omega == null) A4L.TextMuted else A4L.Indigo,
-    )
+private fun ShapeStep(
+    birth: BirthData,
+    body: BodyMetrics,
+    onPickHeight: () -> Unit,
+    onPickWeight: () -> Unit,
+) {
+    val bmi = Bmi.of(body)
+    val band = bmi?.let { Bmi.Band.of(it) }
+    val accent = band?.color ?: A4L.TextMuted
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Silhouette(
+            sex = birth.wave,
+            bmi = bmi,
+            color = accent,
+            modifier = Modifier
+                .height(190.dp)
+                .fillMaxWidth(),
+        )
+
+        // L'indice sous le dessin, dans la couleur du dessin : les deux disent
+        // la même chose, et le nombre ne surprend pas la silhouette.
+        if (bmi != null && band != null) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    stringResource(
+                        R.string.inc_bmi_value,
+                        String.format(Locale.getDefault(), "%.1f", bmi),
+                    ),
+                    style = A4LText.Data.copy(fontSize = 19.sp),
+                    color = accent,
+                )
+                Text(
+                    stringResource(band.labelRes),
+                    style = A4LText.Body.copy(fontSize = 13.sp),
+                    color = accent.copy(alpha = 0.8f),
+                )
+            }
+        }
+
+        // Les deux mesures restent à portée de doigt ici : c'est en voyant le
+        // dessin qu'on s'aperçoit d'une faute de frappe, ce serait absurde
+        // d'avoir à remonter une étape pour la corriger.
+        BodySection(
+            body = body,
+            onPickHeight = onPickHeight,
+            onPickWeight = onPickWeight,
+        )
+
+        NoteCard(
+            glyph = if (bmi == null) "🧍" else "🪶",
+            title = stringResource(
+                if (bmi == null) R.string.inc_shape_empty_title else R.string.inc_shape_title,
+            ),
+            body = stringResource(
+                if (bmi == null) R.string.inc_shape_empty_body else R.string.inc_shape_body,
+            ),
+            accent = A4L.Indigo,
+        )
+    }
 }
 
-/** Étape 4 — ce que la station calcule sans rien demander. */
+/** Ce que la station calcule sans rien demander. */
 @Composable
 private fun SingularityCard(birth: BirthData) {
     Column(
@@ -1585,10 +1661,8 @@ private fun RecapCard(birth: BirthData) {
         ComputedRow(stringResource(R.string.inc_row_place), birth.placeName.ifBlank { "—" })
         ComputedRow(stringResource(R.string.inc_row_coords), LoveKey.formatCoords(birth))
         ComputedRow(
-            stringResource(R.string.inc_row_wave),
-            birth.wave?.let {
-                stringResource(R.string.inc_wave_value, it.symbol, stringResource(it.labelRes))
-            } ?: "—",
+            stringResource(R.string.inc_row_sex),
+            birth.wave?.let { stringResource(it.labelRes) } ?: "—",
         )
         // Le poids paraît toujours, saisi ou non : c'est celui-là qui entre
         // dans la clé, et une ligne absente laisserait croire le contraire.
@@ -1668,8 +1742,12 @@ private fun SaltLine(birth: BirthData, npub: String?) {
  */
 @Composable
 private fun MissingLine(birth: BirthData, only: ForgeStep? = null) {
+    // Tout ce qui manque se réclame désormais à la même étape : la fiche est
+    // d'un seul tenant, `only` ne trie donc plus qu'entre « cette étape » et
+    // « la relecture », qui disent la même liste.
     val missing = buildList {
-        if (only == null || only == ForgeStep.Anchor) {
+        if (only == null || only == ForgeStep.Card) {
+            if (birth.wave == null) add(stringResource(R.string.inc_missing_sex))
             if (!birth.dateComplete) add(stringResource(R.string.inc_missing_date))
             if (birth.lat == null || birth.lon == null) {
                 add(
@@ -1682,9 +1760,6 @@ private fun MissingLine(birth: BirthData, only: ForgeStep? = null) {
                     ),
                 )
             }
-        }
-        if (only == null || only == ForgeStep.Vessel) {
-            if (birth.wave == null) add(stringResource(R.string.inc_missing_wave))
         }
     }
     if (missing.isEmpty()) return
@@ -1703,6 +1778,72 @@ private fun MissingLine(birth: BirthData, only: ForgeStep? = null) {
 }
 
 /**
+ * Le corps sous un noyau scellé : la silhouette, les deux mesures, et le chemin
+ * pour les changer. En lecture seule — c'est le seul endroit de l'application
+ * où l'on relit sa fiche, et un rouleau au milieu d'une relecture invite à
+ * toucher ce qu'on est venu vérifier.
+ */
+@Composable
+private fun SealedBodyCard(body: BodyMetrics, wave: Wave?) {
+    val bmi = Bmi.of(body)
+    val accent = bmi?.let { Bmi.Band.of(it).color } ?: A4L.Indigo
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .glass(12.dp, A4L.Indigo.tint(0.05f), A4L.Indigo.tint(0.22f))
+            .padding(horizontal = 14.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Silhouette(
+            sex = wave,
+            bmi = bmi,
+            color = accent,
+            modifier = Modifier
+                .height(74.dp)
+                .width(52.dp),
+        )
+        Spacer(Modifier.width(14.dp))
+        Column(
+            Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            SectionLabel(
+                stringResource(R.string.inc_section_body),
+                color = A4L.Indigo.copy(alpha = 0.75f),
+            )
+            Text(
+                if (body.complete) {
+                    stringResource(
+                        R.string.inc_body_pair,
+                        stringResource(R.string.format_height, body.heightCm!!),
+                        LoveKey.formatWeight(LocalResources.current, body.weightKg!!),
+                    )
+                } else {
+                    stringResource(R.string.inc_body_unset)
+                },
+                style = A4LText.Data.copy(fontSize = 15.sp),
+                color = if (body.complete) A4L.TextHigh else A4L.TextGhost,
+            )
+            bmi?.let {
+                Text(
+                    stringResource(
+                        R.string.inc_bmi_value,
+                        String.format(Locale.getDefault(), "%.1f", it),
+                    ) + " · " + stringResource(Bmi.Band.of(it).labelRes),
+                    style = A4LText.Caption,
+                    color = accent.copy(alpha = 0.85f),
+                )
+            }
+            Text(
+                stringResource(R.string.inc_body_in_settings),
+                style = A4LText.Caption,
+                color = A4L.TextMuted,
+            )
+        }
+    }
+}
+
+/**
  * Le noyau scellé, dans l'onglet Noyau : plus d'assistant, plus rien à saisir —
  * la fiche entière d'un seul tenant, et les deux portes qui restent ouvertes,
  * le MULTIPASS et la dissolution.
@@ -1716,8 +1857,6 @@ private fun ColumnScope.SealedNucleus(
     onDissolve: () -> Unit,
     modifier: Modifier = Modifier,
     body: BodyMetrics = BodyMetrics.Empty,
-    onPickHeight: () -> Unit = {},
-    onPickWeight: () -> Unit = {},
 ) {
     Column(
         modifier.verticalScroll(rememberScrollState()),
@@ -1741,15 +1880,12 @@ private fun ColumnScope.SealedNucleus(
         ) {
             RecapCard(birth)
             SingularityCard(birth)
-            // La seule carte encore vivante sous un noyau scellé : un corps
-            // change, ces deux nombres doivent pouvoir suivre sans qu'on
-            // dissolve quoi que ce soit.
-            BodySection(
-                body = body,
-                wave = birth.wave,
-                onPickHeight = onPickHeight,
-                onPickWeight = onPickWeight,
-            )
+            // Le corps se montre ici, il ne s'y modifie plus : les deux
+            // rouleaux sont partis dans les Réglages le 15/08, pour que la
+            // phrase de l'assistant — « vous pourrez les mettre à jour dans les
+            // Réglages » — soit vraie. Le noyau reste ce qu'il est : ce qu'on
+            // relit, pas ce qu'on règle.
+            SealedBodyCard(body = body, wave = birth.wave)
         }
     }
 
@@ -1858,15 +1994,23 @@ private fun DigitBox(
     }
 }
 
-/** Carte de choix d'onde. L'onde retenue passe en vert menthe. */
+/**
+ * Carte de choix du sexe. Celle qu'on retient passe en vert menthe.
+ *
+ * Elle porte la **même silhouette** que la dernière étape, à corpulence neutre :
+ * le dessin du bout de l'assistant se reconnaît dès le premier écran, et deux
+ * tracés côte à côte disent la différence d'épaule et de hanche mieux qu'un
+ * symbole. ⚠ Le glyphe Φ / 8 est parti avec le vocabulaire d'onde.
+ */
 @Composable
-private fun WaveCard(
+private fun SexCard(
     wave: Wave,
     selected: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val accent = if (selected) A4L.Mint else A4L.TextMuted
     Column(
         modifier
             .glass(
@@ -1876,23 +2020,42 @@ private fun WaveCard(
             )
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(
-            wave.symbol,
-            style = A4LText.Data.copy(fontSize = 19.sp),
-            color = if (selected) A4L.Mint else A4L.TextMuted,
+        // Le pictogramme de Material, pas un dessin d'ici : la règle de la
+        // maison est de partir d'un composant quand il existe, et `Man`/`Woman`
+        // existent dans `material-icons-extended`, déjà au projet (le Radar s'en
+        // sert pour Bluetooth et Wi-Fi). Ils sont dessinés pour être lus à
+        // 24 dp, ce qu'aucun tracé maison ne fait aussi bien.
+        //
+        // ⚠ La silhouette maison n'est pas remplacée partout pour autant : à
+        // l'étape 3 elle **s'élargit avec l'IMC**, ce qu'une icône figée ne sait
+        // pas faire. Chacune là où elle est meilleure.
+        Icon(
+            imageVector = if (wave == Wave.Octave) Icons.Filled.Woman else Icons.Filled.Man,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(58.dp),
         )
-        Text(
-            stringResource(wave.labelRes),
-            style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
-            color = if (selected) A4L.Mint else A4L.TextBody.copy(alpha = 0.55f),
-        )
-        Text(
-            stringResource(R.string.wave_sex, wave.sex),
-            style = A4LText.Data.copy(fontSize = 9.sp),
-            color = if (selected) A4L.Mint.copy(alpha = 0.55f) else A4L.TextGhost,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            // Mars et Vénus, les deux signes que tout le monde lit sans les
+            // avoir appris. Ils restent en dur : un symbole n'est d'aucune
+            // langue — c'est la règle déjà suivie par les glyphes des étapes.
+            Text(
+                if (wave == Wave.Octave) "♀" else "♂",
+                style = A4LText.Body.copy(fontSize = 17.sp),
+                color = if (selected) A4L.Mint else A4L.TextMuted,
+            )
+            Text(
+                stringResource(wave.labelRes),
+                style = A4LText.Body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                color = if (selected) A4L.Mint else A4L.TextBody.copy(alpha = 0.55f),
+            )
+        }
     }
 }
 

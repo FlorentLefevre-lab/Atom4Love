@@ -355,19 +355,17 @@ private fun Station(
     // destination sans fermer la cabine ; celle-ci continue de tenir ses liens,
     // et l'on y revient par la rangée du radar.
     var cabinShown by rememberSaveable { mutableStateOf(false) }
-    // L'onde biologique ne va pas dans la balise : elle vient du corps, et le
-    // corps ne s'annonce pas à la cantonade. Elle n'est confiée qu'en cabine,
-    // à un pair attesté, sous Noise — c'est la règle de Fred du 2026-08-14.
+    // Ce que la fiche saura répondre au jeu des questions. Rien ne part de
+    // là — c'est un geste par question, et il coûte la même réponse.
+    //
     // ⚠ `cabin` fait partie des clés, et ce n'est pas décoratif : fermer la
     // cabine y installe une instance NEUVE (CabinHost.close), et une liaison
     // faite sur l'ancienne ne la suivrait pas. Sans cette clé, une cabine
-    // rouverte ne savait plus rien répondre — ni annoncer son onde, ce qui se
-    // taisait sans rien dire depuis que la résonance existe.
-    LaunchedEffect(cabin, body, birth.wave) {
-        cabin.bindResonance(Phi2X.omegaBio(body, birth.wave))
-    }
-    // Ce que la fiche saura répondre au jeu des questions. Rien ne part de
-    // là — c'est un geste par question, et il coûte la même réponse.
+    // rouverte ne savait plus rien répondre.
+    //
+    // ⚠ Une seconde liaison vivait ici, `cabin.bindResonance(Phi2X.omegaBio(…))`.
+    // Partie le 15/08 avec Watson — le jeu compte cinq questions, toutes lues
+    // dans la fiche, et plus aucune n'a besoin d'être jointe du dehors.
     LaunchedEffect(cabin, birth) { cabin.bindTraits(birth) }
     // Fermer efface : la destination se retire avec, sinon on resterait devant
     // une conversation qui n'existe plus.
@@ -441,9 +439,22 @@ private fun Station(
     ) { isForged ->
         if (!isForged) {
             // Avant la forge il n'y a pas encore de barre de menus : l'aide
-            // s'ouvre par le « ? » de l'en-tête, en plein écran.
+            // s'ouvre par le « ? » de l'en-tête, en plein écran — et les
+            // réglages par le rouage à côté, depuis que la langue et la lumière
+            // n'ont plus d'étape à elles.
             var showHelp by rememberSaveable { mutableStateOf(false) }
-            if (showHelp) {
+            var showSettings by rememberSaveable { mutableStateOf(false) }
+            if (showSettings) {
+                Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
+                    BackHandler { showSettings = false }
+                    SettingsScreen(
+                        modifier = Modifier.weight(1f),
+                        onClose = { showSettings = false },
+                        body = body,
+                        onBodyChange = ::updateBody,
+                    )
+                }
+            } else if (showHelp) {
                 // L'aide d'avant la forge s'ouvre par-dessus l'assistant : elle
                 // garde donc les mêmes réglages, sinon on les perdrait
                 // justement en allant chercher de quoi comprendre.
@@ -472,6 +483,7 @@ private fun Station(
                         onBodyChange = ::updateBody,
                         relay = relayStatus,
                         onHelp = { showHelp = true },
+                        onSettings = { showSettings = true },
                     )
                 }
             }
@@ -552,6 +564,8 @@ private fun Station(
                     Overlay.Settings -> SettingsScreen(
                         modifier = Modifier.weight(1f),
                         onClose = close,
+                        body = body,
+                        onBodyChange = ::updateBody,
                     )
                     Overlay.None -> Unit // impossible : la branche l'exclut
                 }

@@ -79,25 +79,13 @@ object Questions {
          */
         Kin(5, R.string.trait_kin, R.string.trait_kin_tells),
 
-        /**
-         * L'onde biologique, en dixièmes de hertz — voir [encodeBio].
-         *
-         * En dernier, et c'est le corps qui le veut : ω_bio mêle la taille et
-         * le poids d'aujourd'hui dans une somme dont on ne les ressort pas
-         * (deux inconnues, une équation), mais c'est tout de même la seule
-         * question de la liste qui parle du corps plutôt que de la date.
-         *
-         * Elle partait **toute seule** jusqu'ici : la cabine l'annonçait à
-         * chaque pair attesté dès la fin du handshake. C'était un dévoilement
-         * sans accord au milieu d'un jeu dont toute la règle est qu'on ne
-         * retourne rien sans les deux — corrigé le 15/08. Elle se demande
-         * maintenant comme le reste, et le battement binaural devient ce que la
-         * question rapporte au lieu d'un cadeau d'entrée.
-         *
-         * ⚠ Ne se lit pas dans la fiche : le corps d'aujourd'hui n'y est pas.
-         * C'est la cabine qui la joint, depuis ce qu'on lui a lié.
-         */
-        Bio(6, R.string.trait_bio, R.string.trait_bio_tells),
+        // ⚠ Une sixième question a vécu ici : **Bio**, l'onde biologique en
+        // dixièmes de hertz. Elle est partie le 15/08 avec toute la formule de
+        // Watson, sur décision de Florent. Le jeu compte donc cinq questions,
+        // et toutes se lisent dans la fiche de naissance — ce qui referme une
+        // exception : celle-là était la seule que la cabine devait joindre
+        // depuis l'extérieur, parce que le corps d'aujourd'hui n'est pas dans
+        // la fiche.
         ;
 
         /**
@@ -111,9 +99,6 @@ object Questions {
             Decade -> birth.year?.takeIf { it in 1900..2100 }?.let { it / 10 * 10 }
             BirthHour -> birth.hour?.takeIf { it in 0..23 }
             Kin -> KinMaya.of(birth)?.kin
-            // Le corps n'est pas dans la fiche de naissance : taille et poids
-            // d'aujourd'hui vivent ailleurs, et c'est la cabine qui les joint.
-            Bio -> null
         }
 
         /** Une valeur venue du réseau n'est crue que si elle a la bonne forme. */
@@ -123,7 +108,6 @@ object Questions {
             Decade -> value in 1900..2100 && value % 10 == 0
             BirthHour -> value in 0..23
             Kin -> value in 1..260
-            Bio -> value in BIO_MIN..BIO_MAX
         }
 
         companion object {
@@ -158,30 +142,6 @@ object Questions {
         val pending: Boolean get() = mine != null && theirs == null && !declined
     }
 
-    /** Bornes de l'onde biologique diffusable, en dixièmes de hertz. */
-    private const val BIO_MIN = 1
-    private const val BIO_MAX = 65535
-
-    /**
-     * ω_bio en dixièmes de hertz, ou null si ce n'en est pas une.
-     *
-     * Le dixième de hertz est très en deçà de l'incertitude d'une formule de
-     * Watson sur un corps mesuré à la main : ce qui se perd ici ne se perdait
-     * pas dans la mesure, il n'y était jamais.
-     *
-     * Deux octets, comme tout le reste du jeu — et [decodeBio] refait le chemin
-     * inverse, si bien qu'une valeur passée par la trame de résonance d'un
-     * appareil plus ancien et une valeur passée par la question tombent sur le
-     * **même entier**. C'est ce qui permet d'accepter les deux sans jamais
-     * afficher deux nombres différents pour la même personne.
-     */
-    fun encodeBio(hz: Float): Int? {
-        if (!hz.isFinite() || hz <= 0f) return null
-        return Math.round(hz * 10f).takeIf { it in BIO_MIN..BIO_MAX }
-    }
-
-    /** L'onde en hertz, telle qu'elle s'affiche et telle qu'elle fait battre. */
-    fun decodeBio(value: Int): Float = value / 10f
 
     /**
      * Ce qu'on peut encore proposer à quelqu'un : parmi les attributs que notre

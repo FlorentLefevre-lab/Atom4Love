@@ -283,109 +283,11 @@ object Phi2X {
         return delta < tolerance || kotlin.math.abs(delta - PI) < tolerance
     }
 
-    /**
-     * L'eau physiologique — la fréquence à laquelle ω_bio se rapporte.
-     */
-    const val F_WATER = 429.62
+    // ⚠ `F_WATER` (429,62 Hz) et `F_WATER_D` (= F_WATER + F_PHI, « 462,79 Hz →
+    // D » chez Fred) vivaient ici : le couple du binaural de cabine-33. Elles
+    // sont parties le 15/08 avec ω_bio puis avec le binaural lui-même. F_PHI,
+    // lui, reste — il entre dans le calcul de la phase, qui n'a rien à voir.
 
-    /**
-     * Le second canal du binaural de cabine-33 — que Fred écrit « 462,79 Hz → D ».
-     *
-     * Il n'est pas choisi : c'est [F_WATER] décalé de [F_PHI], si bien que le
-     * troisième son, celui que les deux oreilles fabriquent, vaut exactement
-     * F_Φ. Le battement du rituel est une constante, pas une mesure.
-     */
-    const val F_WATER_D = F_WATER + F_PHI
-
-    /**
-     * Le corps de référence de la formule : 70 kg d'eau valent F_WATER.
-     */
-    private const val REFERENCE_BODY_KG = 70.0
-
-    /**
-     * L'eau structurée du corps, en kilogrammes — Watson TBW **sans âge**.
-     *
-     * ```
-     * ♂ Φ      : TBW = 0,1074·h + 0,3362·w − 5,0
-     * ♀ Octave : TBW = 0,1069·h + 0,2466·w − 2,0
-     * ```
-     *
-     * C'est la simplification de Fred, pas l'article de 1980 : Watson fait
-     * décroître l'eau des hommes avec l'âge (`2,447 − 0,09156·âge`), terme
-     * remplacé ici par la constante −5,0. On la porte telle quelle — notre
-     * nombre doit être celui que la station dira de nous, pas le plus juste.
-     *
-     * Le plancher à 1 kg est dans la formule d'origine : il empêche une taille
-     * ou un poids aberrants de rendre une eau négative.
-     */
-    fun waterKg(heightCm: Int, weightKg: Float, sex: Int): Double = maxOf(
-        if (sex == 0) {
-            0.1074 * heightCm + 0.3362 * weightKg - 5.0
-        } else {
-            0.1069 * heightCm + 0.2466 * weightKg - 2.0
-        },
-        1.0,
-    )
-
-    /**
-     * ω_bio, l'onde biologique, en hertz — portage de
-     * `phi2x.py::compute_omega_bio`.
-     *
-     * ```
-     * ω_bio = F_WATER × eau(kg) / 70
-     * ```
-     *
-     * **Cinq implémentations existent chez Fred et deux formules s'affrontent.**
-     * Relevé le 2026-08-14 :
-     *
-     * - `tools/phi2x.py` (la station), `autoloads/Phi2X_Math.gd` (cabine-33) et
-     *   `earth/atomic.html` (le web) s'accordent au caractère près : Watson,
-     *   sur la **taille et le poids d'aujourd'hui**. C'est ce qui est repris ici.
-     * - `zelkova/lib/g1/phi2x.dart` calcule `poids × 0,65` (♂) ou `× 0,60` (♀)
-     *   **sans la taille**, tout en s'annonçant « port exact de
-     *   compute_omega_bio() ». Il ne l'est pas.
-     * - ⚠ `tools/atom4love_publish.py` — celui qui **publie réellement** le
-     *   30078 — reprend cette même simplification, et l'applique au **poids de
-     *   naissance** : `F_WATER × (poids_naissance × ratio / 70)`. Pour une
-     *   fiche par défaut, il annonce donc ≈ 14 Hz là où la formule canonique
-     *   en donne ≈ 226 Hz, soit un facteur 16. L'ω_bio que porte un événement
-     *   publié n'est pas celui que ce code calcule : à porter à Fred.
-     *
-     * Rendu null tant qu'il manque une mesure ou la polarité — sans elles, il
-     * n'y a pas d'onde biologique, et zéro serait un mensonge.
-     */
-    fun omegaBio(body: BodyMetrics, wave: Wave?): Double? {
-        val cm = body.heightCm ?: return null
-        val kg = body.weightKg ?: return null
-        val sex = wave?.sex ?: return null
-        return F_WATER * waterKg(cm, kg, sex) / REFERENCE_BODY_KG
-    }
-
-    /**
-     * L'ω_bio **tel que le certificat le porte** : `F_WATER × (poids de
-     * naissance × ratio / 70)`, ratio 0,65 pour l'onde Φ et 0,60 pour l'octave.
-     *
-     * ⚠ Ce n'est **pas** [omegaBio], et c'est délibéré. Les deux formules de
-     * Fred sont décrites ci-dessus ; celle-ci est celle d'`atom4love_publish.py`,
-     * le seul programme qui écrive réellement un `d=atom4love` sur le relais.
-     * Les deux certificats qu'il y a mis à ce jour portent 12,15 et 11,04 Hz,
-     * l'ordre de grandeur d'un poids de naissance — publier ici les ~300 Hz que
-     * rend Watson sur un corps d'adulte rendrait notre atome incomparable à tous
-     * les autres. On publie donc dans la langue de la constellation, et l'écran
-     * du Noyau continue d'afficher [omegaBio], qui est la formule canonique.
-     * **La contradiction est chez Fred, pas ici** : à lui de trancher laquelle
-     * des deux survit.
-     *
-     * Null sans poids de naissance ou sans onde.
-     */
-    fun omegaBioAsPublished(birthWeightKg: Float?, wave: Wave?): Double? {
-        val kg = birthWeightKg ?: return null
-        val ratio = when (wave?.sex ?: return null) {
-            0 -> 0.65
-            else -> 0.60
-        }
-        return F_WATER * (kg * ratio / REFERENCE_BODY_KG)
-    }
 
     /**
      * L'instant de naissance en secondes Unix — celui que scelle le SALT.

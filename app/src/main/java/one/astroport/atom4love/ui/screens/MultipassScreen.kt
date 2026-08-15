@@ -30,6 +30,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import android.content.ClipData
+import android.content.ClipDescription
+import android.content.ClipboardManager
+import android.content.Context
+import android.os.Build
+import android.os.PersistableBundle
+import android.widget.Toast
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material3.Icon
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -513,22 +524,39 @@ private fun Existing(
                 .padding(13.dp),
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
-            Field(stringResource(R.string.mp_field_pass), account.pass.ifEmpty { "—" })
-            Text(
-                if (revealNsec) account.nsec else stringResource(R.string.mp_reveal_key),
-                style = if (revealNsec) {
-                    A4LText.Data.copy(fontSize = 10.sp)
-                } else {
-                    A4LText.Caption.copy(fontWeight = FontWeight.SemiBold)
-                },
-                color = if (revealNsec) A4L.TextStrong else A4L.Indigo,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onToggleNsec)
-                    .padding(vertical = 4.dp),
+            Field(
+                stringResource(R.string.mp_field_pass),
+                account.pass.ifEmpty { "—" },
+                secret = true,
             )
+            // La nsec : masquée, puis lisible d'un appui. Le bouton de copie ne
+            // paraît qu'une fois révélée — on ne copie pas à l'aveugle une clé
+            // privée qu'on n'a pas encore décidé de regarder.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (revealNsec) account.nsec else stringResource(R.string.mp_reveal_key),
+                    style = if (revealNsec) {
+                        A4LText.Data.copy(fontSize = 10.sp)
+                    } else {
+                        A4LText.Caption.copy(fontWeight = FontWeight.SemiBold)
+                    },
+                    color = if (revealNsec) A4L.TextStrong else A4L.Indigo,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(onClick = onToggleNsec)
+                        .padding(vertical = 4.dp),
+                )
+                if (revealNsec && account.nsec.isNotBlank()) {
+                    Spacer(Modifier.width(8.dp))
+                    CopyButton(
+                        label = stringResource(R.string.mp_field_nsec),
+                        value = account.nsec,
+                        secret = true,
+                    )
+                }
+            }
         }
     }
 }
@@ -719,15 +747,78 @@ private fun Success(
 }
 
 @Composable
-private fun Field(label: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(label, style = A4LText.Caption, color = A4L.TextFaint)
-        Text(
-            value,
-            style = A4LText.Data.copy(fontSize = 11.sp),
-            color = A4L.TextStrong,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+private fun Field(
+    label: String,
+    value: String,
+    /**
+     * Vrai quand la valeur est un secret : le PASS, une nsec. La copie est
+     * alors marquée `EXTRA_IS_SENSITIVE`, ce qui empêche Android d'afficher le
+     * contenu dans sa bulle de confirmation — un aperçu de clé privée sur
+     * l'écran est exactement ce qu'on ne veut pas.
+     */
+    secret: Boolean = false,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(label, style = A4LText.Caption, color = A4L.TextFaint)
+            Text(
+                value,
+                style = A4LText.Data.copy(fontSize = 11.sp),
+                color = A4L.TextStrong,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        // Rien à copier d'un tiret ou d'une invite : le bouton ne paraît que
+        // s'il y a vraiment quelque chose à emporter.
+        if (value.isNotBlank() && value != "—") {
+            Spacer(Modifier.width(8.dp))
+            CopyButton(label = label, value = value, secret = secret)
+        }
+    }
+}
+
+/**
+ * Le geste qui emporte une valeur ailleurs — un npub qu'on colle dans un
+ * client NOSTR, un PASS qu'on range dans son coffre.
+ *
+ * Ces chaînes-là ne se retapent pas : une nsec fait 63 caractères en base32, et
+ * une faute de frappe ne se voit pas. Elles étaient jusqu'ici à lire à l'écran
+ * et à recopier à la main, ce qui revenait à ne pas les donner.
+ *
+ * ⚠ Pas de message de confirmation de notre part : depuis Android 13 le système
+ * en affiche un lui-même, et deux se superposeraient. En dessous, on le dit.
+ */
+@Composable
+private fun CopyButton(label: String, value: String, secret: Boolean) {
+    val context = LocalContext.current
+    Box(
+        Modifier
+            .size(30.dp)
+            .glass(8.dp, A4L.Glass, A4L.Stroke)
+            .clickable {
+                val clip = ClipData.newPlainText(label, value)
+                if (secret) {
+                    clip.description.extras = PersistableBundle().apply {
+                        putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                    }
+                }
+                (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+                    .setPrimaryClip(clip)
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    Toast.makeText(context, R.string.mp_copied, Toast.LENGTH_SHORT).show()
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.ContentCopy,
+            contentDescription = stringResource(R.string.mp_copy, label),
+            tint = A4L.TextMuted,
+            modifier = Modifier.size(15.dp),
         )
     }
 }

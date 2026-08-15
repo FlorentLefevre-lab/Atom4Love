@@ -261,12 +261,6 @@ private fun readable(trait: Questions.Trait, value: Int): String = when (trait) 
     // Le KIN porte son sceau avec lui : c'est ce qu'on lit, pas le nombre nu.
     Questions.Trait.Kin ->
         KinMaya.ofNumber(value)?.let { "$value · ${KinMaya.glyphEmoji(it.glyph)}" } ?: "$value"
-    // Une onde s'écrit en hertz, avec sa décimale : c'est l'écart entre les
-    // deux qui fait le battement, et il se joue sur ce dixième-là.
-    Questions.Trait.Bio -> stringResource(
-        R.string.trait_bio_value,
-        Questions.decodeBio(value),
-    )
 }
 
 @Composable

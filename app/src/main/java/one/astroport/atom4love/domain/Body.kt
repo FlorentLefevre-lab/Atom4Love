@@ -5,14 +5,22 @@ package one.astroport.atom4love.domain
  *
  * **Rien de tout cela n'entre dans le SALT.** Le noyau se dérive de la date, de
  * l'heure et du lieu de naissance ; un corps change, une clé non. Ces deux
- * mesures vivent donc à part de [BirthData], se modifient après la forge, et ne
- * servent qu'à une chose : l'onde biologique ω_bio ([Phi2X.omegaBio]), qui
- * n'existe pas sans elles.
+ * mesures vivent donc à part de [BirthData] et se modifient dans les Réglages
+ * après la forge.
+ *
+ * Elles ne servent plus qu'à **la silhouette** de la dernière étape de la forge
+ * ([one.astroport.atom4love.ui.components.Bmi]) : un dessin qu'on regarde pour
+ * vérifier qu'on ne s'est pas trompé de chiffre.
+ *
+ * ⚠ Elles ont servi à autre chose jusqu'au 15/08 : l'onde biologique ω_bio,
+ * calculée par la formule de Watson, affichée sur le Noyau, échangée en cabine
+ * et publiée dans le certificat. **Tout cela est parti**, sur décision de
+ * Florent. Ces deux champs ont survécu à leur seul usage d'origine.
  *
  * C'est exactement ce que collecte `atomic.html` sous `current-height` et
  * `current-weight`, avec les mêmes valeurs d'ouverture — 170 cm et 70 kg.
  *
- * Les deux champs restent facultatifs : sans eux, il n'y a pas de fréquence, et
+ * Les deux champs restent facultatifs : sans eux, la silhouette est neutre, et
  * c'est tout. La station marche pareil, et la clé est la même.
  */
 data class BodyMetrics(

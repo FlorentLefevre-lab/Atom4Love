@@ -55,12 +55,16 @@ import one.astroport.atom4love.ui.theme.A4LText
  * 05c · Zion — les mécanismes de la station, tels que Made In Zion les publie.
  *
  * Le troisième onglet de l'aide ne dit pas ce que fait cette application : il
- * dit le monde dans lequel elle travaille. Sphère de Goldberg, Tzolkin, corps
- * comme antenne, forge des clés — quatre sujets qui expliquent les nombres
- * qu'on voit passer partout ailleurs (φ, k, le KIN, 429,62 Hz, le npub).
+ * dit le monde dans lequel elle travaille. Sphère de Goldberg, Tzolkin, forge
+ * des clés — trois sujets qui expliquent les nombres qu'on voit passer partout
+ * ailleurs (φ, k, le KIN, le npub).
+ *
+ * ⚠ Il y en avait **quatre** : « Le corps, antenne à eau » fermait la marche.
+ * Retiré le 15/08 sur demande de Florent, avec les trois planches qui
+ * l'illustraient — voir le mot à l'endroit où il vivait.
  *
  * **Tout vient de `u.copylaradio.com/earth/miz.html`**, textes ET planches. Les
- * onze SVG sont ceux de la page, repris tels quels dans `assets/miz/` par
+ * SVG sont ceux de la page, repris tels quels dans `assets/miz/` par
  * `tools/extract_miz_svg.py` — pas redessinés : une planche redessinée dirait
  * ce que nous avons compris, celle-ci dit ce que Fred a écrit. Le script leur
  * retire seulement leur fond noir et rouvre leur fenêtre là où elle rognait.
@@ -138,7 +142,6 @@ internal fun ZionTab() {
             listOf(
                 answer(R.string.zion_antiscraping_label, R.string.zion_antiscraping_body),
                 answer(R.string.zion_cooperative_label, R.string.zion_cooperative_body),
-                answer(R.string.zion_binaural_anchor_label, R.string.zion_binaural_anchor_body),
             ),
         )
     }
@@ -166,30 +169,15 @@ internal fun ZionTab() {
         )
     }
 
-    ZionGroup(
-        title = stringResource(R.string.zion_group_body),
-        intro = stringResource(R.string.zion_body_intro),
-    ) {
-        MizFigure(
-            "body_water_antenna", ratios, loader, show,
-            R.string.zion_water_label, R.string.zion_water_body,
-        )
-        MizFigure(
-            "body_mudras", ratios, loader, show,
-            R.string.zion_mudras_label, R.string.zion_mudras_body,
-        )
-        MizFrieze(
-            "body_binaural", ratios, loader, show,
-            R.string.zion_binaural_caption, height = 84.dp,
-        )
-        HelpPanel(
-            listOf(
-                answer(R.string.zion_water_freq_label, R.string.zion_water_freq_body),
-                answer(R.string.zion_mudra_kin_label, R.string.zion_mudra_kin_body),
-                answer(R.string.zion_cabin33_label, R.string.zion_cabin33_body),
-            ),
-        )
-    }
+    // ⚠ Un troisième sujet vivait ici : **« Le corps, antenne à eau »** — la
+    // planche de l'antenne, celle des mudras, la frise du spectre binaural, et
+    // trois réponses (l'eau à 429,62 Hz mesurée par Marc Henry, le mudra de la
+    // tonalité, le rituel de Cabine-33). **Retiré le 15/08, sur demande de
+    // Florent**, avec le concept d'eau vibratoire et de binaural.
+    //
+    // Les mudras sont partis avec, faute de tenir seuls sous un titre qui
+    // parlait d'antenne : les rendre demanderait de leur écrire un sujet à eux,
+    // et on n'écrit pas à la place de Fred.
 
     ZionGroup(
         title = stringResource(R.string.zion_group_forge),
@@ -219,7 +207,7 @@ private data class Zoomed(val asset: String, val description: String)
 private val PLATES = listOf(
     "goldberg_sphere", "goldberg_phase", "goldberg_precession", "goldberg_rendezvous",
     "goldberg_trust_path", "tzolkin_cycle", "tzolkin_oracle",
-    "body_water_antenna", "body_mudras", "body_binaural", "forge_pipeline",
+    "forge_pipeline",
 )
 
 private val VIEW_BOX = Regex("""viewBox="([^"]+)"""")

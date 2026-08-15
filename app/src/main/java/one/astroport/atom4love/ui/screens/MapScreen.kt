@@ -693,7 +693,10 @@ private fun SightingRow(
                 text = buildString {
                     append(atom.shortKey)
                     atom.phase?.let { append(" · φ ").append(format(it, 3)) }
-                    atom.omegaBio?.let { append(" · ω ").append(format(it, 2)).append(" Hz") }
+                    // ⚠ L'onde biologique s'écrivait ici, « · ω 304,53 Hz ».
+                    // Partie le 15/08 avec toute la formule de Watson : on ne
+                    // la calcule plus, on ne la publie plus, et on ne la lit
+                    // même plus dans les certificats des autres.
                 },
                 style = A4LText.Data.copy(fontSize = 10.sp),
                 color = A4L.TextDim,

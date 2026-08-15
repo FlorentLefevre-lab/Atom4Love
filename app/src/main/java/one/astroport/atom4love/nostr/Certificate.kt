@@ -114,7 +114,6 @@ class Certificate(
         // Republier dix fois rend donc dix fois la même adresse.
         val geo = A4lAddress.encode(lat, lon, birthUnix.toDouble())
         val psi = Phi2X.resonanceField(lat, lon, birthUnix.toDouble())
-        val omega = Phi2X.omegaBioAsPublished(birth.weightKg, birth.wave)
         val kin = KinMaya.of(birth)
 
         val proof = Hex.encode(
@@ -126,7 +125,12 @@ class Certificate(
         val content = NostrEvent.json.encodeToString(
             buildJsonObject {
                 put("personal_phase", round(phase, 6))
-                omega?.let { put("omega_bio", round(it, 4)) }
+                // ⚠ `omega_bio` s'écrivait ici, avec la formule
+                // d'`atom4love_publish.py` (F_WATER × poids_naissance × ratio /
+                // 70). **Retiré le 15/08** : Watson et l'onde biologique ont
+                // quitté tout le dépôt sur décision de Florent. Notre certificat
+                // porte donc un champ de moins que celui de la station ; le
+                // reste est inchangé, dans le même ordre et aux mêmes arrondis.
                 put("a5l_amplitude", round(psi, 6))
                 birth.wave?.sex?.let { put("biological_sex", it) }
                 put("kin_num", kin?.kin ?: 0)

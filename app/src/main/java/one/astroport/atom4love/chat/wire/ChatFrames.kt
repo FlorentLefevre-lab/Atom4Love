@@ -22,8 +22,13 @@ import java.util.zip.CRC32
  *   GROUP  [0x07][port 2][lgNom 1][nom…][lgPasse 1][passe…]
  *   CANCEL [0x08][id 4]
  *   BYE    [0x09]
- *   ONDE   [0x0A][ω_bio 4]
  *   QUESTION [0x0B][étape 1][trait 1][valeur 2]
+ *
+ * ⚠ Le type **0x0A (ONDE)** a existé : quatre octets d'ω_bio. Il est parti le
+ * 15/08 avec la formule de Watson. Le numéro reste **brûlé** — un appareil
+ * plus ancien peut encore l'émettre, et le rendre à un autre usage ferait
+ * lire une onde pour autre chose. `decode` le laisse tomber, comme tout
+ * type inconnu.
  *
  * L'id est tiré au hasard par l'émetteur ; il sert aussi à dédoublonner les
  * flux jumeaux du double lien croisé (deux connexions entre les deux mêmes
@@ -57,9 +62,6 @@ sealed interface ChatFrame {
         val msgId: Int,
         val status: Int,
     ) : ChatFrame
-
-    /** L'onde biologique du pair, en hertz. Voir [ChatFrames.encodeResonance]. */
-    data class Resonance(val omegaBio: Float) : ChatFrame
 
     /** Un coup du jeu des questions. Voir [ChatFrames.encodeQuestion]. */
     data class Question(val step: Int, val traitId: Int, val value: Int) : ChatFrame
@@ -154,7 +156,6 @@ object ChatFrames {
     private const val TYPE_GROUP = 0x07
     private const val TYPE_CANCEL = 0x08
     private const val TYPE_BYE = 0x09
-    private const val TYPE_RESONANCE = 0x0A
     private const val TYPE_QUESTION = 0x0B
     private const val QUESTION_LEN = 5
 
@@ -166,7 +167,6 @@ object ChatFrames {
 
     /** Je ne réponds pas. La valeur ne veut rien dire et n'est pas lue. */
     const val QUESTION_DECLINE = 3
-    private const val RESONANCE_LEN = 5
 
     /** [type][médium][port 2][longueur de l'hôte]. */
     private const val ADDRESS_FIXED = 5
@@ -344,21 +344,6 @@ object ChatFrames {
     /** Un seul octet : la plus courte trame du protocole. */
     fun encodeBye(): ByteArray = byteArrayOf(TYPE_BYE.toByte())
 
-    /**
-     * L'onde biologique de celui qui parle — cinq octets, une seule fois par
-     * lien, scellée comme le reste.
-     *
-     * Elle ne dit ni la taille ni le poids : ω_bio les mélange dans une somme
-     * dont on ne les ressort pas (deux inconnues, une équation). C'est ce qui
-     * la rend échangeable là où les mesures ne le sont pas — Fred, le
-     * 2026-08-14 : ces données ne se divulguent qu'entre gens qui se suivent.
-     * Ici, il a fallu ouvrir une cabine et mener un handshake attesté.
-     */
-    fun encodeResonance(omegaBio: Float): ByteArray =
-        ByteBuffer.allocate(RESONANCE_LEN)
-            .put(TYPE_RESONANCE.toByte())
-            .putFloat(omegaBio)
-            .array()
 
     /**
      * Un coup du jeu des questions — cinq octets, scellés comme le reste.
@@ -435,14 +420,6 @@ object ChatFrames {
         if (bytes.size == 1 && bytes[0].toInt() == TYPE_BYE) return ChatFrame.Bye
         // La taille d'abord : `decode` reçoit aussi des trames vides, et lire
         // l'octet de tête avant de l'avoir vérifié coûte une exception.
-        if (bytes.size >= RESONANCE_LEN && bytes[0].toInt() == TYPE_RESONANCE) {
-            val omega = ByteBuffer.wrap(bytes, 1, 4).float
-            // Une onde biologique vaut quelques centaines de hertz ; ni un NaN
-            // ni un négatif n'en est une, et les deux se propageraient jusqu'au
-            // synthétiseur.
-            if (!omega.isFinite() || omega <= 0f) return null
-            return ChatFrame.Resonance(omega)
-        }
         if (bytes.size >= QUESTION_LEN && bytes[0].toInt() == TYPE_QUESTION) {
             val buffer = ByteBuffer.wrap(bytes)
             buffer.get()

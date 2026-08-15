@@ -23,64 +23,14 @@ class ChatSounds {
 
     fun receive() = blip(frequency = 587.33, durationMs = 130)
 
-    /**
-     * Le binaural de cabine-33 — l'eau à gauche, l'eau décalée de F_Φ à droite.
-     *
-     * Deux fréquences voisines dans deux oreilles, et c'est le cerveau qui fait
-     * le troisième son : leur différence. Ici elle vaut 33,17 Hz, F_Φ, toujours.
-     *
-     * ⚠ Ce son a longtemps porté deux ω_bio — le vôtre à gauche, celui de
-     * l'autre à droite — pour que le battement mesure l'écart entre deux corps.
-     * C'était **notre** lecture, pas celle de Fred : `miz.html` fixe le couple
-     * (429,62 Hz et 462,79 Hz) et l'attache au rituel des 33 secondes, pas à
-     * une rencontre. Fred n'a jamais relié ω_bio au binaural — question posée
-     * le 14/08, retournée sans réponse. On s'en tient donc à son couple.
-     *
-     * Les deux fréquences sont déjà audibles : aucun repliement d'octave, il
-     * décalerait l'une sans l'autre et détruirait précisément le battement.
-     */
-    fun binaural(durationMs: Int = 2600) {
-        val left = Phi2X.F_WATER
-        val right = Phi2X.F_WATER_D
-        runCatching {
-            val rate = 44_100
-            val frames = rate * durationMs / 1000
-            val fade = rate * 260 / 1000
-            // Entrelacé gauche/droite : c'est ce que réclame CHANNEL_OUT_STEREO,
-            // et c'est là que le binaural se joue — un mélange dans le buffer
-            // ferait battre l'air au lieu de faire battre l'écoute.
-            val pcm = ShortArray(frames * 2)
-            for (i in 0 until frames) {
-                val envelope = when {
-                    i < fade -> i.toDouble() / fade
-                    i > frames - fade -> (frames - i).toDouble() / fade
-                    else -> 1.0
-                }
-                pcm[i * 2] = sample(left, i, rate, envelope)
-                pcm[i * 2 + 1] = sample(right, i, rate, envelope)
-            }
-            val track = AudioTrack.Builder()
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build(),
-                )
-                .setAudioFormat(
-                    AudioFormat.Builder()
-                        .setSampleRate(rate)
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
-                        .build(),
-                )
-                .setTransferMode(AudioTrack.MODE_STATIC)
-                .setBufferSizeInBytes(pcm.size * 2)
-                .build()
-            track.write(pcm, 0, pcm.size)
-            track.play()
-            handler.postDelayed({ runCatching { track.release() } }, durationMs + 200L)
-        }
-    }
+    // ⚠ `binaural(durationMs)` vivait ici : deux fréquences voisines dans deux
+    // oreilles (429,62 Hz à gauche, 462,79 à droite), dont le cerveau tirait un
+    // troisième son de 33,17 Hz — F_Φ. C'était le couple figé de `miz.html`,
+    // joué une fois au déverrouillage du rituel des 33 secondes.
+    //
+    // **Retiré le 15/08, sur décision de Florent**, avec le concept entier de
+    // binaural. Le rituel se déverrouille désormais sans un son.
+
 
     private fun sample(hz: Double, i: Int, rate: Int, envelope: Double): Short =
         (sin(2 * PI * hz * i / rate) * envelope * 0.28 * Short.MAX_VALUE).toInt().toShort()

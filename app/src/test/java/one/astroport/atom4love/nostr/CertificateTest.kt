@@ -71,14 +71,19 @@ class CertificateTest {
     }
 
     /**
-     * Le contenu, au chiffre près — arrondis compris. ω_bio y est celui du
-     * **poids de naissance**, la formule d'`atom4love_publish.py` et non celle
-     * de Watson : voir `Phi2X.omegaBioAsPublished`.
+     * Le contenu, au chiffre près — arrondis compris.
+     *
+     * ⚠ Il portait `"omega_bio":12.7659` en deuxième position, calculé sur le
+     * **poids de naissance** à la façon d'`atom4love_publish.py`. **Retiré le
+     * 15/08** avec toute la formule de Watson, sur décision de Florent : notre
+     * certificat porte donc un champ de moins que celui de la station. Tout le
+     * reste est inchangé, dans le même ordre et aux mêmes arrondis — c'est
+     * cette identité-là que le test garde.
      */
     @Test
-    fun `le contenu est celui d'atom4love_publish`() {
+    fun `le contenu est celui d'atom4love_publish, sans omega_bio`() {
         assertEquals(
-            """{"personal_phase":1.435899,"omega_bio":12.7659,""" +
+            """{"personal_phase":1.435899,""" +
                 """"a5l_amplitude":0.507414,"biological_sex":0,"kin_num":244,"version":1}""",
             event.content,
         )

@@ -183,7 +183,11 @@ fun HelpScreen(
                             // Juste après la polarité : c'est la question que
                             // pose la réponse d'au-dessus — d'où vient la
                             // fréquence, si ce n'est pas de l'onde.
-                            answer(R.string.help_omega_label, R.string.help_omega_body),
+                            // ⚠ « L'onde biologique · ω_bio » se lisait ici :
+                            // l'eau de Watson ramenée en hertz. Retirée le
+                            // 15/08 avec la fonctionnalité — une aide qui
+                            // explique ce que l'app ne fait plus est pire que
+                            // pas d'aide du tout.
                         ),
                     )
                     // Le vocabulaire maya a son propre panneau : ce sont des

@@ -306,13 +306,9 @@ fun RadarScreen(
         }
     }
 
-    // Le binaural appartient au rituel, et à lui seul : chez Fred les 33 s
-    // d'immobilité sont « accompagnées d'un son binaural 429,62 Hz + 33,17 Hz ».
-    // Il se joue donc une fois, au moment où le compteur touche le fond.
-    val ritualSounds = remember { ChatSounds() }
-    LaunchedEffect(unlocked) {
-        if (unlocked) ritualSounds.binaural()
-    }
+    // ⚠ Le rituel jouait ici son binaural, une fois, au moment où le compteur
+    // touchait le fond. Le concept entier est parti le 15/08 : les 33 secondes
+    // se déverrouillent en silence.
 
     // ── Le vrai fix : cellule H3, distance au centre, portail Goldberg ────
     val locator = remember { CellLocator(context.applicationContext) }
@@ -1227,11 +1223,6 @@ private fun CabinDirectPanel(chat: CabinChat, modifier: Modifier = Modifier) {
             }
         }
     }
-
-    // Le binaural ne se joue plus ici. Chez Fred il appartient au rituel des
-    // 33 secondes, pas à la rencontre : c'est le radar qui l'ouvre désormais.
-    // Les deux ω_bio continuent de s'échanger (trame 0x0A) et de s'afficher —
-    // seule leur mise en son était de nous.
 
     Column(
         modifier

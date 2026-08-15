@@ -335,10 +335,8 @@
     <string name="help_tzolkin_body">Trece tonos cruzados con veinte sellos: 260 combinaciones que se cierran sobre sí mismas. La cuenta no sigue ni al sol ni a la luna — no sirve para fechar, sino para situar. De esa retícula sale su KIN, y sobre ella mide la estación lo que le acerca a otra persona.</string>
     <string name="help_kin_label">El KIN</string>
     <string name="help_kin_body">Un tono, del 1 al 13, cruzado con un sello, del 1 al 20: su KIN es una de las 260 casillas del Tzolkin. El sello da la vuelta — del vigésimo se regresa al primero —, de modo que dos KIN lejanos por el número pueden ser vecinos por el sello. Su fecha de nacimiento basta para calcularlo: esta estación lo hace ella misma, y usted lo lee en «Singularidad · calculada». Una estación Astroport.ONE devuelve el mismo número con su MULTIPASS.</string>
-    <string name="help_waves_label">La onda Φ, la onda Octava</string>
-    <string name="help_waves_body">Dos polaridades, y nada más: Φ u Octava. Entra tal cual en su clave y dice de qué lado de la interferencia vibra usted. Su frecuencia, en cambio, no se deduce de ella: necesita su estatura y su peso — es la onda biológica, justo debajo.</string>
-    <string name="help_omega_label">La onda biológica · ω_bio</string>
-    <string name="help_omega_body">Es la frecuencia del agua que usted lleva. La estación calcula primero esa agua a partir de su estatura y su peso de hoy — la fórmula de Watson, dos ecuaciones según la polaridad — y luego la lleva a una frecuencia en hercios, sobre la base de 429,62 Hz para un cuerpo con 70 kg de agua. Ni la estatura ni el peso entran en su clave: cambian con usted, una clave no. Sin ellos no hay onda biológica alguna — por eso la ficha vuelve a pedirlos.</string>
+    <string name="help_waves_label">El sexo en la clave</string>
+    <string name="help_waves_body">Hombre o mujer: esa elección entra en su clave tal cual, como un 0 o un 1. Es lo único que la estación hace con ella, y no deduce nada más.</string>
 
     <string name="help_vibration_label">Todo es vibración</string>
     <string name="help_vibration_body">ATOM4LOVE no es astrología. En el momento exacto de tu nacimiento, la Tierra ocupaba una posición precisa en el espacio-tiempo. Llevas su huella geométrica — y se calcula, al minuto y al grado.</string>
@@ -369,7 +367,7 @@
     <string name="faq_cabin_label">Lo que se dice en la cabina, ¿adónde va?</string>
     <string name="faq_cabin_body">A ningún otro sitio. El contenido va cifrado de extremo a extremo y no cruza ningún relé. Al cerrar la cabina, la conversación y los archivos recibidos se borran del aparato — es lo que promete «tocar para cerrar y borrar», y lo cumple.</string>
     <string name="faq_weight_label">¿Por qué dos pesos: el de mi nacimiento y el de hoy?</string>
-    <string name="faq_weight_body">No sirven para lo mismo. El peso al nacer entra en su clave, junto con la polaridad: es opcional, y sin él la estación retiene 3,5 kg — exactamente lo que hace Astroport.ONE cuando ese campo llega vacío. Su estatura y su peso de hoy no entran en ninguna clave: dan su onda biológica, y puede corregirlos cuando quiera.</string>
+    <string name="faq_weight_body">No sirven para lo mismo. El peso de nacimiento entra en su clave: es opcional, y sin él la estación retiene 3,5 kg — exactamente lo que hace Astroport.ONE cuando ese campo llega vacío. Su altura y su peso de hoy no entran en ninguna clave: solo alimentan la silueta del último paso, y se editan en Ajustes.</string>
     <string name="faq_nobody_label">El Radar no muestra a nadie.</string>
     <string name="faq_nobody_body">Hace falta el Bluetooth encendido en ambos lados, y que la otra persona haya abierto su cabina: solo se ven los núcleos cuya cabina está abierta. Mientras nadie haga ese gesto, nada se anuncia — es deliberado.</string>
     <string name="faq_change_label">¿Puedo corregir mis datos tras la forja?</string>
@@ -395,8 +393,6 @@
     <string name="zion_antiscraping_body">La dirección a4l: publicada en un evento NOSTR no revela ninguna posición GPS. Sin la fórmula de precesión dorada y la marca de tiempo exacta del evento, las coordenadas hexagonales no se convierten en latitud y longitud.</string>
     <string name="zion_cooperative_label">🔑 Descifrado cooperativo</string>
     <string name="zion_cooperative_body">Dos personas que intercambian sus fases φ calculan su hexágono común y validan la presencia mediante Cabina-33, sin intermediario alguno. La resonancia k se calcula en cada dispositivo.</string>
-    <string name="zion_binaural_anchor_label">🎵 Anclaje binaural</string>
-    <string name="zion_binaural_anchor_body">El ritual de 33 segundos va acompañado de un sonido binaural de 429,62 Hz + 33,17 Hz. La constante F_Φ = 33,17 Hz es la misma que entra en el cálculo de su fase: el cuerpo y el lugar quedan coherentes en el mismo número.</string>
 
     <string name="zion_group_maya">Kin maya y calendario Tzolkin</string>
     <string name="zion_maya_intro">Su número de nacimiento en el calendario galáctico — una brújula de 260 días para coordinar encuentros sin algoritmo de recomendación.</string>
@@ -415,19 +411,6 @@
     <string name="zion_maya_tone_label">🎵 El tono, un papel en la orquesta</string>
     <string name="zion_maya_tone_body">T1, Magnético: el cimiento estable. T7, Resonante: el pivote catalizador. T13, Cósmico: el impulso rítmico. El Tzolkin asigna un papel natural en cada colectivo.</string>
 
-    <string name="zion_group_body">El cuerpo, antena de agua</string>
-    <string name="zion_body_intro">429,62 Hz: la frecuencia de resonancia del agua. El cuerpo —70 % de agua, proporciones en φ— es una antena biológica que se afina con el gesto y con el sonido.</string>
-    <string name="zion_water_label">💧 El cuerpo como antena de agua</string>
-    <string name="zion_water_body">Marc Henry midió que el agua resuena a 429,62 Hz — una frecuencia ni temperada ni arbitraria, derivada de las constantes del agua líquida. El cuerpo humano, con un 70 % de agua, es por tanto un resonador natural; las proporciones áureas de las falanges y de la mano forman una antena geométrica capaz de captar esa señal y de emitirla.</string>
-    <string name="zion_mudras_label">✋ Mudras — cinco dedos, cinco elementos, cinco poderes</string>
-    <string name="zion_mudras_body">En el Pancha Mahabhuta védico, cada dedo capta un elemento primordial. Y los cinco poderes del Oráculo del Kin maya siguen la misma estructura quíntuple: la mano se vuelve el gesto vivo del calendario galáctico, un mudra afinado al elemento del momento.</string>
-    <string name="zion_binaural_caption">Espectro binaural de Cabina-33 — la afinación a la frecuencia del agua</string>
-    <string name="zion_water_freq_label">🌊 429,62 Hz — el agua habla</string>
-    <string name="zion_water_freq_body">Marc Henry midió que el agua líquida entra en resonancia máxima a esta frecuencia: ni el la de 440 Hz del temperamento igual, ni los «432 Hz» de uso esotérico, sino una constante física medible. El cuerpo entero, como el agua, vibra sobre esa portadora.</string>
-    <string name="zion_mudra_kin_label">🖐 Mudra × Kin maya</string>
-    <string name="zion_mudra_kin_body">El tono galáctico de su Kin —de T1, Magnético, a T13, Cósmico— marca su ritmo en la orquesta cooperativa, y el mudra correspondiente lo ancla en el cuerpo. T7, Resonante, llama al mudra Vayu: el índice, el Aire, la vibración máxima en el colectivo.</string>
-    <string name="zion_cabin33_label">🎵 Cabina-33 — la afinación φ</string>
-    <string name="zion_cabin33_body">En el centro geométrico de un hexágono, 33 segundos inmóvil, el binaural —429,62 Hz a la izquierda, 462,79 Hz a la derecha— crea en el cerebro un batido de 33,17 Hz: F_Φ. Ese batido sincroniza la antena del cuerpo con el nodo hexagonal; es una prueba de presencia biológica.</string>
 
     <string name="zion_group_forge">La forja de la identidad</string>
     <string name="zion_forge_intro">Cuatro funciones criptográficas anidadas — las mismas en el navegador, en Ẑelkova y en esta aplicación.</string>
@@ -442,9 +425,8 @@
     <string name="zion_forge_g1_body">La misma semilla engendra un par Ed25519. La clave pública, en Base58, da la dirección G1 de 44 caracteres que lee Cesium — la moneda libre, en la cadena Duniter v2.</string>
 
     <!-- ─── El dominio ────────────────────────────────────────────────── -->
-    <string name="wave_phi">Onda (Hombre)</string>
-    <string name="wave_octave">Octava (Mujer)</string>
-    <string name="wave_sex">sexo %1$d</string>
+    <string name="wave_phi">Hombre</string>
+    <string name="wave_octave">Mujer</string>
     <string name="date_problem_future">esa fecha está en el futuro</string>
     <string name="date_problem_minor" tools:ignore="PluralsCandidate">Atom4Love se dirige a personas mayores de edad — %1$d años cumplidos</string>
     <string name="date_problem_too_old" tools:ignore="PluralsCandidate">más allá de %1$d años, la fecha es seguramente una errata</string>
@@ -453,28 +435,11 @@
     <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Encarnación: la forja del núcleo ─────────────────────── -->
-    <string name="forge_step_appearance">Idioma y luz</string>
-    <string name="forge_step_appearance_sub">En qué idioma te habla la estación, y con qué luz. El del teléfono ya está marcado.</string>
-    <string name="forge_step_identity">Identidad</string>
-    <string name="forge_step_identity_sub">lo que fabrica la estación, y para quién</string>
-    <string name="forge_step_anchor">Anclaje</string>
-    <string name="forge_step_anchor_sub">fecha · lugar de nacimiento · hora opcional</string>
-    <string name="forge_step_vessel">La nave</string>
-    <string name="forge_step_vessel_sub">onda · peso al nacer · cuerpo de hoy</string>
-    <string name="forge_step_singularity">Singularidad</string>
     <string name="forge_step_singularity_sub">la huella originaria, calculada para ti</string>
-    <string name="forge_step_forge">Forjar</string>
-    <string name="forge_step_forge_sub">última relectura antes del sellado</string>
 
-    <string name="inc_lead">En el momento exacto de tu nacimiento, la Tierra ocupaba una posición precisa en el espacio-tiempo. Tu núcleo se deriva de ella: el mismo instante da siempre la misma clave, en cualquier estación.</string>
-    <string name="inc_no_account_title">Ni cuenta, ni contraseña</string>
-    <string name="inc_no_account_body">Bastan cuatro pantallas: cuándo y dónde naciste, y tu onda. Nada de eso sale a la red.</string>
-    <string name="inc_temp_key_title">Una clave temporal, para empezar</string>
-    <string name="inc_temp_key_body">Te basta para todo lo que ocurre al alcance de la antena. Tu clave LOVE, en cambio, la derivará una estación Astroport.ONE el día que abras un MULTIPASS — se te propondrá justo después.</string>
 
     <string name="inc_section_datetime">Fecha y hora de nacimiento</string>
     <string name="inc_section_place">Lugar de nacimiento</string>
-    <string name="inc_section_wave">Tu onda</string>
     <string name="inc_section_birth_weight">Peso al nacer</string>
     <string name="inc_birth_weight_optional">opcional — 3,5 kg por defecto</string>
     <string name="inc_weight_is_default">valor de la estación</string>
@@ -490,9 +455,8 @@
     <string name="inc_hh">HH</string>
     <string name="inc_mn">MI</string>
     <string name="inc_place_placeholder">Ciudad, país…</string>
-    <string name="inc_coords_warning">Coordenadas de recuperación, anótalas con cuidado: precisión de 0,01° — alrededor de 1 km. Es este par de números el que reabre tu clave si pierdes este aparato: tócalos para escribirlos tú mismo.</string>
-    <string name="inc_vessel_note">La polaridad y el peso al nacer entran tal cual en tu clave. El peso sigue siendo opcional: sin él la estación retiene 3,5 kg — exactamente lo que hace Astroport.ONE cuando ese campo llega vacío.</string>
-    <string name="inc_body_note">Estas dos medidas no entran en ninguna clave, y podrás cambiarlas cuando quieras: solo sirven para tu onda biológica, que no existe sin ellas.</string>
+    <string name="inc_coords_warning">Anótelos: solo ellos reabren su clave si pierde el aparato. Tóquelos para corregirlos.</string>
+    <string name="inc_body_note">Fuera de la clave. Editables en cualquier momento en Ajustes.</string>
     <string name="inc_body_dialog_body">Tu cuerpo de hoy, no el de tu nacimiento. Nada de esto entra en tu clave: podrás corregirlo después de forjar, tantas veces como cambie el cuerpo.</string>
     <string name="inc_height_title">Tu estatura</string>
     <string name="inc_weight_title">Tu peso</string>
@@ -505,15 +469,12 @@
     <string name="inc_row_birth">Nacimiento</string>
     <string name="inc_row_place">Lugar</string>
     <string name="inc_row_coords">Coordenadas</string>
-    <string name="inc_row_wave">Onda</string>
     <string name="inc_row_weight">Peso</string>
     <string name="inc_row_conception">Concepción</string>
     <string name="inc_row_gestation">Gestación</string>
     <string name="inc_row_portal">Portal Goldberg</string>
     <string name="inc_row_kin">KIN</string>
     <string name="inc_row_phase">Fase personal</string>
-    <string name="inc_row_omega_bio">Onda biológica</string>
-    <string name="inc_omega_bio_value">%1$s Hz · %2$s kg de agua</string>
     <string name="inc_birth_datetime">%1$02d/%2$02d/%3$04d a las %4$02d:%5$02d</string>
     <string name="inc_birth_date">%1$02d/%2$02d/%3$04d</string>
 
@@ -558,10 +519,9 @@
     <string name="inc_missing_date">fecha</string>
     <string name="inc_missing_place">lugar</string>
     <string name="inc_missing_place_pick">lugar (elige en la lista o 📍)</string>
-    <string name="inc_missing_wave">onda</string>
 
     <string name="inc_key_sealed">Clave LOVE sellada</string>
-    <string name="inc_forge_action">Forjar mi núcleo</string>
+    <string name="inc_forge_action">FORJAR SU NÚCLEO</string>
     <string name="inc_forge_incomplete">Completa tu ficha para forjar</string>
 
     <string name="cabin_err_bluetooth_off">Bluetooth desactivado</string>
@@ -649,7 +609,33 @@
     <string name="trait_color_name_4">Verde</string>
     <string name="trait_hour_value">%1$02d h</string>
     <string name="trait_decade_value">años %1$d</string>
-    <string name="trait_bio">La onda biológica</string>
-    <string name="trait_bio_tells">Mezcla tu estatura y tu peso de hoy en una suma de la que no se extraen. Es la que hace latir juntas las dos ondas.</string>
-    <string name="trait_bio_value">%1$.1f Hz</string>
+    <string name="forge_step_card">Su ficha</string>
+    <string name="forge_step_card_sub">sexo · nacimiento · cuerpo de hoy</string>
+    <string name="forge_step_confirm">Resumen</string>
+    <string name="forge_step_confirm_sub">léalo una vez más: nada se corrige después</string>
+    <string name="forge_step_shape">Su silueta</string>
+    <string name="forge_step_shape_sub">lo que dicen su altura y su peso</string>
+    <string name="inc_section_sex">Su sexo</string>
+    <string name="inc_row_sex">Sexo</string>
+    <string name="inc_missing_sex">su sexo</string>
+    <string name="inc_language_auto_title">El idioma sigue a su teléfono</string>
+    <string name="inc_language_auto_body">El de Android. Para cambiarlo, o pasar del día a la noche: la rueda ⚙️ arriba.</string>
+    <string name="inc_bmi_value">IMC %1$s</string>
+    <string name="bmi_band_thin">complexión delgada</string>
+    <string name="bmi_band_normal">complexión normal</string>
+    <string name="bmi_band_over">sobrepeso</string>
+    <string name="bmi_band_obese">obesidad</string>
+    <string name="bmi_band_severe">obesidad severa</string>
+    <string name="inc_shape_title">¿Es usted?</string>
+    <string name="inc_shape_body">Este dibujo solo viene de su altura y su peso. Si no se le parece, una de las dos medidas está mal — este es el momento de corregirla. Nada de esto entra en su clave: ni el índice, ni la silueta, ni los dos números.</string>
+    <string name="inc_shape_empty_title">Una silueta sin medidas</string>
+    <string name="inc_shape_empty_body">Sin su altura y su peso, este dibujo no es de nadie. Puede forjar sin ellos — no entran en ninguna clave — y darlos después en Ajustes.</string>
+    <string name="inc_body_pair">%1$s · %2$s</string>
+    <string name="inc_body_unset">sin indicar</string>
+    <string name="inc_body_in_settings">Editable en cualquier momento en Ajustes.</string>
+    <string name="settings_body_label">Su cuerpo</string>
+    <string name="settings_body_note">Altura y peso de hoy. No entran en ninguna clave y cambian cuando quiera: su núcleo no se mueve ni un pelo.</string>
+    <string name="mp_copy">Copiar %1$s</string>
+    <string name="mp_copied">Copiado</string>
+    <string name="mp_field_nsec">Clave privada NOSTR</string>
 </resources>

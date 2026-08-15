@@ -87,7 +87,6 @@ class Constellation(
         /** φ — null si le certificat ne la porte ni en tag ni dans son contenu. */
         val phase: Double?,
         val kin: KinMaya.Kin?,
-        val omegaBio: Double?,
         /** Quand la station a scellé ce certificat (epoch, secondes). */
         val createdAt: Long,
     ) {
@@ -276,7 +275,9 @@ class Constellation(
             // ensuite, c'est celui que lit sa carte. Les deux portent la même φ.
             phase = tag("phase")?.toDoubleOrNull() ?: number("personal_phase"),
             kin = kinNumber()?.let { KinMaya.ofNumber(it) },
-            omegaBio = number("omega_bio"),
+            // ⚠ `omega_bio` était lu ici. Retiré le 15/08 avec le reste de
+            // Watson : le champ existe toujours dans les certificats de la
+            // station, on ne le regarde simplement plus.
             createdAt = createdAt,
         )
     }
