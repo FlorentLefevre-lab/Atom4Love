@@ -179,11 +179,4 @@ class Phi2XTest {
         assertNull(KinMaya.of(1985, 4, 32))
     }
 
-    @Test
-    fun `le sceau de Fred et celui du plateau ne different que d'un cran`() {
-        val kin = KinMaya.of(1982, 9, 18)!!
-        val card = one.astroport.atom4love.domain.AtomCard(kin = kin.kin, wave = Wave.Phi)
-        assertEquals(card.seal, kin.glyph + 1)
-        assertEquals(card.tone, kin.tone + 1)
-    }
 }

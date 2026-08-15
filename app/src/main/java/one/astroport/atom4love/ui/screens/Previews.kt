@@ -72,8 +72,3 @@ fun BoardPreview() {
     Atom4LoveTheme { BoardScreen() }
 }
 
-@Preview(name = "04 Résonance", device = A4L_DEVICE, showBackground = true)
-@Composable
-fun ResonancePreview() {
-    Atom4LoveTheme { ResonanceScreen() }
-}

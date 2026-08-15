@@ -5,7 +5,6 @@
 -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- ─── 02 · Radar ────────────────────────────────────────────────── -->
-    <string name="radar_cabin_unlocked">Booth unlocked</string>
     <string name="radar_cabin_in_range">Booth in range</string>
 
     <string name="radar_hex_unknown_service_off">Hexagon unknown — the phone\'s Location is switched off: turn it back on from the quick settings.</string>
@@ -13,16 +12,11 @@
     <string name="radar_hex_unknown_permission">Hexagon unknown — location resolves your cell. It turns on no beacon.</string>
     <string name="radar_hex_unknown_searching">Hexagon unknown — looking for a position…</string>
     <string name="radar_hex_subscribed">Hexagon %1$s — subscribed to the booth feed.</string>
-    <string name="radar_hex_no_local_relay">Hexagon %1$s — the hexagon feed waits for the venue relay; without it, nothing is exchanged there.</string>
     <string name="radar_hex_distance">Hexagon %1$s — you are %2$.0f m from the geometric centre.</string>
 
     <string name="radar_open_app_settings">Open the app settings</string>
     <string name="radar_grant_location">Grant location</string>
 
-    <string name="radar_ritual_done">RITUAL COMPLETE</string>
-    <string name="radar_ritual_countdown">/ %1$d S</string>
-    <string name="radar_ritual_restart">Tap to start over</string>
-    <string name="radar_ritual_hold">Hold still</string>
 
     <string name="radar_stat_in_hexagon">in the hexagon</string>
     <string name="radar_stat_in_portal">in the portal</string>
@@ -57,8 +51,6 @@
         <item quantity="other">and %1$d links with no declared identity</item>
     </plurals>
     <string name="cabin_chat_placeholder">here, encrypted…</string>
-    <string name="cabin_empty_with_peers">Nobody has said anything yet. What is said here will travel over no relay, and will be erased when the booth closes.</string>
-    <string name="cabin_empty_alone">Nobody in range for now. The booth finds the nearby nuclei whose own booth is open, on its own. Nothing said here travels over a relay, and everything is erased on closing.</string>
     <string name="cabin_saved_to_downloads">Saved to Downloads</string>
     <string name="cabin_save_failed">Could not save</string>
 
@@ -99,20 +91,6 @@
     <string name="size_bytes">%1$d B</string>
 
     <!-- ─── 04 · Resonance ────────────────────────────────────────────── -->
-    <string name="resonance_title">Resonance</string>
-    <string name="resonance_valence_stable">Your valence is stable</string>
-    <string name="resonance_valence_detail">18 following · 21 followers. Two more bonds and you saturate.</string>
-    <string name="resonance_in_your_portal">In your portal</string>
-    <string name="resonance_attest">Attest</string>
-    <string name="resonance_open_channel">Open a channel</string>
-    <string name="bond_covalent">COVALENT</string>
-    <string name="bond_ionised">IONISED</string>
-    <string name="resonance_demo_bond1_title">Octave wave · KIN 44</string>
-    <string name="resonance_demo_bond1_detail">npub1h8p…2a19 · 1.2 km</string>
-    <string name="resonance_demo_bond2_title">Φ wave · KIN 12</string>
-    <string name="resonance_demo_bond2_detail">npub1c7k…9d31 · same hexagon</string>
-    <string name="resonance_demo_bond3_title">Octave wave · KIN 91</string>
-    <string name="resonance_demo_bond3_detail">npub1t2m…5b80 · 640 m</string>
 
     <!-- ─── 03 · The "Who is it?" board ───────────────────────────────── -->
     <string name="board_title">Who is it?</string>
@@ -142,27 +120,6 @@
     <string name="rendezvous_mutual">Both phones work this rhythm out on their own, from the two phases. Nothing is sent, nobody is told — it only beats on the other side if they chose you too.</string>
     <string name="rendezvous_out_of_range">out of range right now</string>
     <string name="rendezvous_no_phase">No rhythm without a phase. The seal comes from the date, the phase needs a birthplace — and both sides need one.</string>
-    <string name="board_relay_cards">relay · 41 cards</string>
-    <string name="board_filter_pentagon">🌀 Pentagon</string>
-    <string name="board_filter_nearby">📍 Nearby</string>
-    <string name="board_filter_contacts">🤝 Contacts</string>
-    <string name="board_you">You</string>
-    <string name="board_nucleus_revealed">Nucleus revealed</string>
-    <string name="board_card_played">Card played</string>
-    <string name="board_npub_hidden">npub hidden</string>
-    <string name="board_empty_slot">Play a second card</string>
-    <string name="board_live_analysis">Live analysis</string>
-    <string name="board_state_revealed">revealed · 2/2</string>
-    <string name="board_state_ready">ready · 2/2</string>
-    <string name="board_state_waiting">waiting · 1/2</string>
-    <string name="board_harmony">💜 Harmony</string>
-    <string name="board_friction">🔥 Friction</string>
-    <string name="board_percent">%1$d%%</string>
-    <string name="board_your_hand">Your hand</string>
-    <string name="board_hint_play">tap a card to play it</string>
-    <string name="board_hint_take_back">tap the played card to take it back</string>
-    <string name="board_reveal">Reveal</string>
-    <string name="board_revealed">Revealed</string>
 
     <!-- ─── The chat: bubbles, attachments, send states ───────────────── -->
     <string name="chat_send">Send</string>
@@ -237,10 +194,8 @@
     <string name="language_follows_phone">This Android follows the phone\'s language: a per-app choice needs Android 13 or newer.</string>
 
     <!-- ─── The bottom bar ────────────────────────────────────────────── -->
-    <string name="tab_radar">Radar</string>
     <string name="tab_map">Map</string>
     <string name="tab_board">Board</string>
-    <string name="tab_bonds">Resonance</string>
     <string name="tab_nucleus">Nucleus</string>
     <string name="tab_help">Help</string>
     <string name="tab_settings">Settings</string>
@@ -251,8 +206,6 @@
     <string name="header_medium">Active mode: %1$s</string>
     <string name="header_upgrade">switch to %1$s</string>
 
-    <string name="theme_to_light">Switch to the light theme</string>
-    <string name="theme_to_dark">Switch to the dark theme</string>
 
     <!-- ─── 06 · MULTIPASS: the door onto Astroport.ONE ───────────────── -->
     <string name="mp_title_done">Account open</string>
@@ -432,7 +385,6 @@
     <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Incarnation: forging the nucleus ─────────────────────── -->
-    <string name="forge_step_singularity_sub">the original trace, computed for you</string>
 
 
     <string name="inc_section_datetime">Date and time of birth</string>
@@ -634,4 +586,5 @@
     <string name="mp_copy">Copy %1$s</string>
     <string name="mp_copied">Copied</string>
     <string name="mp_field_nsec">NOSTR private key</string>
+    <string name="cabin_empty">Nothing leaves through a relay. Everything is wiped on closing.</string>
 </resources>

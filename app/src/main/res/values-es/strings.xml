@@ -6,7 +6,6 @@
 -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- ─── 02 · Radar ────────────────────────────────────────────────── -->
-    <string name="radar_cabin_unlocked">Cabina desbloqueada</string>
     <string name="radar_cabin_in_range">Cabina al alcance</string>
 
     <string name="radar_hex_unknown_service_off">Hexágono desconocido — la Ubicación del teléfono está desactivada: reactívala en los ajustes rápidos.</string>
@@ -14,16 +13,11 @@
     <string name="radar_hex_unknown_permission">Hexágono desconocido — la ubicación resuelve tu celda. No enciende ninguna baliza.</string>
     <string name="radar_hex_unknown_searching">Hexágono desconocido — buscando la posición…</string>
     <string name="radar_hex_subscribed">Hexágono %1$s — suscripción al flujo de la cabina activa.</string>
-    <string name="radar_hex_no_local_relay">Hexágono %1$s — el flujo del hexágono espera el relé del lugar; sin él, nada se intercambia ahí.</string>
     <string name="radar_hex_distance">Hexágono %1$s — estás a %2$.0f m del centro geométrico.</string>
 
     <string name="radar_open_app_settings">Abrir los ajustes de la app</string>
     <string name="radar_grant_location">Conceder la ubicación</string>
 
-    <string name="radar_ritual_done">RITUAL CUMPLIDO</string>
-    <string name="radar_ritual_countdown">/ %1$d S</string>
-    <string name="radar_ritual_restart">Toca para empezar de nuevo</string>
-    <string name="radar_ritual_hold">No te muevas</string>
 
     <string name="radar_stat_in_hexagon">en el hexágono</string>
     <string name="radar_stat_in_portal">en el portal</string>
@@ -59,8 +53,6 @@
         <item quantity="other">y %1$d enlaces sin identidad declarada</item>
     </plurals>
     <string name="cabin_chat_placeholder">aquí, cifrado…</string>
-    <string name="cabin_empty_with_peers">Nadie ha dicho nada todavía. Lo que se diga aquí no saldrá por ningún relé y se borrará al cerrar la cabina.</string>
-    <string name="cabin_empty_alone">Nadie al alcance por ahora. La cabina encuentra sola los núcleos cercanos cuya cabina está abierta. Nada de lo que se dice aquí sale por un relé, y todo se borra al cerrar.</string>
     <string name="cabin_saved_to_downloads">Guardado en Descargas</string>
     <string name="cabin_save_failed">No se pudo guardar</string>
 
@@ -101,20 +93,6 @@
     <string name="size_bytes">%1$d B</string>
 
     <!-- ─── 04 · Resonancia ───────────────────────────────────────────── -->
-    <string name="resonance_title">Resonancia</string>
-    <string name="resonance_valence_stable">Tu valencia es estable</string>
-    <string name="resonance_valence_detail">18 seguidos · 21 seguidores. Dos enlaces más y te saturas.</string>
-    <string name="resonance_in_your_portal">En tu portal</string>
-    <string name="resonance_attest">Atestiguar</string>
-    <string name="resonance_open_channel">Abrir un canal</string>
-    <string name="bond_covalent">COVALENTE</string>
-    <string name="bond_ionised">IONIZADO</string>
-    <string name="resonance_demo_bond1_title">Onda Octava · KIN 44</string>
-    <string name="resonance_demo_bond1_detail">npub1h8p…2a19 · 1,2 km</string>
-    <string name="resonance_demo_bond2_title">Onda Φ · KIN 12</string>
-    <string name="resonance_demo_bond2_detail">npub1c7k…9d31 · mismo hexágono</string>
-    <string name="resonance_demo_bond3_title">Onda Octava · KIN 91</string>
-    <string name="resonance_demo_bond3_detail">npub1t2m…5b80 · 640 m</string>
 
     <!-- ─── 03 · El tablero «¿Quién es?» ──────────────────────────────── -->
     <string name="board_title">¿Quién es?</string>
@@ -144,27 +122,6 @@
     <string name="rendezvous_mutual">Ambos teléfonos calculan este ritmo por su cuenta, a partir de las dos fases. Nada se envía, nadie es avisado — solo late del otro lado si esa persona también te eligió.</string>
     <string name="rendezvous_out_of_range">fuera de alcance ahora mismo</string>
     <string name="rendezvous_no_phase">No hay ritmo sin fase. El sello viene de la fecha, la fase pide el lugar de nacimiento — y hace falta en ambos lados.</string>
-    <string name="board_relay_cards">relé · 41 cartas</string>
-    <string name="board_filter_pentagon">🌀 Pentágono</string>
-    <string name="board_filter_nearby">📍 Cerca</string>
-    <string name="board_filter_contacts">🤝 Contactos</string>
-    <string name="board_you">Tú</string>
-    <string name="board_nucleus_revealed">Núcleo revelado</string>
-    <string name="board_card_played">Carta depositada</string>
-    <string name="board_npub_hidden">npub oculto</string>
-    <string name="board_empty_slot">Deposita una segunda carta</string>
-    <string name="board_live_analysis">Análisis en directo</string>
-    <string name="board_state_revealed">revelado · 2/2</string>
-    <string name="board_state_ready">listo · 2/2</string>
-    <string name="board_state_waiting">esperando · 1/2</string>
-    <string name="board_harmony">💜 Armonía</string>
-    <string name="board_friction">🔥 Fricción</string>
-    <string name="board_percent">%1$d %%</string>
-    <string name="board_your_hand">Tu mano</string>
-    <string name="board_hint_play">toca una carta para depositarla</string>
-    <string name="board_hint_take_back">toca la carta depositada para recuperarla</string>
-    <string name="board_reveal">Revelar</string>
-    <string name="board_revealed">Revelado</string>
 
     <!-- ─── La conversación: burbujas, adjuntos, estados de envío ─────── -->
     <string name="chat_send">Enviar</string>
@@ -240,10 +197,8 @@
     <string name="language_follows_phone">Este Android sigue el idioma del teléfono: la elección por aplicación requiere Android 13 o posterior.</string>
 
     <!-- ─── La barra inferior ─────────────────────────────────────────── -->
-    <string name="tab_radar">Radar</string>
     <string name="tab_map">Mapa</string>
     <string name="tab_board">Tablero</string>
-    <string name="tab_bonds">Resonancia</string>
     <string name="tab_nucleus">Núcleo</string>
     <string name="tab_help">Ayuda</string>
     <string name="tab_settings">Ajustes</string>
@@ -254,8 +209,6 @@
     <string name="header_medium">Modo activo: %1$s</string>
     <string name="header_upgrade">pasar a %1$s</string>
 
-    <string name="theme_to_light">Cambiar al tema claro</string>
-    <string name="theme_to_dark">Cambiar al tema oscuro</string>
 
     <!-- ─── 06 · MULTIPASS: la entrada a Astroport.ONE ────────────────── -->
     <string name="mp_title_done">Cuenta abierta</string>
@@ -435,7 +388,6 @@
     <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Encarnación: la forja del núcleo ─────────────────────── -->
-    <string name="forge_step_singularity_sub">la huella originaria, calculada para ti</string>
 
 
     <string name="inc_section_datetime">Fecha y hora de nacimiento</string>
@@ -638,4 +590,5 @@
     <string name="mp_copy">Copiar %1$s</string>
     <string name="mp_copied">Copiado</string>
     <string name="mp_field_nsec">Clave privada NOSTR</string>
+    <string name="cabin_empty">Nada sale por un relé. Todo se borra al cerrar.</string>
 </resources>

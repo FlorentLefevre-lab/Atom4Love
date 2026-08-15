@@ -114,10 +114,11 @@ import androidx.compose.material3.AlertDialog
  *   (`StationScreen`).
  * - **Aide** et **Réglages** ne sont pas des lieux, ce sont des poignées : elles
  *   vivent dans la ligne d'en-tête, à côté du thème et des langues.
- * - **Plateau** attend d'avoir une partie ; on y entre depuis le Noyau.
- * - **Résonance** montrait trois liaisons écrites en dur. Elle reste dans le
- *   dépôt et ne reviendra que quand elle aura de vraies liaisons à montrer —
- *   une barre ne se remplit pas pour être pleine.
+ * - **Plateau** a repris sa place au milieu depuis qu'un sceau à portée l'allume.
+ * - **Résonance** montrait trois liaisons écrites en dur. Elle a longtemps
+ *   attendu dans le dépôt d'avoir de vraies liaisons à montrer ; **supprimée le
+ *   15/08** avec le reste du code mort — une maquette qu'on ne peut pas
+ *   atteindre n'attend rien, elle encombre. `git` la garde si elle revient.
  */
 enum class A4LTab(
     /** L'emoji reste en dur : un pictogramme n'est d'aucune langue. */
@@ -487,7 +488,7 @@ private fun Station(
                     )
                 }
             }
-        } else if (cabinOpen && cabinShown && cabin != null) {
+        } else if (cabinOpen && cabinShown) {
             // La cabine ouverte est une destination, au même rang que l'Aide et
             // les Réglages : plein écran, **par-dessus la barre de menus**.
             //

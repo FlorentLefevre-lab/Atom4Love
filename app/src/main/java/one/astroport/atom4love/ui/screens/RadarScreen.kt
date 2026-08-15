@@ -131,8 +131,6 @@ import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.tint
 
-/** Le rituel de cabine dure 33 secondes d'immobilité (cf. CONTEXTE). */
-private const val RITUAL_SECONDS = 33f
 
 /** La cellule bouge peu : un rafraîchissement du fix toutes les 30 s suffit. */
 private const val FIX_REFRESH_MS = 30_000L
@@ -229,9 +227,6 @@ fun RadarScreen(
      */
     onEnterCabin: () -> Unit = {},
 ) {
-    var elapsed by remember { mutableFloatStateOf(0f) }
-    var attempt by remember { mutableIntStateOf(0) }
-    val unlocked = elapsed >= RITUAL_SECONDS
 
     // ── Balise de proximité : premier morceau réel de l'écran ─────────────
     val context = LocalContext.current
@@ -298,17 +293,15 @@ fun RadarScreen(
         }
     }
 
-    LaunchedEffect(attempt) {
-        val start = withFrameNanos { it }
-        while (elapsed < RITUAL_SECONDS) {
-            val now = withFrameNanos { it }
-            elapsed = ((now - start) / 1_000_000_000f).coerceAtMost(RITUAL_SECONDS)
-        }
-    }
-
-    // ⚠ Le rituel jouait ici son binaural, une fois, au moment où le compteur
-    // touchait le fond. Le concept entier est parti le 15/08 : les 33 secondes
-    // se déverrouillent en silence.
+    // ⚠ **Le rituel des 33 secondes vivait ici** : un compteur qui descendait
+    // pendant qu'on se tenait immobile, et un « RITUEL ACCOMPLI » au bout. Il
+    // jouait aussi un binaural. Les deux sont partis le 15/08, sur décision de
+    // Florent.
+    //
+    // Il ne commandait rien : ni l'abonnement à l'hexagone (qui tient au relais
+    // du lieu, et à lui seul), ni la cabine, ni la balise. Il ne changeait que
+    // deux mots de l'entête et affichait un décompte — une preuve de présence
+    // qui ne prouvait rien à personne, puisque rien ne la vérifiait.
 
     // ── Le vrai fix : cellule H3, distance au centre, portail Goldberg ────
     val locator = remember { CellLocator(context.applicationContext) }
@@ -412,11 +405,9 @@ fun RadarScreen(
         // ── Titre ─────────────────────────────────────────────────────────
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp)) {
             Text(
-                stringResource(
-                    if (unlocked) R.string.radar_cabin_unlocked else R.string.radar_cabin_in_range,
-                ),
+                stringResource(R.string.radar_cabin_in_range),
                 style = A4LText.H2,
-                color = if (unlocked) A4L.Mint else A4L.TextHigh,
+                color = A4L.TextHigh,
             )
             Spacer(Modifier.height(6.dp))
             Text(
@@ -432,14 +423,10 @@ fun RadarScreen(
                         null ->
                             stringResource(R.string.radar_hex_unknown_searching)
                     }
-                    // Le rituel accompli ne suffit pas : sans relais du lieu,
-                    // rien n'est abonné. L'entête l'annonçait quand même, et le
-                    // compteur « dans l'hexagone » disait « — » deux lignes plus
-                    // bas — deux affirmations contraires sur le même écran.
-                    unlocked && salonActive ->
+                    // L'abonnement tient au relais du lieu, et à lui seul —
+                    // c'est ce que le rituel laissait croire qu'il commandait.
+                    salonActive ->
                         stringResource(R.string.radar_hex_subscribed, cellHex(fix!!.cell))
-                    unlocked ->
-                        stringResource(R.string.radar_hex_no_local_relay, cellHex(fix!!.cell))
                     else ->
                         stringResource(
                             R.string.radar_hex_distance,
@@ -514,65 +501,23 @@ fun RadarScreen(
             }
         }
 
-        // ── Le rituel et les trois fenêtres ───────────────────────────────
+        // ── Les voies, et les trois fenêtres ──────────────────────────────
         //
-        // ⚠ Il y avait ici un cadran de 318 dp : cercles concentriques, balayage
-        // conique, anneau de progression, et un hexagone au milieu. Tout ça
-        // tournait joliment sans rien dire — aucun de ces cercles ne portait de
-        // distance, aucun angle ne portait de direction, le balayage ne balayait
-        // rien. Retiré le 15/08, et **la place rendue va au chat** : la cabine
-        // est ce qu'on vient faire ici, le décor lui prenait la moitié de
-        // l'écran.
+        // ⚠ Deux choses ont disparu de ce bloc. Un cadran de 318 dp d'abord —
+        // cercles concentriques, balayage conique, anneau de progression — qui
+        // tournait joliment sans rien dire : aucun cercle ne portait de
+        // distance, aucun angle de direction. Puis **le compteur du rituel des
+        // 33 secondes**, le 15/08. Reste ce qui informe.
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 8.dp)
-                .clickable(enabled = unlocked) { elapsed = 0f; attempt++ },
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Par où la cabine parle. Les trois voies, pas trois positions :
-                // le BLE reste ouvert quand le Wi-Fi porte, et l'ensemble ne
-                // fait que grandir. Chacune dit donc son propre état.
-                MediumGlyphs(status = cabinStatus, open = cabinOpen)
-
-                Spacer(Modifier.width(18.dp))
-                // Le compteur du rituel, désormais en ligne : c'est un nombre
-                // qui descend, il n'a jamais eu besoin d'un cadran autour.
-                Text(
-                    if (unlocked) "⚛" else ceil(elapsed).toInt().toString(),
-                    style = A4LText.Data.copy(
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 42.sp,
-                    ),
-                    color = if (unlocked) A4L.Mint else A4L.Cyan,
-                )
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(
-                        if (unlocked) {
-                            stringResource(R.string.radar_ritual_done)
-                        } else {
-                            stringResource(R.string.radar_ritual_countdown, RITUAL_SECONDS.toInt())
-                        },
-                        style = A4LText.Data.copy(fontSize = 10.sp, letterSpacing = 1.8.sp),
-                        color = if (unlocked) {
-                            A4L.Mint.copy(alpha = 0.7f)
-                        } else {
-                            A4L.Cyan.copy(alpha = 0.55f)
-                        },
-                    )
-                    Spacer(Modifier.height(3.dp))
-                    Text(
-                        stringResource(
-                            if (unlocked) R.string.radar_ritual_restart else R.string.radar_ritual_hold,
-                        ),
-                        style = A4LText.Body.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
-                        color = A4L.TextStrong,
-                    )
-                }
-            }
+            // Par où la cabine parle. Les trois voies, pas trois positions :
+            // le BLE reste ouvert quand le Wi-Fi porte, et l'ensemble ne fait
+            // que grandir. Chacune dit donc son propre état.
+            MediumGlyphs(status = cabinStatus, open = cabinOpen)
 
             // Les trois fenêtres, de la plus proche à la plus lointaine : ici
             // (la cabine, à portée d'antenne), le portail (ceux qui annoncent
@@ -941,7 +886,7 @@ private fun BoxScope.NeighborDot(
 
     val color = when {
         neighbor.cell4d == null -> A4L.Indigo
-        neighbor.cell4d == ownCell4d && ownCell4d != null -> A4L.Mint
+        neighbor.cell4d == ownCell4d -> A4L.Mint
         else -> A4L.Amber
     }
     // Période de respiration propre à chaque noyau, pour désynchroniser la nuée.
@@ -1290,16 +1235,14 @@ private fun CabinDirectPanel(chat: CabinChat, modifier: Modifier = Modifier) {
             messages = messages,
             canSend = status.links > 0,
             placeholder = stringResource(R.string.cabin_chat_placeholder),
-            // le vide n'a pas le même sens selon qu'on est seul ou pas : dire
-            // « personne à portée » alors que quelqu'un est là se contredirait
-            // avec la présence affichée juste au-dessus
-            emptyHint = stringResource(
-                if (status.links > 0) {
-                    R.string.cabin_empty_with_peers
-                } else {
-                    R.string.cabin_empty_alone
-                },
-            ),
+            // ⚠ Deux phrases se relayaient ici selon qu'un pair était là ou
+            // non, et **toutes deux redisaient l'entête** — « personne à
+            // portée » y est déjà écrit deux lignes plus haut, avec le compte
+            // des pairs. Une seule reste, celle qui n'est écrite nulle part
+            // ailleurs : ce que devient ce qu'on dit. Elle s'efface au premier
+            // message, entrant comme sortant (`messages.isEmpty()` dans
+            // `ChatPanel`).
+            emptyHint = stringResource(R.string.cabin_empty),
             onSendText = { text -> chat.sendText(text) },
             onSendImage = { uri -> chat.sendImage(uri) },
             onSendFile = { uri -> chat.sendFile(uri) },
