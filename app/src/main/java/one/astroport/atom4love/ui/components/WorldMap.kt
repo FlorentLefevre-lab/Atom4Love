@@ -2,25 +2,38 @@ package one.astroport.atom4love.ui.components
 
 import android.content.res.Resources
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
@@ -28,9 +41,14 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import one.astroport.atom4love.R
 import one.astroport.atom4love.nostr.Constellation
 import one.astroport.atom4love.ui.theme.A4L
+import one.astroport.atom4love.ui.theme.A4LText
+import one.astroport.atom4love.ui.theme.tint
 import kotlin.math.PI
 import kotlin.math.hypot
 
@@ -44,7 +62,7 @@ import kotlin.math.hypot
  */
 private object WorldOutline {
 
-    /** Chaque polyligne, en coordonnées de travail, prête à peindre. */
+    /** Une terre par entrée, trous compris, en coordonnées de travail. */
     @Volatile
     private var cached: List<Path>? = null
 
@@ -53,27 +71,51 @@ private object WorldOutline {
     }
 
     /**
-     * `res/raw/world_land.txt` : une polyligne par ligne, des couples
-     * `lon,lat` en dixièmes de degré (Natural Earth 110 m, domaine public,
-     * simplifié à 0,6°). Les arcs qui franchissaient l'antiméridien y ont déjà
-     * été coupés — sans quoi ils traverseraient la carte de part en part.
+     * `res/raw/world_land.txt` — Natural Earth 50 m, domaine public, simplifié
+     * à 0,05° (soit un demi-point à l'écran au zoom maximal).
+     *
+     * Une **terre** par ligne ; ses anneaux séparés par `;`, l'extérieur puis
+     * ses trous ; chaque anneau une suite de `Δlon,Δlat` en **centièmes de
+     * degré**, le premier couple absolu. Le pas de la grille fait donc 1,1 km —
+     * la version d'avant stockait au dixième de degré, soit 11 km, et c'est ce
+     * qui donnait aux côtes leur allure d'escalier.
+     *
+     * Les anneaux qui franchissaient l'antiméridien ont été coupés à la
+     * fabrication, et ceux qui enveloppent un pôle refermés par ce pôle : sans
+     * ça l'Antarctique se serait rempli en travers de la carte.
      */
     private fun load(resources: Resources): List<Path> =
         resources.openRawResource(R.raw.world_land).bufferedReader().useLines { lines ->
             lines.mapNotNull { line ->
-                val tokens = line.trim().split(' ').filter { it.isNotEmpty() }
-                if (tokens.size < 2) return@mapNotNull null
+                if (line.isBlank()) return@mapNotNull null
                 val path = Path()
-                tokens.forEachIndexed { i, token ->
-                    val comma = token.indexOf(',')
-                    if (comma <= 0) return@mapNotNull null
-                    val lon = token.substring(0, comma).toFloat() / 10f
-                    val lat = token.substring(comma + 1).toFloat() / 10f
-                    val x = (lon + 180f) / 180f
-                    val y = (90f - lat) / 180f
-                    if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                // Pair-impair : un trou percé dans la terre qui le contient —
+                // la Caspienne reste de l'eau.
+                path.fillType = PathFillType.EvenOdd
+                var empty = true
+                line.split(';').forEach { ring ->
+                    var lonHundredths = 0
+                    var latHundredths = 0
+                    var first = true
+                    ring.split(' ').forEach { token ->
+                        val comma = token.indexOf(',')
+                        if (comma > 0) {
+                            lonHundredths += token.substring(0, comma).toInt()
+                            latHundredths += token.substring(comma + 1).toInt()
+                            val x = (lonHundredths / 100f + 180f) / 180f
+                            val y = (90f - latHundredths / 100f) / 180f
+                            if (first) {
+                                path.moveTo(x, y)
+                                first = false
+                                empty = false
+                            } else {
+                                path.lineTo(x, y)
+                            }
+                        }
+                    }
+                    if (!first) path.close()
                 }
-                path
+                path.takeUnless { empty }
             }.toList()
         }
 }
@@ -110,10 +152,15 @@ fun WorldMap(
     maxZoom: Float = 12f,
 ) {
     val resources = LocalResources.current
-    val outline = remember(resources) { WorldOutline.paths(resources) }
+    // Vingt et un mille points à découper : hors du fil principal, sinon la
+    // première ouverture de la carte se paie d'un à-coup.
+    val outline by produceState(initialValue = emptyList<Path>(), resources) {
+        value = withContext(Dispatchers.Default) { WorldOutline.paths(resources) }
+    }
 
     val ocean = A4L.Ink
-    val coast = A4L.Cyan.copy(alpha = 0.32f)
+    val land = A4L.Cyan.copy(alpha = 0.11f)
+    val coast = A4L.Cyan.copy(alpha = 0.42f)
     val grid = A4L.Stroke.copy(alpha = 0.16f)
     val phaseless = A4L.TextFaint
     val homeColor = A4L.Mint
@@ -170,14 +217,18 @@ fun WorldMap(
 
             drawRect(ocean)
 
-            // Les côtes, peintes dans l'espace de travail : une seule
-            // transformation pour cent trente polylignes.
+            // Les terres, peintes dans l'espace de travail : une seule
+            // transformation pour douze cents contours. Pleines d'abord, puis
+            // leur trait de côte — une silhouette se lit, un fil de fer non.
             withTransform({
                 translate(pan.x, pan.y)
                 scale(k, k, pivot = Offset.Zero)
             }) {
                 val hairline = 1.dp.toPx() / k
-                outline.forEach { path -> drawPath(path, coast, style = Stroke(width = hairline)) }
+                outline.forEach { path ->
+                    drawPath(path, land)
+                    drawPath(path, coast, style = Stroke(width = hairline))
+                }
             }
 
             // Le quadrillage : méridiens et parallèles tous les 30°.
@@ -222,6 +273,52 @@ fun WorldMap(
                 }
             }
         }
+
+        // Les deux crans, en bas à droite. Le pincement demande deux doigts et
+        // une main libre ; ces boutons-là marchent d'un pouce, sur un téléphone
+        // qu'on tient.
+        Column(
+            Modifier
+                .align(Alignment.BottomEnd)
+                // Le coin de la carte est arrondi à 16 dp : moins de marge et
+                // il mord le bas du bouton du dessous.
+                .padding(end = 14.dp, bottom = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            ZoomStep("＋", enabled = zoom < maxZoom - 0.01f) {
+                val next = (zoom * ZOOM_STEP).coerceAtMost(maxZoom)
+                val centre = Offset(box.width / 2f, box.height / 2f)
+                pan = clampPan((pan - centre) * (next / zoom) + centre, box, next)
+                zoom = next
+            }
+            ZoomStep("−", enabled = zoom > 1.01f) {
+                val next = (zoom / ZOOM_STEP).coerceAtLeast(1f)
+                val centre = Offset(box.width / 2f, box.height / 2f)
+                pan = clampPan((pan - centre) * (next / zoom) + centre, box, next)
+                zoom = next
+            }
+        }
+    }
+}
+
+/** Un cran de zoom — même pastille que les poignées de l'en-tête. */
+@Composable
+private fun ZoomStep(glyph: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            // Un liseré cyan plutôt qu'un fond : le fond de la carte est
+            // presque noir la nuit et presque blanc le jour, aucune teinte
+            // unie n'y ressort des deux côtés. Le trait, si — et c'est celui
+            // des côtes, il est chez lui ici.
+            .background(A4L.Glass)
+            .border(1.dp, A4L.Cyan.tint(0.38f), CircleShape)
+            .alpha(if (enabled) 1f else 0.3f)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(glyph, style = A4LText.Data.copy(fontSize = 15.sp), color = A4L.Cyan)
     }
 }
 
@@ -261,3 +358,6 @@ private val HOUSE_SIDE: Dp = 5.dp
 
 /** Une marge en pixels bruts : un point juste hors cadre garde son halo. */
 private const val ATOM_MARGIN = 16f
+
+/** Un cran de zoom. Assez franc pour qu'on sente le geste, assez doux pour viser. */
+private const val ZOOM_STEP = 1.8f
