@@ -1,5 +1,7 @@
 package one.astroport.atom4love.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,14 +27,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -50,7 +59,10 @@ import one.astroport.atom4love.ui.components.A4LChip
 import one.astroport.atom4love.ui.components.Basemap
 import one.astroport.atom4love.ui.components.BasemapPicker
 import one.astroport.atom4love.ui.components.DataBadge
+import one.astroport.atom4love.ui.components.CONTACT_SCALE
 import one.astroport.atom4love.ui.components.LatLon
+import one.astroport.atom4love.ui.components.MapFocus
+import one.astroport.atom4love.ui.components.RECENTRE_SCALE
 import one.astroport.atom4love.ui.components.SectionLabel
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.components.WorldMap
@@ -61,6 +73,9 @@ import one.astroport.atom4love.ui.components.screenBackground
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.tint
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 
 /**
@@ -125,9 +140,42 @@ fun MapScreen(
     // Le fond de carte. Le trait de côte par défaut : c'est le seul qui ne dise
     // à personne ce qu'on regarde, et changer d'avis coûte un appui.
     var basemap by rememberSaveable { mutableStateOf(Basemap.Coastline) }
-    // Un compteur plutôt qu'un booléen : deux demandes de recentrage de suite
-    // doivent toutes les deux partir, même vers le même point.
-    var recentreRequest by remember { mutableIntStateOf(0) }
+    // Où la carte doit se porter. Un numéro d'ordre plutôt qu'un booléen : deux
+    // demandes de suite vers le même point doivent toutes les deux partir.
+    var focus by remember { mutableStateOf<MapFocus?>(null) }
+    var ticket by remember { mutableIntStateOf(0) }
+
+    // ── La sélection va dans les deux sens ────────────────────────────────
+    // Toucher un point ouvre la liste et y fait défiler jusqu'à la ligne ;
+    // toucher une ligne porte la carte sur le point. `selected` est le fil
+    // commun, ces deux-là ne font qu'y répondre.
+    val scroll = rememberScrollState()
+    val rowTops = remember { mutableStateMapOf<String, Int>() }
+    var reveal by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+
+    // Repliée par défaut : la carte prend la place, la liste se déplie quand on
+    // la demande. Une fois ouverte, elle le reste — y compris à la rotation.
+    var resonancesOpen by rememberSaveable { mutableStateOf(false) }
+    val chevron by animateFloatAsState(if (resonancesOpen) 0f else -90f, label = "chevron")
+    /**
+     * Faire venir la ligne sous les yeux.
+     *
+     * Elle n'existe pas encore au moment où on la demande — l'accordéon vient
+     * de s'ouvrir, la mise en page n'a pas eu lieu. On attend donc qu'elle
+     * s'annonce (`onGloballyPositioned`) plutôt que de deviner un délai, et on
+     * défile de ce qu'il faut pour l'amener à hauteur de lecture.
+     */
+    LaunchedEffect(reveal) {
+        if (reveal == 0) return@LaunchedEffect
+        val key = selected ?: return@LaunchedEffect
+        resonancesOpen = true
+        val top = withTimeoutOrNull(REVEAL_TIMEOUT_MS) {
+            snapshotFlow { rowTops[key] }.filterNotNull().first()
+        } ?: return@LaunchedEffect
+        val target = with(density) { REVEAL_FROM_TOP.toPx() }
+        scroll.animateScrollBy(top - target)
+    }
     val residences by constellation.homes.collectAsState()
     LaunchedEffect(showResidences) { if (showResidences) constellation.loadHomes() }
 
@@ -170,7 +218,7 @@ fun MapScreen(
             .fillMaxSize()
             .screenBackground(A4L.GlowRadar, A4L.Deep, centerY = 0.05f, radiusFactor = 1.3f)
             .statusBarsPadding()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(scroll),
     ) {
 
         // ── En-tête ───────────────────────────────────────────────────────
@@ -220,10 +268,14 @@ fun MapScreen(
             home = home,
             homes = if (showResidences) residences else emptyList(),
             selected = selected,
-            onSelect = { selected = it },
+            onSelect = { pubkey ->
+                selected = pubkey
+                // Un point touché ne se contente pas de s'entourer de blanc :
+                // il déplie la liste et s'y fait rejoindre.
+                if (pubkey != null) reveal++
+            },
             basemap = basemap,
-            recentreOn = home,
-            recentreRequest = recentreRequest,
+            focus = focus,
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp),
         )
 
@@ -242,7 +294,9 @@ fun MapScreen(
                 A4LChip(
                     label = stringResource(R.string.map_recentre),
                     accent = A4L.Mint,
-                    modifier = Modifier.clickable { recentreRequest++ },
+                    modifier = Modifier.clickable {
+                        home?.let { focus = MapFocus(it, RECENTRE_SCALE, ++ticket) }
+                    },
                 )
             }
         }
@@ -303,26 +357,74 @@ fun MapScreen(
             )
         }
 
-        // ── La liste ──────────────────────────────────────────────────────
+        // ── Les résonances, repliées ──────────────────────────────────────
+        // La carte est ce qu'on vient voir ; la liste, ce qu'on vient
+        // consulter. Elle attend donc qu'on la demande — et son compte, dans
+        // l'en-tête, dit qu'elle a quelque chose à dire.
         if (sightings.isNotEmpty()) {
-            SectionLabel(
-                stringResource(
-                    if (myPhase != null) R.string.map_by_resonance else R.string.map_by_arrival,
-                ),
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp),
-            )
-            Column(
-                Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, top = 20.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { resonancesOpen = !resonancesOpen }
+                    .padding(vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                sightings.forEach { sighting ->
-                    SightingRow(
-                        sighting = sighting,
-                        selected = sighting.atom.pubkey == selected,
-                        onClick = {
-                            selected = sighting.atom.pubkey.takeIf { it != selected }
-                        },
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // À gauche, devant le titre : c'est là qu'on lit le sens
+                    // d'un pli, comme les puces d'une arborescence.
+                    Text(
+                        "▾",
+                        style = A4LText.Data.copy(fontSize = 11.sp),
+                        color = A4L.TextMuted,
+                        modifier = Modifier.rotate(chevron),
                     )
+                    SectionLabel(
+                        stringResource(
+                            if (myPhase != null) R.string.map_by_resonance else R.string.map_by_arrival,
+                        ),
+                    )
+                }
+                Text(
+                    sightings.size.toString(),
+                    style = A4LText.Data.copy(fontSize = 11.sp),
+                    color = A4L.TextDim,
+                )
+            }
+            AnimatedVisibility(visible = resonancesOpen) {
+                Column(
+                    Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    sightings.forEach { sighting ->
+                        val place = sighting.atom.place
+                        SightingRow(
+                            sighting = sighting,
+                            selected = sighting.atom.pubkey == selected,
+                            onClick = {
+                                val wasSelected = sighting.atom.pubkey == selected
+                                selected = sighting.atom.pubkey.takeUnless { wasSelected }
+                                // Toucher une ligne montre où elle est. La
+                                // reboucler ferme la sélection sans bouger la
+                                // carte : on n'a rien demandé de nouveau.
+                                if (!wasSelected) {
+                                    focus = MapFocus(
+                                        LatLon(place.latDeg, place.lonDeg),
+                                        CONTACT_SCALE,
+                                        ++ticket,
+                                    )
+                                }
+                            },
+                            modifier = Modifier.onGloballyPositioned {
+                                rowTops[sighting.atom.pubkey] = it.positionInRoot().y.toInt()
+                            },
+                        )
+                    }
                 }
             }
         } else if (state is Constellation.State.Loaded) {
@@ -528,6 +630,7 @@ private fun SightingRow(
     sighting: Sighting,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val atom = sighting.atom
     val dot = atom.phase?.let { phaseColor(it) } ?: A4L.TextFaint
@@ -539,7 +642,7 @@ private fun SightingRow(
     }
 
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .glass(
                 radius = 14.dp,
@@ -596,6 +699,12 @@ private fun SightingRow(
         }
     }
 }
+
+/** À quelle hauteur de l'écran on amène la ligne qu'on vient de désigner. */
+private val REVEAL_FROM_TOP = 300.dp
+
+/** Au-delà, la ligne ne viendra pas : inutile de retenir le défilement. */
+private const val REVEAL_TIMEOUT_MS = 1_500L
 
 private fun format(value: Double, decimals: Int): String =
     String.format(Locale.getDefault(), "%.${decimals}f", value)

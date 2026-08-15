@@ -132,8 +132,18 @@ private object WorldOutline {
 /** Un point du globe — celui d'où l'on regarde. */
 data class LatLon(val lat: Double, val lon: Double)
 
-/** Ce que la carte montre en ce moment : où, et de combien près. */
-data class MapView(val scale: Float, val pan: Offset)
+/**
+ * Où la carte doit se porter, et de combien s'en approcher.
+ *
+ * [request] est un numéro d'ordre, pas un booléen : deux demandes de suite vers
+ * le **même** point doivent toutes les deux partir — on peut vouloir revenir où
+ * l'on était après avoir traîné la carte ailleurs.
+ *
+ * [minScale] est un plancher, pas une consigne : si l'on est déjà plus près, on
+ * ne recule pas. Se porter sur quelqu'un ne doit pas faire perdre le détail
+ * qu'on était en train de regarder.
+ */
+data class MapFocus(val place: LatLon, val minScale: Float, val request: Int)
 
 /**
  * La carte de la constellation, en Web Mercator.
@@ -157,9 +167,8 @@ fun WorldMap(
     selected: String? = null,
     onSelect: (String?) -> Unit = {},
     basemap: Basemap = Basemap.Coastline,
-    /** Le point sur lequel « me recentrer » ramène — notre propre naissance. */
-    recentreOn: LatLon? = null,
-    recentreRequest: Int = 0,
+    /** Où se porter, quand l'écran le demande — voir [MapFocus]. */
+    focus: MapFocus? = null,
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -225,14 +234,15 @@ fun WorldMap(
         }
     }
 
-    // « Me recentrer » : on va sur son propre point, d'assez près pour se voir
-    // séparé de ses voisins de région.
-    LaunchedEffect(recentreRequest) {
-        val target = recentreOn ?: return@LaunchedEffect
-        if (recentreRequest == 0 || box.width <= 0f) return@LaunchedEffect
-        val s = RECENTRE_SCALE
+    // Se porter quelque part : sur soi, ou sur quelqu'un qu'on vient de toucher
+    // dans la liste. Le plancher d'échelle évite de reculer quand on est déjà
+    // plus près que demandé.
+    LaunchedEffect(focus?.request) {
+        val target = focus ?: return@LaunchedEffect
+        if (target.request == 0 || box.width <= 0f) return@LaunchedEffect
+        val s = maxOf(scale, target.minScale).coerceAtMost(MAX_SCALE)
         scale = s
-        pan = centreOn(target, s)
+        pan = centreOn(target.place, s)
     }
 
     // ── Les tuiles visibles ───────────────────────────────────────────────
@@ -267,7 +277,7 @@ fun WorldMap(
     Box(
         modifier
             .fillMaxWidth()
-            .aspectRatio(2f)
+            .aspectRatio(MAP_RATIO)
             .clip(RoundedCornerShape(MAP_RADIUS))
             .onSizeChanged { box = Size(it.width.toFloat(), it.height.toFloat()) }
             .pointerInput(Unit) {
@@ -506,6 +516,19 @@ fun phaseColor(phase: Double): Color {
     return Color.hsl(hue.toFloat(), 0.72f, 0.54f)
 }
 
+/**
+ * **Carrée — et c'est la limite, pas un choix d'esthète.**
+ *
+ * En Mercator le monde entier est un carré : au repos la carte occupe toute sa
+ * largeur, donc à 1:1 elle le montre en entier, des ±85° d'un bord à l'autre.
+ * Aller plus haut ne montrerait rien de plus — il n'y a plus rien à montrer —
+ * et laisserait deux bandes vides au-dessus et en dessous, que le calage de
+ * [clampPan] ne saurait même pas remplir.
+ *
+ * Le premier jet était à 2:1 et n'en donnait que la bande ±66°.
+ */
+private const val MAP_RATIO = 1f
+
 private val MAP_RADIUS: Dp = 16.dp
 private val TAP_REACH: Dp = 18.dp
 private val ATOM_DOT: Dp = 2.6.dp
@@ -528,4 +551,13 @@ private const val TILE_PX = 256f
 private val MAX_SCALE = 2f.pow(14)
 
 /** Où « me recentrer » s'arrête : la ville, pas la rue. */
-private val RECENTRE_SCALE = 2f.pow(9)
+val RECENTRE_SCALE = 2f.pow(9)
+
+/**
+ * Où l'on s'arrête en se portant sur quelqu'un de la liste : la région.
+ *
+ * Plus près qu'un pays, plus loin qu'une ville — on veut voir **où** il est, pas
+ * chez qui. Et comme c'est un plancher, quelqu'un qui explorait déjà une rue y
+ * reste.
+ */
+val CONTACT_SCALE = 2f.pow(5)
