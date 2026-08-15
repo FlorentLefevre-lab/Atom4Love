@@ -67,9 +67,13 @@ import one.astroport.atom4love.ui.theme.tint
  * Toucher une carte ouvre le second coup, [RendezvousScreen] : la chaleur mène
  * au bon mètre carré et s'arrête là, le rythme partagé fait le dernier mètre.
  *
- * Ce qu'il n'y a pas ici, et qui viendra : les questions — une carte à la fois,
- * retournée seulement si les **deux** l'acceptent. Le principe qui les tient :
- * **le jeu ne révèle jamais une identité, il permet de devenir trouvable.**
+ * Le troisième coup, [one.astroport.atom4love.domain.Questions], ne vit pas ici
+ * mais dans la cabine : une carte à portée n'a pas de npub, et une question a
+ * besoin d'un canal. C'est là que l'ordre du jeu compte — on se reconnaît
+ * d'abord, on se demande ensuite.
+ *
+ * Le principe qui tient les trois : **le jeu ne révèle jamais une identité, il
+ * permet de devenir trouvable.**
  */
 @Composable
 fun BoardScreen(

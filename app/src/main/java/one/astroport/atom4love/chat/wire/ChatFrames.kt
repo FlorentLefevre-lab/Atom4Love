@@ -22,6 +22,8 @@ import java.util.zip.CRC32
  *   GROUP  [0x07][port 2][lgNom 1][nom…][lgPasse 1][passe…]
  *   CANCEL [0x08][id 4]
  *   BYE    [0x09]
+ *   ONDE   [0x0A][ω_bio 4]
+ *   QUESTION [0x0B][étape 1][trait 1][valeur 2]
  *
  * L'id est tiré au hasard par l'émetteur ; il sert aussi à dédoublonner les
  * flux jumeaux du double lien croisé (deux connexions entre les deux mêmes
@@ -58,6 +60,9 @@ sealed interface ChatFrame {
 
     /** L'onde biologique du pair, en hertz. Voir [ChatFrames.encodeResonance]. */
     data class Resonance(val omegaBio: Float) : ChatFrame
+
+    /** Un coup du jeu des questions. Voir [ChatFrames.encodeQuestion]. */
+    data class Question(val step: Int, val traitId: Int, val value: Int) : ChatFrame
 
     /**
      * L'émetteur renonce à un transfert en cours.
@@ -150,6 +155,17 @@ object ChatFrames {
     private const val TYPE_CANCEL = 0x08
     private const val TYPE_BYE = 0x09
     private const val TYPE_RESONANCE = 0x0A
+    private const val TYPE_QUESTION = 0x0B
+    private const val QUESTION_LEN = 5
+
+    /** J'offre, et je donne : la valeur qui suit est la mienne. */
+    const val QUESTION_OFFER = 1
+
+    /** Je réponds, et je donne à mon tour. */
+    const val QUESTION_ANSWER = 2
+
+    /** Je ne réponds pas. La valeur ne veut rien dire et n'est pas lue. */
+    const val QUESTION_DECLINE = 3
     private const val RESONANCE_LEN = 5
 
     /** [type][médium][port 2][longueur de l'hôte]. */
@@ -344,6 +360,27 @@ object ChatFrames {
             .putFloat(omegaBio)
             .array()
 
+    /**
+     * Un coup du jeu des questions — cinq octets, scellés comme le reste.
+     *
+     * La valeur tient sur **deux octets**, et c'est une décision, pas une
+     * limite subie : ce format ne peut porter que des nombres, donc jamais un
+     * nom, un texte libre ou une adresse. Ce qui n'entre pas ici ne se demande
+     * pas dans ce jeu.
+     *
+     * Sur [QUESTION_OFFER] comme sur [QUESTION_ANSWER], la valeur est **celle
+     * de l'émetteur** : demander, c'est donner d'abord. Sur [QUESTION_DECLINE]
+     * elle ne veut rien dire, et part à zéro plutôt que de laisser fuir la
+     * valeur qu'on vient justement de refuser de donner.
+     */
+    fun encodeQuestion(step: Int, traitId: Int, value: Int): ByteArray =
+        ByteBuffer.allocate(QUESTION_LEN)
+            .put(TYPE_QUESTION.toByte())
+            .put(step.toByte())
+            .put(traitId.toByte())
+            .putShort((if (step == QUESTION_DECLINE) 0 else value).toShort())
+            .array()
+
     /** [type][id] — cinq octets, la plus courte trame à identifiant. */
     fun encodeCancel(msgId: Int): ByteArray =
         ByteBuffer.allocate(5)
@@ -405,6 +442,16 @@ object ChatFrames {
             // synthétiseur.
             if (!omega.isFinite() || omega <= 0f) return null
             return ChatFrame.Resonance(omega)
+        }
+        if (bytes.size >= QUESTION_LEN && bytes[0].toInt() == TYPE_QUESTION) {
+            val buffer = ByteBuffer.wrap(bytes)
+            buffer.get()
+            val step = buffer.get().toInt()
+            if (step !in QUESTION_OFFER..QUESTION_DECLINE) return null
+            val traitId = buffer.get().toInt() and 0xFF
+            // Non signée : les valeurs du jeu sont toutes positives, et un KIN
+            // qui reviendrait négatif ne serait pas un KIN.
+            return ChatFrame.Question(step, traitId, buffer.short.toInt() and 0xFFFF)
         }
         // CANCEL ne porte qu'un identifiant : cinq octets, sous le plancher
         // des trames vérifié juste après

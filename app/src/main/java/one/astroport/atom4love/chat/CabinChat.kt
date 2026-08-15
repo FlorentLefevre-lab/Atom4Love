@@ -1,8 +1,6 @@
 package one.astroport.atom4love.chat
 
 import android.Manifest
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -27,14 +25,21 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.net.wifi.WifiManager
 import android.net.Uri
+import android.net.wifi.WifiManager
+import android.net.wifi.p2p.WifiP2pInfo
+import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.ParcelUuid
 import android.os.SystemClock
 import android.util.Log
+import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import java.io.IOException
 import java.net.Inet4Address
 import java.net.InetSocketAddress
@@ -43,6 +48,7 @@ import java.net.Socket
 import java.security.SecureRandom
 import java.util.UUID
 import java.util.concurrent.Executors
+import java.util.zip.CRC32
 import kotlin.random.Random
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -79,20 +85,16 @@ import one.astroport.atom4love.chat.wire.MemorySink
 import one.astroport.atom4love.chat.wire.Payload
 import one.astroport.atom4love.chat.wire.Reassembler
 import one.astroport.atom4love.chat.wire.Source
-import one.astroport.atom4love.nostr.CabinSalon
-import one.astroport.atom4love.proximity.RadioSilence
+import one.astroport.atom4love.domain.BirthData
+import one.astroport.atom4love.domain.Questions
 import one.astroport.atom4love.noise.NoiseIdentity
 import one.astroport.atom4love.noise.NoiseSession
 import one.astroport.atom4love.noise.NoiseVouch
 import one.astroport.atom4love.nostr.Bech32
+import one.astroport.atom4love.nostr.CabinSalon
 import one.astroport.atom4love.nostr.Hex
 import one.astroport.atom4love.nostr.NostrKeys
-import java.util.zip.CRC32
-import androidx.core.content.IntentCompat
-import android.net.wifi.p2p.WifiP2pManager
-import android.net.wifi.p2p.WifiP2pInfo
-import android.os.Handler
-import android.os.Looper
+import one.astroport.atom4love.proximity.RadioSilence
 
 /**
  * Le canal direct de la cabine : ce qui se dit **ici**, entre gens à portée.
@@ -589,6 +591,153 @@ class CabinChat(context: Context) {
      */
     fun bindResonance(omegaBio: Double?) {
         myOmegaBio = omegaBio?.toFloat()?.takeIf { it.isFinite() && it > 0f }
+    }
+
+    // ── ❓ Le jeu des questions ────────────────────────────────────────────
+
+    /**
+     * Ce que notre fiche sait répondre. Figé au moment où on le lie : une
+     * réponse déjà donnée ne se rétracte pas, et une fiche qui change ensuite
+     * ne réécrit pas ce qu'on a dit.
+     */
+    @Volatile
+    private var myTraits: Map<Questions.Trait, Int> = emptyMap()
+
+    private val _answerable = MutableStateFlow<Set<Questions.Trait>>(emptySet())
+
+    /**
+     * Ce que notre fiche sait répondre — donc ce qu'on a le droit de proposer,
+     * la règle du jeu étant qu'on répond d'abord. L'écran s'y fie plutôt qu'à
+     * la fiche, qui pourrait dire autre chose que ce qui est lié ici.
+     */
+    val answerable: StateFlow<Set<Questions.Trait>> = _answerable.asStateFlow()
+
+    private val _exchanges = MutableStateFlow<Map<String, List<Questions.Exchange>>>(emptyMap())
+
+    /**
+     * Les questions jouées, par npub attesté.
+     *
+     * Rien n'est conservé d'une cabine à l'autre : ce qui s'échange ici
+     * appartient à la rencontre, pas à un carnet d'adresses. Fermer la cabine
+     * efface la partie, comme elle efface les messages.
+     */
+    val exchanges: StateFlow<Map<String, List<Questions.Exchange>>> = _exchanges.asStateFlow()
+
+    /** Donne à la cabine les valeurs qu'elle pourra répondre. */
+    fun bindTraits(birth: BirthData?) {
+        myTraits = birth?.let { fiche ->
+            Questions.Trait.entries.mapNotNull { trait ->
+                trait.read(fiche)?.let { trait to it }
+            }.toMap()
+        } ?: emptyMap()
+        _answerable.value = myTraits.keys
+    }
+
+    /**
+     * Proposer une question — **et y répondre du même geste**, puisque l'offre
+     * porte notre valeur. Sans retour possible : c'est la règle du jeu, et
+     * l'écran l'annonce avant.
+     *
+     * Faux si la fiche ne sait pas répondre, si la question a déjà été posée à
+     * cette personne, ou si elle n'est plus joignable.
+     */
+    fun ask(npub: String, trait: Questions.Trait): Boolean {
+        val mine = myTraits[trait] ?: return false
+        if (_exchanges.value[npub].orEmpty().any { it.trait == trait }) return false
+        if (!controlToPeer(npub, ChatFrames.encodeQuestion(ChatFrames.QUESTION_OFFER, trait.id, mine))) {
+            return false
+        }
+        record(npub, trait) { it.copy(mine = mine) }
+        return true
+    }
+
+    /** Répondre à une offre reçue : on donne à notre tour, et les deux voient. */
+    fun answer(npub: String, trait: Questions.Trait): Boolean {
+        val mine = myTraits[trait] ?: return false
+        val exchange = _exchanges.value[npub].orEmpty().firstOrNull { it.trait == trait }
+        if (exchange == null || !exchange.owed) return false
+        if (!controlToPeer(npub, ChatFrames.encodeQuestion(ChatFrames.QUESTION_ANSWER, trait.id, mine))) {
+            return false
+        }
+        record(npub, trait) { it.copy(mine = mine) }
+        return true
+    }
+
+    /**
+     * Ne pas répondre. La valeur de l'autre reste affichée — il l'a donnée, et
+     * la lui reprendre serait mentir sur ce qui s'est passé — mais la question
+     * est close et ne se repropose pas.
+     */
+    fun decline(npub: String, trait: Questions.Trait): Boolean {
+        val exchange = _exchanges.value[npub].orEmpty().firstOrNull { it.trait == trait }
+        if (exchange == null || !exchange.owed) return false
+        controlToPeer(npub, ChatFrames.encodeQuestion(ChatFrames.QUESTION_DECLINE, trait.id, 0))
+        record(npub, trait) { it.copy(declined = true) }
+        return true
+    }
+
+    /** Met à jour une question, en la créant au besoin. */
+    private fun record(
+        npub: String,
+        trait: Questions.Trait,
+        change: (Questions.Exchange) -> Questions.Exchange,
+    ) {
+        _exchanges.update { all ->
+            val history = all[npub].orEmpty()
+            val current = history.firstOrNull { it.trait == trait } ?: Questions.Exchange(trait)
+            val updated = change(current)
+            all + (npub to history.filterNot { it.trait == trait } + updated)
+        }
+    }
+
+    /**
+     * Une trame de contrôle à **une** personne, sur tous ses liens attestés.
+     *
+     * « Tous » et non « le premier » : une même personne tient souvent deux
+     * liens croisés, et rien ne dit lequel portera. L'autre bout dédoublonne
+     * par question, un coup reçu deux fois ne change rien.
+     */
+    private fun controlToPeer(npub: String, frame: ByteArray): Boolean {
+        val target = runCatching { Bech32.decode(npub) }.getOrNull()
+            ?.takeIf { it.first == "npub" }?.second ?: return false
+        val sent = links.values
+            .filter { it.peerNostrKey?.contentEquals(target) == true }
+            .onEach { it.control.trySend(frame) }
+        return sent.isNotEmpty()
+    }
+
+    /**
+     * Fil protocole. Un coup du jeu arrive.
+     *
+     * Sans attestation, on ne sait pas de qui il vient : une question n'a de
+     * sens qu'entre deux noyaux nommés, et l'accepter d'un lien anonyme
+     * laisserait n'importe quel passant nous soutirer une réponse.
+     */
+    private fun onQuestionFrame(link: Link?, frame: ChatFrame.Question) {
+        val key = link?.peerNostrKey ?: run {
+            Log.w(TAG, "question posée par un pair non attesté : ignorée")
+            return
+        }
+        val trait = Questions.Trait.of(frame.traitId) ?: run {
+            // Une version plus récente demande quelque chose qu'on ne connaît
+            // pas. On se tait plutôt que de répondre à côté.
+            Log.w(TAG, "trait inconnu ${frame.traitId} : ignoré")
+            return
+        }
+        val npub = Bech32.encode("npub", key)
+        when (frame.step) {
+            ChatFrames.QUESTION_DECLINE -> record(npub, trait) { it.copy(declined = true) }
+            else -> {
+                if (!trait.accepts(frame.value)) {
+                    Log.w(TAG, "valeur hors bornes pour $trait : ignorée")
+                    return
+                }
+                // Ce qui est donné est donné : une seconde trame sur la même
+                // question ne réécrit pas la première. C'est ce qui empêche de
+                // changer sa réponse après avoir vu celle d'en face.
+                record(npub, trait) { if (it.theirs == null) it.copy(theirs = frame.value) else it }
+            }
+        }
     }
 
     private val executor = Executors.newSingleThreadExecutor { Thread(it, "BleChat") }
@@ -2046,6 +2195,7 @@ class CabinChat(context: Context) {
                 Log.w(TAG, "trame ${frame::class.simpleName} imbriquée de $from : ignorée")
             is ChatFrame.Address -> onAddressFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Resonance -> onResonanceFrame(links[key(medium, kind, from)], frame)
+            is ChatFrame.Question -> onQuestionFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Group -> onGroupFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Ack -> onAck(frame)
             // Le pair ferme sa cabine. On le retire tout de suite plutôt que

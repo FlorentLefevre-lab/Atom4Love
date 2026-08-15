@@ -595,4 +595,36 @@
     <string name="settings_about_label">Esta estación</string>
     <string name="settings_version">Atom4Love %1$s</string>
     <string name="settings_maker">by AstroPort.ONE</string>
+
+    <!-- ❓ Las preguntas: proponer es dar. -->
+    <string name="trait_tone">El tono</string>
+    <string name="trait_tone_tells">Un número del 1 al 13. No señala a nadie.</string>
+    <string name="trait_color">El color</string>
+    <string name="trait_color_tells">Una familia de cinco. No señala a nadie.</string>
+    <string name="trait_decade">La década de nacimiento</string>
+    <string name="trait_decade_tells">Tu edad, con diez años de margen.</string>
+    <string name="trait_hour">La hora de nacimiento</string>
+    <string name="trait_hour_tells">La hora sola, sin el día. Inútil para quien ignora tu fecha.</string>
+    <string name="trait_kin">El KIN completo</string>
+    <string name="trait_kin_tells">El más revelador: cruzado con la década, acota tu fecha de nacimiento a unos días — y la fecha forja la mitad de tu clave.</string>
+    <string name="questions_title">Las preguntas</string>
+    <string name="questions_rule">Proponer es dar: tu respuesta sale con la pregunta, sin vuelta atrás. Solo se pide lo que se acepta decir.</string>
+    <string name="questions_none_left">Ya has hablado de todo lo que tu ficha sabe decir.</string>
+    <string name="questions_no_card">Tu ficha aún no sabe responder nada.</string>
+    <string name="questions_ask">Proponer</string>
+    <string name="questions_answer">Responder</string>
+    <string name="questions_decline">No responder</string>
+    <string name="questions_waiting">dado · esperando su respuesta</string>
+    <string name="questions_declined">no ha respondido</string>
+    <string name="questions_refused">no has respondido</string>
+    <string name="questions_asked_you">te lo preguntan — su respuesta ya está aquí</string>
+    <string name="questions_you_label">tú</string>
+    <string name="questions_them_label">la otra persona</string>
+    <string name="trait_color_name_0">Rojo</string>
+    <string name="trait_color_name_1">Blanco</string>
+    <string name="trait_color_name_2">Azul</string>
+    <string name="trait_color_name_3">Amarillo</string>
+    <string name="trait_color_name_4">Verde</string>
+    <string name="trait_hour_value">%1$02d h</string>
+    <string name="trait_decade_value">años %1$d</string>
 </resources>

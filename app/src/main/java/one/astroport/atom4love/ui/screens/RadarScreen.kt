@@ -1,5 +1,16 @@
 package one.astroport.atom4love.ui.screens
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.net.Uri
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
@@ -10,7 +21,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -27,22 +37,33 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.WifiTethering
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -53,75 +74,56 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
-import android.content.Intent
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
-import android.net.Uri
-import android.provider.Settings
-import androidx.core.app.ActivityCompat
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.key
 import java.util.Locale
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.R
+import one.astroport.atom4love.chat.Attachments
+import one.astroport.atom4love.chat.CabinChat
+import one.astroport.atom4love.chat.CabinError
+import one.astroport.atom4love.chat.ChatSounds
+import one.astroport.atom4love.chat.Medium
+import one.astroport.atom4love.chat.ui.ChatPanel
+import one.astroport.atom4love.chat.ui.QuestionsPanel
 import one.astroport.atom4love.domain.GoldbergPortal
 import one.astroport.atom4love.domain.KinMaya
 import one.astroport.atom4love.domain.Phi2X
+import one.astroport.atom4love.domain.Questions
 import one.astroport.atom4love.domain.Wave
-import android.widget.Toast
-import one.astroport.atom4love.chat.Attachments
-import one.astroport.atom4love.chat.ChatSounds
-import one.astroport.atom4love.chat.CabinChat
-import one.astroport.atom4love.chat.CabinError
-import one.astroport.atom4love.chat.Medium
-import one.astroport.atom4love.chat.ui.ChatPanel
-import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.CabinSalon
+import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.proximity.CellLocator
 import one.astroport.atom4love.proximity.NeighborRegistry
 import one.astroport.atom4love.proximity.ProximityPayload
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import one.astroport.atom4love.proximity.ProximityService
 import one.astroport.atom4love.ui.components.HexagonShape
-import one.astroport.atom4love.ui.components.hexagonPath
 import one.astroport.atom4love.ui.components.SectionLabel
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.components.dashedGlass
 import one.astroport.atom4love.ui.components.glass
+import one.astroport.atom4love.ui.components.hexagonPath
 import one.astroport.atom4love.ui.components.screenBackground
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.tint
-import kotlin.math.ceil
-import androidx.compose.material3.Icon
-import androidx.compose.material.icons.filled.WifiTethering
-import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.Icons
 
 /** Le rituel de cabine dure 33 secondes d'immobilité (cf. CONTEXTE). */
 private const val RITUAL_SECONDS = 33f
@@ -1260,14 +1262,29 @@ private fun CabinDirectPanel(chat: CabinChat) {
             style = A4LText.Caption,
             color = if (status.links > 0) A4L.Mint else A4L.TextMuted,
         )
+        val exchanges by chat.exchanges.collectAsStateWithLifecycle()
+        val answerable by chat.answerable.collectAsStateWithLifecycle()
         peers.forEach { peer ->
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                StatusDot(A4L.Mint)
-                Spacer(Modifier.width(8.dp))
-                Text(peer.short, style = A4LText.Data, color = A4L.TextHigh)
+            Column(Modifier.fillMaxWidth()) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    StatusDot(A4L.Mint)
+                    Spacer(Modifier.width(8.dp))
+                    Text(peer.short, style = A4LText.Data, color = A4L.TextHigh)
+                }
+                // Le jeu se joue avec quelqu'un, pas dans une salle : il vit
+                // sous la personne, et chaque partie n'appartient qu'aux deux.
+                val history = exchanges[peer.npub].orEmpty()
+                QuestionsPanel(
+                    history = history.sortedBy { it.trait.ordinal },
+                    offerable = Questions.offerable(answerable, history),
+                    onAsk = { trait -> chat.ask(peer.npub, trait) },
+                    onAnswer = { trait -> chat.answer(peer.npub, trait) },
+                    onDecline = { trait -> chat.decline(peer.npub, trait) },
+                    modifier = Modifier.padding(start = 16.dp),
+                )
             }
         }
         // un lien vivant sans attestation : le pair n'a pas de noyau incarné,

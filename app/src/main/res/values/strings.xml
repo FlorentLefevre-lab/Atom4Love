@@ -679,4 +679,36 @@
     <string name="settings_about_label">Cette station</string>
     <string name="settings_version">Atom4Love %1$s</string>
     <string name="settings_maker">by AstroPort.ONE</string>
+
+    <!-- ❓ Les questions : proposer, c'est donner. -->
+    <string name="trait_tone">La tonalité</string>
+    <string name="trait_tone_tells">Un nombre de 1 à 13. Ne désigne personne.</string>
+    <string name="trait_color">La couleur</string>
+    <string name="trait_color_tells">Une famille sur cinq. Ne désigne personne.</string>
+    <string name="trait_decade">La décennie de naissance</string>
+    <string name="trait_decade_tells">Votre âge, à dix ans près.</string>
+    <string name="trait_hour">L\'heure de naissance</string>
+    <string name="trait_hour_tells">L\'heure seule, sans le jour. Sans intérêt pour qui ignore votre date.</string>
+    <string name="trait_kin">Le KIN complet</string>
+    <string name="trait_kin_tells">Le plus révélateur : croisé avec la décennie, il ramène votre date de naissance à quelques jours près — et la date forge la moitié de votre clé.</string>
+    <string name="questions_title">Les questions</string>
+    <string name="questions_rule">Proposer, c\'est donner : votre réponse part avec la question, sans retour possible. On ne demande que ce qu\'on accepte de dire.</string>
+    <string name="questions_none_left">Vous avez parlé de tout ce que votre fiche sait dire.</string>
+    <string name="questions_no_card">Votre fiche ne sait encore rien répondre.</string>
+    <string name="questions_ask">Proposer</string>
+    <string name="questions_answer">Répondre</string>
+    <string name="questions_decline">Ne pas répondre</string>
+    <string name="questions_waiting">donné · en attente de sa réponse</string>
+    <string name="questions_declined">il ou elle n\'a pas répondu</string>
+    <string name="questions_refused">vous n\'avez pas répondu</string>
+    <string name="questions_asked_you">on vous demande — sa réponse est déjà là</string>
+    <string name="questions_you_label">vous</string>
+    <string name="questions_them_label">l\'autre</string>
+    <string name="trait_color_name_0">Rouge</string>
+    <string name="trait_color_name_1">Blanc</string>
+    <string name="trait_color_name_2">Bleu</string>
+    <string name="trait_color_name_3">Jaune</string>
+    <string name="trait_color_name_4">Vert</string>
+    <string name="trait_hour_value">%1$02d h</string>
+    <string name="trait_decade_value">années %1$d</string>
 </resources>

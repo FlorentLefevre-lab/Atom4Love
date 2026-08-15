@@ -591,4 +591,36 @@
     <string name="settings_about_label">This station</string>
     <string name="settings_version">Atom4Love %1$s</string>
     <string name="settings_maker">by AstroPort.ONE</string>
+
+    <!-- ❓ The questions: to ask is to give. -->
+    <string name="trait_tone">The tone</string>
+    <string name="trait_tone_tells">A number from 1 to 13. Points to nobody.</string>
+    <string name="trait_color">The colour</string>
+    <string name="trait_color_tells">One family out of five. Points to nobody.</string>
+    <string name="trait_decade">The decade of birth</string>
+    <string name="trait_decade_tells">Your age, to within ten years.</string>
+    <string name="trait_hour">The hour of birth</string>
+    <string name="trait_hour_tells">The hour alone, without the day. Useless to anyone who does not know your date.</string>
+    <string name="trait_kin">The full KIN</string>
+    <string name="trait_kin_tells">The most revealing one: crossed with the decade it narrows your birth date to a few days — and the date forges half your key.</string>
+    <string name="questions_title">The questions</string>
+    <string name="questions_rule">To ask is to give: your answer leaves with the question, with no taking it back. You only ask what you accept to tell.</string>
+    <string name="questions_none_left">You have talked about everything your card can tell.</string>
+    <string name="questions_no_card">Your card cannot answer anything yet.</string>
+    <string name="questions_ask">Ask</string>
+    <string name="questions_answer">Answer</string>
+    <string name="questions_decline">Don\'t answer</string>
+    <string name="questions_waiting">given · waiting for their answer</string>
+    <string name="questions_declined">they did not answer</string>
+    <string name="questions_refused">you did not answer</string>
+    <string name="questions_asked_you">you are being asked — their answer is already here</string>
+    <string name="questions_you_label">you</string>
+    <string name="questions_them_label">them</string>
+    <string name="trait_color_name_0">Red</string>
+    <string name="trait_color_name_1">White</string>
+    <string name="trait_color_name_2">Blue</string>
+    <string name="trait_color_name_3">Yellow</string>
+    <string name="trait_color_name_4">Green</string>
+    <string name="trait_hour_value">%1$02d:00</string>
+    <string name="trait_decade_value">the %1$ds</string>
 </resources>

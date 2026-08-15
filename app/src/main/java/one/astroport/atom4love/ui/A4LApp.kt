@@ -340,6 +340,9 @@ private fun Station(
     LaunchedEffect(body, birth.wave) {
         cabin.bindResonance(Phi2X.omegaBio(body, birth.wave))
     }
+    // Ce que la fiche saura répondre au jeu des questions. Rien ne part de
+    // là — c'est un geste par question, et il coûte la même réponse.
+    LaunchedEffect(birth) { cabin.bindTraits(birth) }
     val closeCabin: () -> Unit = { cabinHost.close() }
     // Le Wi-Fi Direct est le seul médium qui demande une permission de plus.
     // Elle se demande ICI, au moment d'accepter la montée — pas à l'ouverture
