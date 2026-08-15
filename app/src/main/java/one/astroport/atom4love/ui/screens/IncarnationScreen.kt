@@ -78,7 +78,9 @@ import one.astroport.atom4love.domain.LoveKey
 import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.domain.KinMaya
 import one.astroport.atom4love.domain.Wave
+import one.astroport.atom4love.ui.AppLocale
 import one.astroport.atom4love.ui.components.AtomLogo
+import one.astroport.atom4love.ui.components.LanguageChoice
 import one.astroport.atom4love.ui.components.BirthDateWheels
 import one.astroport.atom4love.ui.components.BirthTimeWheels
 import one.astroport.atom4love.ui.components.ComputedRow
@@ -136,8 +138,8 @@ fun IncarnationScreen(
     // d'atteindre : on revient où l'on veut, on n'avance que sur du renseigné.
     var step by rememberSaveable { mutableIntStateOf(0) }
     val furthest = remember(birth, step) {
-        val firstOpen = ForgeStep.entries.indexOfFirst { !it.isSatisfied(birth) }
-        maxOf(step, if (firstOpen < 0) ForgeStep.entries.lastIndex else firstOpen)
+        val firstOpen = forgeSteps.indexOfFirst { !it.isSatisfied(birth) }
+        maxOf(step, if (firstOpen < 0) forgeSteps.lastIndex else firstOpen)
     }
 
     var showCoordsEditor by remember { mutableStateOf(false) }
@@ -261,7 +263,7 @@ fun IncarnationScreen(
         } else {
             // L'assistant, calqué sur celui d'ATOM4LOVE : cinq stations, une
             // seule question à la fois, et rien à faire défiler pour la voir.
-            val stepTitle = ForgeStep.entries[step]
+            val stepTitle = forgeSteps[step]
 
             Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -343,7 +345,11 @@ fun IncarnationScreen(
                     // contenu déborde.
                     verticalArrangement = Arrangement.Top,
                 ) {
-                    when (ForgeStep.entries[step]) {
+                    when (forgeSteps[step]) {
+                        // Changer de langue recrée l'activité : l'étape courante
+                        // est `rememberSaveable`, on revient donc exactement ici,
+                        // dans la nouvelle langue.
+                        ForgeStep.Language -> LanguageChoice()
                         ForgeStep.Identity -> IdentityStep()
 
                         ForgeStep.Anchor -> Column(
@@ -464,7 +470,7 @@ fun IncarnationScreen(
                         Box(
                             Modifier
                                 .width(56.dp)
-                                .height(if (step == ForgeStep.entries.lastIndex) 52.dp else 46.dp)
+                                .height(if (step == forgeSteps.lastIndex) 52.dp else 46.dp)
                                 .glass(12.dp, A4L.Glass, A4L.Stroke)
                                 .clickable { step-- },
                             contentAlignment = Alignment.Center,
@@ -473,14 +479,14 @@ fun IncarnationScreen(
                         }
                     }
                     Box(Modifier.weight(1f)) {
-                        if (step == ForgeStep.entries.lastIndex) {
+                        if (step == forgeSteps.lastIndex) {
                             ForgeButton(
                                 forged = false,
                                 complete = birth.complete,
                                 onClick = { showForgeConfirm = true },
                             )
                         } else {
-                            val ready = ForgeStep.entries[step].isSatisfied(birth)
+                            val ready = forgeSteps[step].isSatisfied(birth)
                             Box(
                                 Modifier
                                     .fillMaxWidth()
@@ -499,7 +505,7 @@ fun IncarnationScreen(
                                 Text(
                                     stringResource(
                                         R.string.forge_next,
-                                        stringResource(ForgeStep.entries[step + 1].titleRes),
+                                        stringResource(forgeSteps[step + 1].titleRes),
                                     ),
                                     style = A4LText.Body.copy(
                                         fontSize = 13.sp,
@@ -511,10 +517,10 @@ fun IncarnationScreen(
                         }
                     }
                 }
-                if (step < ForgeStep.entries.lastIndex &&
-                    !ForgeStep.entries[step].isSatisfied(birth)
+                if (step < forgeSteps.lastIndex &&
+                    !forgeSteps[step].isSatisfied(birth)
                 ) {
-                    MissingLine(birth, only = ForgeStep.entries[step])
+                    MissingLine(birth, only = forgeSteps[step])
                 }
             }
         }
@@ -1033,6 +1039,17 @@ private enum class ForgeStep(
     @StringRes val titleRes: Int,
     @StringRes val subtitleRes: Int,
 ) {
+    /**
+     * La première question, et la seule qui ne parle pas de la personne : dans
+     * quelle langue on va lui parler. Elle passe avant tout le reste parce
+     * qu'on ne remplit pas une fiche d'état civil dans une langue qu'on ne lit
+     * pas — et parce qu'au premier lancement, Android a déjà résolu la sienne :
+     * on ne devine rien, on montre ce qu'il a choisi et on laisse corriger.
+     *
+     * Elle n'existe qu'à partir d'Android 13, seul endroit où le choix par
+     * application est possible (voir [AppLocale.selectable] et [forgeSteps]).
+     */
+    Language("🗣", R.string.forge_step_language, R.string.forge_step_language_sub),
     Identity("🪪", R.string.forge_step_identity, R.string.forge_step_identity_sub),
     Anchor("⚓", R.string.forge_step_anchor, R.string.forge_step_anchor_sub),
     Vessel("🧬", R.string.forge_step_vessel, R.string.forge_step_vessel_sub),
@@ -1045,21 +1062,29 @@ private enum class ForgeStep(
      * et la fiche sait quoi mettre à sa place ([BirthData.saltHour]).
      */
     fun isSatisfied(b: BirthData): Boolean = when (this) {
-        Identity, Singularity -> true
+        Language, Identity, Singularity -> true
         Anchor -> b.dateComplete && b.isPlausible() && b.lat != null && b.lon != null
         Vessel -> b.wave != null
         Forge -> b.complete
     }
 }
 
-/** Le chemin parcouru : cinq pastilles, reliées, cliquables vers l'arrière. */
+/**
+ * Les étapes réellement parcourues. En dessous d'Android 13 le choix de langue
+ * par application n'existe pas : la proposer serait un geste sans effet, et une
+ * pastille de plus à traverser pour rien.
+ */
+private val forgeSteps: List<ForgeStep> =
+    if (AppLocale.selectable) ForgeStep.entries else ForgeStep.entries - ForgeStep.Language
+
+/** Le chemin parcouru : une pastille par étape, reliées, cliquables vers l'arrière. */
 @Composable
 private fun StepBar(current: Int, reached: (Int) -> Boolean, onSelect: (Int) -> Unit) {
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ForgeStep.entries.forEachIndexed { index, _ ->
+        forgeSteps.forEachIndexed { index, _ ->
             val done = index < current
             val active = index == current
             val open = reached(index)
@@ -1092,7 +1117,7 @@ private fun StepBar(current: Int, reached: (Int) -> Boolean, onSelect: (Int) -> 
                     },
                 )
             }
-            if (index < ForgeStep.entries.lastIndex) {
+            if (index < forgeSteps.lastIndex) {
                 Box(
                     Modifier
                         .weight(1f)

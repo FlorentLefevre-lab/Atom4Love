@@ -202,6 +202,13 @@
     <string name="cert_confirm_ok">Publish</string>
     <string name="cert_confirm_cancel">Not now</string>
 
+    <!-- ─── Settings: what used to sit in the header ─────────────────── -->
+    <string name="settings_language_label">Language</string>
+    <string name="settings_theme_label">Light</string>
+    <string name="theme_light">Day</string>
+    <string name="theme_dark">Night</string>
+    <string name="language_follows_phone">This Android follows the phone\'s language: a per-app choice needs Android 13 or newer.</string>
+
     <!-- ─── The bottom bar ────────────────────────────────────────────── -->
     <string name="tab_radar">Radar</string>
     <string name="tab_map">Map</string>
@@ -416,6 +423,8 @@
     <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Incarnation: forging the nucleus ─────────────────────── -->
+    <string name="forge_step_language">Language</string>
+    <string name="forge_step_language_sub">Which language the station speaks to you in. Your phone\'s is already ticked.</string>
     <string name="forge_step_identity">Identity</string>
     <string name="forge_step_identity_sub">what the station makes, and for whom</string>
     <string name="forge_step_anchor">Anchor</string>

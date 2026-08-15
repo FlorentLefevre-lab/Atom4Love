@@ -385,7 +385,6 @@ private fun Station(
                 // garde donc les mêmes réglages, sinon on les perdrait
                 // justement en allant chercher de quoi comprendre.
                 Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
-                    AppearanceLine()
                     BackHandler { showHelp = false }
                     HelpScreen(
                         modifier = Modifier.weight(1f),
@@ -400,7 +399,6 @@ private fun Station(
                 // la barre de réglages prend l'encoche, l'assistant se pose
                 // dessous — c'est le montage de la station, à l'identique.
                 Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
-                    AppearanceLine()
                     IncarnationScreen(
                         birth = birth,
                         onBirthChange = ::updateBirth,
@@ -419,7 +417,6 @@ private fun Station(
             // ce dont la barre a été débarrassée. Un lieu où l'on va se garde
             // dans la barre ; une chose qu'on consulte et qu'on referme, non.
             Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
-                AppearanceLine()
                 val close = { overlay = Overlay.None }
                 // Ces écrans ne sont plus des onglets : le geste de retour du
                 // système doit les refermer, pas quitter la station. Le
@@ -638,8 +635,6 @@ private fun CabinLine(
         // U+FE0F : sans lui, U+2699 tombe sur la police TEXTE du système, qui
         // le dessine en cercle à rayons — une roue de bateau, pas un engrenage.
         HeaderButton("⚙️", R.string.tab_settings, A4L.TextStrong, onSettings)
-        Spacer(Modifier.width(8.dp))
-        AppearanceControls()
     }
 }
 
@@ -815,121 +810,6 @@ private fun MediumPicker(status: CabinChat.Status, onSelect: (Medium) -> Unit) {
                     },
                 )
             }
-        }
-    }
-}
-
-/**
- * Les deux réglages d'apparence : l'heure de la station, puis la langue.
- *
- * Ils vont ensemble et dans cet ordre partout où ils apparaissent — c'est à ça
- * qu'on les retrouve sans les chercher.
- */
-@Composable
-private fun AppearanceControls() {
-    ThemeToggle()
-    if (AppLocale.selectable) {
-        Spacer(Modifier.width(8.dp))
-        LanguagePicker()
-    }
-}
-
-/**
- * La même barre de réglages, pour les écrans qui n'ont pas la ligne de cabine :
- * l'assistant d'incarnation et l'ouverture d'un compte.
- *
- * Ce sont les deux écrans qu'on traverse **avant** d'avoir une station, et
- * c'étaient les seuls d'où l'on ne pouvait pas changer de langue. Quelqu'un dont
- * le téléphone parle une langue qu'il ne lit pas y forgeait son noyau à
- * l'aveugle — au moment le plus irréversible de l'application.
- */
-@Composable
-fun AppearanceLine(modifier: Modifier = Modifier) {
-    Row(
-        modifier
-            .fillMaxWidth()
-            .background(A4L.NavBackdrop)
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AppearanceControls()
-    }
-}
-
-/**
- * L'interrupteur du jour et de la nuit : une pastille, un appui.
- *
- * Il montre **ce qu'il propose**, pas où l'on est — c'est ce que fait un
- * interrupteur. Dans le jour, la lune attend qu'on la touche ; on est dans la
- * nuit, et c'est le soleil qui attend à son tour. Les drapeaux d'à côté font
- * l'inverse et c'est normal : eux sont trois, on désigne celui qu'on veut ;
- * ici il n'y a qu'un seul geste possible, et il doit se lire d'un regard.
- *
- * Le soleil est jaune et un peu plus grand que son cercle — la nuit, c'est lui
- * la lumière qu'on propose ; la lune reste dans le ton du texte, discrète comme
- * ce qu'elle promet.
- */
-@Composable
-private fun ThemeToggle() {
-    val context = LocalContext.current
-    val dark = AppTheme.dark
-    Box(
-        Modifier
-            .size(26.dp)
-            .clip(CircleShape)
-            .background(A4L.Glass)
-            .border(1.dp, A4L.StrokeSoft, CircleShape)
-            .clickable { AppTheme.toggle(context) }
-            .semantics {
-                contentDescription = context.getString(
-                    if (dark) R.string.theme_to_light else R.string.theme_to_dark,
-                )
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            // U+FE0E force la présentation texte : sans lui, la police rend le
-            // soleil en emoji coloré et la lune en glyphe, deux registres pour
-            // un seul interrupteur
-            if (dark) "☀︎" else "☾︎",
-            style = A4LText.Data.copy(fontSize = if (dark) 18.sp else 14.sp),
-            color = if (dark) A4L.Amber else A4L.TextStrong,
-        )
-    }
-}
-
-/**
- * Le choix de langue, dans l'en-tête : trois drapeaux, celle qui parle en
- * pleine lumière et les autres en retrait.
- *
- * Pas de menu déroulant — trois langues tiennent dans la largeur, et le geste
- * doit coûter un seul appui : on change de langue parce qu'on ne comprend pas
- * ce qui est à l'écran, ce n'est pas le moment de demander de naviguer.
- *
- * L'état se lit dans la configuration, jamais dans une variable à nous : le
- * système recrée l'activité après le choix, et il peut aussi avoir été changé
- * depuis les réglages d'Android sans passer par ici.
- */
-@Composable
-private fun LanguagePicker() {
-    val context = LocalContext.current
-    val current = AppLocale.shown(LocalResources.current.configuration.locales)
-    Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-        AppLanguage.entries.forEach { language ->
-            val active = language == current
-            Text(
-                language.flag,
-                fontSize = 13.sp,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(5.dp))
-                    .clickable(enabled = !active) { AppLocale.choose(context, language) }
-                    .alpha(if (active) 1f else 0.32f)
-                    .padding(horizontal = 3.dp, vertical = 2.dp)
-                    // le drapeau ne se lit pas à voix haute : le nom de la
-                    // langue, dans cette langue, est ce qui a du sens
-                    .semantics { contentDescription = language.endonym },
-            )
         }
     }
 }

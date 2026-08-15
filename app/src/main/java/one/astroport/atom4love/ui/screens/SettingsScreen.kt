@@ -27,7 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import one.astroport.atom4love.BuildConfig
 import one.astroport.atom4love.R
+import one.astroport.atom4love.ui.components.LanguageChoice
 import one.astroport.atom4love.ui.components.SectionLabel
+import one.astroport.atom4love.ui.components.ThemeChoice
 import one.astroport.atom4love.ui.components.glass
 import one.astroport.atom4love.ui.components.screenBackground
 import one.astroport.atom4love.ui.theme.A4L
@@ -41,11 +43,18 @@ import one.astroport.atom4love.ui.theme.A4LText
  * jamais eu de sens — un numéro de build n'est pas une réponse à une question,
  * et deux endroits qui l'écrivent finissent par se contredire.
  *
- * C'est donc une place tenue, volontairement vide en attendant ce qu'on y
- * mettra. Rien n'y a été déménagé : le thème et la langue restent en haut,
- * la balise et la cabine sur la Carte, le MULTIPASS sur le Noyau. Ces
- * gestes-là engagent la radio ou l'identité — les enfouir dans un menu leur
- * ferait perdre ce qu'ils disent là où ils agissent.
+ * ⚠ Ce commentaire disait le contraire jusqu'au 15/08 : que rien n'y serait
+ * déménagé, et que le thème et la langue resteraient dans l'en-tête. **Florent
+ * a tranché l'inverse** — ce sont bien des réglages, et une ligne d'en-tête qui
+ * les porte sur tous les écrans les met plus haut qu'ils ne valent.
+ *
+ * Ce qui n'y vient toujours pas : la balise et la cabine, sur la Carte, et le
+ * MULTIPASS, sur le Noyau. Ces gestes-là engagent la radio ou l'identité — les
+ * enfouir dans un menu leur ferait perdre ce qu'ils disent là où ils agissent.
+ *
+ * La langue se choisit **aussi** à la première étape de la forge : avant les
+ * réglages il y a l'assistant, et on ne remplit pas une fiche dans une langue
+ * qu'on ne lit pas.
  *
  * Il **a quitté la barre du bas** pour la poignée ⚙️ de l'en-tête : une place
  * tenue et vide n'est pas une destination, et une barre à six entrées se lisait
@@ -101,6 +110,28 @@ fun SettingsScreen(modifier: Modifier = Modifier, onClose: (() -> Unit)? = null)
                 color = A4L.TextHigh,
                 modifier = Modifier.padding(top = 18.dp),
             )
+
+            Column(
+                Modifier.padding(top = 22.dp),
+                verticalArrangement = Arrangement.spacedBy(9.dp),
+            ) {
+                SectionLabel(
+                    stringResource(R.string.settings_language_label),
+                    modifier = Modifier.padding(start = 3.dp),
+                )
+                LanguageChoice()
+            }
+
+            Column(
+                Modifier.padding(top = 22.dp),
+                verticalArrangement = Arrangement.spacedBy(9.dp),
+            ) {
+                SectionLabel(
+                    stringResource(R.string.settings_theme_label),
+                    modifier = Modifier.padding(start = 3.dp),
+                )
+                ThemeChoice()
+            }
 
             Column(
                 Modifier.padding(top = 22.dp, bottom = 20.dp),

@@ -246,6 +246,13 @@
     <string name="cert_confirm_ok">Publier</string>
     <string name="cert_confirm_cancel">Pas maintenant</string>
 
+    <!-- ─── Réglages : ce qui était dans l'en-tête jusqu'au 15/08 ────── -->
+    <string name="settings_language_label">Langue</string>
+    <string name="settings_theme_label">Lumière</string>
+    <string name="theme_light">Jour</string>
+    <string name="theme_dark">Nuit</string>
+    <string name="language_follows_phone">Cet Android suit la langue du téléphone : le choix par application demande Android 13 ou plus récent.</string>
+
     <!-- ─── La barre du bas : les cinq destinations ───────────────────── -->
     <string name="tab_radar">Radar</string>
     <string name="tab_map">Carte</string>
@@ -480,6 +487,8 @@
     <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Incarnation : la forge du noyau ──────────────────────── -->
+    <string name="forge_step_language">Langue</string>
+    <string name="forge_step_language_sub">Dans quelle langue la station vous parle. Celle du téléphone est déjà cochée.</string>
     <string name="forge_step_identity">Identité</string>
     <string name="forge_step_identity_sub">ce que la station fabrique, et pour qui</string>
     <string name="forge_step_anchor">Ancrage</string>

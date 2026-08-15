@@ -205,6 +205,13 @@
     <string name="cert_confirm_ok">Publicar</string>
     <string name="cert_confirm_cancel">Ahora no</string>
 
+    <!-- ─── Ajustes: lo que estaba en la cabecera ────────────────────── -->
+    <string name="settings_language_label">Idioma</string>
+    <string name="settings_theme_label">Luz</string>
+    <string name="theme_light">Día</string>
+    <string name="theme_dark">Noche</string>
+    <string name="language_follows_phone">Este Android sigue el idioma del teléfono: la elección por aplicación requiere Android 13 o posterior.</string>
+
     <!-- ─── La barra inferior ─────────────────────────────────────────── -->
     <string name="tab_radar">Radar</string>
     <string name="tab_map">Mapa</string>
@@ -419,6 +426,8 @@
     <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Encarnación: la forja del núcleo ─────────────────────── -->
+    <string name="forge_step_language">Idioma</string>
+    <string name="forge_step_language_sub">En qué idioma te habla la estación. El del teléfono ya está marcado.</string>
     <string name="forge_step_identity">Identidad</string>
     <string name="forge_step_identity_sub">lo que fabrica la estación, y para quién</string>
     <string name="forge_step_anchor">Anclaje</string>
