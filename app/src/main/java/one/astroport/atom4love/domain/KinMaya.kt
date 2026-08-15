@@ -66,6 +66,23 @@ object KinMaya {
 
     private val COLOR_NAMES_FR = arrayOf("Rouge", "Blanc", "Bleu", "Jaune", "Vert")
 
+    /**
+     * Un pictogramme par sceau — `EMOJI_BY_GLYPH_FR` d'`atomic-glyphs.js`.
+     *
+     * C'est la seule forme du sceau qui traverse une salle : dans un bar on ne
+     * lit pas « Akbal », on montre 🌌. Et il ne se traduit pas, ce qui règle la
+     * question des trois langues sans la poser.
+     */
+    private val GLYPH_EMOJI = arrayOf(
+        "🐉", "🌬️", "🌌", "🌱", "🐍", "🌉", "✋", "⭐",
+        "🌕", "🐕", "🐒", "🚶", "🎋", "🐆", "🦅", "⚔️",
+        "🌍", "🪞", "⛈️", "☀️",
+    )
+
+    /** Le pictogramme du sceau, ⚛ quand on ne le connaît pas — comme chez lui. */
+    fun glyphEmoji(glyph: Int?): String =
+        glyph?.takeIf { it in GLYPH_EMOJI.indices }?.let { GLYPH_EMOJI[it] } ?: "⚛"
+
     /** Le nom du sceau 0..19, ou null hors de la table. */
     fun glyphName(glyph: Int?): String? = glyph?.takeIf { it in GLYPH_NAMES.indices }
         ?.let { GLYPH_NAMES[it] }

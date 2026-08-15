@@ -486,6 +486,7 @@ private fun Station(
                     )
                     Overlay.Board -> BoardScreen(
                         npub = keys?.npubShort,
+                        birth = birth,
                         modifier = Modifier.weight(1f),
                         onClose = close,
                     )

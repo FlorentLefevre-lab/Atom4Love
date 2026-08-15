@@ -153,6 +153,19 @@
 
     <!-- ─── 03 · Plateau « Qui est-ce ? » ─────────────────────────────── -->
     <string name="board_title">Qui est-ce ?</string>
+    <string name="board_deal_intro">Le sceau de chacun est déjà dans l\'air : l\'annonce de proximité le porte, sans compte et sans réseau. Vingt sceaux pour une salle — « cherche le Dragon » y réduit déjà la pièce à deux personnes.</string>
+    <string name="board_your_card">Votre carte</string>
+    <string name="board_in_range">À portée (%1$d)</string>
+    <string name="board_nobody">Personne ne montre sa carte pour l\'instant. La partie se joue à deux téléphones dans la même salle.</string>
+    <string name="board_beacon_off">La balise est éteinte : personne ne vous voit, et vous ne voyez personne. Elle s\'allume sur la Carte, vue « Ici ».</string>
+    <string name="board_no_seal">Sceau inconnu</string>
+    <string name="board_no_date">votre fiche n\'a pas encore de date</string>
+    <string name="board_kin_tone">KIN %1$d · tonalité %2$d</string>
+    <string name="board_warmth_burning">vous brûlez</string>
+    <string name="board_warmth_warm">vous chauffez</string>
+    <string name="board_warmth_cool">encore loin</string>
+    <string name="board_warmth_cold">aux limites de la portée</string>
+    <string name="board_rule">Le jeu ne dit jamais qui est qui. Il permet de devenir trouvable — un signe, puis une question, puis un regard. Rien ne se retourne sans l\'accord des deux.</string>
     <string name="board_relay_cards">relay · 41 cartes</string>
     <string name="board_filter_pentagon">🌀 Pentagone</string>
     <string name="board_filter_nearby">📍 Proche</string>

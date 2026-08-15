@@ -117,6 +117,19 @@
 
     <!-- ─── 03 · El tablero «¿Quién es?» ──────────────────────────────── -->
     <string name="board_title">¿Quién es?</string>
+    <string name="board_deal_intro">El sello de cada cual ya está en el aire: la baliza de proximidad lo lleva, sin cuenta y sin red. Veinte sellos para una sala — «busca el Dragón» ya reduce la pieza a dos personas.</string>
+    <string name="board_your_card">Tu carta</string>
+    <string name="board_in_range">Al alcance (%1$d)</string>
+    <string name="board_nobody">Nadie muestra su carta por ahora. La partida se juega con dos teléfonos en la misma sala.</string>
+    <string name="board_beacon_off">La baliza está apagada: nadie te ve, y tú no ves a nadie. Se enciende en el Mapa, vista «Aquí».</string>
+    <string name="board_no_seal">Sello desconocido</string>
+    <string name="board_no_date">tu ficha aún no tiene fecha</string>
+    <string name="board_kin_tone">KIN %1$d · tono %2$d</string>
+    <string name="board_warmth_burning">te quemas</string>
+    <string name="board_warmth_warm">te acercas</string>
+    <string name="board_warmth_cool">aún lejos</string>
+    <string name="board_warmth_cold">al límite del alcance</string>
+    <string name="board_rule">El juego nunca dice quién es quién. Permite volverse encontrable — un signo, luego una pregunta, luego una mirada. Nada se voltea sin el acuerdo de ambos.</string>
     <string name="board_relay_cards">relé · 41 cartas</string>
     <string name="board_filter_pentagon">🌀 Pentágono</string>
     <string name="board_filter_nearby">📍 Cerca</string>

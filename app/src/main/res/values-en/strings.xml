@@ -115,6 +115,19 @@
 
     <!-- ─── 03 · The "Who is it?" board ───────────────────────────────── -->
     <string name="board_title">Who is it?</string>
+    <string name="board_deal_intro">Everyone\'s seal is already in the air: the proximity beacon carries it, with no account and no network. Twenty seals for a room — "look for the Dragon" already narrows it to two people.</string>
+    <string name="board_your_card">Your card</string>
+    <string name="board_in_range">In range (%1$d)</string>
+    <string name="board_nobody">Nobody is showing a card yet. The game is played by two phones in the same room.</string>
+    <string name="board_beacon_off">The beacon is off: nobody sees you, and you see nobody. It switches on from the Map, "Here" view.</string>
+    <string name="board_no_seal">Unknown seal</string>
+    <string name="board_no_date">your card has no date yet</string>
+    <string name="board_kin_tone">KIN %1$d · tone %2$d</string>
+    <string name="board_warmth_burning">you\'re burning</string>
+    <string name="board_warmth_warm">getting warmer</string>
+    <string name="board_warmth_cool">still far</string>
+    <string name="board_warmth_cold">at the edge of range</string>
+    <string name="board_rule">The game never says who is who. It lets you become findable — a sign, then a question, then a glance. Nothing turns over without both agreeing.</string>
     <string name="board_relay_cards">relay · 41 cards</string>
     <string name="board_filter_pentagon">🌀 Pentagon</string>
     <string name="board_filter_nearby">📍 Nearby</string>
