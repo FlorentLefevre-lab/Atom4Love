@@ -49,8 +49,25 @@ class NeighborRegistry(
          * il compte alors pour lui-même, faute de savoir le regrouper.
          */
         val token: Int?,
-        /** Dernier RSSI en dBm — la matière première du futur test de portée. */
+        /** Dernier RSSI **brut** en dBm, tel que la radio l'a rendu. */
         val rssi: Int,
+        /**
+         * Le RSSI **lissé**, et c'est celui qu'il faut lire pour dire une
+         * distance ou une chaleur.
+         *
+         * Mesuré le 15/08, deux appareils immobiles sur une table : 43 relevés,
+         * de −79 à −61 dBm — **18 dB d'amplitude sans que rien ne bouge**, pour
+         * un écart-type de 4,2 dB. Traduit en distance (n = 2,7), le même couple
+         * immobile « se déplaçait » d'un facteur 4,6. Avec les quatre seuils de
+         * chaleur d'alors, l'état changeait 20 fois sur 42 relevés.
+         *
+         * Une médiane sur cinq relevés tue les évanouissements profonds — ce
+         * −79 isolé, un trajet multiple qui s'annule — que la moyenne se
+         * contenterait d'étaler. Une exponentielle par-dessus rend la marche
+         * lisible : α = 0,3 à un relevé par seconde, soit environ trois
+         * secondes de mémoire.
+         */
+        val rssiSmoothed: Int,
         /**
          * Ce que le pair dit de lui sans se nommer — polarité, sceau, phase.
          * Vide pour un pair resté à une version antérieure de l'annonce : il
@@ -88,6 +105,15 @@ class NeighborRegistry(
     }
 
     private val byAddress = LinkedHashMap<String, Neighbor>()
+
+    /** Les cinq derniers relevés bruts par adresse — la fenêtre de la médiane. */
+    private val window = HashMap<String, ArrayDeque<Int>>()
+
+    /** Facteur de l'exponentielle : trois secondes de mémoire à 1 Hz. */
+    private val alpha = 0.3
+
+    /** Nombre de relevés dans la fenêtre de la médiane. Impair, pour trancher. */
+    private val windowSize = 5
     private val _neighbors = MutableStateFlow<List<Neighbor>>(emptyList())
     val neighbors: StateFlow<List<Neighbor>> = _neighbors.asStateFlow()
 
@@ -101,11 +127,20 @@ class NeighborRegistry(
         val now = clock()
         synchronized(byAddress) {
             val previous = byAddress[address]
+            // Médiane des cinq derniers, puis exponentielle sur le résultat.
+            val recent = window.getOrPut(address) { ArrayDeque() }
+            recent.addLast(rssi)
+            while (recent.size > windowSize) recent.removeFirst()
+            val median = recent.sorted()[recent.size / 2]
+            val smoothed = previous?.rssiSmoothed
+                ?.let { it + alpha * (median - it) }
+                ?: median.toDouble()
             byAddress[address] = Neighbor(
                 address = address,
                 cell4d = cell4d,
                 token = token,
                 rssi = rssi,
+                rssiSmoothed = Math.round(smoothed).toInt(),
                 signature = signature,
                 firstSeenMillis = previous?.firstSeenMillis ?: now,
                 lastSeenMillis = now,
@@ -123,6 +158,7 @@ class NeighborRegistry(
     fun clear() {
         synchronized(byAddress) {
             byAddress.clear()
+            window.clear()
             _neighbors.value = emptyList()
         }
     }

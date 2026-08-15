@@ -124,6 +124,12 @@
     <string name="board_no_seal">Unknown seal</string>
     <string name="board_no_date">your card has no date yet</string>
     <string name="board_kin_tone">KIN %1$d · tone %2$d</string>
+    <string name="board_warmth_touching">within arm’s reach</string>
+    <string name="board_warmth_hot">very hot</string>
+    <string name="board_warmth_distance">≈ %1$s</string>
+    <string name="board_warmth_distance_far">beyond %1$s</string>
+    <string name="format_metres">%1$.0f m</string>
+    <string name="format_metres_sub">%1$.1f m</string>
     <string name="board_warmth_burning">you\'re burning</string>
     <string name="board_warmth_warm">getting warmer</string>
     <string name="board_warmth_cool">still far</string>

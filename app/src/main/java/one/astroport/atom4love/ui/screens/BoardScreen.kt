@@ -287,7 +287,14 @@ private fun DealtCard(
     val classification = own.phase?.let { mine ->
         theirs.phase?.let { Phi2X.classifyResonance(mine, it) }
     }
-    val warmth = Warmth.of(neighbor.rssi)
+    // Le signal LISSÉ, comme dans la lanterne du rendez-vous — sur du brut, la
+    // carte clignoterait pendant que la lanterne reste stable, et deux écrans
+    // du même jeu ne diraient pas la même chose du même voisin. La mémoire est
+    // clée sur l'identité : dans un Column, un `remember` suit la position, et
+    // la main se réordonne quand les voisins vont et viennent.
+    var last by remember(neighbor.identity) { mutableStateOf<Warmth?>(null) }
+    val warmth = Warmth.of(neighbor.rssiSmoothed, last)
+    LaunchedEffect(warmth) { last = warmth }
     val accent = when {
         classification == null -> A4L.TextDim
         classification.union -> A4L.Mint

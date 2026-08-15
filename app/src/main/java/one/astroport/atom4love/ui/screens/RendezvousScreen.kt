@@ -32,6 +32,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
@@ -201,7 +203,14 @@ private fun Lantern(
             // ── La chaleur, toujours vivante ──────────────────────────────
             Spacer(Modifier.height(8.dp))
             if (inRange) {
-                val warmth = Warmth.of(card.rssi)
+                // Le signal LISSÉ, jamais le brut : deux appareils posés qui ne
+                // bougent pas font 18 dB d'amplitude, de quoi changer d'état
+                // une fois sur deux. Et la mémoire de l'état précédent, pour
+                // que l'hystérésis ait de quoi mordre.
+                var last by remember(card.identity) { mutableStateOf<Warmth?>(null) }
+                val warmth = Warmth.of(card.rssiSmoothed, last)
+                LaunchedEffect(warmth) { last = warmth }
+                val metres = Warmth.metres(card.rssiSmoothed)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -211,6 +220,32 @@ private fun Lantern(
                         stringResource(warmth.labelRes),
                         style = A4LText.Body,
                         color = warmth.color,
+                    )
+                    // Une distance qui s'annonce comme approximative, et qui se
+                    // tait au-delà de la portée utile mesurée (8 m) : le modèle
+                    // log-distance y donne encore des nombres, mais plus aucune
+                    // information — on est au plancher du récepteur.
+                    Text(
+                        if (metres > Warmth.USEFUL_RANGE_METRES) {
+                            stringResource(
+                                R.string.board_warmth_distance_far,
+                                stringResource(
+                                    R.string.format_metres,
+                                    Warmth.USEFUL_RANGE_METRES.toFloat(),
+                                ),
+                            )
+                        } else {
+                            stringResource(
+                                R.string.board_warmth_distance,
+                                if (metres < 10) {
+                                    stringResource(R.string.format_metres_sub, metres.toFloat())
+                                } else {
+                                    stringResource(R.string.format_metres, metres.toFloat())
+                                },
+                            )
+                        },
+                        style = A4LText.Data,
+                        color = warmth.color.copy(alpha = 0.75f),
                     )
                     classification?.let {
                         Text(

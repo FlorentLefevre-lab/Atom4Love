@@ -169,6 +169,12 @@
     <string name="board_no_seal">Sceau inconnu</string>
     <string name="board_no_date">votre fiche n\'a pas encore de date</string>
     <string name="board_kin_tone">KIN %1$d · tonalité %2$d</string>
+    <string name="board_warmth_touching">à bout de bras</string>
+    <string name="board_warmth_hot">très chaud</string>
+    <string name="board_warmth_distance">≈ %1$s</string>
+    <string name="board_warmth_distance_far">au-delà de %1$s</string>
+    <string name="format_metres">%1$.0f m</string>
+    <string name="format_metres_sub">%1$.1f m</string>
     <string name="board_warmth_burning">vous brûlez</string>
     <string name="board_warmth_warm">vous chauffez</string>
     <string name="board_warmth_cool">encore loin</string>

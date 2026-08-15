@@ -126,6 +126,12 @@
     <string name="board_no_seal">Sello desconocido</string>
     <string name="board_no_date">tu ficha aún no tiene fecha</string>
     <string name="board_kin_tone">KIN %1$d · tono %2$d</string>
+    <string name="board_warmth_touching">al alcance del brazo</string>
+    <string name="board_warmth_hot">muy caliente</string>
+    <string name="board_warmth_distance">≈ %1$s</string>
+    <string name="board_warmth_distance_far">más allá de %1$s</string>
+    <string name="format_metres">%1$.0f m</string>
+    <string name="format_metres_sub">%1$.1f m</string>
     <string name="board_warmth_burning">te quemas</string>
     <string name="board_warmth_warm">te acercas</string>
     <string name="board_warmth_cool">aún lejos</string>
