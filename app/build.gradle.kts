@@ -53,8 +53,17 @@ android {
 
         // secp256k1 et H3 embarquent des bibliothèques natives.
         // On limite les ABI aux architectures réellement utilisées.
+        //
+        // ⚠ x86_64 retiré le 15/08. L'artefact `h3-android` ne livre que
+        // `android-arm64` et `android-arm` : il n'existe **aucun**
+        // `libh3-java.so` pour x86_64, et le demander produisait un APK qui
+        // s'installait sur un émulateur pour y casser au premier appel — donc
+        // l'adresse `a4l:`, la balise et la carte, sans que rien n'ait prévenu
+        // à la compilation. Mieux vaut ne pas s'installer que s'installer
+        // cassé. Les images système « x86_64 with ARM support » (API 30+)
+        // traduisent l'ARM et restent donc utilisables pour tester.
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
 
         // Constantes de protocole ATOM4LOVE exposées via BuildConfig.
