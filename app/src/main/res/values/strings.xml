@@ -209,8 +209,6 @@
     <string name="basemap_osm">OpenStreetMap</string>
     <string name="basemap_satellite">satellite</string>
     <string name="map_recentre">Me recentrer</string>
-    <string name="map_residences">🏠 résidences</string>
-    <string name="map_residences_count">🏠 %1$d</string>
     <string name="map_refresh">Relire</string>
     <string name="map_by_resonance">Contacts en résonance avec vous</string>
     <string name="map_by_arrival">Derniers arrivés</string>
@@ -224,7 +222,6 @@
     <string name="cert_absent">Vous n\'êtes pas sur cette carte. Votre certificat n\'a jamais été publié.</string>
     <string name="cert_incomplete">Votre fiche n\'a pas encore de lieu de naissance — sans lui, ni phase ni adresse à publier.</string>
     <string name="cert_present">Votre certificat est sur le relais. Le republier remplacera celui qui s\'y trouve.</string>
-    <string name="cert_from_station">Votre certificat a été publié par une station Astroport, sous un secret qu\'elle est seule à détenir. Le remplacer d\'ici effacerait le lien chiffré vers votre compte : c\'est à la station de le refaire.</string>
     <string name="cert_publishing">Publication…</string>
     <string name="cert_published">✅ Publié. Vous êtes sur la carte.</string>
     <string name="cert_refused">Le relais a refusé : %1$s</string>

@@ -165,8 +165,6 @@
     <string name="basemap_osm">OpenStreetMap</string>
     <string name="basemap_satellite">satélite</string>
     <string name="map_recentre">Centrarme</string>
-    <string name="map_residences">🏠 residencias</string>
-    <string name="map_residences_count">🏠 %1$d</string>
     <string name="map_refresh">Releer</string>
     <string name="map_by_resonance">Contactos en resonancia contigo</string>
     <string name="map_by_arrival">Últimas llegadas</string>
@@ -178,7 +176,6 @@
     <string name="cert_absent">No estás en este mapa. Tu certificado nunca se ha publicado.</string>
     <string name="cert_incomplete">Tu ficha aún no tiene lugar de nacimiento — sin él no hay fase ni dirección que publicar.</string>
     <string name="cert_present">Tu certificado está en el relé. Republicarlo reemplazará el que ya está allí.</string>
-    <string name="cert_from_station">Tu certificado lo publicó una estación Astroport, bajo un secreto que solo ella tiene. Reemplazarlo desde aquí borraría el enlace cifrado a tu cuenta: le toca a la estación rehacerlo.</string>
     <string name="cert_publishing">Publicando…</string>
     <string name="cert_published">✅ Publicado. Estás en el mapa.</string>
     <string name="cert_refused">El relé rechazó: %1$s</string>

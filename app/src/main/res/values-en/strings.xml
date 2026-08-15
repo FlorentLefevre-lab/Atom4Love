@@ -162,8 +162,6 @@
     <string name="basemap_osm">OpenStreetMap</string>
     <string name="basemap_satellite">satellite</string>
     <string name="map_recentre">Centre on me</string>
-    <string name="map_residences">🏠 homes</string>
-    <string name="map_residences_count">🏠 %1$d</string>
     <string name="map_refresh">Reload</string>
     <string name="map_by_resonance">Contacts resonating with you</string>
     <string name="map_by_arrival">Latest arrivals</string>
@@ -175,7 +173,6 @@
     <string name="cert_absent">You are not on this map. Your certificate has never been published.</string>
     <string name="cert_incomplete">Your card has no place of birth yet — without it there is neither phase nor address to publish.</string>
     <string name="cert_present">Your certificate is on the relay. Republishing replaces the one that is there.</string>
-    <string name="cert_from_station">Your certificate was published by an Astroport station, under a secret only it holds. Replacing it from here would erase the encrypted link to your account: that is the station\'s to redo.</string>
     <string name="cert_publishing">Publishing…</string>
     <string name="cert_published">✅ Published. You are on the map.</string>
     <string name="cert_refused">The relay refused: %1$s</string>

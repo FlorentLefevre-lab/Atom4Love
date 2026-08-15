@@ -32,12 +32,13 @@ import one.astroport.atom4love.domain.KinMaya
  *
  * Ce qu'il porte :
  * - tag `g` : l'adresse [A4lAddress] du lieu de **naissance**, à la maille du
- *   kilomètre. C'est l'ancre du SALT, pas la résidence — celle-ci vit dans un
- *   `d=atom4love-home` séparé, que la station ne publie que si on lui a donné
- *   une adresse exprès. La carte de Fred en fait un calque à part ; nous ne
- *   lisons pour l'instant que les naissances.
+ *   kilomètre. C'est l'ancre du SALT, **pas la résidence**.
  * - tags `kin` et `phase` : le sceau du Tzolkin et la phase personnelle φ.
- * - contenu JSON : `personal_phase`, `omega_bio`, parfois `picture`.
+ * - contenu JSON : `personal_phase`, parfois `picture`.
+ *
+ * ⚠ La résidence vit chez Fred dans un `d=atom4love-home` séparé, en **degrés
+ * bruts**. Sa carte en fait un calque ; nous l'avons lu jusqu'au 15/08, puis
+ * retiré — voir le mot plus bas.
  *
  * **Écoute seule, relais public.** L'antenne de la station ([RelayStation])
  * s'accroche au relais local quand il y en a un — la constellation, elle, n'est
@@ -59,9 +60,6 @@ class Constellation(
 
         /** L'identifiant du certificat de clé LOVE — `d=atom4love`. */
         const val CERTIFICATE_D = "atom4love"
-
-        /** La résidence, quand elle a été choisie — `d=atom4love-home`. */
-        const val HOME_D = "atom4love-home"
 
         /** NIP-78 : données d'application, remplaçables et paramétrées. */
         const val CERTIFICATE_KIND = 30078
@@ -107,62 +105,19 @@ class Constellation(
         data object Unreachable : State
     }
 
-    /**
-     * Une résidence déclarée — le calque `atom4love-home` de sa carte.
-     *
-     * ⚠ **Elle est en degrés clairs**, pas à la maille du kilomètre : sa station
-     * écrit des tags `lat`/`lon` bruts, relus tels quels par
-     * `atomic_map.html::_loadHomeLayer`. Elle calcule bien une adresse `a4l:`
-     * au passage, mais n'en publie que le pentagone — un sommet d'icosaèdre, qui
-     * ne place rien. Pour lire ce calque il faut donc lire ce qu'il porte.
-     *
-     * C'est la donnée la plus exposée de tout le protocole, et le seul champ que
-     * personne n'a jamais publié : au 15/08/2026 le relais public en compte
-     * **zéro**.
-     */
-    data class Home(
-        val pubkey: String,
-        val latDeg: Double,
-        val lonDeg: Double,
-        val createdAt: Long,
-    )
+    // ⚠ **Le calque des résidences vivait ici** — `data class Home`, le flux
+    // `homes`, et `loadHomes()` qui lisait `d=atom4love-home` sur le relais
+    // public. Retiré le 15/08, sur demande de Florent.
+    //
+    // C'était la donnée la plus exposée de tout le protocole : le certificat
+    // ordinaire ne porte le lieu de naissance qu'à la maille du kilomètre, via
+    // l'adresse `a4l:`, quand la résidence partait en **degrés bruts** — non
+    // pas où l'on est né, mais où l'on habite. Nous n'en publiions aucune, et
+    // le relais public n'en comptait aucune non plus : ce calque allumait une
+    // carte vide au prix d'une requête sur la donnée la plus sensible du jeu.
 
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state.asStateFlow()
-
-    /** Le calque des résidences. Vide tant que [loadHomes] n'a pas été appelé. */
-    private val _homes = MutableStateFlow<List<Home>>(emptyList())
-    val homes: StateFlow<List<Home>> = _homes.asStateFlow()
-
-    private var homesJob: Job? = null
-    private var homesLoaded = false
-
-    /**
-     * Charge le calque des résidences, une fois — comme `_loadHomeLayer()`, qui
-     * ne part qu'au premier allumage du calque. Ce n'est pas de la paresse
-     * d'affichage : c'est une requête de plus sur le relais pour une donnée que
-     * la plupart des gens ne publient pas.
-     */
-    fun loadHomes() {
-        if (homesLoaded || homesJob?.isActive == true) return
-        homesJob = scope.launch {
-            val events = read(HOME_D) ?: return@launch
-            homesLoaded = true
-            _homes.value = events
-                .groupBy { it.pubkey }
-                .values
-                .mapNotNull { versions -> versions.maxBy { it.createdAt }.toHome() }
-        }
-    }
-
-    private fun NostrEvent.toHome(): Home? {
-        fun tag(name: String): Double? =
-            tags.firstOrNull { it.size >= 2 && it[0] == name }?.get(1)?.toDoubleOrNull()
-        val lat = tag("lat") ?: return null
-        val lon = tag("lon") ?: return null
-        if (lat < -90.0 || lat > 90.0 || lon < -180.0 || lon > 180.0) return null
-        return Home(pubkey = pubkey, latDeg = lat, lonDeg = lon, createdAt = createdAt)
-    }
 
     private var job: Job? = null
 

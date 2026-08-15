@@ -139,10 +139,6 @@ fun MapScreen(
     }
 
     var selected by remember { mutableStateOf<String?>(null) }
-    // Le calque des résidences, éteint par défaut et chargé au premier allumage
-    // — comme `_loadHomeLayer()`. Une requête de plus pour une donnée que
-    // presque personne ne publie ne se fait pas dans le dos.
-    var showResidences by rememberSaveable { mutableStateOf(false) }
     // Le fond de carte. Le trait de côte par défaut : c'est le seul qui ne dise
     // à personne ce qu'on regarde, et changer d'avis coûte un appui.
     var basemap by rememberSaveable { mutableStateOf(Basemap.Coastline) }
@@ -194,8 +190,6 @@ fun MapScreen(
         val target = with(density) { REVEAL_FROM_TOP.toPx() }
         scroll.animateScrollBy(top - target)
     }
-    val residences by constellation.homes.collectAsState()
-    LaunchedEffect(showResidences) { if (showResidences) constellation.loadHomes() }
 
     val atoms = (state as? Constellation.State.Loaded)?.atoms.orEmpty()
     val sightings = remember(atoms, myPhase, home, keys) {
@@ -284,7 +278,6 @@ fun MapScreen(
         WorldMap(
             atoms = atoms,
             home = home,
-            homes = if (showResidences) residences else emptyList(),
             selected = selected,
             onSelect = { pubkey ->
                 selected = pubkey
@@ -342,19 +335,9 @@ fun MapScreen(
                 modifier = Modifier.weight(1f, fill = false),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                // Le calque des résidences. Il dit son compte une fois allumé,
-                // parce que « rien ne s'affiche » et « personne n'en publie »
-                // se ressemblent trop à l'écran.
-                A4LChip(
-                    label = if (showResidences) {
-                        stringResource(R.string.map_residences_count, residences.size)
-                    } else {
-                        stringResource(R.string.map_residences)
-                    },
-                    selected = showResidences,
-                    accent = A4L.Violet,
-                    modifier = Modifier.clickable { showResidences = !showResidences },
-                )
+                // ⚠ Une puce 🏠 précédait celle-ci : le calque des résidences,
+                // lu sur `d=atom4love-home`. Retirée le 15/08 avec le calque —
+                // voir le mot dans `Constellation`.
                 A4LChip(
                     label = stringResource(R.string.map_refresh),
                     accent = A4L.Cyan,
@@ -577,7 +560,16 @@ private fun CertificateCard(
     // La station a écrit ce certificat sous un secret qui n'est pas le nôtre :
     // le remplacer effacerait le lien chiffré vers son compte, sans retour.
     val stationOwned = (state as? Certificate.State.Present)?.fromStation == true
-    val actionable = draft != null && !stationOwned &&
+
+    // ⚠ Dans ce cas-là, le panneau **ne paraît plus du tout** (15/08). Il
+    // portait un paragraphe — « votre certificat a été publié par une station
+    // Astroport, sous un secret qu'elle est seule à détenir… » — et aucun
+    // bouton, puisqu'il n'y a précisément rien à faire. Un bloc qui explique
+    // longuement pourquoi il ne propose rien est du bruit : tout va bien, on
+    // est sur la carte, et la carte le montre déjà.
+    if (stationOwned) return
+
+    val actionable = draft != null &&
         state !is Certificate.State.Publishing && state !is Certificate.State.Checking
 
     Column(
@@ -597,12 +589,9 @@ private fun CertificateCard(
                     } else {
                         stringResource(R.string.cert_absent)
                     }
-                is Certificate.State.Present ->
-                    if (s.fromStation) {
-                        stringResource(R.string.cert_from_station)
-                    } else {
-                        stringResource(R.string.cert_present)
-                    }
+                // Le cas `fromStation` ne descend jamais jusqu'ici : la garde
+                // du haut a déjà rendu le panneau invisible.
+                is Certificate.State.Present -> stringResource(R.string.cert_present)
                 Certificate.State.Publishing -> stringResource(R.string.cert_publishing)
                 is Certificate.State.Published -> stringResource(R.string.cert_published)
                 is Certificate.State.Refused -> stringResource(R.string.cert_refused, s.reason)

@@ -163,7 +163,6 @@ fun WorldMap(
     atoms: List<Constellation.Atom>,
     modifier: Modifier = Modifier,
     home: LatLon? = null,
-    homes: List<Constellation.Home> = emptyList(),
     selected: String? = null,
     onSelect: (String?) -> Unit = {},
     basemap: Basemap = Basemap.Coastline,
@@ -184,7 +183,6 @@ fun WorldMap(
     val grid = A4L.Stroke.copy(alpha = 0.16f)
     val phaseless = A4L.TextFaint
     val homeColor = A4L.Mint
-    val residence = A4L.Violet
     val halo = A4L.TextHigh
     val countInk = A4L.Deep
     val dark = A4L.IsDark
@@ -375,17 +373,6 @@ fun WorldMap(
                 drawLine(grid, at(lat.toDouble(), -180.0), at(lat.toDouble(), 180.0), 1f)
             }
 
-            homes.forEach { house ->
-                val q = at(house.latDeg, house.lonDeg)
-                if (offScreen(q, size)) return@forEach
-                val side = HOUSE_SIDE.toPx()
-                drawRect(
-                    color = residence.copy(alpha = 0.75f),
-                    topLeft = Offset(q.x - side / 2f, q.y - side / 2f),
-                    size = Size(side, side),
-                )
-            }
-
             home?.let {
                 val q = at(it.lat, it.lon)
                 drawCircle(homeColor.copy(alpha = 0.18f), HOME_HALO.toPx(), q)
@@ -536,7 +523,6 @@ private val ATOM_GLOW: Dp = 6.5.dp
 private val SELECTED_RING: Dp = 9.dp
 private val HOME_RING: Dp = 5.dp
 private val HOME_HALO: Dp = 11.dp
-private val HOUSE_SIDE: Dp = 5.dp
 private val BADGE_RADIUS: Dp = 6.5.dp
 private val BADGE_OFFSET: Dp = 5.dp
 private val BADGE_TEXT: Dp = 8.5.dp
