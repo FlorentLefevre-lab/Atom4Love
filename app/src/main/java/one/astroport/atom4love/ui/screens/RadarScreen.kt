@@ -30,6 +30,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -216,6 +222,12 @@ fun RadarScreen(
     cabinOpen: Boolean = false,
     onOpenCabin: () -> Unit = {},
     onCloseCabin: () -> Unit = {},
+    /**
+     * Revenir dans une cabine déjà ouverte, sans rien fermer. Le retour système
+     * quitte la destination sans y toucher : il faut donc un chemin pour y
+     * retourner, et ce n'est pas le même geste que fermer.
+     */
+    onEnterCabin: () -> Unit = {},
 ) {
     var elapsed by remember { mutableFloatStateOf(0f) }
     var attempt by remember { mutableIntStateOf(0) }
@@ -328,11 +340,29 @@ fun RadarScreen(
     // elle naît sous la ligne de flottaison, derrière le disque du radar.
     val pageScroll = rememberScrollState()
 
+    // ── La cabine ouverte prend l'écran ───────────────────────────────────
+    //
+    // Elle vivait dans la page, en panneau de hauteur fixe, et la page se
+    // faisait défiler de force pour l'amener sous les yeux. Deux défauts en
+    // sortaient : la hauteur était devinée (58 % de l'écran), et **le clavier
+    // recouvrait la rangée de saisie** — il fallait le refermer pour atteindre
+    // Envoyer, puisque rien dans un îlot figé au milieu d'un défilement ne peut
+    // céder la place à l'IME.
+    //
+    // En destination, la forme est celle de toutes les conversations : la liste
+    // prend ce qui reste, la saisie se pose dessous, et `imePadding` la remonte
+    // au-dessus du clavier. La page du radar reste composée derrière — fermer la
+    // cabine rend l'écran là où on l'avait laissé.
     Column(
         modifier
             .fillMaxSize()
             .screenBackground(A4L.GlowRadar, A4L.Deep, centerY = 0.34f, radiusFactor = 1.2f)
             .statusBarsPadding()
+            // Avant `verticalScroll`, et l'ordre compte : la fenêtre de
+            // défilement doit rétrécir de la hauteur du clavier, faute de quoi
+            // le champ du salon reste sous lui sans qu'aucun geste ne l'en
+            // sorte. Après, on n'aurait fait qu'ajouter du vide en bas.
+            .imePadding()
             .verticalScroll(pageScroll),
     ) {
 
@@ -474,9 +504,12 @@ fun RadarScreen(
         }
         // Un seul geste d'ouverture/fermeture, partagé par le compteur « ici »
         // et par la rangée de la cabine : les deux désignent la même fenêtre.
+        // ⚠ Ouvre ou **revient**, jamais ne ferme. Fermer une cabine efface la
+        // conversation : ce geste-là ne se déclenche que dans la cabine, où l'on
+        // voit ce qu'on efface. D'ici on ne fait qu'y entrer.
         val toggleCabin: () -> Unit = {
             if (cabinOpen) {
-                onCloseCabin()
+                onEnterCabin()
             } else if (CabinChat.permissionsGranted(context)) {
                 onOpenCabin()
             } else {
@@ -485,39 +518,76 @@ fun RadarScreen(
             }
         }
 
-        // ── Radar ─────────────────────────────────────────────────────────
-        Box(
+        // ── Le rituel et les trois fenêtres ───────────────────────────────
+        //
+        // ⚠ Il y avait ici un cadran de 318 dp : cercles concentriques, balayage
+        // conique, anneau de progression, et un hexagone au milieu. Tout ça
+        // tournait joliment sans rien dire — aucun de ces cercles ne portait de
+        // distance, aucun angle ne portait de direction, le balayage ne balayait
+        // rien. Retiré le 15/08, et **la place rendue va au chat** : la cabine
+        // est ce qu'on vient faire ici, le décor lui prenait la moitié de
+        // l'écran.
+        Column(
             Modifier
                 .fillMaxWidth()
-                .height(318.dp)
-                .padding(top = 8.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp)
                 .clickable(enabled = unlocked) { elapsed = 0f; attempt++ },
-            contentAlignment = Alignment.Center,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            RadarRings(progress = elapsed / RITUAL_SECONDS)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Par où la cabine parle. Les trois voies, pas trois positions :
+                // le BLE reste ouvert quand le Wi-Fi porte, et l'ensemble ne
+                // fait que grandir. Chacune dit donc son propre état.
+                MediumGlyphs(status = cabinStatus, open = cabinOpen)
 
-            // Par où la cabine parle, à côté du cadran. Les trois voies, pas
-            // trois positions : le BLE reste ouvert quand le Wi-Fi porte, et
-            // l'ensemble ne fait que grandir. Chacune dit donc son propre état.
-            MediumGlyphs(
-                status = cabinStatus,
-                open = cabinOpen,
-                modifier = Modifier.align(Alignment.CenterStart),
-            )
+                Spacer(Modifier.width(18.dp))
+                // Le compteur du rituel, désormais en ligne : c'est un nombre
+                // qui descend, il n'a jamais eu besoin d'un cadran autour.
+                Text(
+                    if (unlocked) "⚛" else ceil(elapsed).toInt().toString(),
+                    style = A4LText.Data.copy(
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 42.sp,
+                    ),
+                    color = if (unlocked) A4L.Mint else A4L.Cyan,
+                )
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        if (unlocked) {
+                            stringResource(R.string.radar_ritual_done)
+                        } else {
+                            stringResource(R.string.radar_ritual_countdown, RITUAL_SECONDS.toInt())
+                        },
+                        style = A4LText.Data.copy(fontSize = 10.sp, letterSpacing = 1.8.sp),
+                        color = if (unlocked) {
+                            A4L.Mint.copy(alpha = 0.7f)
+                        } else {
+                            A4L.Cyan.copy(alpha = 0.55f)
+                        },
+                    )
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        stringResource(
+                            if (unlocked) R.string.radar_ritual_restart else R.string.radar_ritual_hold,
+                        ),
+                        style = A4LText.Body.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+                        color = A4L.TextStrong,
+                    )
+                }
+            }
 
-            // Les trois fenêtres, à droite du cadran et empilées de la plus
-            // proche à la plus lointaine : ici (la cabine, à portée d'antenne),
-            // le portail (ceux qui annoncent notre cellule), l'hexagone (ce
-            // qu'on n'atteint que par un relais). En rangée sous le radar,
-            // l'ordre inverse se lisait de gauche à droite sans rien dire ;
-            // empilés, ils dessinent l'éloignement.
-            Column(
-                Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 20.dp)
-                    .width(112.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+            // Les trois fenêtres, de la plus proche à la plus lointaine : ici
+            // (la cabine, à portée d'antenne), le portail (ceux qui annoncent
+            // notre cellule), l'hexagone (ce qu'on n'atteint que par un relais).
+            //
+            // Elles étaient empilées à droite du cadran, faute de largeur.
+            // Le cadran parti, elles reprennent la ligne — et l'éloignement se
+            // lit maintenant de gauche à droite, dans le sens de la lecture.
+            // Le reproche d'alors (« l'ordre inverse se lisait sans rien dire »)
+            // portait sur l'ordre, pas sur la rangée.
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // « Ici » se compte par la cabine, pas par la balise : elle
                 // nomme des noyaux attestés, un par npub, là où la balise ne
                 // sait dire que « une radio est là ».
@@ -525,7 +595,7 @@ fun RadarScreen(
                     if (cabinOpen) cabinPeers.size.toString() else "—",
                     stringResource(R.string.radar_stat_here_no_relay),
                     Modifier
-                        .fillMaxWidth()
+                        .weight(1f)
                         .clickable(onClick = toggleCabin),
                     accent = if (cabinOpen) A4L.Mint else null,
                 )
@@ -541,76 +611,17 @@ fun RadarScreen(
                         "—"
                     },
                     stringResource(R.string.radar_stat_in_portal),
-                    Modifier.fillMaxWidth(),
+                    Modifier.weight(1f),
                 )
                 CabinStat(
                     if (salonActive) pensees.size.toString() else "—",
                     stringResource(R.string.radar_stat_in_hexagon),
                     Modifier
-                        .fillMaxWidth()
+                        .weight(1f)
                         .clickable { salonOpen = !salonOpen },
                     accent = if (salonOpen) A4L.Green else null,
                 )
             }
-
-            Box(Modifier.size(150.dp).background(A4L.Cyan.tint(0.07f), HexagonShape))
-            // le tracé se fait hors composition : la teinte se prend avant
-            val edge = A4L.Cyan.tint(0.45f)
-            Canvas(Modifier.size(150.dp)) {
-                drawPath(
-                    path = hexagonPath(size),
-                    color = edge,
-                    style = Stroke(width = 1.dp.toPx()),
-                )
-            }
-
-            // Compteur du rituel
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (unlocked) {
-                    Text("⚛", fontSize = 40.sp, color = A4L.Mint)
-                } else {
-                    Text(
-                        ceil(elapsed).toInt().toString(),
-                        style = A4LText.Data.copy(
-                            fontSize = 44.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 44.sp,
-                        ),
-                        color = A4L.Cyan,
-                    )
-                }
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    if (unlocked) {
-                        stringResource(R.string.radar_ritual_done)
-                    } else {
-                        stringResource(R.string.radar_ritual_countdown, RITUAL_SECONDS.toInt())
-                    },
-                    style = A4LText.Data.copy(fontSize = 10.sp, letterSpacing = 1.8.sp),
-                    color = if (unlocked) A4L.Mint.copy(alpha = 0.7f) else A4L.Cyan.copy(alpha = 0.55f),
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    stringResource(
-                        if (unlocked) R.string.radar_ritual_restart else R.string.radar_ritual_hold,
-                    ),
-                    style = A4LText.Body.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
-                    color = A4L.TextStrong,
-                )
-            }
-
-            // Noyaux voisins qui respirent — les vrais, vus par la balise BLE.
-            // Un point par personne, comme le compteur : sans ce regroupement,
-            // une adresse qui vient de tourner et l'ancienne, pas encore
-            // évincée, faisaient scintiller deux points pour un seul appareil.
-            neighbors
-                .distinctBy { it.identity }
-                .take(MAX_NEIGHBOR_DOTS)
-                .forEach { neighbor ->
-                    key(neighbor.identity) {
-                        NeighborDot(neighbor = neighbor, ownCell4d = ownCell4d)
-                    }
-                }
         }
 
         Column(
@@ -749,7 +760,7 @@ fun RadarScreen(
                 Text(
                     stringResource(
                         if (cabinOpen) {
-                            R.string.radar_cabin_row_open
+                            R.string.radar_cabin_row_return
                         } else {
                             R.string.radar_cabin_row_closed
                         },
@@ -757,37 +768,6 @@ fun RadarScreen(
                     style = A4LText.Caption,
                     color = if (cabinOpen) A4L.Mint else A4L.TextMuted,
                 )
-            }
-            if (cabinOpen) {
-                cabin?.let { chat ->
-                    // Où la conversation se tient DANS LA FENÊTRE — sa position
-                    // dans sa colonne ne dirait rien du défilement, la colonne
-                    // n'étant pas celle qui défile.
-                    var topInWindow by remember { mutableIntStateOf(0) }
-                    Box(
-                        Modifier.onGloballyPositioned { coords ->
-                            topInWindow = coords.positionInRoot().y.toInt()
-                        },
-                    ) {
-                        CabinDirectPanel(chat = chat)
-                    }
-                    // Ce qu'on laisse au-dessus : de quoi garder la rangée
-                    // « Cabine ouverte » à l'écran, pour savoir d'où l'on vient.
-                    val margin = with(LocalDensity.current) { 132.dp.roundToPx() }
-                    // Une seule fois par ouverture — ensuite la page appartient
-                    // au doigt, et la position mesurée change à chaque
-                    // défilement : s'y accrocher ferait boucler l'écran sur
-                    // lui-même. On attend que la page connaisse SA PROPRE
-                    // hauteur : au premier placement `maxValue` vaut encore
-                    // zéro, et le défilement se bornait à rien du tout.
-                    LaunchedEffect(Unit) {
-                        val (top, max) = snapshotFlow { topInWindow to pageScroll.maxValue }
-                            .first { (top, max) -> top > 0 && max > 0 }
-                        pageScroll.animateScrollTo(
-                            (pageScroll.value + top - margin).coerceIn(0, max),
-                        )
-                    }
-                }
             }
             Row(
                 Modifier
@@ -835,6 +815,70 @@ fun RadarScreen(
 }
 
 /**
+ * La cabine quand elle est ouverte : tout l'écran, et rien d'autre.
+ *
+ * Une seule rangée au-dessus, celle par où l'on sort — sans elle on ne saurait
+ * plus d'où l'on vient ni comment refermer. En dessous, [CabinDirectPanel]
+ * prend ce qui reste.
+ *
+ * L'encoche du clavier est consommée **ici**, sur la colonne entière, et non sur
+ * la rangée de saisie : c'est la colonne qui doit rétrécir quand le clavier
+ * monte, pour que la liste cède sa place et que la saisie remonte avec elle.
+ * Posée plus bas, elle n'aurait fait qu'ajouter du vide sous un bloc déjà hors
+ * d'atteinte.
+ *
+ * Elle est montée dans [one.astroport.atom4love.ui.A4LApp], au même rang que
+ * l'Aide et les Réglages, et **couvre la barre de menus**. Rendue à l'intérieur
+ * de l'onglet, elle s'arrêtait au-dessus de la barre — dont la place restait
+ * réservée derrière le clavier, laissant 64 dp de vide entre la saisie et les
+ * touches. Mesuré à l'écran, pas déduit.
+ */
+@Composable
+internal fun CabinDestination(
+    chat: CabinChat,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier
+            .fillMaxSize()
+            .background(A4L.Deep)
+            .screenBackground(A4L.GlowRadar, A4L.Deep, centerY = 0.34f, radiusFactor = 1.2f)
+            // Les deux, et dans cet ordre : `imePadding` consomme l'encoche du
+            // clavier, `navigationBarsPadding` n'ajoute ensuite que ce qui
+            // reste — zéro quand le clavier est là (il couvre déjà la barre),
+            // la hauteur des boutons système quand il n'y est pas. Sans le
+            // second, la rangée de saisie passait sous les boutons du système.
+            .imePadding()
+            .navigationBarsPadding(),
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 10.dp)
+                .dashedGlass(12.dp, A4L.GlassFaint, A4L.Mint.copy(alpha = 0.3f))
+                .clickable(onClick = onClose)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            StatusDot(A4L.Mint)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                stringResource(R.string.radar_cabin_row_open),
+                style = A4LText.Caption,
+                color = A4L.Mint,
+            )
+        }
+        CabinDirectPanel(
+            chat = chat,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
+        )
+    }
+}
+
+/**
  * Le cap de l'appareil en degrés (0 = nord), via le capteur de rotation.
  * null tant qu'aucune mesure n'est arrivée ou que l'appareil n'a pas de capteur.
  * Arrondi au degré pour ne recomposer qu'au changement visible.
@@ -868,56 +912,6 @@ private fun rememberHeadingDegrees(): Int? {
     return heading
 }
 
-/** Cercles concentriques, balayage conique et anneau de progression du rituel. */
-@Composable
-private fun RadarRings(progress: Float) {
-    // tout ce Canvas dessine hors composition : la palette se lit ici
-    val cyan = A4L.Cyan
-    val faint = A4L.StrokeFaint
-    Canvas(Modifier.size(290.dp)) {
-        val center = Offset(size.width / 2f, size.height / 2f)
-        val stroke = Stroke(width = 1.dp.toPx())
-
-        // Cercles de portée : 290 / 206 / 122 px
-        drawCircle(cyan.tint(0.09f), radius = 145.dp.toPx(), center = center, style = stroke)
-        drawCircle(cyan.tint(0.13f), radius = 103.dp.toPx(), center = center, style = stroke)
-        drawCircle(cyan.tint(0.18f), radius = 61.dp.toPx(), center = center, style = stroke)
-
-        // Balayage conique, départ à 200° (le CSS compte depuis midi, le shader depuis 3 h)
-        rotate(degrees = 200f - 90f, pivot = center) {
-            drawCircle(
-                brush = Brush.sweepGradient(
-                    0f to cyan.tint(0.16f),
-                    0.55f to Color.Transparent,
-                    1f to Color.Transparent,
-                    center = center,
-                ),
-                radius = 145.dp.toPx(),
-                center = center,
-            )
-        }
-
-        // Anneau de progression du rituel : 240 px de diamètre, 4 px d'épaisseur
-        val ringStroke = Stroke(width = 4.dp.toPx())
-        val ringRadius = 118.dp.toPx()
-        val ringSize = Size(ringRadius * 2, ringRadius * 2)
-        val ringTopLeft = Offset(center.x - ringRadius, center.y - ringRadius)
-        drawArc(
-            // le rail de l'anneau : un filet de la palette, pas un blanc en dur
-            // qui disparaîtrait sur fond clair
-            color = faint,
-            startAngle = -90f, sweepAngle = 360f, useCenter = false,
-            topLeft = ringTopLeft, size = ringSize, style = ringStroke,
-        )
-        drawArc(
-            color = cyan,
-            startAngle = -90f,
-            sweepAngle = 360f * progress.coerceIn(0f, 1f),
-            useCenter = false,
-            topLeft = ringTopLeft, size = ringSize, style = ringStroke,
-        )
-    }
-}
 
 /**
  * Au-delà, le radar deviendrait une nuée. Aucun compteur du bas ne rattrape
@@ -1124,7 +1118,7 @@ private fun CabinStat(
  * a que 677 — on y tapait à l'aveugle, après avoir fait défiler toute la page.
  */
 @Composable
-private fun CabinDirectPanel(chat: CabinChat) {
+private fun CabinDirectPanel(chat: CabinChat, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val status by chat.status.collectAsStateWithLifecycle()
     val messages by chat.messages.collectAsStateWithLifecycle()
@@ -1240,7 +1234,7 @@ private fun CabinDirectPanel(chat: CabinChat) {
     // seule leur mise en son était de nous.
 
     Column(
-        Modifier
+        modifier
             .fillMaxWidth()
             .glass(12.dp, background = A4L.GlassFaint, border = A4L.Mint.copy(alpha = 0.18f))
             .padding(12.dp),
@@ -1336,14 +1330,10 @@ private fun CabinDirectPanel(chat: CabinChat) {
                     ).show()
                 }
             },
-            // 42 % de la hauteur : de quoi lire plusieurs bulles sans que le
-            // champ de saisie quitte l'écran. Le plancher garde une
-            // conversation lisible sur un petit écran, le plafond rend à la
-            // tablette exactement ce qu'elle avait.
-            modifier = Modifier.height(
-                (LocalConfiguration.current.screenHeightDp * 0.42f).dp
-                    .coerceIn(240.dp, 400.dp),
-            ),
+            // Plus aucune hauteur devinée : la conversation prend ce que la
+            // destination lui laisse, et rétrécit d'elle-même quand le clavier
+            // monte. C'est tout l'intérêt d'avoir quitté la page qui défile.
+            modifier = Modifier.weight(1f),
         )
     }
 }

@@ -95,6 +95,16 @@
             couvre pas du tout. Compose recompose avec la nouvelle
             configuration : rien n'est perdu, rien ne redémarre.
         -->
+        <!--
+            ⚠ `windowSoftInputMode` est INERTE depuis l'edge-to-edge.
+            `enableEdgeToEdge()` pose `setDecorFitsSystemWindows(false)` : la
+            fenêtre garde toute sa hauteur derrière le clavier, et c'est à
+            chaque écran de consommer `WindowInsets.ime` lui-même
+            (`Modifier.imePadding()`). L'attribut est gardé pour les
+            gestionnaires de fenêtres qui le lisent encore, et signalé ici pour
+            qu'il cesse de rassurer à tort : trois écrans de saisie avaient
+            l'air traités parce qu'il était là.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

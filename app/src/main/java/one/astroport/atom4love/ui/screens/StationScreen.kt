@@ -89,6 +89,7 @@ fun StationScreen(
     cabinOpen: Boolean = false,
     onOpenCabin: () -> Unit = {},
     onCloseCabin: () -> Unit = {},
+    onEnterCabin: () -> Unit = {},
     /** La clé LOVE rendue par un MULTIPASS activé, et rien d'autre. */
     worldUnlocked: Boolean = false,
     onOpenMultipass: (() -> Unit)? = null,
@@ -107,6 +108,7 @@ fun StationScreen(
                         cabinOpen = cabinOpen,
                         onOpenCabin = onOpenCabin,
                         onCloseCabin = onCloseCabin,
+                        onEnterCabin = onEnterCabin,
                     )
                     PlaceView.World ->
                         if (worldUnlocked) {

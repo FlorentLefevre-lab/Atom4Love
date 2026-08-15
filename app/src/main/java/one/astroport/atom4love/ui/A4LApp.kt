@@ -60,6 +60,7 @@ import androidx.compose.runtime.collectAsState
 import android.util.Log
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import one.astroport.atom4love.BuildConfig
 import one.astroport.atom4love.chat.CabinChat
 import one.astroport.atom4love.chat.Medium
@@ -90,6 +91,7 @@ import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.screens.BoardScreen
 import one.astroport.atom4love.ui.screens.HelpScreen
 import one.astroport.atom4love.ui.screens.SettingsScreen
+import one.astroport.atom4love.ui.screens.CabinDestination
 import one.astroport.atom4love.ui.screens.IncarnationScreen
 import one.astroport.atom4love.ui.screens.MultipassScreen
 import one.astroport.atom4love.ui.screens.PlaceView
@@ -123,6 +125,20 @@ enum class A4LTab(
     @StringRes val labelRes: Int,
 ) {
     Map("🌍", R.string.tab_map),
+
+    /**
+     * Le Plateau, **au milieu** : le lieu, ceux qui y sont, soi — du dehors
+     * vers le dedans, et la meilleure place du pouce pour l'échelon qu'on veut
+     * voir monter.
+     *
+     * Il était sorti de la barre parce qu'« il n'a pas de partie, et un onglet
+     * promet un lieu où l'on revient ». Il en a une depuis qu'un sceau à portée
+     * l'allume. Sa place est **tenue en permanence** et non ajoutée à l'arrivée
+     * d'un voisin : une barre qui passe de deux à trois entrées déplacerait les
+     * deux autres sous le pouce, au moment précis où quelqu'un entre dans la
+     * pièce. Elle s'éteint, elle ne disparaît pas.
+     */
+    Board("🎴", R.string.tab_board),
     Nucleus("⚛", R.string.tab_nucleus),
     ;
 
@@ -134,12 +150,13 @@ enum class A4LTab(
     val accent: Color
         @Composable @ReadOnlyComposable get() = when (this) {
             Map -> A4L.Mint
+            Board -> A4L.Violet
             Nucleus -> A4L.Cyan
         }
 }
 
 /** Ce qui s'ouvre par-dessus la station, en plein écran, et se referme. */
-private enum class Overlay { None, Multipass, Help, Settings, Board }
+private enum class Overlay { None, Multipass, Help, Settings }
 
 /**
  * Le parcours complet : le splash (l'atome au cœur battant) couvre la
@@ -334,6 +351,10 @@ private fun Station(
     val cabinHost: CabinHost = viewModel()
     val cabin = cabinHost.chat
     val cabinOpen = cabinHost.open
+    // Ouverte et **affichée** sont deux choses. Le retour système quitte la
+    // destination sans fermer la cabine ; celle-ci continue de tenir ses liens,
+    // et l'on y revient par la rangée du radar.
+    var cabinShown by rememberSaveable { mutableStateOf(false) }
     // L'onde biologique ne va pas dans la balise : elle vient du corps, et le
     // corps ne s'annonce pas à la cantonade. Elle n'est confiée qu'en cabine,
     // à un pair attesté, sous Noise — c'est la règle de Fred du 2026-08-14.
@@ -348,7 +369,9 @@ private fun Station(
     // Ce que la fiche saura répondre au jeu des questions. Rien ne part de
     // là — c'est un geste par question, et il coûte la même réponse.
     LaunchedEffect(cabin, birth) { cabin.bindTraits(birth) }
-    val closeCabin: () -> Unit = { cabinHost.close() }
+    // Fermer efface : la destination se retire avec, sinon on resterait devant
+    // une conversation qui n'existe plus.
+    val closeCabin: () -> Unit = { cabinHost.close(); cabinShown = false }
     // Le Wi-Fi Direct est le seul médium qui demande une permission de plus.
     // Elle se demande ICI, au moment d'accepter la montée — pas à l'ouverture
     // de la cabine : parler à portée n'a jamais eu besoin de fabriquer un
@@ -452,6 +475,44 @@ private fun Station(
                     )
                 }
             }
+        } else if (cabinOpen && cabinShown && cabin != null) {
+            // La cabine ouverte est une destination, au même rang que l'Aide et
+            // les Réglages : plein écran, **par-dessus la barre de menus**.
+            //
+            // Elle vivait dans la page du radar, en panneau de hauteur fixe que
+            // la page faisait défiler de force. Le clavier recouvrait alors la
+            // rangée de saisie — il fallait le refermer pour atteindre Envoyer.
+            // Ici la liste prend ce qui reste et cède au clavier ; et couvrir la
+            // barre supprime les 64 dp de vide que sa place réservée laissait
+            // sous la saisie.
+            Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
+                // La ligne de cabine reste au-dessus, comme sur les onglets :
+                // c'est elle qui porte le sélecteur de voie (BT / réseau du lieu
+                // / point à point), le compteur de pairs et les deux poignées.
+                // La destination l'avait emportée avec la barre du haut — et
+                // c'est justement dans la cabine qu'on veut changer de voie,
+                // puisque c'est là que le débit se sent.
+                CabinLine(
+                    cabin = cabin,
+                    open = cabinOpen,
+                    onUpgrade = upgrade,
+                    onSelect = selectMedium,
+                    onHelp = { overlay = Overlay.Help },
+                    onSettings = { overlay = Overlay.Settings },
+                )
+                // ⚠ Le retour QUITTE LA VUE, il ne ferme rien. Fermer une
+                // cabine efface la conversation — un geste de retour distrait
+                // emporterait l'échange. La cabine reste ouverte derrière, ses
+                // liens tiennent, et la rangée du radar y ramène. Le seul geste
+                // qui efface est celui de la rangée du haut, dans la cabine,
+                // là où l'on voit ce qu'on efface.
+                BackHandler { cabinShown = false }
+                CabinDestination(
+                    chat = cabin,
+                    onClose = closeCabin,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         } else if (overlay != Overlay.None) {
             // Plein écran, comme l'aide avant la forge : ce qui s'ouvre ici est
             // ce dont la barre a été débarrassée. Un lieu où l'on va se garde
@@ -492,18 +553,15 @@ private fun Station(
                         modifier = Modifier.weight(1f),
                         onClose = close,
                     )
-                    Overlay.Board -> BoardScreen(
-                        npub = keys?.npubShort,
-                        birth = birth,
-                        modifier = Modifier.weight(1f),
-                        onClose = close,
-                    )
                     Overlay.None -> Unit // impossible : la branche l'exclut
                 }
             }
         } else {
             // `statusBarsPadding` consomme l'encoche pour ses enfants : celui
             // que chaque écran pose déjà devient un no-op, sans double marge.
+            // Les voisins que la balise entend : c'est ce qui réveille le
+            // Plateau dans la barre du bas.
+            val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
             Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
                 CabinLine(
                     cabin = cabin,
@@ -545,8 +603,13 @@ private fun Station(
                                 cabin = cabin,
                                 onSelectMedium = selectMedium,
                                 cabinOpen = cabinOpen,
-                                onOpenCabin = { cabinHost.open(keys) },
+                                onOpenCabin = { cabinHost.open(keys); cabinShown = true },
+                                onEnterCabin = { cabinShown = true },
                                 onCloseCabin = closeCabin,
+                            )
+                            A4LTab.Board -> BoardScreen(
+                                npub = keys?.npubShort,
+                                birth = birth,
                             )
                             A4LTab.Nucleus -> IncarnationScreen(
                                 birth = birth,
@@ -563,7 +626,7 @@ private fun Station(
                                 // partie, et un onglet promet un lieu où l'on
                                 // revient. On y entre depuis le noyau, dont il
                                 // tire de toute façon sa main.
-                                onBoard = { overlay = Overlay.Board },
+                                onBoard = { tab = A4LTab.Board },
                                 onDissolve = {
                                     // La station oublie tout : fiche vierge, retour à la
                                     // forge — et les mesures du corps partent avec, sans
@@ -584,7 +647,19 @@ private fun Station(
                     }
                     ElectronSweep(trigger = tab)
                 }
-                A4LNavBar(current = tab, onSelect = { tab = it })
+                A4LNavBar(
+                    current = tab,
+                    onSelect = { tab = it },
+                    // Un sceau à portée réveille le Plateau. Pas « quelqu'un
+                    // ici » : un pair sans signature est là sans rien avoir
+                    // montré, et ne donne aucune carte. Même prédicat que la
+                    // main du Plateau, à la lettre.
+                    awake = { entry ->
+                        entry != A4LTab.Board || neighbors
+                            .distinctBy { it.identity }
+                            .any { it.signature != ProximityPayload.Signature.Unknown }
+                    },
+                )
             }
         }
     }
@@ -857,7 +932,16 @@ private fun MediumPicker(status: CabinChat.Status, onSelect: (Medium) -> Unit) {
 
 /** Barre de navigation — l'onglet actif prend la couleur de son espace. */
 @Composable
-private fun A4LNavBar(current: A4LTab, onSelect: (A4LTab) -> Unit) {
+private fun A4LNavBar(
+    current: A4LTab,
+    onSelect: (A4LTab) -> Unit,
+    /**
+     * Un onglet endormi n'a rien à montrer pour l'instant. Il reste touchable :
+     * l'écran qui s'ouvre dit lui-même pourquoi il est vide, ce qui vaut mieux
+     * qu'un bouton qui refuse le doigt sans un mot.
+     */
+    awake: (A4LTab) -> Boolean = { true },
+) {
     // le filet du haut se dessine hors composition : sa couleur se prend ici
     val hairline = A4L.StrokeFaint
     Row(
@@ -874,12 +958,21 @@ private fun A4LNavBar(current: A4LTab, onSelect: (A4LTab) -> Unit) {
     ) {
         A4LTab.entries.forEach { entry ->
             val selected = entry == current
+            val lit = awake(entry)
             Column(
                 Modifier
                     .weight(1f)
                     .height(64.dp)
                     .clickable { onSelect(entry) }
-                    .alpha(if (selected) 1f else 0.4f)
+                    .alpha(
+                        when {
+                            // Là où l'on est, on est : un onglet endormi qu'on
+                            // a choisi reste pleinement lisible.
+                            selected -> 1f
+                            !lit -> 0.16f
+                            else -> 0.4f
+                        },
+                    )
                     .padding(4.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,

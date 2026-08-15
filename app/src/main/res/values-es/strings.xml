@@ -37,6 +37,7 @@
     <string name="radar_resonance_hint">k va de 0,5 a 1. Sube cuando dos ondas se cruzan en fase — o exactamente en oposición, que viene a ser responderse.</string>
 
     <string name="radar_cabin_row_open">Cabina abierta — toca para cerrar y borrar</string>
+    <string name="radar_cabin_row_return">Cabina abierta — toca para volver</string>
     <string name="radar_cabin_row_closed">Habla con quienes están aquí — cifrado, sin relé</string>
 
     <string name="radar_beacon_with_cell">Baliza activa (ubicación) — anuncia el hexágono %1$s</string>

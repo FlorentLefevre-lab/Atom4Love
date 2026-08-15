@@ -36,6 +36,7 @@
     <string name="radar_resonance_hint">k runs from 0.5 to 1. It rises when two waves cross in phase — or exactly out of phase, which amounts to answering each other.</string>
 
     <string name="radar_cabin_row_open">Booth open — tap to close and erase</string>
+    <string name="radar_cabin_row_return">Booth open — tap to go back in</string>
     <string name="radar_cabin_row_closed">Talk to those who are here — encrypted, no relay</string>
 
     <string name="radar_beacon_with_cell">Beacon on (location) — announcing hexagon %1$s</string>

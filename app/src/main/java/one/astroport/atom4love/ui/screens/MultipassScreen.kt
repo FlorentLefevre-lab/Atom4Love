@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -363,10 +364,17 @@ fun MultipassScreen(
         }
 
         // ── Actions ───────────────────────────────────────────────────────
+        //
+        // `imePadding` avant `navigationBarsPadding` : le bloc est ancré au bas
+        // de la fenêtre, et c'est le bouton qui envoie l'adresse. Sans lui le
+        // clavier le recouvrait — on saisissait son e-mail sans pouvoir le
+        // valider. L'edge-to-edge rend le `adjustResize` du manifeste inerte :
+        // l'IME ne se consomme qu'ici.
         Column(
             Modifier
                 .fillMaxWidth()
                 .padding(start = 20.dp, end = 20.dp, bottom = 22.dp)
+                .imePadding()
                 .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {

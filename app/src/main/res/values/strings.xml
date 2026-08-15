@@ -58,6 +58,7 @@
     <string name="radar_resonance_hint">k va de 0,5 à 1. Il monte quand deux ondes se croisent en phase — ou exactement en opposition, ce qui revient à se répondre.</string>
 
     <string name="radar_cabin_row_open">Cabine ouverte — toucher pour fermer et effacer</string>
+    <string name="radar_cabin_row_return">Cabine ouverte — toucher pour y revenir</string>
     <string name="radar_cabin_row_closed">Parler à ceux qui sont ici — chiffré, sans relais</string>
 
     <!-- « (localisation) » et non « (GPS) » : la position vient du fournisseur
