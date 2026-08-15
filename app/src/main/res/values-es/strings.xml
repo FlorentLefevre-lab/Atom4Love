@@ -175,6 +175,7 @@
     <string name="map_refresh">Releer</string>
     <string name="map_by_resonance">Por resonancia con tu onda</string>
     <string name="map_by_arrival">Últimas llegadas</string>
+    <string name="map_you">tú</string>
     <string name="map_no_kin">Sello desconocido</string>
 
     <!-- ─── Publicar tu certificado ──────────────────────────────────── -->

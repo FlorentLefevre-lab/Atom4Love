@@ -69,6 +69,13 @@ private data class Sighting(
     val resonance: Phi2X.Classification?,
     /** À vol d'oiseau depuis notre lieu de naissance, null s'il est inconnu. */
     val distanceKm: Double?,
+    /**
+     * Notre propre certificat, une fois publié. Il reste sur la carte — s'y voir
+     * est tout l'intérêt — mais sa ligne ne porte ni résonance ni distance :
+     * « 🤝 100 % · 1 km » n'apprend rien, c'est soi comparé à soi, et le
+     * kilomètre n'est que l'arrondi de la maille.
+     */
+    val isSelf: Boolean,
 )
 
 /**
@@ -109,26 +116,34 @@ fun MapScreen(
     var selected by remember { mutableStateOf<String?>(null) }
 
     val atoms = (state as? Constellation.State.Loaded)?.atoms.orEmpty()
-    val sightings = remember(atoms, myPhase, home) {
+    val sightings = remember(atoms, myPhase, home, keys) {
         atoms
             .map { atom ->
                 val theirs = atom.phase
+                val self = atom.pubkey == keys?.publicKeyHex
                 Sighting(
                     atom = atom,
-                    resonance = if (myPhase != null && theirs != null) {
+                    resonance = if (!self && myPhase != null && theirs != null) {
                         Phi2X.classifyResonance(myPhase, theirs)
                     } else {
                         null
                     },
-                    distanceKm = home?.let {
-                        Phi2X.haversineKm(it.lat, it.lon, atom.place.latDeg, atom.place.lonDeg)
+                    distanceKm = if (self) {
+                        null
+                    } else {
+                        home?.let {
+                            Phi2X.haversineKm(it.lat, it.lon, atom.place.latDeg, atom.place.lonDeg)
+                        }
                     },
+                    isSelf = self,
                 )
             }
-            // La résonance d'abord quand notre φ est connue — c'est l'ordre de
-            // son radar. Sinon la proximité, sinon les derniers arrivés.
+            // Nous d'abord, puis la résonance quand notre φ est connue — c'est
+            // l'ordre de son radar. Sinon la proximité, sinon les derniers
+            // arrivés.
             .sortedWith(
-                compareByDescending<Sighting> { it.resonance?.percent ?: -1 }
+                compareByDescending<Sighting> { it.isSelf }
+                    .thenByDescending { it.resonance?.percent ?: -1 }
                     .thenBy { it.distanceKm ?: Double.MAX_VALUE }
                     .thenByDescending { it.atom.createdAt },
             )
@@ -462,6 +477,7 @@ private fun SightingRow(
     val atom = sighting.atom
     val dot = atom.phase?.let { phaseColor(it) } ?: A4L.TextFaint
     val accent = when {
+        sighting.isSelf -> A4L.Cyan
         sighting.resonance == null -> A4L.TextDim
         sighting.resonance.union -> A4L.Mint
         else -> A4L.Violet
@@ -504,6 +520,9 @@ private fun SightingRow(
         }
 
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (sighting.isSelf) {
+                DataBadge(stringResource(R.string.map_you), A4L.Cyan)
+            }
             sighting.resonance?.let { r ->
                 DataBadge(
                     // 🤝 union (Δφ ≈ 0) · ⚡ friction (Δφ ≈ π) — le code de ses
