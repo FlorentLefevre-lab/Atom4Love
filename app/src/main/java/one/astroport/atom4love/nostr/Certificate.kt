@@ -59,6 +59,9 @@ class Certificate(
          */
         const val APP_ID = "ATOM4LOVE_v1"
 
+        /** NIP-09 — la demande de suppression. */
+        const val DELETION_KIND = 5
+
         private const val SUBSCRIPTION = "a4l-mine"
         private const val QUERY_TIMEOUT_MS = 8_000L
         private const val PUBLISH_TIMEOUT_MS = 10_000L
@@ -154,6 +157,133 @@ class Certificate(
             createdAt = createdAt,
         )
     }
+
+    /** Ce qu'est devenue la demande de retrait d'un certificat abandonné. */
+    sealed interface Retirement {
+        /** Ce nom n'avait rien publié : il n'y a rien à retirer. */
+        data object Nothing : Retirement
+
+        data class Done(val requestId: String) : Retirement
+
+        /** Le relais n'a pas répondu : on garde tout et on réessaiera. */
+        data object Unreachable : Retirement
+
+        data class Refused(val reason: String) : Retirement
+    }
+
+    /**
+     * Retire de la constellation le certificat publié sous une clé **qu'on
+     * n'emploie plus** — une demande de suppression NIP-09, signée par cette
+     * clé-là, la seule qui en ait le droit.
+     *
+     * Le geste appartient au moment où la station rend enfin sa propre clé
+     * LOVE : l'identité change, et laisser derrière soi un atome signé d'un nom
+     * abandonné, c'est se dédoubler sur la carte de tout le monde. Ce n'est pas
+     * une décision, c'est le ménage.
+     *
+     * **[pubkeyHex] d'abord, [signer] ensuite** : on demande au relais s'il y a
+     * seulement quelque chose à retirer, et on ne va chercher la clé privée que
+     * si oui. Retrouver une clé provisoire coûte 1 200 000 tours de PBKDF2 ; on
+     * ne les dépense pas pour découvrir qu'il n'y avait rien à faire. Et la clé
+     * rendue est **vérifiée contre le nom attendu** avant de signer quoi que ce
+     * soit — un coffre qui rendrait une autre identité ne signerait rien.
+     *
+     * ⚠ Ça vaut **pour ce relais**. Ce qui aurait déjà recopié l'événement le
+     * garde ; `relay.copylaradio.com` annonce le NIP-09 dans son document
+     * NIP-11, et c'est le seul relais où vit la constellation.
+     */
+    suspend fun retire(
+        pubkeyHex: String,
+        signer: suspend () -> NostrKeys?,
+    ): Retirement = withContext(Dispatchers.Default) {
+        val answer = findBy(pubkeyHex) ?: return@withContext Retirement.Unreachable
+        val doomed = answer.ifEmpty { return@withContext Retirement.Nothing }
+
+        val keys = signer() ?: return@withContext Retirement.Refused("clé introuvable")
+        if (keys.publicKeyHex != pubkeyHex) {
+            // Ne jamais signer avec une identité qu'on n'a pas demandée.
+            return@withContext Retirement.Refused("clé inattendue")
+        }
+
+        val request = NostrEvent.create(
+            keys = keys,
+            kind = DELETION_KIND,
+            content = "",
+            // NIP-09 : les événements visés, et l'adresse `kind:pubkey:d` qui
+            // couvre aussi les versions que le relais garderait encore d'un
+            // remplaçable paramétré.
+            tags = buildList {
+                doomed.forEach { add(listOf("e", it.id)) }
+                add(
+                    listOf(
+                        "a",
+                        "${Constellation.CERTIFICATE_KIND}:$pubkeyHex:${Constellation.CERTIFICATE_D}",
+                    ),
+                )
+                add(listOf("k", Constellation.CERTIFICATE_KIND.toString()))
+            },
+        )
+
+        val client = RelayClient(relayUrl, this)
+        try {
+            client.connect()
+            val ok = withTimeoutOrNull(PUBLISH_TIMEOUT_MS) {
+                client.state.takeWhile { it !is RelayClient.State.Connected }.collect {}
+                client.publishAndWait(request, PUBLISH_TIMEOUT_MS)
+            }
+            Log.d(TAG, "retrait de ${pubkeyHex.take(8)} → ${ok?.accepted} ${ok?.message.orEmpty()}")
+            when {
+                ok == null -> Retirement.Unreachable
+                ok.accepted -> Retirement.Done(request.id)
+                else -> Retirement.Refused(ok.message.ifBlank { "refus" })
+            }
+        } finally {
+            client.close()
+        }
+    }
+
+    /**
+     * Les certificats publiés sous ce nom. `null` quand le relais n'a rien dit
+     * — à ne pas confondre avec une liste vide, qui veut dire « il a répondu,
+     * et il n'y a rien ».
+     */
+    private suspend fun findBy(pubkeyHex: String): List<NostrEvent>? =
+        withContext(Dispatchers.Default) {
+            val client = RelayClient(relayUrl, this)
+            val found = mutableListOf<NostrEvent>()
+            var answered = false
+            try {
+                client.subscribe(
+                    SUBSCRIPTION,
+                    NostrFilter(
+                        kinds = listOf(Constellation.CERTIFICATE_KIND),
+                        identifiers = listOf(Constellation.CERTIFICATE_D),
+                        authors = listOf(pubkeyHex),
+                        limit = 10,
+                    ),
+                )
+                answered = withTimeoutOrNull(QUERY_TIMEOUT_MS) {
+                    client.inbound
+                        .onSubscription { client.connect() }
+                        .takeWhile { msg ->
+                            when (msg) {
+                                is RelayMessage.Eose -> msg.subscriptionId != SUBSCRIPTION
+                                is RelayMessage.Closed -> msg.subscriptionId != SUBSCRIPTION
+                                else -> true
+                            }
+                        }
+                        .collect { msg ->
+                            if (msg is RelayMessage.Event && msg.subscriptionId == SUBSCRIPTION) {
+                                found += msg.event
+                            }
+                        }
+                    true
+                } != null
+            } finally {
+                client.close()
+            }
+            if (answered || found.isNotEmpty()) found else null
+        }
 
     /** Va voir si un certificat existe déjà à notre nom. */
     fun check(keys: NostrKeys) {

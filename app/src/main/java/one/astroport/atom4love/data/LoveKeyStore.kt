@@ -37,6 +37,16 @@ class LoveKeyStore(private val context: Context) {
     private object Keys {
         val Nsec = stringPreferencesKey("love_nsec_sealed")
         val Fingerprint = stringPreferencesKey("birth_fingerprint")
+
+        /**
+         * La clé **publique** de la provisoire, en clair.
+         *
+         * Elle ne vaut pas d'être protégée — c'est un identifiant public — et
+         * elle se lit sans ouvrir le coffre. C'est ce qui permet de savoir, en
+         * une lecture et sans dérivation, sous quel nom cet appareil a pu
+         * laisser un atome dans la constellation.
+         */
+        val PublicKey = stringPreferencesKey("love_pubkey")
     }
 
     /**
@@ -59,10 +69,26 @@ class LoveKeyStore(private val context: Context) {
             context.loveKeyDataStore.edit { p ->
                 p[Keys.Nsec] = sealed
                 p[Keys.Fingerprint] = fingerprint
+                p[Keys.PublicKey] = keys.publicKeyHex
             }
         }
         keys
     }
+
+    /**
+     * Le nom public de la clé provisoire de cet appareil, sans ouvrir le coffre
+     * ni rien dériver — ou null si cet appareil n'en a jamais forgé une pour
+     * cette fiche.
+     *
+     * C'est la première question du ménage : y a-t-il un nom sous lequel un
+     * atome a pu être publié ? Le coffre ne sert qu'ensuite, et seulement s'il
+     * y a effectivement quelque chose à retirer.
+     */
+    suspend fun provisionalPublicKey(birth: BirthData): String? =
+        withContext(Dispatchers.Default) {
+            val p = context.loveKeyDataStore.data.first()
+            if (p[Keys.Fingerprint] != LoveKeyForge.fingerprint(birth)) null else p[Keys.PublicKey]
+        }
 
     /** La clé en coffre, si elle existe et correspond encore à la fiche. */
     private suspend fun cached(fingerprint: String): NostrKeys? {

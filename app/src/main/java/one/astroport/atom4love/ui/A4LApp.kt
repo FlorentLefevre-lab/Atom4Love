@@ -78,6 +78,7 @@ import one.astroport.atom4love.multipass.Enrollment
 import one.astroport.atom4love.multipass.MultipassService
 import one.astroport.atom4love.nostr.Bech32
 import one.astroport.atom4love.nostr.CabinSalon
+import one.astroport.atom4love.nostr.Certificate
 import one.astroport.atom4love.nostr.LocalRelayScout
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.RelayStation
@@ -243,6 +244,37 @@ private fun Station(
     LaunchedEffect(birth, forged) {
         derivedKeys = if (forged) loveKeyStore.loadOrDerive(birth) else null
     }
+    /**
+     * Le ménage d'une identité abandonnée — ceinture et bretelles.
+     *
+     * Une clé provisoire a pu publier un certificat dans la constellation, du
+     * temps où le monde s'ouvrait sans MULTIPASS. Quand la station rend enfin
+     * sa clé LOVE, cet atome-là devient un fantôme : le même être humain, signé
+     * d'un nom qu'il n'emploie plus, à côté du sien. On le retire une fois,
+     * sans rien demander — ce n'est pas une décision, c'est du rangement.
+     *
+     * **Ça ne devrait jamais avoir lieu** : depuis que le monde est réservé au
+     * MULTIPASS, une clé provisoire n'a plus accès à la publication. C'est un
+     * filet pour les installations d'avant cette règle, et pour le jour où
+     * cette règle bougerait.
+     *
+     * On lit d'abord le **nom public** de la provisoire — sans ouvrir le coffre,
+     * sans rien dériver — et on ne va chercher la clé privée que si le relais
+     * dit qu'il y a effectivement quelque chose à retirer. Le coffre effacé sert
+     * de mémoire : plus de nom, plus rien à faire. Et s'il n'a pas répondu, on
+     * garde tout et on réessaie au prochain démarrage.
+     */
+    val certificate = remember(scope) { Certificate(scope) }
+    LaunchedEffect(loveKeys, forged, birth) {
+        val station = loveKeys ?: return@LaunchedEffect
+        if (!forged) return@LaunchedEffect
+        val abandoned = loveKeyStore.provisionalPublicKey(birth) ?: return@LaunchedEffect
+        if (abandoned == station.publicKeyHex) return@LaunchedEffect
+        val outcome = certificate.retire(abandoned) { loveKeyStore.loadOrDerive(birth) }
+        Log.d("Nostr", "ménage de la clé provisoire : $outcome")
+        if (outcome !is Certificate.Retirement.Unreachable) loveKeyStore.clear()
+    }
+
     // La clé de la station prime dès qu'elle existe : c'est elle qui fait
     // autorité sur qui l'on est, celle d'ici ne fait que la précéder.
     val keys = if (!forged) null else loveKeys ?: derivedKeys
