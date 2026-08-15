@@ -169,6 +169,10 @@
     <string name="map_unreachable">Relay unreachable — the constellation is not held on this device.</string>
     <string name="map_empty">The relay answered: nobody yet.</string>
     <string name="map_empty_detail">No LOVE key activated on this relay.</string>
+    <string name="basemap_coastline">coastline</string>
+    <string name="basemap_osm">OpenStreetMap</string>
+    <string name="basemap_satellite">satellite</string>
+    <string name="map_recentre">Centre on me</string>
     <string name="map_residences">🏠 homes</string>
     <string name="map_residences_count">🏠 %1$d</string>
     <string name="map_refresh">Reload</string>

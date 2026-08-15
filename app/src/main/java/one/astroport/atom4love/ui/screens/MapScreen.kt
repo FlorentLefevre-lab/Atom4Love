@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,6 +47,8 @@ import one.astroport.atom4love.nostr.Certificate
 import one.astroport.atom4love.nostr.Constellation
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.ui.components.A4LChip
+import one.astroport.atom4love.ui.components.Basemap
+import one.astroport.atom4love.ui.components.BasemapPicker
 import one.astroport.atom4love.ui.components.DataBadge
 import one.astroport.atom4love.ui.components.LatLon
 import one.astroport.atom4love.ui.components.SectionLabel
@@ -119,6 +122,12 @@ fun MapScreen(
     // — comme `_loadHomeLayer()`. Une requête de plus pour une donnée que
     // presque personne ne publie ne se fait pas dans le dos.
     var showResidences by rememberSaveable { mutableStateOf(false) }
+    // Le fond de carte. Le trait de côte par défaut : c'est le seul qui ne dise
+    // à personne ce qu'on regarde, et changer d'avis coûte un appui.
+    var basemap by rememberSaveable { mutableStateOf(Basemap.Coastline) }
+    // Un compteur plutôt qu'un booléen : deux demandes de recentrage de suite
+    // doivent toutes les deux partir, même vers le même point.
+    var recentreRequest by remember { mutableIntStateOf(0) }
     val residences by constellation.homes.collectAsState()
     LaunchedEffect(showResidences) { if (showResidences) constellation.loadHomes() }
 
@@ -212,8 +221,31 @@ fun MapScreen(
             homes = if (showResidences) residences else emptyList(),
             selected = selected,
             onSelect = { selected = it },
+            basemap = basemap,
+            recentreOn = home,
+            recentreRequest = recentreRequest,
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp),
         )
+
+        // Le fond au choix, sous la carte : ce n'est pas un réglage qu'on range
+        // dans un menu, c'est une façon de regarder qui change avec ce qu'on
+        // cherche — la côte pour situer, la rue pour reconnaître.
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, top = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BasemapPicker(current = basemap, onSelect = { basemap = it })
+            if (home != null) {
+                A4LChip(
+                    label = stringResource(R.string.map_recentre),
+                    accent = A4L.Mint,
+                    modifier = Modifier.clickable { recentreRequest++ },
+                )
+            }
+        }
 
         // ── État de la lecture ────────────────────────────────────────────
         Row(

@@ -211,6 +211,10 @@
     <string name="map_unreachable">Relais injoignable — la constellation n\'est pas dans l\'appareil.</string>
     <string name="map_empty">Le relais a répondu : personne pour l\'instant.</string>
     <string name="map_empty_detail">Aucune clé LOVE activée sur ce relais.</string>
+    <string name="basemap_coastline">trait de côte</string>
+    <string name="basemap_osm">OpenStreetMap</string>
+    <string name="basemap_satellite">satellite</string>
+    <string name="map_recentre">Me recentrer</string>
     <string name="map_residences">🏠 résidences</string>
     <string name="map_residences_count">🏠 %1$d</string>
     <string name="map_refresh">Relire</string>
