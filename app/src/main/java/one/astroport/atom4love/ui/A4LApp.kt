@@ -570,6 +570,7 @@ private fun Station(
                     onSelect = selectMedium,
                     onHelp = { overlay = Overlay.Help },
                     onSettings = { overlay = Overlay.Settings },
+                    pickerAlways = tab == A4LTab.Map,
                 )
                 Box(Modifier.weight(1f)) {
                     AnimatedContent(
@@ -683,6 +684,14 @@ private fun CabinLine(
     onSelect: (Medium) -> Unit,
     onHelp: () -> Unit,
     onSettings: () -> Unit,
+    /**
+     * Montrer le sélecteur de voie même cabine fermée. Vrai sur la **Carte** :
+     * c'est l'écran des liaisons, et savoir par où ça passera — ou le choisir
+     * d'avance — s'y lit comme un état du lieu, pas comme un réglage de trafic.
+     * Ailleurs il reste lié à l'ouverture : sur le Noyau ou le Plateau, une
+     * liste de voies ne désignerait rien.
+     */
+    pickerAlways: Boolean = false,
 ) {
     val status by cabin.status.collectAsState()
     val peers by cabin.peers.collectAsState()
@@ -720,9 +729,15 @@ private fun CabinLine(
             color = if (open && medium != null) A4L.Mint else A4L.TextMuted,
         )
         // Choisir soi-même par où ça passe, plutôt que d'attendre qu'on le
-        // propose. La liste ne s'ouvre que cabine ouverte : hors cabine il n'y
-        // a pas de trafic à router, et forcer une voie ne voudrait rien dire.
-        if (open) MediumPicker(status = status, onSelect = onSelect)
+        // propose.
+        //
+        // ⚠ La liste ne s'ouvrait QUE cabine ouverte, au motif qu'« hors cabine
+        // il n'y a pas de trafic à router ». Vrai pour le trafic, faux pour la
+        // personne : sur la Carte on veut savoir par où ça passera avant
+        // d'ouvrir, et pouvoir le décider. Le choix se garde et s'applique à
+        // l'ouverture — `cabin.select` s'adresse à l'instance vivante, ouverte
+        // ou non.
+        if (open || pickerAlways) MediumPicker(status = status, onSelect = onSelect)
         if (open && peers.isNotEmpty()) {
             Spacer(Modifier.width(10.dp))
             Text(
