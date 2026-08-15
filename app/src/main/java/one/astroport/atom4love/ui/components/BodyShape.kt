@@ -111,26 +111,33 @@ fun Silhouette(
     val k = (0.70f + ((bmi ?: Bmi.NEUTRAL) - 15f) / 25f * 0.85f).coerceIn(0.70f, 1.55f)
 
     Canvas(modifier) {
-        // Le dessin vit dans un repère de 100 × 170, mis à l'échelle du cadre
+        // Le dessin vit dans un repère de 100 × 175, mis à l'échelle du cadre
         // reçu — les nombres ci-dessous se lisent donc comme des proportions.
-        val u = minOf(size.width / 100f, size.height / 170f)
+        val u = minOf(size.width / 100f, size.height / 175f)
         val ox = (size.width - 100f * u) / 2f
-        val oy = (size.height - 170f * u) / 2f
+        val oy = (size.height - 175f * u) / 2f
         fun x(v: Float) = ox + v * u
         fun y(v: Float) = oy + v * u
 
-        // Les demi-largeurs de référence, à k = 1. L'épaule domine chez l'un,
-        // la hanche chez l'autre, et l'écart est **franc** : à 40 dp de haut,
-        // deux points de différence ne se voient pas.
-        val shoulder = (if (female) 13.5f else 19.0f) * k
-        val waist = (if (female) 10.0f else 14.5f) * k
-        val hip = (if (female) 19.5f else 14.0f) * k
+        // ── Ce que la corpulence élargit, et dans quel ordre ───────────────
+        //
+        // ⚠ La première version étirait tout du même facteur. Un IMC de 36 y
+        // donnait des épaules de lutteur : le dessin disait « costaud » là où
+        // il fallait lire « corpulent ». Un corps ne grossit pas ainsi — la
+        // taille prend l'essentiel, la hanche suit, l'épaule bouge à peine.
+        val ks = 1f + (k - 1f) * 0.30f   // épaules
+        val kw = 1f + (k - 1f) * 1.35f   // taille, le vrai signal
+        val kh = 1f + (k - 1f) * 0.85f   // hanches
+
+        val shoulder = (if (female) 13.5f else 17.0f) * ks
+        val waist = (if (female) 10.0f else 12.5f) * kw
+        val hip = (if (female) 15.5f else 13.0f) * kh
 
         // La tête grossit à peine : un corps qui double de largeur ne double
         // pas de crâne, et l'oublier donne un bonhomme de neige. Elle est
         // **détachée** du tronc, comme sur un pictogramme de porte — c'est ce
         // qui rend la forme lisible quand elle ne fait qu'un ongle de haut.
-        val headR = 10.5f * (1f + (k - 1f) * 0.28f)
+        val headR = 9.5f * (1f + (k - 1f) * 0.22f)
         val head = Path().apply {
             addOval(
                 Rect(
@@ -142,78 +149,77 @@ fun Silhouette(
             )
         }
 
-        // Le tronc et les bras d'un seul trait : épaule, bras qui descend en
-        // s'écartant, main, remontée jusqu'à l'aisselle, taille, hanche. Le
-        // creux entre le bras et le flanc est ce qui fait lire « quelqu'un »
-        // plutôt qu'une masse.
-        val armFlare = 3.5f + 3.5f * (k - 1f)   // les bras s'écartent avec la corpulence
-        val armW = 5.4f * k
-        val handY = 88f
-        val armpitY = 52f
-
-        val body = Path().apply {
-            // Épaule gauche, sous la tête.
-            moveTo(x(50f - shoulder), y(40f))
+        // ── Le tronc, d'un seul trait : épaule, taille, hanche ─────────────
+        val torso = Path().apply {
+            moveTo(x(50f - shoulder), y(42f))
+            cubicTo(x(50f - shoulder), y(50f), x(50f - waist), y(56f), x(50f - waist), y(66f))
+            cubicTo(x(50f - waist), y(78f), x(50f - hip), y(80f), x(50f - hip), y(94f))
+            lineTo(x(50f + hip), y(94f))
+            cubicTo(x(50f + hip), y(80f), x(50f + waist), y(78f), x(50f + waist), y(66f))
+            cubicTo(x(50f + waist), y(56f), x(50f + shoulder), y(50f), x(50f + shoulder), y(42f))
+            // L'épaule remonte chercher le cou.
             cubicTo(
-                x(50f - shoulder), y(32f),
-                x(50f - shoulder * 0.42f), y(29f),
-                x(50f), y(29f),
+                x(50f + shoulder), y(34f),
+                x(50f + shoulder * 0.45f), y(31f),
+                x(50f), y(31f),
             )
             cubicTo(
-                x(50f + shoulder * 0.42f), y(29f),
-                x(50f + shoulder), y(32f),
-                x(50f + shoulder), y(40f),
-            )
-            // Bras droit : bord extérieur, main arrondie, bord intérieur.
-            lineTo(x(50f + shoulder + armFlare), y(handY))
-            quadraticTo(
-                x(50f + shoulder + armFlare - armW / 2f), y(handY + 5f),
-                x(50f + shoulder + armFlare - armW), y(handY),
-            )
-            lineTo(x(50f + waist * 0.98f), y(armpitY))
-            // Flanc droit : taille puis hanche.
-            cubicTo(
-                x(50f + waist), y(68f),
-                x(50f + hip), y(80f),
-                x(50f + hip), y(97f),
-            )
-            lineTo(x(50f - hip), y(97f))
-            // Flanc gauche, en miroir.
-            cubicTo(
-                x(50f - hip), y(80f),
-                x(50f - waist), y(68f),
-                x(50f - waist * 0.98f), y(armpitY),
-            )
-            // Bras gauche.
-            lineTo(x(50f - shoulder - armFlare + armW), y(handY))
-            quadraticTo(
-                x(50f - shoulder - armFlare + armW / 2f), y(handY + 5f),
-                x(50f - shoulder - armFlare), y(handY),
+                x(50f - shoulder * 0.45f), y(31f),
+                x(50f - shoulder), y(34f),
+                x(50f - shoulder), y(42f),
             )
             close()
         }
 
-        // Les jambes d'un seul trait, avec l'entrejambe en creux : deux formes
-        // séparées se décolleraient du tronc dès que la corpulence monte.
-        val ankle = 4.6f * (1f + (k - 1f) * 0.5f)
-        val outerL = 50f - hip * 0.92f
-        val outerR = 50f + hip * 0.92f
-        val legs = Path().apply {
-            moveTo(x(50f - hip), y(92f))
-            lineTo(x(outerL - ankle / 2f), y(162f))
-            quadraticTo(x(outerL), y(167f), x(outerL + ankle), y(162f))
-            lineTo(x(50f - 2.2f), y(112f))
-            lineTo(x(50f + 2.2f), y(112f))
-            lineTo(x(outerR - ankle), y(162f))
-            quadraticTo(x(outerR), y(167f), x(outerR + ankle / 2f), y(162f))
-            lineTo(x(50f + hip), y(92f))
-            close()
-        }
+        /**
+         * Un membre : un fuseau qui va de large à étroit, le bout arrondi. Il
+         * part **dans** le tronc et s'en écarte en descendant ; l'union fait le
+         * reste, et le creux qui apparaît entre les deux est ce qui fait lire
+         * « quelqu'un » plutôt qu'une masse.
+         */
+        fun limb(x1: Float, y1: Float, w1: Float, x2: Float, y2: Float, w2: Float) =
+            Path().apply {
+                moveTo(x(x1 - w1), y(y1))
+                lineTo(x(x2 - w2), y(y2))
+                arcTo(
+                    rect = Rect(
+                        left = x(x2 - w2), top = y(y2 - w2),
+                        right = x(x2 + w2), bottom = y(y2 + w2),
+                    ),
+                    startAngleDegrees = 180f,
+                    sweepAngleDegrees = -180f,
+                    forceMoveTo = false,
+                )
+                lineTo(x(x1 + w1), y(y1))
+                close()
+            }
 
-        // Une seule forme, réunie : le tronc et les jambes se recouvrent à la
-        // hanche, et deux remplissages translucides superposés y feraient une
-        // tache plus sombre. La tête, elle, reste à part — c'est voulu.
-        val trunk = Path().apply { op(body, legs, PathOperation.Union) }
+        // ⚠ L'écart des bras se mesure sur **le corps**, jamais sur l'IMC.
+        // Calculé sur l'IMC, il était dépassé par la taille dès qu'elle
+        // grossissait vraiment : à 36, les bras se ressoudaient au tronc et la
+        // silhouette redevenait un bloc. Parti de la largeur maximale, le creux
+        // est garanti à toutes les corpulences.
+        val widest = maxOf(shoulder, waist, hip)
+        val armW = 4.2f * (1f + (k - 1f) * 0.55f)
+        val handX = widest + ARM_GAP + armW * 0.72f
+        val armLeft = limb(50f - shoulder + armW * 0.55f, 40f, armW, 50f - handX, 92f, armW * 0.72f)
+        val armRight = limb(50f + shoulder - armW * 0.55f, 40f, armW, 50f + handX, 92f, armW * 0.72f)
+
+        // Même principe pour l'entrejambe : la cuisse est une fraction de la
+        // hanche, donc le V s'ouvre en même temps que le corps s'élargit.
+        val thigh = hip * 0.40f
+        val legX = hip * 0.52f
+        val ankle = 4.4f * (1f + (k - 1f) * 0.40f)
+        val legLeft = limb(50f - legX, 88f, thigh, 50f - legX * 0.92f, 156f, ankle)
+        val legRight = limb(50f + legX, 88f, thigh, 50f + legX * 0.92f, 156f, ankle)
+
+        // Une seule forme, réunie : membres et tronc se recouvrent, et deux
+        // remplissages translucides superposés y feraient une tache plus sombre
+        // à chaque jointure. La tête reste à part — c'est voulu.
+        var trunk = torso
+        listOf(armLeft, armRight, legLeft, legRight).forEach { part ->
+            trunk = Path().apply { op(trunk, part, PathOperation.Union) }
+        }
 
         listOf(trunk, head).forEach { part ->
             drawPath(part, color.copy(alpha = 0.20f))
@@ -221,3 +227,6 @@ fun Silhouette(
         }
     }
 }
+
+/** Le jour entre le bras et le flanc, en unités du repère. Jamais moins. */
+private const val ARM_GAP = 3.0f
