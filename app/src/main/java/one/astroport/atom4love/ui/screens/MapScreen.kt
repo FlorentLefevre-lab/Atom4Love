@@ -1,7 +1,13 @@
 package one.astroport.atom4love.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -158,6 +164,18 @@ fun MapScreen(
     // la demande. Une fois ouverte, elle le reste — y compris à la rotation.
     var resonancesOpen by rememberSaveable { mutableStateOf(false) }
     val chevron by animateFloatAsState(if (resonancesOpen) 0f else -90f, label = "chevron")
+    // Le battement de la ligne désignée. Calculé une fois ici et prêté à la
+    // liste : une transition infinie par ligne tournerait pour cent lignes dont
+    // une seule s'en sert.
+    val heartbeat by rememberInfiniteTransition(label = "sélection").animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(620, easing = FastOutSlowInEasing),
+            RepeatMode.Reverse,
+        ),
+        label = "battement",
+    )
     /**
      * Faire venir la ligne sous les yeux.
      *
@@ -369,31 +387,25 @@ fun MapScreen(
                     .clip(RoundedCornerShape(8.dp))
                     .clickable { resonancesOpen = !resonancesOpen }
                     .padding(vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(9.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // À gauche, devant le titre : c'est là qu'on lit le sens
-                    // d'un pli, comme les puces d'une arborescence.
-                    Text(
-                        "▾",
-                        style = A4LText.Data.copy(fontSize = 11.sp),
-                        color = A4L.TextMuted,
-                        modifier = Modifier.rotate(chevron),
-                    )
-                    SectionLabel(
-                        stringResource(
-                            if (myPhase != null) R.string.map_by_resonance else R.string.map_by_arrival,
-                        ),
-                    )
-                }
+                // À gauche, devant le titre : c'est là qu'on lit le sens d'un
+                // pli, comme les puces d'une arborescence.
                 Text(
-                    sightings.size.toString(),
-                    style = A4LText.Data.copy(fontSize = 11.sp),
-                    color = A4L.TextDim,
+                    "▾",
+                    style = A4LText.Data.copy(fontSize = 17.sp),
+                    color = A4L.TextMuted,
+                    modifier = Modifier.rotate(chevron),
+                )
+                // Le compte contre le titre, et non à l'autre bout de la ligne :
+                // il dit combien il y a **derrière ce pli-là**, pas combien il y
+                // a sur l'écran. Collé, il se lit comme une précision ; isolé à
+                // droite, il se lisait comme un chiffre de plus.
+                SectionLabel(
+                    stringResource(
+                        if (myPhase != null) R.string.map_by_resonance else R.string.map_by_arrival,
+                    ) + " (${sightings.size})",
                 )
             }
             AnimatedVisibility(visible = resonancesOpen) {
@@ -406,6 +418,7 @@ fun MapScreen(
                         SightingRow(
                             sighting = sighting,
                             selected = sighting.atom.pubkey == selected,
+                            heartbeat = heartbeat,
                             onClick = {
                                 val wasSelected = sighting.atom.pubkey == selected
                                 selected = sighting.atom.pubkey.takeUnless { wasSelected }
@@ -631,6 +644,15 @@ private fun SightingRow(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * L'opacité du liseré quand la ligne est désignée — elle bat.
+     *
+     * On arrive ici depuis la carte, en ayant touché un point à l'autre bout de
+     * l'écran : il faut que l'œil retrouve **où** il a été mené. Un liseré fin
+     * et fixe se confondait avec les autres lignes ; celui-ci est épais et il
+     * respire.
+     */
+    heartbeat: Float = 1f,
 ) {
     val atom = sighting.atom
     val dot = atom.phase?.let { phaseColor(it) } ?: A4L.TextFaint
@@ -646,8 +668,9 @@ private fun SightingRow(
             .fillMaxWidth()
             .glass(
                 radius = 14.dp,
-                background = if (selected) accent.tint(0.08f) else A4L.GlassSoft.copy(alpha = 0.035f),
-                border = if (selected) accent.tint(0.32f) else A4L.StrokeSoft,
+                background = if (selected) accent.tint(0.10f) else A4L.GlassSoft.copy(alpha = 0.035f),
+                border = if (selected) accent.copy(alpha = heartbeat) else A4L.StrokeSoft,
+                borderWidth = if (selected) 2.5.dp else 1.dp,
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
