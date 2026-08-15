@@ -423,8 +423,8 @@
     <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Incarnation: forging the nucleus ─────────────────────── -->
-    <string name="forge_step_language">Language</string>
-    <string name="forge_step_language_sub">Which language the station speaks to you in. Your phone\'s is already ticked.</string>
+    <string name="forge_step_appearance">Language and light</string>
+    <string name="forge_step_appearance_sub">Which language the station speaks to you in, and in which light. Your phone\'s is already ticked.</string>
     <string name="forge_step_identity">Identity</string>
     <string name="forge_step_identity_sub">what the station makes, and for whom</string>
     <string name="forge_step_anchor">Anchor</string>

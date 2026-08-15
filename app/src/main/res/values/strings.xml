@@ -487,8 +487,8 @@
     <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Incarnation : la forge du noyau ──────────────────────── -->
-    <string name="forge_step_language">Langue</string>
-    <string name="forge_step_language_sub">Dans quelle langue la station vous parle. Celle du téléphone est déjà cochée.</string>
+    <string name="forge_step_appearance">Langue et lumière</string>
+    <string name="forge_step_appearance_sub">Dans quelle langue la station vous parle, et sous quelle lumière. Celle du téléphone est déjà cochée.</string>
     <string name="forge_step_identity">Identité</string>
     <string name="forge_step_identity_sub">ce que la station fabrique, et pour qui</string>
     <string name="forge_step_anchor">Ancrage</string>

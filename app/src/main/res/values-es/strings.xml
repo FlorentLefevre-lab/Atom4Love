@@ -426,8 +426,8 @@
     <string name="format_height">%1$d cm</string>
 
     <!-- ─── 01 · Encarnación: la forja del núcleo ─────────────────────── -->
-    <string name="forge_step_language">Idioma</string>
-    <string name="forge_step_language_sub">En qué idioma te habla la estación. El del teléfono ya está marcado.</string>
+    <string name="forge_step_appearance">Idioma y luz</string>
+    <string name="forge_step_appearance_sub">En qué idioma te habla la estación, y con qué luz. El del teléfono ya está marcado.</string>
     <string name="forge_step_identity">Identidad</string>
     <string name="forge_step_identity_sub">lo que fabrica la estación, y para quién</string>
     <string name="forge_step_anchor">Anclaje</string>
