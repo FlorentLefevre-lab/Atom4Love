@@ -51,6 +51,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!--
+         Le rythme de reconnaissance dans la main : quand l'écran est tourné vers
+         la salle, on ne voit pas son propre signal, on le sent.
+    -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- usesCleartextTraffic : le relais NOSTR local d'une station Astroport est
          servi en ws:// sur la passerelle du hot-spot (IP dynamique, donc pas de
          domain-config possible). Les relais publics restent en wss:// (TLS). -->

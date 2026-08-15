@@ -108,7 +108,7 @@ object ProximityPayload {
      * recule d'un cran plutôt que de se faire passer pour absente — 10⁻⁴ rad de
      * moins, contre un voisin qui disparaîtrait de la résonance.
      */
-    private fun encodePhase(phase: Double?): Int {
+    internal fun encodePhase(phase: Double?): Int {
         if (phase == null || !phase.isFinite()) return PHASE_UNKNOWN
         val turns = ((phase % TAU) + TAU) % TAU / TAU
         return Math.round(turns * PHASE_STEPS).toInt().coerceIn(0, PHASE_STEPS - 1)

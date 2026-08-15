@@ -166,6 +166,13 @@
     <string name="board_warmth_cool">encore loin</string>
     <string name="board_warmth_cold">aux limites de la portée</string>
     <string name="board_rule">Le jeu ne dit jamais qui est qui. Il permet de devenir trouvable — un signe, puis une question, puis un regard. Rien ne se retourne sans l\'accord des deux.</string>
+    <!-- 🔦 La reconnaissance : le dernier mètre, franchi par les yeux. -->
+    <string name="board_hint_seek">Touchez une carte pour partir la chercher.</string>
+    <string name="rendezvous_title">Se reconnaître</string>
+    <string name="rendezvous_instruction">Levez votre écran.\nCherchez dans la salle celui qui bat comme le vôtre.</string>
+    <string name="rendezvous_mutual">Les deux téléphones calculent ce rythme tout seuls, à partir des deux phases. Rien n\'est envoyé, personne n\'est prévenu — il ne bat de l\'autre côté que si l\'autre vous a choisi aussi.</string>
+    <string name="rendezvous_out_of_range">hors de portée à l\'instant</string>
+    <string name="rendezvous_no_phase">Pas de rythme sans phase. Le sceau vient de la date, la phase demande le lieu de naissance — et il en faut un des deux côtés.</string>
     <string name="board_relay_cards">relay · 41 cartes</string>
     <string name="board_filter_pentagon">🌀 Pentagone</string>
     <string name="board_filter_nearby">📍 Proche</string>
@@ -606,7 +613,7 @@
     <string name="inc_sealed_note">Ces données ne seront plus jamais modifiables. Ceux qui vous connaissent peuvent les redire : vos proches sont votre phrase de récupération.</string>
     <string name="inc_provisional_note">La clé forgée ici est provisoire : elle vous suffit à portée d\'antenne. Votre clé LOVE, elle, sera dérivée par une station Astroport.ONE le jour où vous ouvrirez un MULTIPASS.</string>
     <string name="inc_multipass_active">MULTIPASS actif · clé LOVE en place</string>
-    <string name="inc_board_open">🎴 Plateau « Qui est-ce ? » — maquette, sans partie</string>
+    <string name="inc_board_open">🎴 Plateau « Qui est-ce ? » — le tirage et la reconnaissance</string>
     <string name="inc_multipass_open">Ouvrir un MULTIPASS sur AstroPort.ONE</string>
     <string name="inc_footer" translatable="false">Atom4Love · by AstroPort.ONE</string>
 

@@ -130,6 +130,13 @@
     <string name="board_warmth_cool">aún lejos</string>
     <string name="board_warmth_cold">al límite del alcance</string>
     <string name="board_rule">El juego nunca dice quién es quién. Permite volverse encontrable — un signo, luego una pregunta, luego una mirada. Nada se voltea sin el acuerdo de ambos.</string>
+    <!-- 🔦 El reconocimiento: el último metro, cruzado con la mirada. -->
+    <string name="board_hint_seek">Toca una carta para ir a buscarla.</string>
+    <string name="rendezvous_title">Reconocerse</string>
+    <string name="rendezvous_instruction">Levanta tu pantalla.\nBusca en la sala la que late como la tuya.</string>
+    <string name="rendezvous_mutual">Ambos teléfonos calculan este ritmo por su cuenta, a partir de las dos fases. Nada se envía, nadie es avisado — solo late del otro lado si esa persona también te eligió.</string>
+    <string name="rendezvous_out_of_range">fuera de alcance ahora mismo</string>
+    <string name="rendezvous_no_phase">No hay ritmo sin fase. El sello viene de la fecha, la fase pide el lugar de nacimiento — y hace falta en ambos lados.</string>
     <string name="board_relay_cards">relé · 41 cartas</string>
     <string name="board_filter_pentagon">🌀 Pentágono</string>
     <string name="board_filter_nearby">📍 Cerca</string>
@@ -536,7 +543,7 @@
     <string name="inc_sealed_note">Estos datos ya no se podrán modificar nunca. Quienes te conocen pueden repetirlos: tus allegados son tu frase de recuperación.</string>
     <string name="inc_provisional_note">La clave forjada aquí es provisional: te basta al alcance de la antena. Tu clave LOVE, en cambio, la derivará una estación Astroport.ONE el día que abras un MULTIPASS.</string>
     <string name="inc_multipass_active">MULTIPASS activo · clave LOVE en su sitio</string>
-    <string name="inc_board_open">🎴 Tablero «¿Quién es?» — maqueta, sin partida</string>
+    <string name="inc_board_open">🎴 Tablero «¿Quién es?» — el reparto y el reconocimiento</string>
     <string name="inc_multipass_open">Abrir un MULTIPASS en AstroPort.ONE</string>
 
     <string name="inc_salt">salt %1$s</string>

@@ -128,6 +128,13 @@
     <string name="board_warmth_cool">still far</string>
     <string name="board_warmth_cold">at the edge of range</string>
     <string name="board_rule">The game never says who is who. It lets you become findable — a sign, then a question, then a glance. Nothing turns over without both agreeing.</string>
+    <!-- 🔦 Recognition: the last metre, crossed by eye. -->
+    <string name="board_hint_seek">Tap a card to go and find them.</string>
+    <string name="rendezvous_title">Recognise each other</string>
+    <string name="rendezvous_instruction">Hold up your screen.\nLook for the one in the room beating like yours.</string>
+    <string name="rendezvous_mutual">Both phones work this rhythm out on their own, from the two phases. Nothing is sent, nobody is told — it only beats on the other side if they chose you too.</string>
+    <string name="rendezvous_out_of_range">out of range right now</string>
+    <string name="rendezvous_no_phase">No rhythm without a phase. The seal comes from the date, the phase needs a birthplace — and both sides need one.</string>
     <string name="board_relay_cards">relay · 41 cards</string>
     <string name="board_filter_pentagon">🌀 Pentagon</string>
     <string name="board_filter_nearby">📍 Nearby</string>
@@ -533,7 +540,7 @@
     <string name="inc_sealed_note">This data can never be changed again. Those who know you can say it back: the people close to you are your recovery phrase.</string>
     <string name="inc_provisional_note">The key forged here is provisional: it is enough for you within antenna range. Your LOVE key will be derived by an Astroport.ONE station the day you open a MULTIPASS.</string>
     <string name="inc_multipass_active">MULTIPASS active · LOVE key in place</string>
-    <string name="inc_board_open">🎴 “Guess Who?” board — a mock-up, no game yet</string>
+    <string name="inc_board_open">🎴 “Guess Who?” board — the deal and the recognition</string>
     <string name="inc_multipass_open">Open a MULTIPASS on AstroPort.ONE</string>
 
     <string name="inc_salt">salt %1$s</string>

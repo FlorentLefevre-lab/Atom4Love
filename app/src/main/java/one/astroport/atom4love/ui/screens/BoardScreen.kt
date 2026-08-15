@@ -20,8 +20,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,45 +52,6 @@ import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.tint
 
 /**
- * Combien on brûle — la seule direction que le BLE sache donner.
- *
- * La radio ne dit pas **où** est quelqu'un : elle dit à quel point son signal
- * est fort, et ça monte quand on s'en approche. C'est pauvre comme boussole, et
- * c'est exactement la mécanique d'un jeu de piste : on marche, et le téléphone
- * dit qu'on chauffe.
- *
- * Les seuils sont ceux d'une salle : au-delà de −55 dBm on est à quelques pas,
- * en dessous de −85 on est aux limites de la portée.
- */
-private enum class Warmth(val rssiAtLeast: Int, val glyph: String) {
-    Burning(-55, "🔥"),
-    Warm(-70, "🌡"),
-    Cool(-85, "❄"),
-    Cold(Int.MIN_VALUE, "🧊"),
-    ;
-
-    val labelRes: Int
-        get() = when (this) {
-            Burning -> R.string.board_warmth_burning
-            Warm -> R.string.board_warmth_warm
-            Cool -> R.string.board_warmth_cool
-            Cold -> R.string.board_warmth_cold
-        }
-
-    val color: Color
-        @Composable @ReadOnlyComposable get() = when (this) {
-            Burning -> A4L.Orange
-            Warm -> A4L.Amber
-            Cool -> A4L.Cyan
-            Cold -> A4L.TextDim
-        }
-
-    companion object {
-        fun of(rssi: Int): Warmth = entries.first { rssi >= it.rssiAtLeast }
-    }
-}
-
-/**
  * 🎴 Le tirage — la première main du « Qui est-ce ? ».
  *
  * Le radar dit qu'un 92 % est à dix mètres ; il ne dit pas **lequel**, et c'est
@@ -99,9 +64,11 @@ private enum class Warmth(val rssiAtLeast: Int, val glyph: String) {
  * vingt sceaux pour une salle de trente, « cherche le Dragon » réduit déjà la
  * pièce à deux personnes — la partie commence avant qu'on ait joué.
  *
- * Ce qu'il n'y a pas ici, et qui viendra : les questions (une carte à la fois,
- * retournée seulement si les **deux** l'acceptent) et la reconnaissance (les
- * deux téléphones qui battent au même rythme). Le principe qui les tient :
+ * Toucher une carte ouvre le second coup, [RendezvousScreen] : la chaleur mène
+ * au bon mètre carré et s'arrête là, le rythme partagé fait le dernier mètre.
+ *
+ * Ce qu'il n'y a pas ici, et qui viendra : les questions — une carte à la fois,
+ * retournée seulement si les **deux** l'acceptent. Le principe qui les tient :
  * **le jeu ne révèle jamais une identité, il permet de devenir trouvable.**
  */
 @Composable
@@ -126,6 +93,26 @@ fun BoardScreen(
             val theirs = neighbor.signature.phase
             if (own.phase != null && theirs != null) Phi2X.resonanceK(own.phase!!, theirs) else -1.0
         }
+
+    // ── La carte qu'on est parti chercher ─────────────────────────────────
+    // On retient l'identité, pas la carte : une carte est un instantané, et
+    // c'est justement quand on marche vers quelqu'un que sa chaleur change.
+    var seekingId by rememberSaveable { mutableStateOf<String?>(null) }
+    val live = hand.firstOrNull { it.identity == seekingId }
+    // La dernière carte connue survit à un balayage manqué — sinon l'écran de
+    // reconnaissance clignoterait à chaque trou de la radio, au pire moment.
+    var lastKnown by remember(seekingId) { mutableStateOf(live) }
+    LaunchedEffect(live) { if (live != null) lastKnown = live }
+
+    lastKnown?.let { card ->
+        RendezvousScreen(
+            card = card,
+            own = own,
+            inRange = live != null,
+            onClose = { seekingId = null },
+        )
+        return
+    }
 
     Column(
         modifier
@@ -206,9 +193,19 @@ fun BoardScreen(
                     )
                 }
             } else {
+                Text(
+                    stringResource(R.string.board_hint_seek),
+                    style = A4LText.Caption.copy(fontSize = 11.sp),
+                    color = A4L.TextDim,
+                    modifier = Modifier.padding(bottom = 10.dp),
+                )
                 Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                     hand.forEach { neighbor ->
-                        DealtCard(neighbor = neighbor, own = own)
+                        DealtCard(
+                            neighbor = neighbor,
+                            own = own,
+                            onSeek = { seekingId = neighbor.identity },
+                        )
                     }
                 }
             }
@@ -270,11 +267,17 @@ private fun OwnCard(birth: BirthData, npub: String?) {
 /**
  * Une carte distribuée par la salle : ce qu'un voisin montre de lui, sans se
  * nommer, plus la résonance et la chaleur.
+ *
+ * La toucher, c'est partir la chercher — et c'est le seul geste de tout le jeu
+ * qui engage quelque chose. Il ne prévient personne : l'autre ne saura qu'on
+ * l'a choisi que s'il nous a choisi aussi, et alors les deux écrans battront
+ * ensemble. Un choix non partagé ne se dénonce pas.
  */
 @Composable
 private fun DealtCard(
     neighbor: NeighborRegistry.Neighbor,
     own: ProximityPayload.Signature,
+    onSeek: () -> Unit,
 ) {
     val theirs = neighbor.signature
     val classification = own.phase?.let { mine ->
@@ -291,6 +294,7 @@ private fun DealtCard(
         Modifier
             .fillMaxWidth()
             .glass(15.dp, A4L.GlassSoft.copy(alpha = 0.04f), A4L.StrokeSoft)
+            .clickable(onClick = onSeek)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -322,5 +326,7 @@ private fun DealtCard(
                 color = accent,
             )
         }
+        Spacer(Modifier.width(9.dp))
+        Text("◎", fontSize = 15.sp, color = A4L.TextFaint)
     }
 }
