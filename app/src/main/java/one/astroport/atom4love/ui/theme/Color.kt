@@ -112,13 +112,13 @@ val A4LDark = A4LPalette(
     wifiBrand = Color(0xFFF2F5F7),        // Wi-Fi Alliance, signature inversée
 
     // blanc dégressif, comme les opacités du bandeau web
-    textHigh = Color.White.copy(alpha = 0.90f),
-    textStrong = Color.White.copy(alpha = 0.72f),
-    textBody = Color.White.copy(alpha = 0.50f),
-    textMuted = Color.White.copy(alpha = 0.42f),
-    textDim = Color.White.copy(alpha = 0.35f),
-    textFaint = Color.White.copy(alpha = 0.28f),
-    textGhost = Color.White.copy(alpha = 0.22f),
+    textHigh = Color.White.copy(alpha = 0.92f),
+    textStrong = Color.White.copy(alpha = 0.78f),
+    textBody = Color.White.copy(alpha = 0.62f),
+    textMuted = Color.White.copy(alpha = 0.50f),
+    textDim = Color.White.copy(alpha = 0.42f),
+    textFaint = Color.White.copy(alpha = 0.34f),
+    textGhost = Color.White.copy(alpha = 0.28f),
 
     glass = Color.White.copy(alpha = 0.06f),
     glassSoft = Color.White.copy(alpha = 0.04f),
@@ -173,13 +173,22 @@ val A4LLight = A4LPalette(
 
     // noir dégressif ; les niveaux hauts descendent un peu (le noir sur blanc
     // pèse plus que l'inverse), les niveaux bas remontent pour rester lisibles
+    //
+    // ⚠ Toute l'échelle a monté le 15/08, contre la fatigue oculaire. Elle avait
+    // été réglée à l'œil, et le calcul disait autre chose : `textMuted`, qui
+    // porte les 94 légendes de l'app, faisait 3,6:1 sur le fond du jour — sous
+    // les 4,5:1 que le WCAG demande pour du petit texte. `textDim` faisait
+    // 2,8:1, sous le seuil même du gros texte. Après : 4,8:1 et 3,4:1, et les
+    // sept crans se voient toujours (15,1 · 8,7 · 6,5 · 4,8 · 3,4 · 2,6 · 2,1).
+    // Les deux derniers restent sous AA et n'ont donc rien à porter qu'on doive
+    // lire — ils sont là pour les filets et les fantômes.
     textHigh = Color.Black.copy(alpha = 0.88f),
-    textStrong = Color.Black.copy(alpha = 0.70f),
-    textBody = Color.Black.copy(alpha = 0.55f),
-    textMuted = Color.Black.copy(alpha = 0.48f),
-    textDim = Color.Black.copy(alpha = 0.40f),
-    textFaint = Color.Black.copy(alpha = 0.32f),
-    textGhost = Color.Black.copy(alpha = 0.26f),
+    textStrong = Color.Black.copy(alpha = 0.72f),
+    textBody = Color.Black.copy(alpha = 0.64f),
+    textMuted = Color.Black.copy(alpha = 0.56f),
+    textDim = Color.Black.copy(alpha = 0.46f),
+    textFaint = Color.Black.copy(alpha = 0.38f),
+    textGhost = Color.Black.copy(alpha = 0.30f),
 
     glass = Color.Black.copy(alpha = 0.05f),
     glassSoft = Color.Black.copy(alpha = 0.035f),
