@@ -40,7 +40,12 @@ private val OrbitingElectrons = listOf(
 
 /** Une révolution de base dure ce temps-là — le calme est voulu. */
 private const val ORBIT_MS = 7200
-private const val BEAT_MS = 1050
+/**
+ * La demi-période du cœur : il enfle en 1050 ms, dégonfle en autant. Public
+ * parce que le splash y accroche la pulsation du nom — deux horloges séparées
+ * auraient dérivé l'une de l'autre au bout de quelques battements.
+ */
+internal const val ATOM_BEAT_MS = 1050
 private const val TRAIL_STEPS = 6
 
 private val HeartDark = Color(0xFFE7325C)
@@ -65,7 +70,7 @@ fun AtomLogo(modifier: Modifier = Modifier) {
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(BEAT_MS, easing = FastOutSlowInEasing),
+            animation = tween(ATOM_BEAT_MS, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "atom-beat",
