@@ -98,6 +98,13 @@ fun WorldMap(
     atoms: List<Constellation.Atom>,
     modifier: Modifier = Modifier,
     home: LatLon? = null,
+    /**
+     * Le calque des résidences déclarées — les 🏠 violets de sa carte. Elles
+     * sont d'un autre ordre que les atomes : un lieu de naissance ne dit pas où
+     * l'on dort, une résidence si. Elles se dessinent donc autrement, et ne se
+     * sélectionnent pas.
+     */
+    homes: List<Constellation.Home> = emptyList(),
     selected: String? = null,
     onSelect: (String?) -> Unit = {},
     maxZoom: Float = 12f,
@@ -110,6 +117,8 @@ fun WorldMap(
     val grid = A4L.Stroke.copy(alpha = 0.16f)
     val phaseless = A4L.TextFaint
     val homeColor = A4L.Mint
+    // Le violet des 🏠 d'`atomic_map.html` — rgba(180,100,255) chez lui.
+    val residence = A4L.Violet
     val halo = A4L.TextHigh
 
     var zoom by remember { mutableFloatStateOf(1f) }
@@ -187,6 +196,20 @@ fun WorldMap(
                 drawCircle(homeColor, HOME_RING.toPx(), p, style = Stroke(width = 1.5.dp.toPx()))
             }
 
+            // Les résidences sous les atomes : ce sont des repères, pas des
+            // noyaux — un carré, pour qu'on ne les confonde à aucun zoom.
+            homes.forEach { house ->
+                val p = at(house.latDeg, house.lonDeg)
+                if (p.x < -ATOM_MARGIN || p.x > size.width + ATOM_MARGIN) return@forEach
+                if (p.y < -ATOM_MARGIN || p.y > size.height + ATOM_MARGIN) return@forEach
+                val side = HOUSE_SIDE.toPx()
+                drawRect(
+                    color = residence.copy(alpha = 0.75f),
+                    topLeft = Offset(p.x - side / 2f, p.y - side / 2f),
+                    size = androidx.compose.ui.geometry.Size(side, side),
+                )
+            }
+
             atoms.forEach { atom ->
                 val p = at(atom.place.latDeg, atom.place.lonDeg)
                 if (p.x < -ATOM_MARGIN || p.x > size.width + ATOM_MARGIN) return@forEach
@@ -234,6 +257,7 @@ private val ATOM_GLOW: Dp = 6.5.dp
 private val SELECTED_RING: Dp = 9.dp
 private val HOME_RING: Dp = 5.dp
 private val HOME_HALO: Dp = 11.dp
+private val HOUSE_SIDE: Dp = 5.dp
 
 /** Une marge en pixels bruts : un point juste hors cadre garde son halo. */
 private const val ATOM_MARGIN = 16f

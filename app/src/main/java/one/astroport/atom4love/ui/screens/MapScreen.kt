@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -114,6 +115,12 @@ fun MapScreen(
     }
 
     var selected by remember { mutableStateOf<String?>(null) }
+    // Le calque des résidences, éteint par défaut et chargé au premier allumage
+    // — comme `_loadHomeLayer()`. Une requête de plus pour une donnée que
+    // presque personne ne publie ne se fait pas dans le dos.
+    var showResidences by rememberSaveable { mutableStateOf(false) }
+    val residences by constellation.homes.collectAsState()
+    LaunchedEffect(showResidences) { if (showResidences) constellation.loadHomes() }
 
     val atoms = (state as? Constellation.State.Loaded)?.atoms.orEmpty()
     val sightings = remember(atoms, myPhase, home, keys) {
@@ -202,6 +209,7 @@ fun MapScreen(
         WorldMap(
             atoms = atoms,
             home = home,
+            homes = if (showResidences) residences else emptyList(),
             selected = selected,
             onSelect = { selected = it },
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp),
@@ -229,13 +237,28 @@ fun MapScreen(
                 color = if (state is Constellation.State.Unreachable) A4L.Orange else A4L.TextDim,
                 modifier = Modifier.weight(1f, fill = false),
             )
-            A4LChip(
-                label = stringResource(R.string.map_refresh),
-                accent = A4L.Cyan,
-                modifier = Modifier.clickable(
-                    enabled = state !is Constellation.State.Loading,
-                ) { constellation.refresh() },
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Le calque des résidences. Il dit son compte une fois allumé,
+                // parce que « rien ne s'affiche » et « personne n'en publie »
+                // se ressemblent trop à l'écran.
+                A4LChip(
+                    label = if (showResidences) {
+                        stringResource(R.string.map_residences_count, residences.size)
+                    } else {
+                        stringResource(R.string.map_residences)
+                    },
+                    selected = showResidences,
+                    accent = A4L.Violet,
+                    modifier = Modifier.clickable { showResidences = !showResidences },
+                )
+                A4LChip(
+                    label = stringResource(R.string.map_refresh),
+                    accent = A4L.Cyan,
+                    modifier = Modifier.clickable(
+                        enabled = state !is Constellation.State.Loading,
+                    ) { constellation.refresh() },
+                )
+            }
         }
 
         // ── Notre place dans la constellation, ou son absence ──────────────

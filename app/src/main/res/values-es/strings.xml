@@ -172,6 +172,8 @@
     <string name="map_unreachable">Relé inaccesible — la constelación no está en el dispositivo.</string>
     <string name="map_empty">El relé respondió: nadie por ahora.</string>
     <string name="map_empty_detail">Ninguna clave LOVE activada en este relé.</string>
+    <string name="map_residences">🏠 residencias</string>
+    <string name="map_residences_count">🏠 %1$d</string>
     <string name="map_refresh">Releer</string>
     <string name="map_by_resonance">Por resonancia con tu onda</string>
     <string name="map_by_arrival">Últimas llegadas</string>

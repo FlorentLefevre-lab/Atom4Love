@@ -60,6 +60,9 @@ class Constellation(
         /** L'identifiant du certificat de clé LOVE — `d=atom4love`. */
         const val CERTIFICATE_D = "atom4love"
 
+        /** La résidence, quand elle a été choisie — `d=atom4love-home`. */
+        const val HOME_D = "atom4love-home"
+
         /** NIP-78 : données d'application, remplaçables et paramétrées. */
         const val CERTIFICATE_KIND = 30078
 
@@ -105,8 +108,62 @@ class Constellation(
         data object Unreachable : State
     }
 
+    /**
+     * Une résidence déclarée — le calque `atom4love-home` de sa carte.
+     *
+     * ⚠ **Elle est en degrés clairs**, pas à la maille du kilomètre : sa station
+     * écrit des tags `lat`/`lon` bruts, relus tels quels par
+     * `atomic_map.html::_loadHomeLayer`. Elle calcule bien une adresse `a4l:`
+     * au passage, mais n'en publie que le pentagone — un sommet d'icosaèdre, qui
+     * ne place rien. Pour lire ce calque il faut donc lire ce qu'il porte.
+     *
+     * C'est la donnée la plus exposée de tout le protocole, et le seul champ que
+     * personne n'a jamais publié : au 15/08/2026 le relais public en compte
+     * **zéro**.
+     */
+    data class Home(
+        val pubkey: String,
+        val latDeg: Double,
+        val lonDeg: Double,
+        val createdAt: Long,
+    )
+
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state.asStateFlow()
+
+    /** Le calque des résidences. Vide tant que [loadHomes] n'a pas été appelé. */
+    private val _homes = MutableStateFlow<List<Home>>(emptyList())
+    val homes: StateFlow<List<Home>> = _homes.asStateFlow()
+
+    private var homesJob: Job? = null
+    private var homesLoaded = false
+
+    /**
+     * Charge le calque des résidences, une fois — comme `_loadHomeLayer()`, qui
+     * ne part qu'au premier allumage du calque. Ce n'est pas de la paresse
+     * d'affichage : c'est une requête de plus sur le relais pour une donnée que
+     * la plupart des gens ne publient pas.
+     */
+    fun loadHomes() {
+        if (homesLoaded || homesJob?.isActive == true) return
+        homesJob = scope.launch {
+            val events = read(HOME_D) ?: return@launch
+            homesLoaded = true
+            _homes.value = events
+                .groupBy { it.pubkey }
+                .values
+                .mapNotNull { versions -> versions.maxBy { it.createdAt }.toHome() }
+        }
+    }
+
+    private fun NostrEvent.toHome(): Home? {
+        fun tag(name: String): Double? =
+            tags.firstOrNull { it.size >= 2 && it[0] == name }?.get(1)?.toDoubleOrNull()
+        val lat = tag("lat") ?: return null
+        val lon = tag("lon") ?: return null
+        if (lat < -90.0 || lat > 90.0 || lon < -180.0 || lon > 180.0) return null
+        return Home(pubkey = pubkey, latDeg = lat, lonDeg = lon, createdAt = createdAt)
+    }
 
     private var job: Job? = null
 
@@ -115,7 +172,7 @@ class Constellation(
         if (job?.isActive == true) return
         _state.value = State.Loading
         job = scope.launch {
-            val events = read()
+            val events = read(CERTIFICATE_D)
             _state.value = if (events == null) {
                 State.Unreachable
             } else {
@@ -132,18 +189,19 @@ class Constellation(
      * mille événements arrivant en rafale pendant que l'interface se recompose
      * seraient perdus sans bruit.
      */
-    private suspend fun read(): List<NostrEvent>? = withContext(Dispatchers.Default) {
+    private suspend fun read(identifier: String): List<NostrEvent>? = withContext(Dispatchers.Default) {
         val client = RelayClient(relayUrl, this)
         val events = mutableListOf<NostrEvent>()
+        val subscription = "$SUBSCRIPTION-$identifier"
         val answered: Boolean
         try {
             // Souscrire avant de connecter : le filtre est mémorisé et rejoué à
             // l'ouverture, donc aucun événement ne passe avant qu'on écoute.
             client.subscribe(
-                SUBSCRIPTION,
+                subscription,
                 NostrFilter(
                     kinds = listOf(CERTIFICATE_KIND),
-                    identifiers = listOf(CERTIFICATE_D),
+                    identifiers = listOf(identifier),
                     limit = QUERY_LIMIT,
                 ),
             )
@@ -152,13 +210,13 @@ class Constellation(
                     .onSubscription { client.connect() }
                     .takeWhile { msg ->
                         when (msg) {
-                            is RelayMessage.Eose -> msg.subscriptionId != SUBSCRIPTION
-                            is RelayMessage.Closed -> msg.subscriptionId != SUBSCRIPTION
+                            is RelayMessage.Eose -> msg.subscriptionId != subscription
+                            is RelayMessage.Closed -> msg.subscriptionId != subscription
                             else -> true
                         }
                     }
                     .collect { msg ->
-                        if (msg is RelayMessage.Event && msg.subscriptionId == SUBSCRIPTION) {
+                        if (msg is RelayMessage.Event && msg.subscriptionId == subscription) {
                             events += msg.event
                         }
                     }
@@ -167,7 +225,7 @@ class Constellation(
         } finally {
             client.close()
         }
-        Log.d(TAG, "constellation : ${events.size} certificats lus sur $relayUrl (EOSE : $answered)")
+        Log.d(TAG, "$identifier : ${events.size} événements lus sur $relayUrl (EOSE : $answered)")
         // Le relais a fini sa phrase, ou il en a dit assez : dans les deux cas
         // ce qu'on tient est une constellation. Silence complet, en revanche,
         // ne veut pas dire « personne » — il ne veut rien dire du tout.
