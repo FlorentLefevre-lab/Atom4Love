@@ -21,6 +21,23 @@ val keystoreProperties = Properties().apply {
 }
 
 /**
+ * L'instant de la compilation, en millisecondes. Rendu à la seconde dans la
+ * bulle de version des Réglages.
+ *
+ * Un nombre et non une chaîne toute faite : la date se met en forme à
+ * l'exécution, dans la langue de la personne. Une chaîne écrite ici parlerait
+ * la langue de la machine qui a compilé.
+ *
+ * ⚠ Lu à la configuration, donc **gelé par le cache de configuration** de
+ * Gradle : deux compilations qui réutilisent le cache portent le même instant.
+ * Le cache tombe dès qu'un fichier de build change — et un `--rerun-tasks` ou
+ * un `clean` rend toujours l'heure vraie. Pour un numéro qui sert à savoir
+ * quel APK tourne sur l'appareil, c'est assez ; l'exactitude à la seconde d'un
+ * build incrémental coûterait une tâche de génération à l'exécution.
+ */
+val buildTimeMs: Long = System.currentTimeMillis()
+
+/**
  * Le commit court, ou « nogit » hors dépôt. Lu à la configuration : un build
  * debug doit pouvoir se nommer lui-même (voir buildTypes.debug).
  */
@@ -89,6 +106,8 @@ android {
             "RELEASES_URL",
             "\"https://github.com/FlorentLefevre-lab/Atom4Love/releases\"",
         )
+        // L'instant de la compilation, mis en forme à l'exécution.
+        buildConfigField("long", "BUILD_TIME_MS", "${buildTimeMs}L")
     }
 
     signingConfigs {

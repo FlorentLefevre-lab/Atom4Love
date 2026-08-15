@@ -591,6 +591,7 @@
     <string name="settings_about_label">This station</string>
     <string name="settings_version">Atom4Love version</string>
     <string name="settings_build">%1$s · build %2$d</string>
+    <string name="settings_built_on">built %1$s</string>
     <string name="settings_version_hint">Tap to update or uninstall</string>
     <string name="settings_maker">by Astroport.ONE</string>
 

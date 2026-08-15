@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Emblème atome-cœur sur fond BLANC, et la couche monochrome
+     pour les icônes thématiques d'Android 13+.
+
+     Les deux couches sont VECTORIELLES depuis le 15/08, tracées depuis
+     ui/components/AtomLogo.kt par tools/genicon.py. Elles étaient en webp,
+     figées à 108 dp : correct pour un lanceur, qui réduit, mais le splash
+     d'Android 12+ dessine l'icône bien plus grande — il étirait 216 px de
+     contenu sur 345, et ça se voyait. Un vecteur n'a plus de taille. -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
-    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
-    <monochrome android:drawable="@mipmap/ic_launcher_monochrome" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
 </adaptive-icon>

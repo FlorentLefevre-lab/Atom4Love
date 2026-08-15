@@ -28,15 +28,20 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import one.astroport.atom4love.BuildConfig
 import one.astroport.atom4love.R
 import one.astroport.atom4love.ui.components.LanguageChoice
@@ -195,6 +200,11 @@ fun SettingsScreen(modifier: Modifier = Modifier, onClose: (() -> Unit)? = null)
                         color = A4L.Cyan,
                     )
                     Text(
+                        buildStamp(),
+                        style = A4LText.Data,
+                        color = A4L.TextMuted,
+                    )
+                    Text(
                         stringResource(R.string.settings_maker),
                         style = A4LText.Data,
                         color = A4L.TextGhost,
@@ -228,6 +238,11 @@ fun SettingsScreen(modifier: Modifier = Modifier, onClose: (() -> Unit)? = null)
                         ),
                         style = A4LText.Data,
                         color = A4L.Cyan,
+                    )
+                    Text(
+                        buildStamp(),
+                        style = A4LText.Data,
+                        color = A4L.TextMuted,
                     )
                     Text(
                         stringResource(R.string.settings_update_link),
@@ -334,6 +349,32 @@ fun SettingsScreen(modifier: Modifier = Modifier, onClose: (() -> Unit)? = null)
             },
         )
     }
+}
+
+/**
+ * L'instant de la compilation, écrit en toutes lettres : jour de la semaine,
+ * date complète, heure à la seconde.
+ *
+ * Mis en forme ici et non dans le build : `BuildConfig` ne porte qu'un nombre
+ * de millisecondes, donc la date se dit dans la langue choisie dans cet
+ * écran-là — une chaîne figée à la compilation parlerait la langue de la
+ * machine qui a compilé, ce qui n'est celle de personne.
+ *
+ * La seconde compte : deux APK d'une même minute existent quand on corrige à
+ * la volée, et c'est précisément là qu'on se demande lequel tourne.
+ */
+@Composable
+private fun buildStamp(): String {
+    val locale = LocalConfiguration.current.locales[0]
+    val stamp = remember(locale) {
+        DateTimeFormatter
+            .ofPattern("EEEE d MMMM yyyy '·' HH:mm:ss", locale)
+            .format(
+                Instant.ofEpochMilli(BuildConfig.BUILD_TIME_MS)
+                    .atZone(ZoneId.systemDefault()),
+            )
+    }
+    return stringResource(R.string.settings_built_on, stamp)
 }
 
 /**

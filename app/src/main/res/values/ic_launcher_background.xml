@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- A4L.Void — le fond de la station (ui/theme/Color.kt). -->
-    <color name="ic_launcher_background">#05050C</color>
+    <!-- BLANC depuis le 15/08, et deux essais avant lui.
+
+         D'abord A4L.Void (#05050C), le fond de la station : cohérent, mais
+         l'icône disparaissait sur un fond d'écran sombre. Puis transparent —
+         refusé par le lanceur de Google, qui exige des couches d'icône
+         adaptative opaques et pleine page, et compose du noir par-dessus.
+
+         Reste le blanc, qui ne dépend d'aucun fond d'écran. Il oblige
+         l'emblème à passer aux valeurs du JOUR de la palette (voir
+         tools/genicon.py) : le cyan de nuit y fait 1,3:1. -->
+    <color name="ic_launcher_background">#FFFFFFFF</color>
 </resources>
