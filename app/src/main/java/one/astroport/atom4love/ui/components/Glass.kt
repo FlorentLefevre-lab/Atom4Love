@@ -172,13 +172,18 @@ fun DataBadge(
     background: Color = color.tint(0.08f),
     border: Color? = color.tint(0.32f),
     radius: Dp = 10.dp,
+    /**
+     * Un pictogramme posé devant, et **plus grand que le texte**.
+     *
+     * 🤝 et ⚡ ne sont pas des caractères de la donnée : ils en disent la
+     * nature, et c'est ce qu'on lit en premier. À la taille de la chasse fixe
+     * ils devenaient deux taches indistinctes ; un peu plus gros, l'union se
+     * sépare de la friction avant même qu'on lise le chiffre.
+     */
+    glyph: String? = null,
 ) {
-    Text(
-        text = label,
-        style = A4LText.Data.copy(fontSize = 9.sp),
-        color = color,
-        maxLines = 1,
-        modifier = modifier
+    Row(
+        modifier
             .glass(
                 radius = radius,
                 background = background,
@@ -186,7 +191,17 @@ fun DataBadge(
                 borderWidth = if (border == null) 0.dp else 1.dp,
             )
             .padding(horizontal = 7.dp, vertical = 3.dp),
-    )
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (glyph != null) Text(glyph, fontSize = 13.sp, maxLines = 1)
+        Text(
+            text = label,
+            style = A4LText.Data.copy(fontSize = 9.sp),
+            color = color,
+            maxLines = 1,
+        )
+    }
 }
 
 /** Une ligne « libellé ······ valeur » du panneau « Calculé pour vous ». */

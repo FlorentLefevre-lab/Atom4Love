@@ -223,7 +223,7 @@
     <string name="map_residences">🏠 résidences</string>
     <string name="map_residences_count">🏠 %1$d</string>
     <string name="map_refresh">Relire</string>
-    <string name="map_by_resonance">Par résonance avec votre onde</string>
+    <string name="map_by_resonance">Contacts en résonance avec vous</string>
     <string name="map_by_arrival">Derniers arrivés</string>
     <string name="map_you">vous</string>
     <string name="map_no_kin">Sceau inconnu</string>

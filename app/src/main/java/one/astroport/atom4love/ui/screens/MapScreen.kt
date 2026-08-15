@@ -708,7 +708,8 @@ private fun SightingRow(
                 DataBadge(
                     // 🤝 union (Δφ ≈ 0) · ⚡ friction (Δφ ≈ π) — le code de ses
                     // écrans, où k seul ne distingue pas les deux.
-                    label = (if (r.union) "🤝 " else "⚡ ") + r.percent + " %",
+                    glyph = if (r.union) "🤝" else "⚡",
+                    label = "${r.percent} %",
                     color = accent,
                 )
             }
