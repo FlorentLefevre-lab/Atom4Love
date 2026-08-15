@@ -127,11 +127,6 @@ fun IncarnationScreen(
     onMultipass: (() -> Unit)? = null,
     /** Le compte est ouvert et sa clé LOVE en place : le bouton change de rôle. */
     multipassActive: Boolean = false,
-    /**
-     * Le Plateau, qui a quitté la barre du bas faute de partie à jouer. Il entre
-     * ici parce que c'est d'ici que vient sa carte — le noyau scellé.
-     */
-    onBoard: (() -> Unit)? = null,
 ) {
     // L'étape courante de l'assistant, et la plus lointaine qu'on ait le droit
     // d'atteindre : on revient où l'on veut, on n'avance que sur du renseigné.
@@ -252,7 +247,6 @@ fun IncarnationScreen(
                 npub = npub,
                 onMultipass = onMultipass,
                 multipassActive = multipassActive,
-                onBoard = onBoard,
                 onDissolve = { showDissolveWarning = true },
                 modifier = Modifier.weight(1f),
                 body = body,
@@ -1719,7 +1713,6 @@ private fun ColumnScope.SealedNucleus(
     npub: String?,
     onMultipass: (() -> Unit)?,
     multipassActive: Boolean,
-    onBoard: (() -> Unit)?,
     onDissolve: () -> Unit,
     modifier: Modifier = Modifier,
     body: BodyMetrics = BodyMetrics.Empty,
@@ -1801,28 +1794,6 @@ private fun ColumnScope.SealedNucleus(
                     ),
                     style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                     color = accent,
-                )
-            }
-        }
-        // Le Plateau. Discret, et en toutes lettres une maquette : il n'a pas
-        // de partie, et un bouton qui promet un jeu doit dire ce qu'il tient.
-        if (onBoard != null) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(42.dp)
-                    .glass(
-                        radius = 12.dp,
-                        background = A4L.Glass.copy(alpha = 0.05f),
-                        border = A4L.Stroke,
-                    )
-                    .clickable(onClick = onBoard),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    stringResource(R.string.inc_board_open),
-                    style = A4LText.Body.copy(fontSize = 12.5.sp),
-                    color = A4L.TextMuted,
                 )
             }
         }

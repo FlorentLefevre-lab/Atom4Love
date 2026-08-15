@@ -627,7 +627,6 @@
     <string name="inc_sealed_note">Ces données ne seront plus jamais modifiables. Ceux qui vous connaissent peuvent les redire : vos proches sont votre phrase de récupération.</string>
     <string name="inc_provisional_note">La clé forgée ici est provisoire : elle vous suffit à portée d\'antenne. Votre clé LOVE, elle, sera dérivée par une station Astroport.ONE le jour où vous ouvrirez un MULTIPASS.</string>
     <string name="inc_multipass_active">MULTIPASS actif · clé LOVE en place</string>
-    <string name="inc_board_open">🎴 Plateau « Qui est-ce ? » — le tirage et la reconnaissance</string>
     <string name="inc_multipass_open">Ouvrir un MULTIPASS sur Astroport.ONE</string>
 
     <string name="inc_salt">salt %1$s</string>

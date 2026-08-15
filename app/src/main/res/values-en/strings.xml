@@ -547,7 +547,6 @@
     <string name="inc_sealed_note">This data can never be changed again. Those who know you can say it back: the people close to you are your recovery phrase.</string>
     <string name="inc_provisional_note">The key forged here is provisional: it is enough for you within antenna range. Your LOVE key will be derived by an Astroport.ONE station the day you open a MULTIPASS.</string>
     <string name="inc_multipass_active">MULTIPASS active · LOVE key in place</string>
-    <string name="inc_board_open">🎴 “Guess Who?” board — the deal and the recognition</string>
     <string name="inc_multipass_open">Open a MULTIPASS on Astroport.ONE</string>
 
     <string name="inc_salt">salt %1$s</string>

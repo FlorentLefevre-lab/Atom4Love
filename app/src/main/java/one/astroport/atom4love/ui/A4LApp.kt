@@ -623,11 +623,12 @@ private fun Station(
                                 relay = relayStatus,
                                 onMultipass = { overlay = Overlay.Multipass },
                                 multipassActive = account?.loveActivated == true,
-                                // Le Plateau a quitté la barre : il n'a pas de
-                                // partie, et un onglet promet un lieu où l'on
-                                // revient. On y entre depuis le noyau, dont il
-                                // tire de toute façon sa main.
-                                onBoard = { tab = A4LTab.Board },
+                                // ⚠ Le bouton vers le Plateau a vécu ici tant que
+                                // le Plateau n'avait pas de place à lui. Il en a
+                                // une depuis `ec67778`, au milieu de la barre :
+                                // deux chemins vers le même lieu, dont l'un se
+                                // trouve en descendant sous la fiche, ne valent
+                                // pas mieux qu'un seul qui se voit.
                                 onDissolve = {
                                     // La station oublie tout : fiche vierge, retour à la
                                     // forge — et les mesures du corps partent avec, sans
