@@ -623,4 +623,7 @@
     <string name="trait_color_name_4">Green</string>
     <string name="trait_hour_value">%1$02d:00</string>
     <string name="trait_decade_value">the %1$ds</string>
+    <string name="trait_bio">The biological wave</string>
+    <string name="trait_bio_tells">It blends your current height and weight into a sum they cannot be pulled back out of. It is what makes the two waves beat together.</string>
+    <string name="trait_bio_value">%1$.1f Hz</string>
 </resources>

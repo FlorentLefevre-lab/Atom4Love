@@ -46,9 +46,15 @@ class QuestionsTest {
         )
     }
 
+    /**
+     * La fiche répond à tout **sauf à l'onde biologique**, et c'est voulu :
+     * celle-ci se calcule sur le corps d'aujourd'hui, qui n'est pas dans une
+     * fiche de naissance. C'est la cabine qui la joint, depuis ce qu'on lui a
+     * lié séparément.
+     */
     @Test
-    fun `une fiche complète sait tout répondre, et dans les bornes annoncées`() {
-        Questions.Trait.entries.forEach { trait ->
+    fun `une fiche complète répond à tout sauf au corps, et dans les bornes`() {
+        Questions.Trait.entries.filter { it != Questions.Trait.Bio }.forEach { trait ->
             val value = trait.read(fiche)
             assertNotNull("$trait ne répond rien", value)
             assertTrue("$trait rend $value, hors de ses propres bornes", trait.accepts(value!!))
@@ -189,5 +195,59 @@ class QuestionsTest {
         assertNull(Questions.Trait.of(0))
         assertNull(Questions.Trait.of(99))
         assertEquals(Questions.Trait.Kin, Questions.Trait.of(5))
+    }
+
+    // ── L'onde biologique ─────────────────────────────────────────────────
+
+    /**
+     * **Le cœur de la bascule du 15/08.** ω_bio partait toute seule à chaque
+     * pair attesté ; elle se demande maintenant. Le piège tenait au fait que
+     * deux chemins peuvent encore l'apporter — la question, et la vieille trame
+     * de résonance d'un appareil resté en arrière. S'ils ne tombaient pas sur
+     * le même entier, la même personne s'afficherait avec deux ondes selon
+     * l'ordre d'arrivée, et le battement changerait de note.
+     */
+    @Test
+    fun `les deux chemins d'une onde donnent le même entier`() {
+        listOf(202.18f, 1.04f, 429.62f, 300.0f, 12.15f).forEach { hz ->
+            val parLaQuestion = Questions.encodeBio(hz)
+            // ce que ferait la vieille trame : un float qu'on ramène au dixième
+            val parLaResonance = Questions.encodeBio(
+                ChatFrames.decode(ChatFrames.encodeResonance(hz))
+                    .let { (it as ChatFrame.Resonance).omegaBio },
+            )
+            assertEquals("$hz", parLaQuestion, parLaResonance)
+        }
+    }
+
+    @Test
+    fun `l'onde tient dans les deux octets du jeu, et revient en hertz`() {
+        val value = Questions.encodeBio(202.18f)
+        assertEquals(2022, value)
+        assertTrue(Questions.Trait.Bio.accepts(value!!))
+        assertEquals(202.2f, Questions.decodeBio(value), 0.001f)
+    }
+
+    @Test
+    fun `une onde impossible ne se propose pas`() {
+        assertNull(Questions.encodeBio(0f))
+        assertNull(Questions.encodeBio(-1f))
+        assertNull(Questions.encodeBio(Float.NaN))
+        assertNull(Questions.encodeBio(Float.POSITIVE_INFINITY))
+        // au-delà de 6553,5 Hz on déborde les deux octets : rien ne part
+        assertNull(Questions.encodeBio(7000f))
+    }
+
+    /** L'onde vient du corps d'aujourd'hui : la fiche de naissance l'ignore. */
+    @Test
+    fun `l'onde ne se lit pas dans la fiche`() {
+        assertNull(Questions.Trait.Bio.read(fiche))
+    }
+
+    /** Elle est la dernière du catalogue — c'est la seule qui parle du corps. */
+    @Test
+    fun `l'onde est proposée en dernier`() {
+        assertEquals(Questions.Trait.Bio, Questions.Trait.entries.last())
+        assertEquals(6, Questions.Trait.Bio.id)
     }
 }

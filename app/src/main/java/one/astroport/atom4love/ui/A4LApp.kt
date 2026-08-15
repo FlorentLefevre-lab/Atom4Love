@@ -337,12 +337,17 @@ private fun Station(
     // L'onde biologique ne va pas dans la balise : elle vient du corps, et le
     // corps ne s'annonce pas à la cantonade. Elle n'est confiée qu'en cabine,
     // à un pair attesté, sous Noise — c'est la règle de Fred du 2026-08-14.
-    LaunchedEffect(body, birth.wave) {
+    // ⚠ `cabin` fait partie des clés, et ce n'est pas décoratif : fermer la
+    // cabine y installe une instance NEUVE (CabinHost.close), et une liaison
+    // faite sur l'ancienne ne la suivrait pas. Sans cette clé, une cabine
+    // rouverte ne savait plus rien répondre — ni annoncer son onde, ce qui se
+    // taisait sans rien dire depuis que la résonance existe.
+    LaunchedEffect(cabin, body, birth.wave) {
         cabin.bindResonance(Phi2X.omegaBio(body, birth.wave))
     }
     // Ce que la fiche saura répondre au jeu des questions. Rien ne part de
     // là — c'est un geste par question, et il coûte la même réponse.
-    LaunchedEffect(birth) { cabin.bindTraits(birth) }
+    LaunchedEffect(cabin, birth) { cabin.bindTraits(birth) }
     val closeCabin: () -> Unit = { cabinHost.close() }
     // Le Wi-Fi Direct est le seul médium qui demande une permission de plus.
     // Elle se demande ICI, au moment d'accepter la montée — pas à l'ouverture

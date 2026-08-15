@@ -591,6 +591,7 @@ class CabinChat(context: Context) {
      */
     fun bindResonance(omegaBio: Double?) {
         myOmegaBio = omegaBio?.toFloat()?.takeIf { it.isFinite() && it > 0f }
+        refreshTraits()
     }
 
     // ── ❓ Le jeu des questions ────────────────────────────────────────────
@@ -623,13 +624,33 @@ class CabinChat(context: Context) {
      */
     val exchanges: StateFlow<Map<String, List<Questions.Exchange>>> = _exchanges.asStateFlow()
 
+    /** La fiche dont se tirent les réponses. */
+    @Volatile
+    private var myBirth: BirthData? = null
+
     /** Donne à la cabine les valeurs qu'elle pourra répondre. */
     fun bindTraits(birth: BirthData?) {
-        myTraits = birth?.let { fiche ->
+        myBirth = birth
+        refreshTraits()
+    }
+
+    /**
+     * Recompose ce qu'on sait répondre, depuis les deux sources.
+     *
+     * La fiche donne le sceau et les dates ; l'onde biologique vient d'ailleurs
+     * — elle se calcule sur le corps d'aujourd'hui, qui n'est pas dans une
+     * fiche de naissance — et les deux se lient à des moments différents.
+     */
+    private fun refreshTraits() {
+        val fromCard = myBirth?.let { fiche ->
             Questions.Trait.entries.mapNotNull { trait ->
                 trait.read(fiche)?.let { trait to it }
-            }.toMap()
-        } ?: emptyMap()
+            }
+        }.orEmpty()
+        val bio = myOmegaBio
+            ?.let { Questions.encodeBio(it) }
+            ?.let { Questions.Trait.Bio to it }
+        myTraits = (fromCard + listOfNotNull(bio)).toMap()
         _answerable.value = myTraits.keys
     }
 
@@ -648,6 +669,7 @@ class CabinChat(context: Context) {
             return false
         }
         record(npub, trait) { it.copy(mine = mine) }
+        if (trait == Questions.Trait.Bio) sendResonanceTo(npub)
         return true
     }
 
@@ -660,6 +682,7 @@ class CabinChat(context: Context) {
             return false
         }
         record(npub, trait) { it.copy(mine = mine) }
+        if (trait == Questions.Trait.Bio) sendResonanceTo(npub)
         return true
     }
 
@@ -686,6 +709,14 @@ class CabinChat(context: Context) {
             val history = all[npub].orEmpty()
             val current = history.firstOrNull { it.trait == trait } ?: Questions.Exchange(trait)
             val updated = change(current)
+            // Les deux ondes sont là : le battement peut naître. Ici et nulle
+            // part ailleurs — c'est ce qui fait qu'il est le fruit d'un accord
+            // et non d'une rencontre de hasard.
+            if (trait == Questions.Trait.Bio && updated.settled && !current.settled) {
+                _resonances.tryEmit(
+                    Questions.decodeBio(updated.mine!!) to Questions.decodeBio(updated.theirs!!),
+                )
+            }
             all + (npub to history.filterNot { it.trait == trait } + updated)
         }
     }
@@ -1717,7 +1748,11 @@ class CabinChat(context: Context) {
             // parade `isHandshake` ne protège que le handshake lui-même. Depuis
             // onHandshakeDone, la file contient déjà HELLO 3 : l'ordre tient.
             announceAddress(link)
-            announceResonance(link)
+            // Plus d'annonce d'onde biologique ici. Elle partait à chaque pair
+            // attesté dès la fin du handshake, sans que personne l'ait demandée
+            // — un dévoilement sans accord au milieu d'un jeu dont la règle est
+            // qu'on ne retourne rien sans les deux. Elle se demande désormais,
+            // comme le reste : voir Questions.Trait.Bio.
             followMedium(link)
             refreshLinks()
         }
@@ -2592,10 +2627,19 @@ class CabinChat(context: Context) {
      * sait pas qui il est. La trame part par la file de contrôle, donc scellée
      * comme le reste dès que la session Noise est établie.
      */
-    private fun announceResonance(link: Link) {
+    /**
+     * Notre onde, à **une** personne qui vient de la demander ou d'y répondre.
+     *
+     * Doublonne volontairement la trame de question : un appareil resté à une
+     * version antérieure ne comprend que celle-ci, et le priver de notre réponse
+     * après avoir accepté la sienne serait précisément prendre sans donner. Les
+     * deux chemins portent la même valeur au dixième de hertz près
+     * ([Questions.encodeBio]), donc en recevoir deux ne montre jamais deux
+     * nombres — le second est ignoré, ce qui est donné est donné.
+     */
+    private fun sendResonanceTo(npub: String) {
         val omega = myOmegaBio ?: return
-        if (link.peerNostrKey == null) return
-        link.control.trySend(ChatFrames.encodeResonance(omega))
+        controlToPeer(npub, ChatFrames.encodeResonance(omega))
     }
 
     /**
@@ -2608,12 +2652,19 @@ class CabinChat(context: Context) {
      * fréquence n'est pas un accord.
      */
     private fun onResonanceFrame(link: Link?, frame: ChatFrame.Resonance) {
-        if (link?.peerNostrKey == null) {
+        val key = link?.peerNostrKey ?: run {
             Log.w(TAG, "onde annoncée par un pair non attesté : ignorée")
             return
         }
-        val mine = myOmegaBio ?: return
-        _resonances.tryEmit(mine to frame.omegaBio)
+        val value = Questions.encodeBio(frame.omegaBio) ?: return
+        // Un appareil plus ancien annonce encore son onde tout seul. On ne la
+        // jette pas — il l'a donnée, et c'est son choix de version — mais elle
+        // n'ouvre plus rien à elle seule : elle se range comme une offre, et
+        // c'est nous qui décidons si nous répondons la nôtre. Le battement
+        // n'arrive que quand les deux ondes sont là.
+        record(Bech32.encode("npub", key), Questions.Trait.Bio) {
+            if (it.theirs == null) it.copy(theirs = value) else it
+        }
     }
 
     /**

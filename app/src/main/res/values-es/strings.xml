@@ -627,4 +627,7 @@
     <string name="trait_color_name_4">Verde</string>
     <string name="trait_hour_value">%1$02d h</string>
     <string name="trait_decade_value">años %1$d</string>
+    <string name="trait_bio">La onda biológica</string>
+    <string name="trait_bio_tells">Mezcla tu estatura y tu peso de hoy en una suma de la que no se extraen. Es la que hace latir juntas las dos ondas.</string>
+    <string name="trait_bio_value">%1$.1f Hz</string>
 </resources>

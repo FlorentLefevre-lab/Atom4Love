@@ -711,4 +711,7 @@
     <string name="trait_color_name_4">Vert</string>
     <string name="trait_hour_value">%1$02d h</string>
     <string name="trait_decade_value">années %1$d</string>
+    <string name="trait_bio">L\'onde biologique</string>
+    <string name="trait_bio_tells">Elle mêle votre taille et votre poids d\'aujourd\'hui dans une somme dont on ne les ressort pas. C\'est elle qui fait battre les deux ondes ensemble.</string>
+    <string name="trait_bio_value">%1$.1f Hz</string>
 </resources>
