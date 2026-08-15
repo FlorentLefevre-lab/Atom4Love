@@ -541,7 +541,7 @@
     <string name="inc_provisional_note">The key forged here is provisional: it is enough for you within antenna range. Your LOVE key will be derived by an Astroport.ONE station the day you open a MULTIPASS.</string>
     <string name="inc_multipass_active">MULTIPASS active · LOVE key in place</string>
     <string name="inc_board_open">🎴 “Guess Who?” board — the deal and the recognition</string>
-    <string name="inc_multipass_open">Open a MULTIPASS on AstroPort.ONE</string>
+    <string name="inc_multipass_open">Open a MULTIPASS on Astroport.ONE</string>
 
     <string name="inc_salt">salt %1$s</string>
     <string name="inc_salt_incomplete">salt — form incomplete</string>
@@ -589,8 +589,23 @@
 
     <string name="settings_title">Settings</string>
     <string name="settings_about_label">This station</string>
-    <string name="settings_version">Atom4Love %1$s</string>
-    <string name="settings_maker">by AstroPort.ONE</string>
+    <string name="settings_version">Atom4Love version</string>
+    <string name="settings_build">%1$s · build %2$d</string>
+    <string name="settings_version_hint">Tap to update or uninstall</string>
+    <string name="settings_maker">by Astroport.ONE</string>
+
+    <string name="settings_update_link">⬆  Update</string>
+    <string name="settings_uninstall_link">✕  Uninstall</string>
+    <string name="settings_close">Close</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_update_title">Update?</string>
+    <string name="settings_update_body">Atom4Love does not update itself. The releases page opens in your browser: you download the APK, and you install it.</string>
+    <string name="settings_update_confirm">Open the page</string>
+    <string name="settings_update_unavailable">No browser on this device.</string>
+    <string name="settings_uninstall_title">Uninstall?</string>
+    <string name="settings_uninstall_body">The system will ask you again in turn: nothing is erased until you confirm it there.</string>
+    <string name="settings_uninstall_warning">Your sealed nucleus and this station\'s key leave with the app. Nothing of it is kept anywhere else — but your five data points forge it back identically.</string>
+    <string name="settings_uninstall_confirm">Uninstall</string>
 
     <!-- ❓ The questions: to ask is to give. -->
     <string name="trait_tone">The tone</string>

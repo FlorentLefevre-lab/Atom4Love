@@ -80,6 +80,15 @@ android {
         // sept jours. Le passage en UPlanet ẐEN demande une station dédiée.
         buildConfigField("String", "ASTROPORT_USPOT", "\"https://u.copylaradio.com\"")
         buildConfigField("boolean", "ASTROPORT_ORIGIN", "true")
+        // Où l'on va chercher une version plus récente. L'app ne se met pas à
+        // jour toute seule : l'AGPL s'accorde mal avec le Play Store, la
+        // distribution se fera par F-Droid et par APK signé — d'ici là, c'est
+        // la page des releases du dépôt, ouverte dans le navigateur.
+        buildConfigField(
+            "String",
+            "RELEASES_URL",
+            "\"https://github.com/FlorentLefevre-lab/Atom4Love/releases\"",
+        )
     }
 
     signingConfigs {

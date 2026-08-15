@@ -55,7 +55,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -1767,8 +1766,12 @@ private fun ColumnScope.SealedNucleus(
             // Le pied ne touche pas le contenu qui défile au-dessus : sans cette
             // marge, le sel se colle au bord où la dernière carte se fait
             // couper, et les deux se lisent comme un seul bloc.
-            .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 18.dp)
-            .navigationBarsPadding(),
+            //
+            // Pas de `navigationBarsPadding` ici, contrairement à l'assistant :
+            // le noyau scellé vit dans l'onglet, et c'est la barre de menus qui
+            // prend l'encoche du système. La poser deux fois creusait un vide de
+            // la hauteur d'une barre entre le dernier bouton et le menu.
+            .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 14.dp),
         verticalArrangement = Arrangement.spacedBy(9.dp),
     ) {
         SaltLine(birth = birth, npub = npub)
@@ -1843,14 +1846,6 @@ private fun ColumnScope.SealedNucleus(
                 color = A4L.Red.copy(alpha = 0.85f),
             )
         }
-        // Le launcher garde le nom court ; la filiation s'affiche ici.
-        Text(
-            stringResource(R.string.inc_footer),
-            style = A4LText.Data.copy(fontSize = 9.sp),
-            color = A4L.TextGhost,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
 

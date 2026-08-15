@@ -2,9 +2,11 @@ package one.astroport.atom4love.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import one.astroport.atom4love.R
 
 /**
  * La maquette utilise Manrope (texte) et JetBrains Mono (données, adresses, compteurs).
@@ -14,6 +16,19 @@ import androidx.compose.ui.unit.sp
  */
 val Display = FontFamily.SansSerif   // ← Manrope
 val Mono = FontFamily.Monospace      // ← JetBrains Mono
+
+/**
+ * Cinzel Decorative — la **seule** fonte embarquée, et elle ne sert qu'au nom de
+ * l'application sur le splash. Des capitales romaines à empattements, avec des
+ * pleins et des déliés que le grotesque système n'a pas : ce qui s'ouvre là est
+ * une histoire, pas un tableau de bord, et le nom doit le dire avant le premier
+ * écran.
+ *
+ * Elle ne descend nulle part ailleurs : une fonte à caractère se fatigue vite,
+ * et tout ce qui se lit longtemps (fiche, cabine, données) reste au grotesque et
+ * à la chasse fixe. SIL Open Font License 1.1 — voir `licenses/`.
+ */
+val Ornament = FontFamily(Font(R.font.cinzel_decorative_bold, FontWeight.Bold))
 
 /** Styles de texte de la maquette, en px CSS → sp (le cadre fait 428 px de large). */
 object A4LText {

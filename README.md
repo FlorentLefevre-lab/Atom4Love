@@ -120,6 +120,7 @@ des participants — le retour social passe par le son plutôt que par un score.
 | Messagerie | NOSTR — NIP-01, NIP-17 (gift wrap), NIP-44 (ChaCha20-Poly1305) |
 | Géographie | [H3](https://h3geo.org/) (Uber) pour le pavage hexagonal statique (AAR patché vendorisé) |
 | Proximité | BLE advertising + scan (beacon d'adresse 4D, service continu) |
+| Typographie | Familles système (grotesque + chasse fixe), et [Cinzel Decorative](https://fonts.google.com/specimen/Cinzel+Decorative) embarquée pour le seul nom sur le splash — SIL OFL 1.1, texte dans `licenses/` |
 | Build | Gradle KTS, module unique `:app` — minSdk 26, targetSdk 36, JDK 17 |
 
 > **Note d'implémentation.** H3 fournit le pavage hexagonal de référence ; la couche de
@@ -239,3 +240,4 @@ Ce choix aligne le projet sur Astroport.ONE, également en AGPL-3.0.
 
 Développement Android : Florent Lefèvre.
 Algorithmes fondateurs et écosystème : Fred R. / [G1FabLab](https://opencollective.com/monnaie-libre).
+Typographie du nom : *Cinzel Decorative*, Natanael Gama — SIL Open Font License 1.1.

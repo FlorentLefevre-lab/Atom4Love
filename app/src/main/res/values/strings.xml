@@ -614,8 +614,7 @@
     <string name="inc_provisional_note">La clé forgée ici est provisoire : elle vous suffit à portée d\'antenne. Votre clé LOVE, elle, sera dérivée par une station Astroport.ONE le jour où vous ouvrirez un MULTIPASS.</string>
     <string name="inc_multipass_active">MULTIPASS actif · clé LOVE en place</string>
     <string name="inc_board_open">🎴 Plateau « Qui est-ce ? » — le tirage et la reconnaissance</string>
-    <string name="inc_multipass_open">Ouvrir un MULTIPASS sur AstroPort.ONE</string>
-    <string name="inc_footer" translatable="false">Atom4Love · by AstroPort.ONE</string>
+    <string name="inc_multipass_open">Ouvrir un MULTIPASS sur Astroport.ONE</string>
 
     <string name="inc_salt">salt %1$s</string>
     <string name="inc_salt_incomplete">salt — fiche incomplète</string>
@@ -677,8 +676,28 @@
          l'affichent finissent par se contredire. -->
     <string name="settings_title">Réglages</string>
     <string name="settings_about_label">Cette station</string>
-    <string name="settings_version">Atom4Love %1$s</string>
-    <string name="settings_maker">by AstroPort.ONE</string>
+    <string name="settings_version">Version d\'Atom4Love</string>
+    <!-- Le nom de version porte déjà le commit sur un build debug ; le
+         versionCode dit lequel des deux APK de même nom est posé sur
+         l'appareil. -->
+    <string name="settings_build">%1$s · build %2$d</string>
+    <string name="settings_version_hint">Toucher pour mettre à jour ou désinstaller</string>
+    <string name="settings_maker">by Astroport.ONE</string>
+
+    <!-- La bulle de version, ouverte : deux gestes, chacun derrière sa
+         confirmation. -->
+    <string name="settings_update_link">⬆  Mettre à jour</string>
+    <string name="settings_uninstall_link">✕  Désinstaller</string>
+    <string name="settings_close">Fermer</string>
+    <string name="settings_cancel">Annuler</string>
+    <string name="settings_update_title">Mettre à jour ?</string>
+    <string name="settings_update_body">Atom4Love ne se met pas à jour toute seule. La page des versions s\'ouvre dans votre navigateur : c\'est vous qui téléchargez l\'APK, et vous qui l\'installez.</string>
+    <string name="settings_update_confirm">Ouvrir la page</string>
+    <string name="settings_update_unavailable">Aucun navigateur sur cet appareil.</string>
+    <string name="settings_uninstall_title">Désinstaller ?</string>
+    <string name="settings_uninstall_body">Le système vous le redemandera à son tour : rien n\'est effacé avant que vous ne le lui confirmiez.</string>
+    <string name="settings_uninstall_warning">Votre noyau scellé et la clé de cette station partent avec l\'application. Rien n\'en est gardé ailleurs — mais vos cinq données la reforgent à l\'identique.</string>
+    <string name="settings_uninstall_confirm">Désinstaller</string>
 
     <!-- ❓ Les questions : proposer, c'est donner. -->
     <string name="trait_tone">La tonalité</string>
