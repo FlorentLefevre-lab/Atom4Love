@@ -69,6 +69,21 @@ class NeighborRegistry(
          */
         val rssiSmoothed: Int,
         /**
+         * La puissance d'émission que **le pair** annonce, en dBm — le champ
+         * normalisé du Bluetooth (AD 0x0A), lu par `ScanResult.getTxPower()`.
+         *
+         * Null quand il ne l'annonce pas : un appareil plus ancien, ou une pile
+         * qui n'a pas eu la place de l'ajouter. La distance retombe alors sur
+         * l'étalonnage d'un couple connu, ce qui vaut pour ce couple-là et pour
+         * lui seul.
+         *
+         * ⚠ C'est **la moitié du problème**, pas sa solution. Elle corrige ce
+         * que l'émetteur a mis dans l'air ; ce que le récepteur en entend
+         * dépend encore de son antenne et de sa sensibilité, et rien dans le
+         * BLE ne les annonce.
+         */
+        val txPowerDbm: Int?,
+        /**
          * Ce que le pair dit de lui sans se nommer — polarité, sceau, phase.
          * Vide pour un pair resté à une version antérieure de l'annonce : il
          * reste un voisin, simplement sans résonance calculable.
@@ -123,6 +138,7 @@ class NeighborRegistry(
         token: Int?,
         rssi: Int,
         signature: ProximityPayload.Signature = ProximityPayload.Signature.Unknown,
+        txPowerDbm: Int? = null,
     ) {
         val now = clock()
         synchronized(byAddress) {
@@ -141,6 +157,10 @@ class NeighborRegistry(
                 token = token,
                 rssi = rssi,
                 rssiSmoothed = Math.round(smoothed).toInt(),
+                // Elle ne change pas d'un relevé à l'autre ; on garde la
+                // dernière connue plutôt que de retomber à null sur une trame
+                // où la pile ne l'aurait pas remontée.
+                txPowerDbm = txPowerDbm ?: previous?.txPowerDbm,
                 signature = signature,
                 firstSeenMillis = previous?.firstSeenMillis ?: now,
                 lastSeenMillis = now,

@@ -187,33 +187,69 @@ class ProximityEngine(
             .setConnectable(false)
             .setTimeout(0)
             .build()
-        val data = AdvertiseData.Builder()
+        // ── La puissance d'émission, dans l'annonce ───────────────────────
+        //
+        // `setIncludeTxPowerLevel` ajoute le champ **normalisé** du Bluetooth
+        // (AD type 0x0A) : la puissance que la puce émet vraiment, en dBm, telle
+        // que le contrôleur la connaît. Le pair d'en face la lit par
+        // `ScanResult.getTxPower()` et peut enfin retrancher ce que l'émetteur y
+        // a mis avant de conclure sur une distance.
+        //
+        // ⚠ Sans elle, un RSSI ne dit rien tout seul. Deux téléphones à un
+        // mètre, l'un émettant à −4 dBm et l'autre à −20, sont entendus 16 dB
+        // plus loin l'un que l'autre — soit un facteur 4 sur la distance
+        // déduite. C'est le défaut de fond que la note du 15/08 signalait à
+        // Fred, et **il se règle sans toucher à notre charge utile** : le
+        // VERSION 4 à 18 octets qu'elle proposait n'a plus lieu d'être.
+        //
+        // ⚠ Le budget est **exact**, pas confortable : 3 octets de drapeaux,
+        // 4 pour l'UUID de service, 21 pour le bloc de données (2 + 2 + 17),
+        // soit 28 sur les 31 d'une annonce legacy. Le champ en coûte 3 : 31/31.
+        // Un stack qui compterait autrement refuserait tout, d'où le repli.
+        fun advertiseData(withTxPower: Boolean) = AdvertiseData.Builder()
             .setIncludeDeviceName(false)
+            .setIncludeTxPowerLevel(withTxPower)
             .addServiceUuid(SERVICE_UUID)
             .addServiceData(SERVICE_UUID, ProximityPayload.encode(cell4d, token, signature))
             .build()
 
-        var callback: AdvertiseCallback? = null
-        val started = withTimeoutOrNull(ADVERTISE_START_TIMEOUT_MS) {
-            suspendCancellableCoroutine<Boolean> { cont ->
-                val cb = object : AdvertiseCallback() {
-                    override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
-                        if (cont.isActive) cont.resume(true)
-                    }
-
-                    override fun onStartFailure(errorCode: Int) {
-                        Log.w(TAG, "annonce refusée (errorCode=$errorCode)")
-                        _state.update {
-                            it.copy(lastError = "annonce refusée (errorCode=$errorCode)")
+        // Un essai avec la puissance, un sans : la seule erreur qu'on rattrape
+        // est celle du budget dépassé, les autres n'ont rien à voir avec ce
+        // champ et se reproduiraient à l'identique.
+        suspend fun attempt(withTxPower: Boolean): AdvertiseCallback? {
+            var cb: AdvertiseCallback? = null
+            val ok = withTimeoutOrNull(ADVERTISE_START_TIMEOUT_MS) {
+                suspendCancellableCoroutine<Boolean> { cont ->
+                    val c = object : AdvertiseCallback() {
+                        override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+                            if (cont.isActive) cont.resume(true)
                         }
-                        if (cont.isActive) cont.resume(false)
+
+                        override fun onStartFailure(errorCode: Int) {
+                            if (errorCode != ADVERTISE_FAILED_DATA_TOO_LARGE || !withTxPower) {
+                                Log.w(TAG, "annonce refusée (errorCode=$errorCode)")
+                                _state.update {
+                                    it.copy(lastError = "annonce refusée (errorCode=$errorCode)")
+                                }
+                            }
+                            if (cont.isActive) cont.resume(false)
+                        }
                     }
+                    cb = c
+                    advertiser.startAdvertising(settings, advertiseData(withTxPower), c)
+                    cont.invokeOnCancellation { runCatching { advertiser.stopAdvertising(c) } }
                 }
-                callback = cb
-                advertiser.startAdvertising(settings, data, cb)
-                cont.invokeOnCancellation { runCatching { advertiser.stopAdvertising(cb) } }
-            }
-        } ?: false
+            } ?: false
+            if (!ok) cb?.let { runCatching { advertiser.stopAdvertising(it) } }
+            return if (ok) cb else null
+        }
+
+        var callback = attempt(withTxPower = true)
+        if (callback == null) {
+            Log.w(TAG, "annonce sans puissance d'émission : le budget des 31 octets a refusé")
+            callback = attempt(withTxPower = false)
+        }
+        val started = callback != null
 
         if (!started) return null
         _state.update { it.copy(advertising = true, advertisedCell4d = cell4d, lastError = null) }
@@ -249,10 +285,26 @@ class ProximityEngine(
         val payload = ProximityPayload.decode(
             result.scanRecord?.getServiceData(SERVICE_UUID),
         ) ?: return
+        // ⚠ **Deux champs portent ce nom, et ce ne sont pas les mêmes.**
+        //
+        // - `ScanRecord.getTxPowerLevel()` lit l'AD type **0x0A**, celui que
+        //   `setIncludeTxPowerLevel` écrit dans la charge d'une annonce legacy.
+        //   Absent = `Integer.MIN_VALUE`. **C'est le nôtre.**
+        // - `ScanResult.getTxPower()` lit l'entête d'une annonce **étendue**
+        //   (Bluetooth 5), que nous n'émettons pas. Absent = 127.
+        //
+        // Mesuré le 15/08 : nos deux appareils rendaient `tx=absent` alors que
+        // l'annonce partait bien avec le champ — on interrogeait le mauvais des
+        // deux. On lit donc le premier, et le second en repli pour les piles qui
+        // annoncent en étendu.
+        val txPower = result.scanRecord?.txPowerLevel?.takeIf { it != Int.MIN_VALUE }
+            ?: result.txPower.takeIf { it != ScanResult.TX_POWER_NOT_PRESENT }
         Log.d(TAG, "pair ${result.device.address} rssi=${result.rssi} " +
+            "tx=${txPower?.let { "$it dBm" } ?: "absent"} " +
             "cell4d=${payload.cell4d?.toString(16) ?: "inconnue"}")
         registry.report(
-            result.device.address, payload.cell4d, payload.token, result.rssi, payload.signature,
+            result.device.address, payload.cell4d, payload.token, result.rssi,
+            payload.signature, txPower,
         )
     }
 }

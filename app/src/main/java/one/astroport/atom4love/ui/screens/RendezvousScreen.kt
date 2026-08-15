@@ -208,9 +208,9 @@ private fun Lantern(
                 // une fois sur deux. Et la mémoire de l'état précédent, pour
                 // que l'hystérésis ait de quoi mordre.
                 var last by remember(card.identity) { mutableStateOf<Warmth?>(null) }
-                val warmth = Warmth.of(card.rssiSmoothed, last)
+                val warmth = Warmth.of(card.rssiSmoothed, card.txPowerDbm, last)
                 LaunchedEffect(warmth) { last = warmth }
-                val metres = Warmth.metres(card.rssiSmoothed)
+                val metres = Warmth.metres(card.rssiSmoothed, card.txPowerDbm)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,

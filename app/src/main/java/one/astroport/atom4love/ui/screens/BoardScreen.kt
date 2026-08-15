@@ -293,7 +293,7 @@ private fun DealtCard(
     // clée sur l'identité : dans un Column, un `remember` suit la position, et
     // la main se réordonne quand les voisins vont et viennent.
     var last by remember(neighbor.identity) { mutableStateOf<Warmth?>(null) }
-    val warmth = Warmth.of(neighbor.rssiSmoothed, last)
+    val warmth = Warmth.of(neighbor.rssiSmoothed, neighbor.txPowerDbm, last)
     LaunchedEffect(warmth) { last = warmth }
     val accent = when {
         classification == null -> A4L.TextDim

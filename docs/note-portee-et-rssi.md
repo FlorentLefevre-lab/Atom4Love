@@ -1,6 +1,6 @@
-# Ce que le RSSI vaut vraiment : mesures, étalonnage, et une question de trame
+# Ce que le RSSI vaut vraiment : mesures, étalonnage, et une puissance d'émission
 
-**De :** Florent · **Pour :** Fred (G1FabLab) · **Date :** 15 août 2026 · **Statut :** mesures faites, une décision de protocole attendue
+**De :** Florent · **Pour :** Fred (G1FabLab) · **Date :** 15 août 2026, mise à jour le soir même · **Statut :** mesuré et en place ; **la trame VERSION 4 est retirée**, remplacée par le champ standard du Bluetooth (§ 5)
 
 Le 10 août je t'écrivais, dans la note SSID×NOSTR : *« RSSI ≈ −60 dBm dans la même pièce.
 Test de portée complet à venir ; ordre de grandeur attendu en intérieur : 10–50 m. »*
@@ -104,12 +104,52 @@ change quand on marche. Le jeu reste jouable, mais il se joue par zones et non p
 Si on veut la salle entière, il faut monter la puissance d'annonce, et le payer en
 batterie. C'est un arbitrage qui nous concerne tous les deux.
 
-## 5. La question — une décision de trame
+## 5. La puissance d'émission — réglée par la norme, pas par notre trame
 
 Tout ce qui précède étalonne **un couple d'appareils**. L'annonce ne porte pas sa puissance
 d'émission : rien dans la radio ne permet de la déduire, donc un téléphone qui émet plus
 fort se croira systématiquement plus proche qu'il n'est. Deux stations différentes
 calculeront deux distances au même endroit.
+
+> ## ⚠ Mise à jour du soir même — la proposition qui suit est RETIRÉE
+>
+> J'ai proposé plus bas un **VERSION 4 à 18 octets** pour y loger la puissance
+> d'émission. **Ne le fais pas : le Bluetooth a déjà un champ pour ça**, et je
+> ne l'avais pas vu.
+>
+> `AdvertiseData.setIncludeTxPowerLevel(true)` ajoute l'**AD type 0x0A**, un
+> champ normalisé qui porte la puissance réelle de la puce, en dBm. Le pair le
+> lit par `ScanRecord.getTxPowerLevel()`. Trois octets, aucune négociation entre
+> nous, et ça marche avec n'importe quel appareil BLE — pas seulement les nôtres.
+>
+> C'est en place chez nous depuis ce soir. Deux mesures qui valent d'être dites :
+>
+> - **nos deux appareils annoncent −7 dBm**, ce qui est le défaut d'Android
+>   (`ADVERTISE_TX_POWER_MEDIUM`) ;
+> - avec les −72 dBm relevés à un mètre, l'**atténuation à un mètre vaut donc
+>   65 dB**. Loin des ~40 dB de l'espace libre, et ce n'est pas une erreur : une
+>   antenne de téléphone est mauvaise et l'appareil était posé sur une table.
+>
+> Toute notre échelle de chaleur est désormais graduée en **atténuation**
+> (émission − réception) et non plus en RSSI : c'est la seule grandeur
+> comparable d'un appareil à l'autre.
+>
+> **Ce que je te demande à la place** — et c'est bien plus léger que la trame :
+> que cabine-33 mette `setIncludeTxPowerLevel(true)` sur son annonce. Un
+> appareil qui ne l'annonce pas est supposé à −7 dBm chez nous, ce qui vaut ce
+> que vaut une supposition.
+>
+> ⚠ Le budget est **exact** : 3 octets de drapeaux, 4 pour l'UUID de service,
+> 21 pour le bloc de données, plus 3 pour ce champ — 31 sur 31. Si tu ajoutes
+> quoi que ce soit à ta charge utile, c'est lui qui saute le premier.
+>
+> ⚠ Et ça ne règle que **la moitié** du problème : la puissance d'émission est
+> corrigée, la sensibilité du récepteur non — rien dans le BLE ne l'annonce.
+> Deux appareils différents entendront toujours la même personne un peu
+> différemment.
+
+<details>
+<summary>La proposition d'origine, conservée pour l'histoire</summary>
 
 **Proposition : que la charge utile porte la puissance d'émission.**
 
@@ -122,19 +162,19 @@ VERSION 3 → 17 octets   (+ signature : polarité, sceau, φ)
 VERSION 4 → 18 octets   (+ puissance d'émission)   ← la proposition
 ```
 
-Un octet suffit largement : la puissance d'annonce BLE tient dans la plage −40…+8 dBm, donc
-un entier signé en décibels-milliwatt. Les pairs restés en v3 continuent d'être décodés
-sans rien changer — c'est déjà le comportement pour v1 et v2.
+Un octet suffit largement : la puissance d'annonce BLE tient dans la plage
+−40…+8 dBm, donc un entier signé en décibels-milliwatt. Les pairs restés en v3
+continuent d'être décodés sans rien changer.
 
-Trois questions, dans l'ordre où elles bloquent :
+</details>
 
-1. **Es-tu d'accord pour un VERSION 4 à 18 octets ?** C'est la seule chose qui doit être
-   identique entre deux stations, et donc la seule qui t'appartienne.
-2. **Cabine-33 a-t-elle son propre modèle de portée ?** Si l'implémentation Godot affiche
+Deux questions, donc, au lieu de trois :
+
+1. **Cabine-33 a-t-elle son propre modèle de portée ?** Si l'implémentation Godot affiche
    déjà une distance, il faut que les deux disent la même chose du même signal — sinon
    deux personnes côte à côte, l'une sous Android l'autre sous cabine-33, ne liront pas le
    même mètre.
-3. **Le rituel des 33 secondes parle de « moins de 50 m du centre de l'hexagone ».** Ce
+2. **Le rituel des 33 secondes parle de « moins de 50 m du centre de l'hexagone ».** Ce
    50 m-là vient de chez toi et concerne la cellule H3, pas le BLE — je le note pour qu'on
    ne les confonde pas : **la portée radio est de 7 m, le rayon du rendez-vous est de
    50 m**. Confirmes-tu que ce sont bien deux échelles distinctes, la seconde géographique

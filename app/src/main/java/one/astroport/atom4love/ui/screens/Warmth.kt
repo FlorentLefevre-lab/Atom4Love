@@ -42,14 +42,14 @@ import one.astroport.atom4love.ui.theme.A4L
  * 23, et une distance déduite qui ne varie plus que d'un facteur 1,4 au lieu
  * de 4,6.
  */
-internal enum class Warmth(val rssiAtLeast: Int, val glyph: String) {
+internal enum class Warmth(val lossAtMost: Int, val glyph: String) {
     /** À bout de bras. La chaleur a fini son travail, le rythme prend le relais. */
-    Touching(-64, "🎯"),   // < 0,5 m
-    Burning(-74, "🔥"),    // 0,5 – 1,2 m
-    Hot(-83, "🌶"),        // 1,2 – 2,5 m
-    Warm(-88, "🌡"),       // 2,5 – 4 m
-    Cool(-95, "❄"),        // 4 – 7 m, jusqu'au plancher du récepteur
-    Cold(Int.MIN_VALUE, "🧊"),
+    Touching(57, "🎯"),   // < 0,5 m
+    Burning(67, "🔥"),    // 0,5 – 1,2 m
+    Hot(76, "🌶"),        // 1,2 – 2,5 m
+    Warm(81, "🌡"),       // 2,5 – 4 m
+    Cool(88, "❄"),        // 4 – 7 m, jusqu'au plancher du récepteur
+    Cold(Int.MAX_VALUE, "🧊"),
     ;
 
     val labelRes: Int
@@ -73,31 +73,36 @@ internal enum class Warmth(val rssiAtLeast: Int, val glyph: String) {
         }
 
     companion object {
+
         /**
-         * Le RSSI mesuré à un mètre, antenne face à antenne.
+         * L'atténuation à un mètre, en décibels. **65 dB, mesuré le 15/08.**
          *
-         * **−72 dBm, ÉTALONNÉ le 15/08** — Pixel 10 Pro et Lenovo TB350XU posés
-         * à un mètre, relevés des deux côtés : le Pixel entend la tablette à
-         * −71 (médiane, n = 9), la tablette entend le Pixel à −74 (n = 36).
-         * Trois décibels d'écart entre les deux sens, ce qui est peu.
+         * Elle se déduit de deux relevés du même soir : les deux appareils
+         * annoncent **−7 dBm** (`ADVERTISE_TX_POWER_MEDIUM`, le défaut
+         * d'Android), et s'entendent à **−72 dBm** posés à un mètre l'un de
+         * l'autre. L'air, les antennes et la table en mangent donc 65.
          *
-         * La convention BLE dit −59 dBm, pour une émission à 0 dBm. Ces
-         * appareils sont **13 dB en dessous** : l'annonce se fait à puissance
-         * réduite, comme le font les téléphones récents pour épargner la
-         * batterie. Avec −59, un pair à un mètre s'affichait **à trois mètres**.
+         * ⚠ C'est très loin des ~40 dB de l'espace libre à 2,4 GHz, et ce n'est
+         * pas une erreur : une antenne de téléphone est mauvaise, l'appareil
+         * était posé à plat sur un plan qui réfléchit, et un corps se tenait à
+         * côté. On garde le nombre mesuré, pas celui de la théorie — c'est dans
+         * cette pièce-là que le jeu se joue.
          *
-         * Conséquence qui compte plus que la correction elle-même : si le
-         * plancher du récepteur est vers −95 dBm, la portée utile de cette
-         * balise est d'environ **7 mètres**, pas les trente que le modèle
-         * autorisait. Toute l'échelle ci-dessus a été redéployée sur 0 à 7 m.
-         *
-         * ⚠ C'est l'étalonnage de CE couple d'appareils. L'annonce ne porte pas
-         * sa puissance d'émission — rien dans la radio ne permet de la déduire —
-         * donc un téléphone qui émet plus fort se croira plus proche. C'est la
-         * limite du procédé, pas un défaut de réglage. Pour réétalonner : deux
-         * appareils à un mètre exactement, `adb logcat | grep rssi=`, médiane.
+         * Pour réétalonner : deux appareils à un mètre, `adb logcat | grep
+         * "rssi="`, médiane du RSSI et lecture du `tx=` de la même ligne ;
+         * l'atténuation est leur différence.
          */
-        const val RSSI_AT_ONE_METRE = -72.0
+        const val PATH_LOSS_AT_ONE_METRE = 65.0
+
+        /**
+         * La puissance qu'on **suppose** à un pair qui ne l'annonce pas.
+         *
+         * −7 dBm, la valeur des deux appareils du banc, qui est aussi le défaut
+         * d'Android. C'est une supposition, et elle vaut ce que vaut une
+         * supposition : un téléphone qui crie plus fort se croira plus proche.
+         * D'où le champ dans l'annonce — voir [ProximityEngine].
+         */
+        const val ASSUMED_TX_POWER_DBM = -7
 
         /**
          * L'exposant d'atténuation. 2,0 en espace libre, 2,7 dans une salle
@@ -109,45 +114,66 @@ internal enum class Warmth(val rssiAtLeast: Int, val glyph: String) {
         /** Ce qu'il faut dépasser pour quitter un état. Voir le mot sur l'hystérésis. */
         private const val HYSTERESIS_DB = 2
 
+        /**
+         * L'atténuation du trajet, en décibels : ce que l'émetteur a mis dans
+         * l'air, moins ce que nous en entendons.
+         *
+         * **C'est la seule grandeur comparable d'un appareil à l'autre.** Un
+         * RSSI seul ne dit rien : deux téléphones à un mètre, l'un émettant à
+         * −4 dBm et l'autre à −20, s'entendent 16 dB différemment — soit un
+         * facteur 4 sur la distance déduite. C'est pour ça que toute l'échelle
+         * ci-dessus est graduée en atténuation depuis le 15/08, et non plus en
+         * RSSI comme elle l'était le matin même.
+         */
+        fun pathLoss(rssi: Int, txPowerDbm: Int?): Int =
+            (txPowerDbm ?: ASSUMED_TX_POWER_DBM) - rssi
+
         /** L'état correspondant à un signal, sans mémoire. */
-        fun of(rssi: Int): Warmth = entries.first { rssi >= it.rssiAtLeast }
+        fun of(rssi: Int, txPowerDbm: Int?): Warmth {
+            val loss = pathLoss(rssi, txPowerDbm)
+            return entries.first { loss <= it.lossAtMost }
+        }
 
         /**
          * L'état suivant, connaissant le précédent.
          *
-         * On ne quitte [previous] que si le signal a franchi la frontière de
-         * [HYSTERESIS_DB] de plus : monter d'un cran demande 2 dB au-dessus du
-         * seuil visé, en descendre demande 2 dB en dessous de celui qu'on
-         * occupe. Une frontière traversée en aller-retour ne fait donc plus
-         * clignoter le mot.
+         * On ne quitte [previous] que si l'atténuation a franchi la frontière de
+         * [HYSTERESIS_DB] de plus : se rapprocher d'un cran demande 2 dB de
+         * moins que le seuil visé, s'en éloigner demande 2 dB de plus que celui
+         * qu'on occupe. Une frontière traversée en aller-retour ne fait donc
+         * plus clignoter le mot.
          */
-        fun of(rssi: Int, previous: Warmth?): Warmth {
-            if (previous == null) return of(rssi)
-            val candidate = of(rssi)
+        fun of(rssi: Int, txPowerDbm: Int?, previous: Warmth?): Warmth {
+            if (previous == null) return of(rssi, txPowerDbm)
+            val loss = pathLoss(rssi, txPowerDbm)
+            val candidate = of(rssi, txPowerDbm)
             if (candidate == previous) return previous
             return if (candidate.ordinal < previous.ordinal) {
-                // Il fait plus chaud : exiger d'être franchement au-dessus.
-                if (rssi >= candidate.rssiAtLeast + HYSTERESIS_DB) candidate else previous
+                // Il fait plus chaud : exiger d'être franchement en dessous.
+                if (loss <= candidate.lossAtMost - HYSTERESIS_DB) candidate else previous
             } else {
-                // Il fait plus froid : exiger d'être franchement en dessous.
-                if (rssi < previous.rssiAtLeast - HYSTERESIS_DB) candidate else previous
+                // Il fait plus froid : exiger d'être franchement au-dessus.
+                if (loss > previous.lossAtMost + HYSTERESIS_DB) candidate else previous
             }
         }
 
         /**
          * La distance en mètres, déduite de l'atténuation.
          *
-         * `d = 10 ^ ((P₁ − rssi) / (10·n))`, le modèle log-distance. À prendre
-         * pour ce qu'il est : à l'intérieur, l'erreur va couramment du simple au
-         * double. Le nombre sert à décider si l'on traverse la salle ou si l'on
-         * regarde autour de soi, pas à désigner une chaise.
+         * `d = 10 ^ ((atténuation − A₁) / (10·n))`, le modèle log-distance. À
+         * prendre pour ce qu'il est : à l'intérieur, l'erreur va couramment du
+         * simple au double. Le nombre sert à décider si l'on traverse la salle
+         * ou si l'on regarde autour de soi, pas à désigner une chaise.
          *
          * ⚠ À nourrir avec le RSSI **lissé**. Sur du brut, les 18 dB d'amplitude
          * mesurés le 15/08 font varier le résultat d'un facteur 4,6 pour deux
          * appareils posés qui ne bougent pas.
          */
-        fun metres(rssi: Int): Double =
-            10.0.pow((RSSI_AT_ONE_METRE - rssi) / (10.0 * PATH_LOSS_EXPONENT))
+        fun metres(rssi: Int, txPowerDbm: Int?): Double =
+            10.0.pow(
+                (pathLoss(rssi, txPowerDbm) - PATH_LOSS_AT_ONE_METRE) /
+                    (10.0 * PATH_LOSS_EXPONENT),
+            )
 
         /**
          * Au-delà, le modèle rend encore des nombres mais plus d'information :
