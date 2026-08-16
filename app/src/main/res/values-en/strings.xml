@@ -103,12 +103,13 @@
     <string name="board_no_seal">Unknown seal</string>
     <string name="board_no_date">your card has no date yet</string>
     <string name="board_kin_tone">KIN %1$d · tone %2$d</string>
-    <string name="board_oracle_title">Your three complements</string>
+    <string name="board_oracle_title">Your four complements</string>
+    <string name="board_oracle_guide">Guide</string>
     <string name="board_oracle_antipode">Challenge</string>
     <string name="board_oracle_analogue">Alternation</string>
     <string name="board_oracle_occult">Occult</string>
     <string name="board_oracle_kin">KIN %1$d</string>
-    <string name="board_oracle_note">The challenge and the alternation carry the same seal — only the tone separates them. None of the three is an opposite: they are the three ways of completing you.</string>
+    <string name="board_oracle_note">The challenge and the alternation carry the same seal — only the tone separates them. None of the four is an opposite: they are the four ways of completing you.</string>
     <string name="board_oracle_resonant">Your tone 7 is its own complement: your challenge and your alternation are a single KIN.</string>
     <string name="board_match">MATCH</string>
     <string name="board_super_match">SUPER MATCH</string>

@@ -7,37 +7,44 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Les trois formules de la planche `tzolkin_oracle.svg`, épinglées une par une
- * — sceau+10 même ton, sceau±10 ton retourné, K+K′ = 261 — puis les propriétés
- * qui découlent de leur combinaison sur les 260 cases de la grille.
+ * Les quatre formules de la planche `tzolkin_oracle.svg`, épinglées une par
+ * une — sceau+10 ton retourné, sceau+10 même ton, K+K′ = 261, même famille de
+ * sceaux — puis les propriétés qui découlent de leur combinaison sur les 260
+ * cases de la grille.
  *
  * Ce qui compte le plus ici est le **partage du sceau** entre le défi et
  * l'alternance : c'est ce que dit la planche, c'est contre-intuitif quand on
  * connaît d'autres traditions, et c'est ce que le Plateau exploite pour lire un
  * lien depuis un sceau seul.
+ *
+ * ⚠ Les rôles antipode/analogue ont été inversés le 16 août 2026 : la planche
+ * source se contredisait elle-même, et son texte ne s'accordait pas avec
+ * `kin_oracle.sh`, qui envoie déjà les emails Oracle réels. Les valeurs de
+ * cette suite sont vérifiées contre ce script (source de vérité en
+ * production), pas seulement contre la planche.
  */
 class OracleTest {
 
     private val all = (1..260).mapNotNull { KinMaya.ofNumber(it) }
 
     @Test
-    fun `le defi garde le ton et decale le sceau de dix`() {
+    fun `le defi decale le sceau de dix et retourne le ton`() {
         all.forEach { k ->
             val a = Oracle.antipode(k)!!
-            assertEquals("ton du défi de ${k.kin}", k.tone, a.tone)
             assertEquals("sceau du défi de ${k.kin}", (k.glyph + 10) % 20, a.glyph)
+            // « 14 − ton », sur des tons comptés de 1 à 13 comme chez Fred.
+            assertEquals("somme des tons affichés sur ${k.kin}", 14, (k.tone + 1) + (a.tone + 1))
         }
     }
 
     @Test
-    fun `l'alternance partage le sceau du defi et retourne le ton`() {
+    fun `l'alternance partage le sceau du defi et garde le ton`() {
         all.forEach { k ->
             val defi = Oracle.antipode(k)!!
             val alt = Oracle.analogue(k)!!
             // Le point de la planche : ±10 et +10 sont la même opération.
             assertEquals("sceau partagé sur ${k.kin}", defi.glyph, alt.glyph)
-            // « 14 − ton », sur des tons comptés de 1 à 13 comme chez Fred.
-            assertEquals("somme des tons sur ${k.kin}", 14, (k.tone + 1) + (alt.tone + 1))
+            assertEquals("ton inchangé sur ${k.kin}", k.tone, alt.tone)
         }
     }
 
@@ -69,7 +76,8 @@ class OracleTest {
     }
 
     @Test
-    fun `les trois relations sont involutives`() {
+    fun `les trois relations symetriques sont involutives`() {
+        // Le guide n'en fait pas partie : rien ne garantit qu'il le soit.
         all.forEach { k ->
             assertEquals(k.kin, Oracle.antipode(Oracle.antipode(k)!!)!!.kin)
             assertEquals(k.kin, Oracle.analogue(Oracle.analogue(k)!!)!!.kin)
@@ -78,7 +86,7 @@ class OracleTest {
     }
 
     @Test
-    fun `les complements ne retombent jamais sur soi`() {
+    fun `les complements symetriques ne retombent jamais sur soi`() {
         all.forEach { k ->
             val r = Oracle.of(k)
             val kins = listOf(k.kin, r.antipode!!.kin, r.analogue!!.kin, r.occult!!.kin)
@@ -88,6 +96,40 @@ class OracleTest {
             assertEquals("KIN distincts pour ${k.kin}", attendu, kins.toSet().size)
             assertTrue("un complément retombe sur soi (${k.kin})", kins.drop(1).none { it == k.kin })
         }
+    }
+
+    @Test
+    fun `le guide reste dans la meme famille de sceaux et garde le ton`() {
+        all.forEach { k ->
+            val g = Oracle.guide(k)!!
+            assertEquals("famille du guide de ${k.kin}", k.glyph % 4, g.glyph % 4)
+            assertEquals("ton inchangé pour le guide de ${k.kin}", k.tone, g.tone)
+        }
+    }
+
+    @Test
+    fun `le guide n'est pas forcement involutif`() {
+        // Contrairement au défi, à l'alternance et à l'occulte : rien ne dit
+        // que le guide du guide de Kin 66 est Kin 66. Vérifié contre
+        // kin_oracle.sh, qui rend 222 puis 195, pas un retour à 66.
+        val k66 = KinMaya.ofNumber(66)!!
+        val guide66 = Oracle.guide(k66)!!
+        assertEquals(222, guide66.kin)
+        assertNotEquals(66, Oracle.guide(guide66)!!.kin)
+    }
+
+    @Test
+    fun `deux KIN sont chacun leur propre guide, par coincidence de position`() {
+        // Position 0 dans une famille déjà basée sur son propre sceau — pas
+        // la règle générale, seulement les cas où elle se referme sur elle-
+        // même. Vérifiés contre kin_oracle.sh.
+        assertEquals(1, Oracle.guide(KinMaya.ofNumber(1)!!)!!.kin)
+        assertEquals(67, Oracle.guide(KinMaya.ofNumber(67)!!)!!.kin)
+    }
+
+    @Test
+    fun `le guide de Kin 260 est verifie contre la station`() {
+        assertEquals(52, Oracle.guide(KinMaya.ofNumber(260)!!)!!.kin)
     }
 
     @Test
@@ -138,21 +180,25 @@ class OracleTest {
     @Test
     fun `l'oracle du KIN 119, l'exemple de la planche`() {
         // Kin 119 : sceau 18 (Tempête), ton index 1 — le « T3 » de sa légende
-        // compte autrement, ce qui ne change aucune des trois formules.
+        // compte autrement, ce qui ne change aucune des quatre formules.
         val k = KinMaya.ofNumber(119)!!
         assertEquals(18, k.glyph)
         assertEquals(1, k.tone)
 
         val r = Oracle.of(k)
-        // Défi : sceau 8 (Muluc / Lune), même ton.
-        assertEquals(8, r.antipode!!.glyph)
-        assertEquals(1, r.antipode.tone)
-        // Alternance : même sceau 8, ton 11 — 2 + 13 ne font pas 14, mais les
+        // Défi : sceau 8 (Muluc / Lune), ton 11 — 2 + 13 ne font pas 14, mais les
         // tons affichés, 2 et 12, oui.
+        assertEquals(8, r.antipode!!.glyph)
+        assertEquals(11, r.antipode.tone)
+        assertEquals(14, (k.tone + 1) + (r.antipode.tone + 1))
+        // Alternance : même sceau 8, même ton.
         assertEquals(8, r.analogue!!.glyph)
-        assertEquals(11, r.analogue.tone)
-        assertEquals(14, (k.tone + 1) + (r.analogue.tone + 1))
+        assertEquals(1, r.analogue.tone)
         // Occulte : 261 − 119 = 142.
         assertEquals(142, r.occult!!.kin)
+        // Guide : sceau 6 (Manik), même ton — vérifié contre kin_oracle.sh (Kin 67).
+        assertEquals(67, r.guide!!.kin)
+        assertEquals(6, r.guide.glyph)
+        assertEquals(1, r.guide.tone)
     }
 }

@@ -105,12 +105,13 @@
     <string name="board_no_seal">Sello desconocido</string>
     <string name="board_no_date">tu ficha aún no tiene fecha</string>
     <string name="board_kin_tone">KIN %1$d · tono %2$d</string>
-    <string name="board_oracle_title">Tus tres complementos</string>
+    <string name="board_oracle_title">Tus cuatro complementos</string>
+    <string name="board_oracle_guide">Guía</string>
     <string name="board_oracle_antipode">Desafío</string>
     <string name="board_oracle_analogue">Alternancia</string>
     <string name="board_oracle_occult">Oculto</string>
     <string name="board_oracle_kin">KIN %1$d</string>
-    <string name="board_oracle_note">El desafío y la alternancia llevan el mismo sello — solo el tono los separa. Ninguno de los tres es un contrario: son las tres maneras de completarte.</string>
+    <string name="board_oracle_note">El desafío y la alternancia llevan el mismo sello — solo el tono los separa. Ninguno de los cuatro es un contrario: son las cuatro maneras de completarte.</string>
     <string name="board_oracle_resonant">Tu tono 7 es su propio complemento: tu desafío y tu alternancia son un solo KIN.</string>
     <string name="board_match">MATCH</string>
     <string name="board_super_match">SÚPER MATCH</string>
