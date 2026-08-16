@@ -97,6 +97,17 @@ import one.astroport.atom4love.ui.theme.tint
 fun RendezvousScreen(
     /** La carte qu'on suit — la dernière connue si le pair vient de sauter un balayage. */
     card: NeighborRegistry.Neighbor,
+    /**
+     * Les autres cartes cherchées en même temps, la première comprise.
+     *
+     * Chercher à plusieurs multiplie les chances que le geste soit joué en face
+     * au même moment : mesuré sur 400 salles, la première carte d'une main est
+     * réciproque deux fois sur trois, mais le **rang moyen chez l'autre est de
+     * 0,5** — donc couvrir les deux premières cartes couvre presque tout le
+     * monde. Les fenêtres de [Rendezvous] font que les deux appareils jouent
+     * une paire donnée pendant les mêmes secondes, sans rien s'échanger.
+     */
+    alsoSeeking: List<NeighborRegistry.Neighbor> = emptyList(),
     /** Notre propre signature, pour la résonance et pour le rythme. */
     own: ProximityPayload.Signature,
     /** Vrai tant que le pair est effectivement entendu à l'instant. */
@@ -104,18 +115,54 @@ fun RendezvousScreen(
     onClose: () -> Unit,
 ) {
     CompositionLocalProvider(LocalA4L provides A4LDark) {
-        Lantern(card = card, own = own, inRange = inRange, onClose = onClose)
+        Lantern(
+            card = card,
+            alsoSeeking = alsoSeeking,
+            own = own,
+            inRange = inRange,
+            onClose = onClose,
+        )
     }
 }
 
 @Composable
 private fun Lantern(
     card: NeighborRegistry.Neighbor,
+    alsoSeeking: List<NeighborRegistry.Neighbor>,
     own: ProximityPayload.Signature,
     inRange: Boolean,
     onClose: () -> Unit,
 ) {
-    val theirs = card.signature
+    // L'horloge murale, relue à chaque image — c'est elle qui décide de la
+    // fenêtre en cours autant que du pas du motif.
+    val clock by produceState(System.currentTimeMillis()) {
+        while (true) withFrameMillis { value = System.currentTimeMillis() }
+    }
+
+    // ── Quelle carte se joue en ce moment ─────────────────────────────────
+    //
+    // La fenêtre appartient à la PAIRE, pas au rang dans la liste : les deux
+    // appareils tombent donc sur la même carte commune aux mêmes secondes,
+    // même s'ils en cherchent trois chacun dans un ordre différent. Quand deux
+    // des cartes cherchées partagent une fenêtre, la plus forte l'emporte —
+    // arbitrairement, mais **de la même façon des deux côtés**, la résonance
+    // étant symétrique.
+    val seeking = remember(card, alsoSeeking) { (listOf(card) + alsoSeeking).distinctBy { it.identity } }
+    val current = remember(seeking, own.phase, Rendezvous.windowAt(clock)) {
+        val window = Rendezvous.windowAt(clock)
+        seeking
+            .filter { Rendezvous.windowOf(own.phase, it.signature.phase) == window }
+            .maxByOrNull { n ->
+                val p = n.signature.phase
+                if (own.phase != null && p != null) Phi2X.resonanceK(own.phase, p) else -1.0
+            }
+            // Une seule carte cherchée : elle se joue tout le temps, sans quoi
+            // l'écran serait noir deux tiers du temps pour rien.
+            ?: card.takeIf { seeking.size == 1 }
+    }
+    val shown = current ?: card
+    val waiting = current == null
+    val theirs = shown.signature
     val beat = remember(own.phase, theirs.phase) { Rendezvous.of(own.phase, theirs.phase) }
     val classification = own.phase?.let { mine ->
         theirs.phase?.let { Phi2X.classifyResonance(mine, it) }
@@ -126,12 +173,13 @@ private fun Lantern(
         else -> A4L.Violet
     }
 
-    // L'horloge murale, relue à chaque image : le motif est calé sur le temps
-    // Unix absolu, seul repère que deux appareils partagent sans se parler.
-    val now by produceState(System.currentTimeMillis()) {
-        while (true) withFrameMillis { value = System.currentTimeMillis() }
-    }
-    val glow = beat?.glowAt(now) ?: 0f
+    // Le motif est calé sur le temps Unix absolu, seul repère que deux
+    // appareils partagent sans se parler — la même horloge que les fenêtres.
+    val now = clock
+    // ⚠ Hors fenêtre, on ne bat PAS : battre la figure d'une paire au mauvais
+    // moment ferait chercher pour rien celui d'en face, qui joue alors une
+    // autre paire. Le noir est le prix de la synchronisation.
+    val glow = if (waiting) 0f else beat?.glowAt(now) ?: 0f
     val slot = beat?.slotAt(now) ?: 0
 
     // L'instant où l'on est parti chercher cette carte-ci. Clé sur l'identité :

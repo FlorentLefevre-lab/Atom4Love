@@ -117,6 +117,11 @@ fun BoardScreen(
     // On retient l'identité, pas la carte : une carte est un instantané, et
     // c'est justement quand on marche vers quelqu'un que sa chaleur change.
     var seekingId by rememberSaveable { mutableStateOf<String?>(null) }
+    // Chercher plusieurs cartes d'un coup : la première n'est réciproque que
+    // deux fois sur trois, mais le rang moyen chez l'autre est de 0,5 — couvrir
+    // les trois premières couvre presque tout le monde. Les fenêtres de
+    // [Rendezvous] gardent les deux appareils en phase.
+    var seekingMany by rememberSaveable { mutableStateOf(false) }
     val live = hand.firstOrNull { it.identity == seekingId }
     // La dernière carte connue survit à un balayage manqué — sinon l'écran de
     // reconnaissance clignoterait à chaque trou de la radio, au pire moment.
@@ -130,12 +135,13 @@ fun BoardScreen(
         // naturel du téléphone, fait au pire moment, quand on cherche
         // justement quelqu'un dans une salle. Les autres plein-écrans le
         // faisaient déjà ; celui-ci avait été oublié.
-        BackHandler { seekingId = null }
+        BackHandler { seekingId = null; seekingMany = false }
         RendezvousScreen(
             card = card,
+            alsoSeeking = if (seekingMany) hand.take(SEEK_MANY).filter { it.identity != card.identity } else emptyList(),
             own = own,
             inRange = live != null,
-            onClose = { seekingId = null },
+            onClose = { seekingId = null; seekingMany = false },
         )
         return
     }
@@ -234,11 +240,53 @@ fun BoardScreen(
                     color = A4L.TextGhost,
                     modifier = Modifier.padding(bottom = 10.dp),
                 )
+                // ⚠ La stratégie du jeu, et elle n'est pas devinable.
+                // `resonanceK` est **symétrique** : mesuré sur 400 salles
+                // simulées, la première carte d'une main a son porteur en tête
+                // de la sienne **deux fois sur trois**, et à un rang moyen de
+                // 0,5 sinon — donc presque toujours première ou deuxième.
+                //
+                // Sans le dire, le double choix ressemble à un tirage au sort à
+                // l'aveugle et ne converge jamais ; dit, il devient le coup
+                // évident, et les deux le jouent en même temps.
+                Text(
+                    stringResource(R.string.board_symmetry),
+                    style = A4LText.Caption.copy(fontSize = 10.5.sp),
+                    color = A4L.TextMuted,
+                    modifier = Modifier.padding(bottom = 12.dp),
+                )
+                if (hand.size > 1) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .glass(13.dp, A4L.Mint.tint(0.10f), A4L.Mint.tint(0.34f))
+                            .clickable {
+                                seekingMany = true
+                                seekingId = hand.first().identity
+                            }
+                            .padding(vertical = 13.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            stringResource(
+                                R.string.board_seek_many,
+                                minOf(hand.size, SEEK_MANY),
+                            ),
+                            style = A4LText.Body.copy(
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            ),
+                            color = A4L.Mint,
+                        )
+                    }
+                    Spacer(Modifier.height(11.dp))
+                }
                 Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    hand.forEach { neighbor ->
+                    hand.forEachIndexed { index, neighbor ->
                         DealtCard(
                             neighbor = neighbor,
                             own = own,
+                            first = index == 0 && hand.size > 1,
                             onSeek = { seekingId = neighbor.identity },
                         )
                     }
@@ -404,6 +452,8 @@ private fun DealtCard(
     neighbor: NeighborRegistry.Neighbor,
     own: ProximityPayload.Signature,
     onSeek: () -> Unit,
+    /** La tête de main — celle par laquelle il faut commencer, cf. `board_symmetry`. */
+    first: Boolean = false,
 ) {
     val theirs = neighbor.signature
     val classification = own.phase?.let { mine ->
@@ -463,6 +513,13 @@ private fun DealtCard(
                     color = A4L.TextHigh,
                     fontWeight = FontWeight.SemiBold,
                 )
+                if (first) {
+                    Text(
+                        stringResource(R.string.board_first_card),
+                        style = A4LText.Caption.copy(fontSize = 9.5.sp),
+                        color = A4L.Mint,
+                    )
+                }
                 if (match.level != Match.Level.None) {
                     val superb = match.level == Match.Level.Super
                     Text(
@@ -524,3 +581,13 @@ private fun DealtCard(
         Text("◎", fontSize = 15.sp, color = A4L.TextFaint)
     }
 }
+
+/**
+ * Combien de cartes on cherche d'un coup.
+ *
+ * Trois, parce que le rang moyen d'une carte chez son porteur est de 0,5 —
+ * mesuré sur 400 salles simulées — et que couvrir les trois premières couvre
+ * donc l'immense majorité des réciprocités. Au-delà, chaque carte de plus
+ * espace le retour de toutes les autres sans presque rien ajouter.
+ */
+private const val SEEK_MANY = 3

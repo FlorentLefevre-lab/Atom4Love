@@ -71,6 +71,45 @@ object Rendezvous {
     const val CYCLE_MS = SLOTS * SLOT_MS
 
     /**
+     * ## Chercher plusieurs cartes à la fois
+     *
+     * Un écran ne peut battre qu'une figure. Chercher trois personnes demande
+     * donc de les jouer à tour de rôle — et le piège est là : si chacun défile
+     * dans **son** ordre, deux appareils qui se cherchent l'un l'autre peuvent
+     * ne jamais afficher leur figure commune au même moment. Ils se manqueraient
+     * indéfiniment tout en étant tous les deux en train de se chercher.
+     *
+     * D'où des **fenêtres attribuées à la paire**, pas au rang dans la liste.
+     * Chaque couple de phases tombe toujours dans la même fenêtre
+     * ([windowOf]), et la fenêtre courante se lit sur l'horloge commune
+     * ([windowAt]) : les deux appareils jouent donc cette paire exactement
+     * pendant les mêmes secondes, quel que soit le nombre de cartes que chacun
+     * cherche et quel que soit son ordre.
+     *
+     * Une fenêtre dure un cycle entier : la figure se voit en entier ou pas du
+     * tout, jamais tronquée. Trois fenêtres font revenir une paire donnée
+     * toutes les 7,2 s — assez rare pour qu'on lève l'écran deux fois, assez
+     * fréquent pour ne pas renoncer.
+     */
+    const val WINDOWS = 3
+
+    /**
+     * La fenêtre d'une paire — **symétrique**, comme le motif lui-même, et
+     * dérivée du même condensat : les deux côtés la calculent sans rien
+     * échanger. `null` si l'une des phases manque.
+     */
+    fun windowOf(mine: Double?, theirs: Double?): Int? {
+        if (mine == null || theirs == null) return null
+        val a = ProximityPayload.encodePhase(mine)
+        val b = ProximityPayload.encodePhase(theirs)
+        return Math.floorMod(ofOnAir(minOf(a, b), maxOf(a, b)).mask, WINDOWS)
+    }
+
+    /** La fenêtre en cours, sur l'horloge absolue — le même repère que [Beat.slotAt]. */
+    fun windowAt(millis: Long): Int =
+        Math.floorMod(millis / CYCLE_MS, WINDOWS.toLong()).toInt()
+
+    /**
      * Le rythme de la paire, ou null tant qu'un des deux φ manque — le sceau
      * vient de la date, la phase demande le lieu, et sans lieu il n'y a pas de
      * rendez-vous possible.
@@ -94,7 +133,7 @@ object Rendezvous {
      * ordonnées**. C'est cet ordre qui rend la dérivation symétrique : ni l'un
      * ni l'autre n'est « l'appelant », les deux hachent la même paire.
      */
-    private fun ofOnAir(low: Int, high: Int): Beat {
+    internal fun ofOnAir(low: Int, high: Int): Beat {
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(ByteBuffer.allocate(8).putInt(low).putInt(high).array())
 
