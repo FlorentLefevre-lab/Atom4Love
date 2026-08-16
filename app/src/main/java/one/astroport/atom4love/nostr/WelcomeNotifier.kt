@@ -61,9 +61,16 @@ class WelcomeNotifier(private val context: Context) {
      *
      * Silencieux si la permission manque : refuser les notifications est une
      * réponse, pas une panne.
+     *
+     * ⚠ **Rend `false` quand rien n'est sorti, et l'appelant doit en tenir
+     * compte** : marquer quelqu'un comme salué alors qu'aucune notification
+     * n'a paru le condamne à ne jamais l'être. Vu sur le Pixel le 16/08 — la
+     * permission était refusée, trois arrivées réelles sont passées en mémoire
+     * sans que rien ne s'affiche, et accorder la permission ensuite ne les
+     * aurait pas rattrapées.
      */
-    fun celebrate(atom: Constellation.Atom) {
-        if (!granted()) return
+    fun celebrate(atom: Constellation.Atom): Boolean {
+        if (!granted()) return false
         val seal = KinMaya.glyphName(atom.kin?.glyph)
         val open = PendingIntent.getActivity(
             context,
@@ -85,10 +92,10 @@ class WelcomeNotifier(private val context: Context) {
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_SOCIAL)
             .build()
-        runCatching {
+        return runCatching {
             context.getSystemService(NotificationManager::class.java)
                 .notify(ID_BASE + (atom.pubkey.hashCode() and 0xFFF), notification)
-        }
+        }.isSuccess
     }
 
     private fun granted(): Boolean =

@@ -350,8 +350,13 @@ private fun Station(
                         nowMs = now,
                     )
                     if (due.isEmpty()) return@collect
-                    due.forEach(welcomeNotifier::celebrate)
-                    memory = Welcome.remember(memory, due, now)
+                    // ⚠ On ne retient que ce qui a **effectivement paru**.
+                    // Retenir une arrivée restée muette — permission refusée —
+                    // la condamnerait : accorder les notifications ensuite ne
+                    // la rattraperait jamais. Vu sur le Pixel le 16/08.
+                    val shown = due.filter { welcomeNotifier.celebrate(it) }
+                    if (shown.isEmpty()) return@collect
+                    memory = Welcome.remember(memory, shown, now)
                     welcomeStore.save(memory, now / 1000)
                 }
             } finally {
