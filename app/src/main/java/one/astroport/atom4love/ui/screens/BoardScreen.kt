@@ -80,6 +80,28 @@ import one.astroport.atom4love.ui.theme.tint
  *
  * Le principe qui tient les trois : **le jeu ne révèle jamais une identité, il
  * permet de devenir trouvable.**
+ *
+ * ## ⚠ La règle de lisibilité de cet écran
+ *
+ * Signalé par Florent le 16/08 : « la taille et le contraste de certaines
+ * écritures du plateau sont trop illisibles ». Le diagnostic n'était pas dans
+ * cet écran mais dans la palette, dont le commentaire l'écrivait déjà — les sept
+ * crans du jour font `15,1 · 8,7 · 6,5 · 4,8 · 3,4 · 2,6 · 2,1`, et
+ * `A4L.TextFaint` et `A4L.TextGhost` « n'ont rien à porter qu'on doive lire ».
+ * Le Plateau leur donnait des phrases entières, à 10 sp.
+ *
+ * Trois règles, à tenir :
+ *
+ * 1. **Rien qui se lit ne descend sous [A4LText.Caption]** (12,5 sp). Cet écran
+ *    la réduisait partout à 9, 9,5, 10, 10,5 et 11 sp — la taille de base est la
+ *    bonne, c'est chaque `copy(fontSize = …)` qui était l'erreur.
+ * 2. **Ni [A4L.TextGhost] ni [A4L.TextFaint] sous une phrase.** Ils sont là pour
+ *    les filets et les fantômes ; une légende prend [A4L.TextMuted] (4,8:1).
+ * 3. **Une couleur d'accent ne fait pas une encre.** Les accents du jour sont
+ *    autour de 3:1 sur blanc, et posés sur un lavis de leur propre teinte, bien
+ *    moins — la couleur reste sur le pictogramme, le filet et le fond. Seules
+ *    exceptions assumées : les deux mots en capitales grasses du match, où la
+ *    couleur **est** l'information et où le mot se lit de toute façon.
  */
 @Composable
 fun BoardScreen(
@@ -244,15 +266,15 @@ fun BoardScreen(
                             if (beaconRunning) R.string.board_nobody else R.string.board_beacon_off,
                         ),
                         style = A4LText.Caption,
-                        color = A4L.TextDim,
+                        color = A4L.TextMuted,
                         textAlign = TextAlign.Center,
                     )
                 }
             } else {
                 Text(
                     stringResource(R.string.board_hint_seek),
-                    style = A4LText.Caption.copy(fontSize = 11.sp),
-                    color = A4L.TextDim,
+                    style = A4LText.Caption,
+                    color = A4L.TextMuted,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
                 // La règle du match tient sous la main et pas dans l'Aide : un
@@ -260,8 +282,8 @@ fun BoardScreen(
                 // de suite, sinon il se lit comme une note.
                 Text(
                     stringResource(R.string.board_match_rule),
-                    style = A4LText.Caption.copy(fontSize = 10.sp),
-                    color = A4L.TextGhost,
+                    style = A4LText.Caption,
+                    color = A4L.TextMuted,
                     modifier = Modifier.padding(bottom = 10.dp),
                 )
                 // ⚠ La stratégie du jeu, et elle n'est pas devinable.
@@ -275,7 +297,7 @@ fun BoardScreen(
                 // évident, et les deux le jouent en même temps.
                 Text(
                     stringResource(R.string.board_symmetry),
-                    style = A4LText.Caption.copy(fontSize = 10.5.sp),
+                    style = A4LText.Caption,
                     color = A4L.TextMuted,
                     modifier = Modifier.padding(bottom = 12.dp),
                 )
@@ -323,8 +345,8 @@ fun BoardScreen(
 
             Text(
                 stringResource(R.string.board_rule),
-                style = A4LText.Caption.copy(fontSize = 10.sp),
-                color = A4L.TextGhost,
+                style = A4LText.Caption,
+                color = A4L.TextMuted,
                 modifier = Modifier.padding(top = 22.dp, bottom = 20.dp),
             )
         }
@@ -361,8 +383,8 @@ private fun OwnCard(birth: BirthData, npub: String?) {
                     } else {
                         stringResource(R.string.board_kin_tone, kin.kin, kin.tone + 1)
                     },
-                    style = A4LText.Data.copy(fontSize = 10.5.sp),
-                    color = A4L.TextDim,
+                    style = A4LText.Data.copy(fontSize = 12.sp),
+                    color = A4L.TextMuted,
                 )
                 birth.wave?.let {
                     Text(
@@ -426,49 +448,30 @@ private fun OracleBlock(kin: KinMaya.Kin) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         SectionLabel(stringResource(R.string.board_oracle_title))
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            cells.forEach { cell ->
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .glass(12.dp, cell.color.tint(0.07f), cell.color.tint(0.24f))
-                        .padding(vertical = 10.dp, horizontal = 4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(KinMaya.glyphEmoji(cell.kin.glyph), fontSize = 21.sp)
-                    Text(
-                        "${cell.mark} ${stringResource(cell.labelRes)}",
-                        style = A4LText.Caption.copy(fontSize = 10.sp),
-                        color = cell.color,
-                        textAlign = TextAlign.Center,
-                    )
-                    KinMaya.glyphName(cell.kin.glyph)?.let {
-                        Text(
-                            it,
-                            style = A4LText.Caption.copy(fontSize = 10.5.sp),
-                            color = A4L.TextMuted,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                    Text(
-                        stringResource(R.string.board_oracle_kin, cell.kin.kin),
-                        style = A4LText.Data.copy(fontSize = 9.sp),
-                        color = A4L.TextDim,
-                    )
+        // ⚠ **Deux par deux, jamais quatre de front.** À quatre colonnes, une
+        // case fait le quart de la carte et « Alternance » n'y tient qu'en
+        // dessous de 11 sp — c'est-à-dire que la largeur décidait de la taille
+        // du texte. On inverse : la légende garde sa taille, la grille s'adapte.
+        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            cells.chunked(2).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    row.forEach { cell -> OracleTile(cell, Modifier.weight(1f)) }
+                    // Une rangée dépareillée ne s'étale pas sur toute la largeur
+                    // (cas d'un KIN hors grille, qui n'a pas d'occulte).
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
         Text(
             stringResource(R.string.board_oracle_note),
-            style = A4LText.Caption.copy(fontSize = 10.sp),
-            color = A4L.TextGhost,
+            style = A4LText.Caption,
+            color = A4L.TextMuted,
         )
         if (kin.tone == 6) {
             Text(
                 stringResource(R.string.board_oracle_resonant),
-                style = A4LText.Caption.copy(fontSize = 10.sp),
-                color = A4L.Mint,
+                style = A4LText.Caption,
+                color = A4L.TextBody,
             )
         }
         // Un KIN sur cinq est son propre guide — le dire, sinon la case a l'air
@@ -476,8 +479,46 @@ private fun OracleBlock(kin: KinMaya.Kin) {
         if (reading.guide?.kin == kin.kin) {
             Text(
                 stringResource(R.string.board_oracle_guide_self),
-                style = A4LText.Caption.copy(fontSize = 10.sp),
-                color = A4L.Amber,
+                style = A4LText.Caption,
+                color = A4L.TextBody,
+            )
+        }
+    }
+}
+
+/**
+ * Une case de l'Oracle : le pictogramme du sceau, son nom, son KIN.
+ *
+ * ⚠ **La couleur du pouvoir vit sur le lavis et le filet, jamais sur l'encre.**
+ * Les accents du thème du jour tournent autour de 3:1 sur blanc — et posés sur
+ * un lavis de leur propre teinte, moins encore. Un libellé de 12,5 sp écrit
+ * dans sa couleur était donc illisible, alors que le même libellé en encre
+ * ordinaire garde tout son code couleur : le cadre et le pictogramme le
+ * portent. Ne pas « recolorer » ces trois lignes.
+ */
+@Composable
+private fun OracleTile(cell: OracleCell, modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .glass(12.dp, cell.color.tint(0.07f), cell.color.tint(0.24f))
+            .padding(horizontal = 11.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(KinMaya.glyphEmoji(cell.kin.glyph), fontSize = 26.sp)
+        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                "${cell.mark} ${stringResource(cell.labelRes)}",
+                style = A4LText.Caption,
+                color = A4L.TextHigh,
+            )
+            KinMaya.glyphName(cell.kin.glyph)?.let {
+                Text(it, style = A4LText.Caption, color = A4L.TextBody)
+            }
+            Text(
+                stringResource(R.string.board_oracle_kin, cell.kin.kin),
+                style = A4LText.Data.copy(fontSize = 11.5.sp),
+                color = A4L.TextMuted,
             )
         }
     }
@@ -570,18 +611,15 @@ private fun DealtCard(
                 if (seeksUs) {
                     Text(
                         stringResource(R.string.board_seeks_you),
-                        style = A4LText.Caption.copy(
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
+                        style = A4LText.Caption.copy(fontWeight = FontWeight.Bold),
                         color = A4L.Gold,
                     )
                 }
                 if (first && !seeksUs) {
                     Text(
                         stringResource(R.string.board_first_card),
-                        style = A4LText.Caption.copy(fontSize = 9.5.sp),
-                        color = A4L.Mint,
+                        style = A4LText.Caption,
+                        color = A4L.TextBody,
                     )
                 }
                 if (match.level != Match.Level.None) {
@@ -590,10 +628,7 @@ private fun DealtCard(
                         stringResource(
                             if (superb) R.string.board_super_match else R.string.board_match,
                         ),
-                        style = A4LText.Caption.copy(
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
+                        style = A4LText.Caption.copy(fontWeight = FontWeight.Bold),
                         color = if (superb) A4L.Gold else accent,
                     )
                 }
@@ -605,7 +640,7 @@ private fun DealtCard(
                 Text(warmth.glyph, fontSize = 12.sp)
                 Text(
                     stringResource(warmth.labelRes),
-                    style = A4LText.Caption.copy(fontSize = 11.sp),
+                    style = A4LText.Caption,
                     color = warmth.color,
                 )
             }
@@ -628,8 +663,8 @@ private fun DealtCard(
                                 R.string.board_bond_hidden
                             },
                         ),
-                        style = A4LText.Caption.copy(fontSize = 10.5.sp),
-                        color = if (it == Oracle.Bond.Challenge) A4L.Violet else A4L.Cyan,
+                        style = A4LText.Caption,
+                        color = A4L.TextBody,
                     )
                 }
             }
