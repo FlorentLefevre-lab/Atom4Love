@@ -114,6 +114,8 @@ import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.domain.Questions
 import one.astroport.atom4love.domain.Wave
 import one.astroport.atom4love.nostr.CabinSalon
+import one.astroport.atom4love.nostr.Contacts
+import one.astroport.atom4love.nostr.Hex
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.proximity.CellLocator
@@ -779,6 +781,8 @@ internal fun CabinDestination(
     chat: CabinChat,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    keys: NostrKeys? = null,
+    contacts: Contacts? = null,
 ) {
     Column(
         modifier
@@ -812,6 +816,8 @@ internal fun CabinDestination(
         }
         CabinDirectPanel(
             chat = chat,
+            keys = keys,
+            contacts = contacts,
             modifier = Modifier
                 .weight(1f)
                 .padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
@@ -1065,7 +1071,12 @@ private fun CabinStat(
  * a que 677 — on y tapait à l'aveugle, après avoir fait défiler toute la page.
  */
 @Composable
-private fun CabinDirectPanel(chat: CabinChat, modifier: Modifier = Modifier) {
+private fun CabinDirectPanel(
+    chat: CabinChat,
+    modifier: Modifier = Modifier,
+    keys: NostrKeys? = null,
+    contacts: Contacts? = null,
+) {
     val context = LocalContext.current
     val status by chat.status.collectAsStateWithLifecycle()
     val messages by chat.messages.collectAsStateWithLifecycle()
@@ -1200,6 +1211,7 @@ private fun CabinDirectPanel(chat: CabinChat, modifier: Modifier = Modifier) {
         )
         val exchanges by chat.exchanges.collectAsStateWithLifecycle()
         val answerable by chat.answerable.collectAsStateWithLifecycle()
+        val follows by (contacts?.state ?: MutableStateFlow(emptyMap())).collectAsStateWithLifecycle()
         peers.forEach { peer ->
             Column(Modifier.fillMaxWidth()) {
                 Row(
@@ -1209,6 +1221,16 @@ private fun CabinDirectPanel(chat: CabinChat, modifier: Modifier = Modifier) {
                     StatusDot(A4L.Mint)
                     Spacer(Modifier.width(8.dp))
                     Text(peer.short, style = A4LText.Data, color = A4L.TextHigh)
+                    Spacer(Modifier.weight(1f))
+                    // Le npub est déjà connu — attesté au handshake, pas à
+                    // scanner : voir NoiseVouch. Un bouton suffit.
+                    if (keys != null && contacts != null) {
+                        val peerHex = Hex.encode(peer.nostrKey)
+                        FollowButton(
+                            state = follows[peerHex],
+                            onClick = { contacts.follow(keys, peerHex) },
+                        )
+                    }
                 }
                 // Le jeu se joue avec quelqu'un, pas dans une salle : il vit
                 // sous la personne, et chaque partie n'appartient qu'aux deux.
@@ -1276,6 +1298,34 @@ private fun CabinDirectPanel(chat: CabinChat, modifier: Modifier = Modifier) {
             modifier = Modifier.weight(1f),
         )
     }
+}
+
+/**
+ * « Suivre » — ajouter ce pair au carnet NOSTR (kind 3) de notre clé LOVE.
+ *
+ * Un seul geste, jamais automatique : la rencontre attesté le npub, elle ne
+ * décide pas de le garder. Rien à scanner — [contacts] lit directement
+ * [CabinChat.Peer.nostrKey], déjà vérifié par [NoiseVouch] avant que ce
+ * bouton n'existe.
+ */
+@Composable
+private fun FollowButton(state: Contacts.State?, onClick: () -> Unit) {
+    val (label, color, enabled) = when (state) {
+        null -> Triple(stringResource(R.string.cabin_follow), A4L.Mint, true)
+        Contacts.State.Publishing -> Triple(stringResource(R.string.cabin_follow_publishing), A4L.TextMuted, false)
+        Contacts.State.Published -> Triple(stringResource(R.string.cabin_following), A4L.Mint, false)
+        is Contacts.State.Refused -> Triple(stringResource(R.string.cabin_follow_retry), A4L.Cyan, true)
+    }
+    Text(
+        label,
+        style = A4LText.Data.copy(fontSize = 10.sp),
+        color = color,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(color.tint(0.14f))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+    )
 }
 
 /**
