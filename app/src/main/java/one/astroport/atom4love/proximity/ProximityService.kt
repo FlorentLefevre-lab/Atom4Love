@@ -40,6 +40,16 @@ class ProximityService : Service() {
         private const val CHANNEL_ID = "proximity"
         private const val NOTIFICATION_ID = 1
 
+        /**
+         * Le réveil de présence a **son propre canal**, et pas par rangement :
+         * celui de la balise est en `IMPORTANCE_LOW` parce qu'il porte une
+         * notification permanente qu'on ne veut pas entendre. Un réveil muet ne
+         * réveille personne. Deux canaux, donc, et chacun se coupe séparément —
+         * on doit pouvoir taire les réveils sans éteindre la balise.
+         */
+        private const val PRESENCE_CHANNEL_ID = "presence"
+        private const val PRESENCE_NOTIFICATION_ID = 2
+
         private val _running = MutableStateFlow(false)
         /** La balise tourne (service démarré et non détruit). */
         val running: StateFlow<Boolean> = _running.asStateFlow()
@@ -134,6 +144,56 @@ class ProximityService : Service() {
             description = getString(R.string.beacon_channel_description)
         }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+
+        val presence = NotificationChannel(
+            PRESENCE_CHANNEL_ID,
+            getString(R.string.presence_channel_name),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = getString(R.string.presence_channel_description)
+        }
+        getSystemService(NotificationManager::class.java).createNotificationChannel(presence)
+    }
+
+    /** Voisins qui montraient une carte au dernier balayage, et dernier réveil. */
+    private var showingBefore = 0
+    private var lastPresenceMs = 0L
+
+    /**
+     * Le réveil de présence — cf. [PresenceAlert] pour la règle et, surtout,
+     * pour ce qu'il ne dit pas.
+     */
+    private fun maybeAnnouncePresence(neighbors: List<NeighborRegistry.Neighbor>) {
+        val showing = neighbors.count {
+            it.signature != ProximityPayload.Signature.Unknown
+        }
+        val now = System.currentTimeMillis()
+        if (PresenceAlert.shouldAnnounce(showingBefore, showing, lastPresenceMs, now)) {
+            lastPresenceMs = now
+            runCatching {
+                getSystemService(NotificationManager::class.java)
+                    .notify(PRESENCE_NOTIFICATION_ID, buildPresenceNotification())
+            }
+        }
+        showingBefore = showing
+    }
+
+    private fun buildPresenceNotification(): Notification {
+        val openApp = PendingIntent.getActivity(
+            this, 0, Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        // ⚠ Le texte ne compte personne et n'en nomme aucun : il dit qu'il y a
+        // de quoi jouer, pas qui, ni que quiconque vous cherche.
+        return NotificationCompat.Builder(this, PRESENCE_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_beacon)
+            .setContentTitle(getString(R.string.presence_title))
+            .setContentText(getString(R.string.presence_body))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(getString(R.string.presence_body)))
+            .setContentIntent(openApp)
+            .setAutoCancel(true)
+            .setCategory(NotificationCompat.CATEGORY_SOCIAL)
+            .build()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -178,6 +238,7 @@ class ProximityService : Service() {
                         getSystemService(NotificationManager::class.java)
                             .notify(NOTIFICATION_ID, buildNotification(list.size))
                     }
+                    maybeAnnouncePresence(list)
                 }
             }
             _running.value = true

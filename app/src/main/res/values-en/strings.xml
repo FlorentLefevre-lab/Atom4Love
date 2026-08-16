@@ -131,6 +131,8 @@
     <string name="rendezvous_instruction">Hold up your screen.\nLook for the one in the room beating like yours.</string>
     <string name="rendezvous_mutual">Both phones work this rhythm out on their own, from the two phases. Nothing is sent, nobody is told — it only beats on the other side if they chose you too.</string>
     <string name="rendezvous_out_of_range">out of range right now</string>
+    <string name="rendezvous_searching">You have been searching for %1$d seconds.</string>
+    <string name="rendezvous_patience">The station cannot know whether the other screen is beating: nothing travels. Its silence is not a refusal — the Board may simply not be open on the other side.</string>
     <string name="rendezvous_no_phase">No rhythm without a phase. The seal comes from the date, the phase needs a birthplace — and both sides need one.</string>
 
     <!-- ─── The chat: bubbles, attachments, send states ───────────────── -->
@@ -503,6 +505,10 @@
 
     <string name="beacon_channel_name">Proximity beacon</string>
     <string name="beacon_channel_description">Presence of the ATOM4LOVE beacon and nuclei in range</string>
+    <string name="presence_channel_name">Someone in range</string>
+    <string name="presence_channel_description">When a card shows itself around you</string>
+    <string name="presence_title">Someone is showing their card</string>
+    <string name="presence_body">There is something to play around you. Open the Board: nobody knows you are looking, and nothing beats until you have chosen.</string>
     <string name="welcome_channel_name">Welcome to a new nucleus</string>
     <string name="welcome_channel_description">When a LOVE key has just been activated on Astroport</string>
     <string name="welcome_title">A nucleus enters the constellation</string>

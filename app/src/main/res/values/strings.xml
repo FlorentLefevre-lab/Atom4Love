@@ -175,6 +175,8 @@
     <string name="rendezvous_instruction">Levez votre écran.\nCherchez dans la salle celui qui bat comme le vôtre.</string>
     <string name="rendezvous_mutual">Les deux téléphones calculent ce rythme tout seuls, à partir des deux phases. Rien n\'est envoyé, personne n\'est prévenu — il ne bat de l\'autre côté que si l\'autre vous a choisi aussi.</string>
     <string name="rendezvous_out_of_range">hors de portée à l\'instant</string>
+    <string name="rendezvous_searching">Vous cherchez depuis %1$d secondes.</string>
+    <string name="rendezvous_patience">La station ne peut pas savoir si l\'autre écran bat : rien ne circule. Son silence n\'est pas un refus — il se peut simplement que le Plateau ne soit pas ouvert en face.</string>
     <string name="rendezvous_no_phase">Pas de rythme sans phase. Le sceau vient de la date, la phase demande le lieu de naissance — et il en faut un des deux côtés.</string>
     <!-- « 18 % » en français, « 18% » en anglais : l'espace est une règle de
          langue. Le %% est un pour cent littéral, pas un format. -->
@@ -589,6 +591,10 @@
     <!-- ─── La balise, dans la zone de notification ───────────────────── -->
     <string name="beacon_channel_name">Balise de proximité</string>
     <string name="beacon_channel_description">Présence de la balise ATOM4LOVE et noyaux à portée</string>
+    <string name="presence_channel_name">Quelqu\'un à portée</string>
+    <string name="presence_channel_description">Quand une carte se montre autour de vous</string>
+    <string name="presence_title">Quelqu\'un montre sa carte</string>
+    <string name="presence_body">Il y a de quoi jouer autour de vous. Ouvrez le Plateau : personne ne sait que vous regardez, et rien ne bat tant que vous n\'avez pas choisi.</string>
     <string name="welcome_channel_name">Bienvenue à un nouveau noyau</string>
     <string name="welcome_channel_description">Quand une clé LOVE vient d\'être activée sur Astroport</string>
     <string name="welcome_title">Un noyau entre dans la constellation</string>
