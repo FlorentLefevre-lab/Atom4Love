@@ -1,5 +1,6 @@
 package one.astroport.atom4love.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -123,6 +124,13 @@ fun BoardScreen(
     LaunchedEffect(live) { if (live != null) lastKnown = live }
 
     lastKnown?.let { card ->
+        // ⚠ Le geste de retour referme la lanterne, il ne quitte pas la
+        // station. Sans ce `BackHandler` il sortait de l'application — vu sur
+        // le Pixel le 16/08, où il a rendu la main à Firefox : le geste le plus
+        // naturel du téléphone, fait au pire moment, quand on cherche
+        // justement quelqu'un dans une salle. Les autres plein-écrans le
+        // faisaient déjà ; celui-ci avait été oublié.
+        BackHandler { seekingId = null }
         RendezvousScreen(
             card = card,
             own = own,
