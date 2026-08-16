@@ -197,6 +197,16 @@ class CabinChat(context: Context) {
         private const val REDIAL_ATTEMPTS = 4
         private const val REDIAL_DELAY_MS = 3_000L
 
+        /**
+         * Ce qu'on accorde à la voie rapide pour se former avant une pièce
+         * jointe (cf. `raiseForAttachment`). Une composition dispose de
+         * [DIAL_TIMEOUT_MS] ; on laisse de quoi la mener à terme et pas
+         * beaucoup plus — quelqu'un attend devant son écran que son image
+         * parte.
+         */
+        private const val RAISE_TIMEOUT_MS = 6_000L
+        private const val RAISE_POLL_MS = 150L
+
         /** Tampon des lectures qui ne servent qu'à calculer un CRC. */
         private const val CRC_BUFFER = 64 * 1024
 
@@ -530,6 +540,54 @@ class CabinChat(context: Context) {
      */
     private fun slowestMedium(): Medium =
         routes().minByOrNull { it.medium.rank }?.medium ?: Medium.BLE
+
+    /**
+     * Fil protocole. Ouvre la voie rapide **avant** d'envoyer une pièce jointe,
+     * sans rien demander à personne.
+     *
+     * ⚠ **Ce que ça répare** : mesuré le 16/08 avec trois appareils sur le même
+     * Wi-Fi, une image de 419 Ko refusait de partir. Les pairs s'étaient
+     * pourtant annoncé leurs adresses (`192.168.1.16`, `.117`, `.172`) — mais
+     * une adresse reçue n'est que **rangée** dans `offers` : rien ne la compose
+     * tant que son médium n'est pas accepté, et seul [BLE] l'est au départ. Les
+     * trois appareils se donnaient donc rendez-vous sur le réseau du lieu et
+     * aucun n'y allait. La pièce partait en radio, où la première écriture
+     * expirait à dix secondes — trois fois de suite, le lien visé étant déclaré
+     * mort après coup.
+     *
+     * Le texte, lui, passait : il tient en un fragment. C'est précisément ce
+     * qui rendait la panne illisible.
+     *
+     * **Pourquoi ici et pas au premier lien venu** : monter coûte (le verrou
+     * Wi-Fi coupe les scans, cf. `RadioSilence`). Une causerie de quatre octets
+     * n'a aucune raison de réveiller une antenne ; une pièce jointe, si.
+     *
+     * ⚠ **On ne monte QUE jusqu'au réseau du lieu.** [Medium.WIFI_DIRECT] est
+     * délibérément exclu : l'ouvrir **forme un groupe**, ce qui fait paraître
+     * un dialogue système chez le pair et lui retire le réseau du lieu. Une
+     * montée automatique doit rester sans conséquence pour l'autre — le Direct
+     * reste un geste, il se choisit au sélecteur.
+     *
+     * On n'attend pas plus de [RAISE_TIMEOUT_MS] : au-delà, la pièce part par
+     * ce qu'on a. Mieux vaut une image lente qu'une image qui ne part pas.
+     */
+    private suspend fun raiseForAttachment() {
+        val current = routes().maxOfOrNull { it.medium.rank } ?: -1
+        val best = offers.values
+            .flatMap { it.keys }
+            .filter { it.rank > current && it.rank <= Medium.WIFI_STATION.rank }
+            .maxByOrNull { it.rank }
+            ?: return
+        Log.i(TAG, "pièce jointe : montée automatique vers ${best.short}")
+        enable(best)
+        val raised = withTimeoutOrNull(RAISE_TIMEOUT_MS) {
+            while (links.values.none { it.medium == best && it.ready }) delay(RAISE_POLL_MS)
+            true
+        }
+        if (raised == null) {
+            Log.w(TAG, "${best.short} n'a pas répondu — la pièce part en ${slowestMedium().short}")
+        }
+    }
 
     /**
      * Une vidéo ne part que par Wi-Fi — pair à pair ou par le réseau du lieu.
@@ -1352,6 +1410,10 @@ class CabinChat(context: Context) {
             if (isVideo(uri)) return@launch sendVideo(uri)
             val read = Attachments.prepareImage(appContext, uri)
             withContext(dispatcher) {
+                // la voie rapide d'abord : le plafond se lit APRÈS, sinon il
+                // dirait deux mégaoctets alors qu'on vient d'en ouvrir deux
+                // cents
+                raiseForAttachment()
                 dispatchAttachment(ChatKind.IMAGE, ChatFrames.KIND_IMAGE, read, transferLimit())
             }
         }
@@ -1362,8 +1424,12 @@ class CabinChat(context: Context) {
         scope.launch(Dispatchers.IO) {
             if (isVideo(uri)) return@launch sendVideo(uri)
             // le plafond se lit AVANT la copie : inutile de recopier deux cents
-            // mégaoctets pour découvrir ensuite qu'ils ne passeront pas
-            val limit = withContext(dispatcher) { transferLimit() }
+            // mégaoctets pour découvrir ensuite qu'ils ne passeront pas — mais
+            // après la montée, qui décide justement de ce plafond
+            val limit = withContext(dispatcher) {
+                raiseForAttachment()
+                transferLimit()
+            }
             val read = Attachments.stage(appContext, uri, limit)
             withContext(dispatcher) {
                 dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, limit)
@@ -1418,6 +1484,11 @@ class CabinChat(context: Context) {
      */
     private suspend fun sendVideo(uri: Uri) {
         val verdict = withContext(dispatcher) {
+            // ⚠ La montée AVANT le verdict, sinon une vidéo se voyait refuser
+            // au motif que « le médium est BT » — alors que le réseau du lieu
+            // n'attendait qu'un appel pour s'ouvrir. Refuser sans avoir essayé
+            // est le seul cas où ce message serait un mensonge.
+            raiseForAttachment()
             Triple(videoAllowed(), slowestMedium(), transferLimit())
         }
         val (allowed, medium, limit) = verdict
