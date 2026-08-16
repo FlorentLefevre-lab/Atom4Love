@@ -37,6 +37,19 @@
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|fontScale|density"
             android:windowSoftInputMode="adjustResize" />
 
+
+        <!-- BANC : débit Bluetooth CLASSIQUE (RFCOMM), pour répondre par la
+             mesure à « le BLE nous limite, faut-il le retirer ? ».
+             Les deux rôles se passent en extras (voir le KDoc de la sonde, les
+             doubles tirets d'une ligne de commande ne peuvent pas s'écrire dans
+             un commentaire XML) : role=serve pour le récepteur, role=send avec
+             mac et mb pour l'émetteur. -->
+        <activity
+            android:name=".diag.RfcommProbeActivity"
+            android:exported="true"
+            android:label="Banc RFCOMM"
+            android:theme="@style/Theme.Atom4Love" />
+
     </application>
 
 </manifest>
