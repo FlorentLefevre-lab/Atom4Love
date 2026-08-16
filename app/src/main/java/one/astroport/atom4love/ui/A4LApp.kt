@@ -5,6 +5,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.StringRes
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.res.pluralStringResource
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import one.astroport.atom4love.proximity.PresenceAlert
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -108,6 +118,7 @@ import one.astroport.atom4love.ui.screens.SplashScreen
 import one.astroport.atom4love.ui.screens.StationScreen
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
+import one.astroport.atom4love.ui.theme.tint
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.AlertDialog
@@ -492,6 +503,53 @@ private fun Station(
         return fix?.lat to fix?.lon
     }
 
+    // ── Une carte se montre, et on est ailleurs ───────────────────────────
+    //
+    // Le voisinage remonte ici, au lieu de rester dans la page des onglets : la
+    // ligne d'en-tête et la bannière en ont besoin partout, cabine comprise.
+    val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
+
+    // Le compte de ce qui est **jouable** à portée : même prédicat que la main
+    // du Plateau, à la lettre — un pair sans signature est là sans rien avoir
+    // montré, et ne donne aucune carte.
+    val cardsInRange = remember(neighbors) {
+        neighbors
+            .distinctBy { it.identity }
+            .count { it.signature != ProximityPayload.Signature.Unknown }
+    }
+    var presenceBanner by remember { mutableStateOf(false) }
+    var cardsBefore by remember { mutableIntStateOf(0) }
+    var lastPresenceMs by remember { mutableStateOf(0L) }
+    val vibrator = remember(context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            context.getSystemService(VibratorManager::class.java)?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Vibrator::class.java)
+        }?.takeIf { it.hasVibrator() }
+    }
+
+    // ⚠ Même règle que la notification système ([PresenceAlert]) : la
+    // transition seule, et un temps de garde. Une seule règle pour les deux, ou
+    // l'un sonnerait quand l'autre se tait et personne ne saurait plus quoi
+    // attendre de l'application.
+    LaunchedEffect(cardsInRange) {
+        val now = System.currentTimeMillis()
+        val fire = PresenceAlert.shouldAnnounce(cardsBefore, cardsInRange, lastPresenceMs, now)
+        cardsBefore = cardsInRange
+        // Rien à annoncer à qui regarde déjà le Plateau : il l'a sous les yeux.
+        if (!fire || tab == A4LTab.Board) return@LaunchedEffect
+        lastPresenceMs = now
+        // Une seule secousse, courte. Elle sert à faire lever les yeux, pas à
+        // réclamer — quelqu'un est peut-être au milieu d'une phrase.
+        vibrator?.vibrate(VibrationEffect.createOneShot(35L, 160))
+        presenceBanner = true
+        delay(PRESENCE_BANNER_MS)
+        presenceBanner = false
+    }
+
+    Box(Modifier.fillMaxSize()) {
+
     Crossfade(
         targetState = forged,
         animationSpec = tween(550),
@@ -571,6 +629,15 @@ private fun Station(
                     onSelect = selectMedium,
                     onHelp = { overlay = Overlay.Help },
                     onSettings = { overlay = Overlay.Settings },
+                    // ⚠ C'est ICI que la pastille compte le plus : la cabine
+                    // prend l'écran entier, barre du bas comprise. Sans elle,
+                    // quelqu'un en pleine conversation n'a plus aucun moyen de
+                    // savoir qu'une carte se montre à côté de lui.
+                    cardsInRange = cardsInRange,
+                    onOpenBoard = {
+                        cabinShown = false
+                        tab = A4LTab.Board
+                    },
                 )
                 // ⚠ Le retour QUITTE LA VUE, il ne ferme rien. Fermer une
                 // cabine efface la conversation — un geste de retour distrait
@@ -635,7 +702,6 @@ private fun Station(
             // que chaque écran pose déjà devient un no-op, sans double marge.
             // Les voisins que la balise entend : c'est ce qui réveille le
             // Plateau dans la barre du bas.
-            val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
             Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
                 CabinLine(
                     cabin = cabin,
@@ -645,6 +711,10 @@ private fun Station(
                     onHelp = { overlay = Overlay.Help },
                     onSettings = { overlay = Overlay.Settings },
                     pickerAlways = tab == A4LTab.Map,
+                    // Pas sur le Plateau lui-même : on y a les cartes sous les
+                    // yeux, un compte de plus ne dirait rien.
+                    cardsInRange = if (tab == A4LTab.Board) 0 else cardsInRange,
+                    onOpenBoard = { tab = A4LTab.Board },
                 )
                 Box(Modifier.weight(1f)) {
                     AnimatedContent(
@@ -745,6 +815,90 @@ private fun Station(
             }
         }
     }
+
+    // La bannière se pose **par-dessus** tout, ligne d'en-tête comprise : elle
+    // dure quelques secondes et doit se voir, y compris quand la cabine occupe
+    // l'écran entier. Elle n'attrape pas les gestes qui ne la visent pas.
+    PresenceBanner(
+        visible = presenceBanner,
+        count = cardsInRange,
+        onOpen = {
+            presenceBanner = false
+            cabinShown = false
+            tab = A4LTab.Board
+        },
+        onDismiss = { presenceBanner = false },
+        modifier = Modifier.align(Alignment.TopCenter),
+    )
+    }
+}
+
+/** Le temps que la bannière reste : de quoi la lire deux fois, pas de quoi gêner. */
+private const val PRESENCE_BANNER_MS = 6_000L
+
+/**
+ * « Une carte se montre » — la seule chose que l'application s'autorise à dire
+ * à quelqu'un qui fait autre chose.
+ *
+ * ⚠ Elle annonce une **présence**, jamais une recherche. « Quelqu'un vous
+ * cherche » nommerait le chercheur dès qu'il n'y a que deux personnes dans la
+ * pièce, et ruinerait le silence sur lequel repose tout le consentement de
+ * `Rendezvous`. Ce qui est dit ici resterait vrai si personne ne cherchait.
+ *
+ * Elle s'efface d'elle-même : rien à balayer, rien à refuser. Quelqu'un au
+ * milieu d'une phrase ne doit pas avoir à s'occuper d'elle.
+ */
+@Composable
+private fun PresenceBanner(
+    visible: Boolean,
+    count: Int,
+    onOpen: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically { -it } + fadeIn(),
+        exit = slideOutVertically { -it } + fadeOut(),
+        modifier = modifier,
+    ) {
+        Row(
+            Modifier
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(A4L.Violet.tint(0.22f))
+                .border(1.dp, A4L.Violet.tint(0.45f), RoundedCornerShape(14.dp))
+                .clickable(onClick = onOpen)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("🎴", fontSize = 17.sp)
+            Spacer(Modifier.width(11.dp))
+            Text(
+                pluralStringResource(R.plurals.presence_banner, count.coerceAtLeast(1), count),
+                style = A4LText.Body.copy(fontSize = 13.sp),
+                color = A4L.TextHigh,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                stringResource(R.string.presence_banner_open),
+                style = A4LText.Body.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                color = A4L.Violet,
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                "✕",
+                fontSize = 13.sp,
+                color = A4L.TextMuted,
+                modifier = Modifier
+                    .clickable(onClick = onDismiss)
+                    .padding(4.dp),
+            )
+        }
+    }
 }
 
 /**
@@ -773,6 +927,21 @@ private fun CabinLine(
      * liste de voies ne désignerait rien.
      */
     pickerAlways: Boolean = false,
+    /**
+     * Combien de cartes se montrent à portée, et de quoi aller les voir.
+     *
+     * ⚠ **C'est le seul endroit de l'application qui est sur TOUS les écrans**,
+     * cabine comprise. Sans ça, quelqu'un en pleine conversation ne saurait
+     * jamais qu'il y a de quoi jouer à côté de lui : la barre du bas disparaît
+     * dans la cabine, et une notification système ne se voit pas quand on est
+     * déjà dans l'application. Florent l'a dit en une phrase — *« les gens ne
+     * penseront pas à aller dans Plateau s'ils sont en train de chatter »*.
+     *
+     * Une **présence**, jamais une recherche : ce compte serait le même si
+     * personne ne cherchait personne.
+     */
+    cardsInRange: Int = 0,
+    onOpenBoard: (() -> Unit)? = null,
 ) {
     val status by cabin.status.collectAsState()
     val peers by cabin.peers.collectAsState()
@@ -837,6 +1006,25 @@ private fun CabinLine(
                     .clickable { onUpgrade(offered) }
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             )
+        }
+        if (cardsInRange > 0 && onOpenBoard != null) {
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(A4L.Violet.tint(0.16f))
+                    .clickable(onClick = onOpenBoard)
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("🎴", fontSize = 10.sp)
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    cardsInRange.toString(),
+                    style = A4LText.Data.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                    color = A4L.Violet,
+                )
+            }
+            Spacer(Modifier.width(8.dp))
         }
         Spacer(Modifier.width(8.dp))
         // Les deux poignées descendues de la barre du bas. Elles se rangent

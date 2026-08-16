@@ -509,6 +509,12 @@
 
     <string name="beacon_channel_name">Baliza de proximidad</string>
     <string name="beacon_channel_description">Presencia de la baliza ATOM4LOVE y núcleos al alcance</string>
+    <plurals name="presence_banner">
+        <item quantity="one">Una carta se muestra al alcance.</item>
+        <item quantity="many">%1$d cartas se muestran al alcance.</item>
+        <item quantity="other">%1$d cartas se muestran al alcance.</item>
+    </plurals>
+    <string name="presence_banner_open">Ver</string>
     <string name="presence_channel_name">Alguien al alcance</string>
     <string name="presence_channel_description">Cuando una carta se muestra a tu alrededor</string>
     <string name="presence_title">Alguien muestra su carta</string>

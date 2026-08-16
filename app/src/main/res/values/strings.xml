@@ -591,6 +591,12 @@
     <!-- ─── La balise, dans la zone de notification ───────────────────── -->
     <string name="beacon_channel_name">Balise de proximité</string>
     <string name="beacon_channel_description">Présence de la balise ATOM4LOVE et noyaux à portée</string>
+    <plurals name="presence_banner">
+        <item quantity="one">Une carte se montre à portée.</item>
+        <item quantity="many">%1$d cartes se montrent à portée.</item>
+        <item quantity="other">%1$d cartes se montrent à portée.</item>
+    </plurals>
+    <string name="presence_banner_open">Voir</string>
     <string name="presence_channel_name">Quelqu\'un à portée</string>
     <string name="presence_channel_description">Quand une carte se montre autour de vous</string>
     <string name="presence_title">Quelqu\'un montre sa carte</string>

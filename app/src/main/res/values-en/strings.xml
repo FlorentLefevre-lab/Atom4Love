@@ -505,6 +505,11 @@
 
     <string name="beacon_channel_name">Proximity beacon</string>
     <string name="beacon_channel_description">Presence of the ATOM4LOVE beacon and nuclei in range</string>
+    <plurals name="presence_banner">
+        <item quantity="one">A card is showing in range.</item>
+        <item quantity="other">%1$d cards are showing in range.</item>
+    </plurals>
+    <string name="presence_banner_open">See</string>
     <string name="presence_channel_name">Someone in range</string>
     <string name="presence_channel_description">When a card shows itself around you</string>
     <string name="presence_title">Someone is showing their card</string>
