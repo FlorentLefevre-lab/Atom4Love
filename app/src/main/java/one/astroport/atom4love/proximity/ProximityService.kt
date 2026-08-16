@@ -58,6 +58,16 @@ class ProximityService : Service() {
         /** Noyaux à portée — vidé quand la balise se coupe. */
         val neighbors: StateFlow<List<NeighborRegistry.Neighbor>> = _neighbors.asStateFlow()
 
+        private val _seekers = MutableStateFlow<Set<Int>>(emptySet())
+
+        /**
+         * Les jetons de ceux qui **nous** cherchent — [SeekingPayload].
+         *
+         * Vidé avec la balise : une déclaration entendue il y a une heure ne
+         * dit plus rien de la salle où l'on est.
+         */
+        val seekers: StateFlow<Set<Int>> = _seekers.asStateFlow()
+
         private val _advertisedCell4d = MutableStateFlow<Long?>(null)
         /** Adresse 4D que la balise annonce (null = cellule non résolue ou balise coupée). */
         val advertisedCell4d: StateFlow<Long?> = _advertisedCell4d.asStateFlow()
@@ -231,6 +241,7 @@ class ProximityService : Service() {
             scope.launch {
                 engine.state.collect { _advertisedCell4d.value = it.advertisedCell4d }
             }
+            scope.launch { registry.seekers.collect { _seekers.value = it } }
             scope.launch {
                 registry.neighbors.collect { list ->
                     _neighbors.value = list
@@ -251,6 +262,7 @@ class ProximityService : Service() {
         _running.value = false
         _neighbors.value = emptyList()
         _advertisedCell4d.value = null
+        _seekers.value = emptySet()
         engineStarted = false
         super.onDestroy()
     }

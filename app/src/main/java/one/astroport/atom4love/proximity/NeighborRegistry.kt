@@ -132,6 +132,27 @@ class NeighborRegistry(
     private val _neighbors = MutableStateFlow<List<Neighbor>>(emptyList())
     val neighbors: StateFlow<List<Neighbor>> = _neighbors.asStateFlow()
 
+    /**
+     * Les jetons de ceux qui **nous** cherchent — cf. [SeekingPayload].
+     *
+     * Un ensemble de jetons et rien d'autre : de quoi marquer une carte dans la
+     * main, jamais de quoi savoir qui cherche qui d'autre dans la salle.
+     *
+     * ⚠ Ils se périment comme les voisins. Quelqu'un qui a fermé sa lanterne
+     * arrête d'annoncer, et sa marque doit disparaître de l'écran d'en face —
+     * sinon on irait chercher quelqu'un qui a rangé son téléphone.
+     */
+    private val seekersSeen = HashMap<Int, Long>()
+    private val _seekers = MutableStateFlow<Set<Int>>(emptySet())
+    val seekers: StateFlow<Set<Int>> = _seekers.asStateFlow()
+
+    fun reportSeeker(token: Int) {
+        synchronized(byAddress) {
+            seekersSeen[token] = clock()
+            publishSeekersLocked(clock())
+        }
+    }
+
     fun report(
         address: String,
         cell4d: Long?,
@@ -172,19 +193,30 @@ class NeighborRegistry(
 
     /** Évince les noyaux plus revus depuis [ttlMillis]. À appeler périodiquement. */
     fun sweep() {
-        synchronized(byAddress) { publishLocked(clock()) }
+        synchronized(byAddress) {
+            val now = clock()
+            publishLocked(now)
+            publishSeekersLocked(now)
+        }
     }
 
     fun clear() {
         synchronized(byAddress) {
             byAddress.clear()
             window.clear()
+            seekersSeen.clear()
             _neighbors.value = emptyList()
+            _seekers.value = emptySet()
         }
     }
 
     private fun publishLocked(now: Long) {
         byAddress.values.removeAll { now - it.lastSeenMillis > ttlMillis }
         _neighbors.value = byAddress.values.toList()
+    }
+
+    private fun publishSeekersLocked(now: Long) {
+        seekersSeen.values.removeAll { now - it > ttlMillis }
+        _seekers.value = seekersSeen.keys.toSet()
     }
 }

@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +46,7 @@ import one.astroport.atom4love.domain.Oracle
 import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.proximity.NeighborRegistry
 import one.astroport.atom4love.proximity.ProximityPayload
+import one.astroport.atom4love.proximity.SeekingBeacon
 import one.astroport.atom4love.proximity.ProximityService
 import one.astroport.atom4love.ui.components.DataBadge
 import one.astroport.atom4love.ui.components.SectionLabel
@@ -90,6 +92,8 @@ fun BoardScreen(
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
     val own by ProximityService.signature.collectAsStateWithLifecycle()
     val beaconRunning by ProximityService.running.collectAsStateWithLifecycle()
+    /** Les jetons de ceux qui nous cherchent — cf. [SeekingPayload]. */
+    val seekers by ProximityService.seekers.collectAsStateWithLifecycle()
 
     // Une carte par **personne**, pas par adresse : deux annonces d'un même
     // jeton sont un seul appareil qui vient de changer de visage. Et sans
@@ -127,6 +131,26 @@ fun BoardScreen(
     // reconnaissance clignoterait à chaque trou de la radio, au pire moment.
     var lastKnown by remember(seekingId) { mutableStateOf(live) }
     LaunchedEffect(live) { if (live != null) lastKnown = live }
+
+    // ── Se déclarer ───────────────────────────────────────────────────────
+    //
+    // Toucher une carte allume l'annonce étendue qui dit « je cherche ces
+    // jetons-là » ([SeekingBeacon]). C'est ce qui fait passer le jeu de « deux
+    // fois sur trois » à « à tous les coups » : sans elle, celui d'en face
+    // devait deviner qu'on le cherchait.
+    //
+    // ⚠ Elle s'éteint dès qu'on ferme — la liste vide coupe l'annonce au
+    // balayage suivant. Une déclaration qui survivrait au geste continuerait de
+    // parler pour quelqu'un qui a rangé son téléphone.
+    val seekingTokens = remember(lastKnown, seekingMany, hand) {
+        val card = lastKnown ?: return@remember emptyList()
+        val many = if (seekingMany) hand.take(SEEK_MANY) else listOf(card)
+        (listOf(card) + many).distinctBy { it.identity }.mapNotNull { it.token }
+    }
+    DisposableEffect(seekingTokens) {
+        SeekingBeacon.seek(seekingTokens)
+        onDispose { SeekingBeacon.stop() }
+    }
 
     lastKnown?.let { card ->
         // ⚠ Le geste de retour referme la lanterne, il ne quitte pas la
@@ -287,6 +311,10 @@ fun BoardScreen(
                             neighbor = neighbor,
                             own = own,
                             first = index == 0 && hand.size > 1,
+                            // Elle s'est déclarée : elle nous cherche, et elle
+                            // le dit. Toucher la sienne suffit alors — les deux
+                            // écrans battront.
+                            seeksUs = neighbor.token != null && neighbor.token in seekers,
                             onSeek = { seekingId = neighbor.identity },
                         )
                     }
@@ -454,6 +482,15 @@ private fun DealtCard(
     onSeek: () -> Unit,
     /** La tête de main — celle par laquelle il faut commencer, cf. `board_symmetry`. */
     first: Boolean = false,
+    /**
+     * Cette carte a déclaré nous chercher.
+     *
+     * ⚠ C'est le seul endroit du jeu où l'on apprend qu'on a été choisi avant
+     * d'avoir choisi. Le silence d'origine tenait le consentement des deux
+     * côtés ; ici celui qui cherche **se déclare**, en connaissance de cause.
+     * Ce qui ne change pas : rien ne bat tant qu'on n'a pas touché à son tour.
+     */
+    seeksUs: Boolean = false,
 ) {
     val theirs = neighbor.signature
     val classification = own.phase?.let { mine ->
@@ -513,7 +550,17 @@ private fun DealtCard(
                     color = A4L.TextHigh,
                     fontWeight = FontWeight.SemiBold,
                 )
-                if (first) {
+                if (seeksUs) {
+                    Text(
+                        stringResource(R.string.board_seeks_you),
+                        style = A4LText.Caption.copy(
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        color = A4L.Gold,
+                    )
+                }
+                if (first && !seeksUs) {
                     Text(
                         stringResource(R.string.board_first_card),
                         style = A4LText.Caption.copy(fontSize = 9.5.sp),

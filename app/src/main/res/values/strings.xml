@@ -173,6 +173,7 @@
     <string name="board_hint_seek">Touchez une carte pour partir la chercher.</string>
     <string name="board_symmetry">La résonance se lit pareil des deux côtés : votre première carte vous a elle aussi en tête de sa main deux fois sur trois, et presque toujours en première ou deuxième. Commencez par elle — c\'est le coup qui a le plus de chances d\'être joué en face au même moment.</string>
     <string name="board_seek_many">Chercher les %1$d premières en même temps</string>
+    <string name="board_seeks_you">vous cherche</string>
     <string name="board_first_card">votre plus forte</string>
     <string name="rendezvous_title">Se reconnaître</string>
     <string name="rendezvous_instruction">Levez votre écran.\nCherchez dans la salle celui qui bat comme le vôtre.</string>

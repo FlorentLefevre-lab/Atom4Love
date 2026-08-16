@@ -6,6 +6,8 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
+import android.bluetooth.le.AdvertisingSetCallback
+import android.bluetooth.le.AdvertisingSetParameters
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
@@ -66,6 +68,19 @@ class ProximityEngine(
         val SERVICE_UUID: ParcelUuid =
             ParcelUuid.fromString("0000fff0-0000-1000-8000-00805f9b34fb")
 
+        /**
+         * L'UUID de la déclaration de recherche ([SeekingPayload]) — **distinct**
+         * de celui de la présence.
+         *
+         * Deux UUID plutôt qu'un seul avec deux formats : un pair qui ne
+         * comprend pas les recherches ignore proprement ce service au lieu
+         * d'essayer de décoder une trame qui n'est pas la sienne, et le filtre
+         * de scan reste explicite sur ce qu'il accepte. Le voisin d'à côté
+         * (cabine-33) ne voit strictement rien de neuf sur `fff0`.
+         */
+        val SEEK_UUID: ParcelUuid =
+            ParcelUuid.fromString("0000fff1-0000-1000-8000-00805f9b34fb")
+
         private const val TAG = "Proximity"
 
         /** Re-résolution périodique de la cellule (et de l'annonce si elle change). */
@@ -96,6 +111,62 @@ class ProximityEngine(
     private var advertisedToken: Int? = null
     private var advertisedSignature = ProximityPayload.Signature.Unknown
 
+    /** La déclaration de recherche en cours, et de quoi la couper. */
+    private var advertisedSeeking: ByteArray? = null
+    private var seekingCallback: AdvertisingSetCallback? = null
+
+    /**
+     * Sans annonce étendue, pas de déclaration : les 31 octets de la legacy
+     * sont pleins et gelés. Le jeu retombe alors sur ce qu'il faisait avant —
+     * la double sélection, réciproque deux fois sur trois — au lieu de refuser
+     * de fonctionner. Relevé sur le banc le 16/08 : supportée des deux côtés,
+     * 1650 octets sur le Pixel, 304 sur la tablette.
+     */
+    private fun seekingSupported(adapter: BluetoothAdapter): Boolean =
+        adapter.isLeExtendedAdvertisingSupported
+
+    @SuppressLint("MissingPermission")
+    private fun startSeeking(
+        advertiser: BluetoothLeAdvertiser,
+        data: ByteArray,
+    ): AdvertisingSetCallback {
+        val parameters = AdvertisingSetParameters.Builder()
+            .setLegacyMode(false)
+            .setConnectable(false)
+            .setScannable(false)
+            .setInterval(AdvertisingSetParameters.INTERVAL_MEDIUM)
+            .setTxPowerLevel(AdvertisingSetParameters.TX_POWER_MEDIUM)
+            .build()
+        val payload = AdvertiseData.Builder()
+            .setIncludeDeviceName(false)
+            .addServiceUuid(SEEK_UUID)
+            .addServiceData(SEEK_UUID, data)
+            .build()
+        val callback = object : AdvertisingSetCallback() {
+            override fun onAdvertisingSetStarted(
+                set: android.bluetooth.le.AdvertisingSet?,
+                txPower: Int,
+                status: Int,
+            ) {
+                if (status == ADVERTISE_SUCCESS) {
+                    Log.d(TAG, "recherche annoncée (${data.size} octets, $txPower dBm)")
+                } else {
+                    Log.w(TAG, "recherche refusée (status=$status)")
+                }
+            }
+        }
+        runCatching { advertiser.startAdvertisingSet(parameters, payload, null, null, null, callback) }
+            .onFailure { Log.w(TAG, "recherche impossible : ${it.message}") }
+        return callback
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun stopSeeking(advertiser: BluetoothLeAdvertiser) {
+        seekingCallback?.let { runCatching { advertiser.stopAdvertisingSet(it) } }
+        seekingCallback = null
+        advertisedSeeking = null
+    }
+
     /**
      * Tourne jusqu'à annulation de la coroutine appelante ; l'annonce et le scan
      * sont toujours coupés (et le registre vidé) en sortie.
@@ -107,6 +178,22 @@ class ProximityEngine(
             _state.update { it.copy(lastError = "Bluetooth indisponible ou désactivé") }
             return
         }
+        // Ce que la puce sait faire — relevé une fois, au démarrage.
+        //
+        // L'annonce **legacy** plafonne à 31 octets, et nous y sommes déjà à
+        // 31/31 : plus un bit pour dire quoi que ce soit de neuf. L'annonce
+        // **étendue** du Bluetooth 5 monte à plusieurs centaines d'octets et
+        // peut tourner en parallèle de la legacy, donc sans rien casser de ce
+        // que lit cabine-33. Savoir si le matériel suit décide de ce qu'on peut
+        // se permettre — d'où ce log, plutôt que de le supposer.
+        Log.i(
+            TAG,
+            "BLE : annonce étendue=${adapter.isLeExtendedAdvertisingSupported}" +
+                " · taille max=${adapter.leMaximumAdvertisingDataLength}" +
+                " · PHY 2M=${adapter.isLe2MPhySupported}" +
+                " · PHY codé=${adapter.isLeCodedPhySupported}" +
+                " · offload filtres=${adapter.isOffloadedFilteringSupported}",
+        )
         val advertiser = adapter.bluetoothLeAdvertiser
         val scanner = adapter.bluetoothLeScanner
         if (advertiser == null || scanner == null) {
@@ -156,12 +243,34 @@ class ProximityEngine(
                     advertiseCallback = startAdvertising(advertiser, cell4d, token, signature)
                 }
 
+                // ── La déclaration de recherche, en annonce étendue ────────
+                //
+                // Elle vit à côté de l'annonce ordinaire, jamais dedans : la
+                // legacy reste à 31/31 et ne bouge pas d'un octet, cabine-33 lit
+                // exactement ce qu'elle lisait. Ce qui suit ne s'allume que si
+                // quelqu'un a touché une carte, et s'éteint dès qu'il ferme.
+                val wanted = SeekingBeacon.targets.value
+                val seekData = advertisedToken?.let { SeekingPayload.encode(it, wanted) }
+                if (seekData == null || !seekingSupported(adapter)) {
+                    stopSeeking(advertiser)
+                } else if (!seekData.contentEquals(advertisedSeeking)) {
+                    stopSeeking(advertiser)
+                    advertisedSeeking = seekData
+                    seekingCallback = startSeeking(advertiser, seekData)
+                }
+
                 var waited = 0L
                 val refreshMs = if (cell4d == null) CELL_RETRY_MS else CELL_REFRESH_MS
                 // l'attente se rompt sur demande de silence : attendre les 30 s
                 // du prochain rafraîchissement laisserait l'antenne occupée
                 // pendant tout le transfert
-                while (waited < refreshMs && !RadioSilence.requested.value) {
+                // ⚠ L'attente se rompt aussi quand la recherche change, sinon
+                // toucher une carte n'annoncerait rien avant cinq minutes — et
+                // fermer la lanterne continuerait de parler tout ce temps-là.
+                while (waited < refreshMs &&
+                    !RadioSilence.requested.value &&
+                    SeekingBeacon.targets.value == wanted
+                ) {
                     delay(SWEEP_INTERVAL_MS)
                     waited += SWEEP_INTERVAL_MS
                     registry.sweep()
@@ -272,8 +381,19 @@ class ProximityEngine(
             }
         }
         scanner.startScan(
-            listOf(ScanFilter.Builder().setServiceUuid(SERVICE_UUID).build()),
-            ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED).build(),
+            listOf(
+                ScanFilter.Builder().setServiceUuid(SERVICE_UUID).build(),
+                ScanFilter.Builder().setServiceUuid(SEEK_UUID).build(),
+            ),
+            // ⚠ `setLegacy(false)` est **indispensable** : par défaut un scan
+            // Android ne remonte QUE les annonces legacy, et les déclarations
+            // de recherche voyagent en annonce étendue — elles seraient
+            // invisibles sans qu'aucune erreur ne le dise. Ce mode remonte les
+            // deux, la présence continue donc d'arriver comme avant.
+            ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                .setLegacy(false)
+                .build(),
             callback,
         )
         Log.d(TAG, "scan démarré (filtre $SERVICE_UUID)")
@@ -282,6 +402,13 @@ class ProximityEngine(
     }
 
     private fun onPeer(result: ScanResult) {
+        // Une déclaration de recherche arrive sur son propre service ; elle ne
+        // porte ni cellule ni signature, et n'a donc rien à faire dans le
+        // registre des voisins. On la traite à part et on s'arrête là.
+        SeekingPayload.decode(result.scanRecord?.getServiceData(SEEK_UUID))?.let { seeking ->
+            onSeeking(seeking)
+            return
+        }
         val payload = ProximityPayload.decode(
             result.scanRecord?.getServiceData(SERVICE_UUID),
         ) ?: return
@@ -306,5 +433,21 @@ class ProximityEngine(
             result.device.address, payload.cell4d, payload.token, result.rssi,
             payload.signature, txPower,
         )
+    }
+
+    /**
+     * Quelqu'un déclare chercher des cartes. On ne retient que le cas qui nous
+     * regarde : **est-ce nous ?**
+     *
+     * Les autres déclarations passent sans être notées. Tenir la liste de qui
+     * cherche qui dans la salle ferait de chaque téléphone un observatoire des
+     * intentions des autres — ce n'est pas parce que l'information passe dans
+     * l'air qu'on a une raison de la collectionner.
+     */
+    private fun onSeeking(seeking: SeekingPayload.Seeking) {
+        val mine = advertisedToken ?: return
+        if (!seeking.seeks(mine)) return
+        Log.d(TAG, "une carte nous cherche (jeton ${seeking.from})")
+        registry.reportSeeker(seeking.from)
     }
 }
