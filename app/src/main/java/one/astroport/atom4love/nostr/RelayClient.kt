@@ -128,7 +128,14 @@ class RelayClient(
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            Log.w(TAG, "connexion perdue ($url) : $t")
+            // La pile d'appels au PREMIER échec seulement. « Handshake
+            // failed » tout court ne dit rien : la vraie raison vit dans la
+            // cause (le 16/08, un SSLV3_ALERT_HANDSHAKE_FAILURE envoyé par le
+            // serveur, qui n'accepte que la courbe P-384 — introuvable sans
+            // elle). Les essais suivants reviennent toutes les 30 s : une
+            // trace à chaque fois noierait le journal.
+            if (attempts == 0) Log.w(TAG, "connexion perdue ($url) : $t", t)
+            else Log.w(TAG, "connexion perdue ($url) : $t")
             scheduleReconnect()
         }
 

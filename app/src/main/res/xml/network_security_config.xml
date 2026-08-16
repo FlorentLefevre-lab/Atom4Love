@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    À qui l'application fait confiance quand elle ouvre une connexion chiffrée.
+
+    ── Pourquoi ce fichier existe ────────────────────────────────────────────
+    Android valide un certificat en remontant sa chaîne jusqu'à une racine
+    qu'il connaît déjà. Ces racines vivent dans le magasin du système, et le
+    système les reçoit par ses mises à jour. Un téléphone qui n'en reçoit plus
+    garde donc le magasin du jour où il a été abandonné.
+
+    Or les trois services du projet — le géocodage des communes, le guichet
+    MULTIPASS et le relais NOSTR — présentent tous une chaîne Let's Encrypt
+    qui remonte à **ISRG Root X2**, racine ECDSA publiée en 2020. Tout appareil
+    dont le magasin a été figé avant cette date la refuse :
+
+        SSLHandshakeException: CertPathValidatorException:
+          Trust anchor for certification path not found
+
+    Constaté au banc le 16/08/2026 sur un magasin arrêté à l'été 2019 :
+    l'application s'y retrouvait entière à portée d'antenne — forge, balise,
+    BLE, rencontre — et muette dès qu'elle sortait par le réseau. Rien n'est
+    propre à ce téléphone-là : la question se pose pour tout appareil qui ne
+    reçoit plus de mises à jour, et Android 8 comme Android 9 en comptent
+    beaucoup. Embarquer les deux racines ISRG les rend connues quel que soit
+    l'âge du magasin.
+
+    ⚠ Ce que cela coûte, et il faut le savoir : une racine embarquée ne peut
+    plus être retirée par une mise à jour du système. Si ISRG venait à être
+    compromise, les appareils resteraient à lui faire confiance jusqu'à la
+    version suivante d'Atom4Love. C'est le prix de la portabilité, et il n'est
+    pas nul. Les deux certificats expirent d'eux-mêmes en 2035 (X1) et 2040
+    (X2).
+
+    `system` reste en tête et n'est pas remplacé : tout le reste continue de
+    se valider comme avant (les tuiles OpenStreetMap passent par GlobalSign,
+    par exemple). On n'ajoute pas `user` — depuis Nougat les autorités
+    installées à la main ne sont plus de confiance par défaut, et ce n'est pas
+    ici qu'on reviendra là-dessus.
+
+    ── Le trafic en clair ────────────────────────────────────────────────────
+    ⚠ `cleartextTrafficPermitted="true"` n'est PAS un relâchement : il
+    reconduit `android:usesCleartextTraffic="true"` du manifeste, que ce
+    fichier remplacerait sinon en silence. Le relais NOSTR d'une station
+    Astroport locale se joint en `ws://` sur l'adresse de la passerelle
+    (LocalRelayScout) — sans cette ligne, la station du lieu deviendrait
+    injoignable. Ne pas « durcir » à false sans traiter ce cas d'abord.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/isrg_root_x1" />
+            <certificates src="@raw/isrg_root_x2" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
