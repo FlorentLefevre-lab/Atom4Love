@@ -76,6 +76,18 @@ class Constellation(
          * partielle.
          */
         private const val QUERY_TIMEOUT_MS = 14_000L
+
+        /**
+         * Sept jours : la fenêtre pendant laquelle un noyau fraîchement scellé
+         * passe devant tout le monde sur la carte.
+         *
+         * Une semaine parce que la carte n'est pas un fil qu'on déroule tous
+         * les matins — quelqu'un qui ouvre l'application le dimanche doit
+         * encore voir celui qui s'est inscrit le mardi. Plus court, l'honneur
+         * ne serait rendu qu'aux assidus ; plus long, « nouveau » ne voudrait
+         * plus rien dire.
+         */
+        const val NEWCOMER_WINDOW_MS = 7 * 24 * 60 * 60 * 1000L
     }
 
     /** Un noyau de la constellation, tel que son certificat le donne. */
@@ -90,6 +102,32 @@ class Constellation(
     ) {
         /** De quoi le nommer tant qu'on ne lit pas son profil (kind 0). */
         val shortKey: String get() = pubkey.take(8)
+
+        /**
+         * Un noyau qui vient d'arriver dans la constellation — celui à qui la
+         * carte fait honneur, [NEWCOMER_WINDOW_MS] durant.
+         *
+         * **L'honneur est automatique, et son déclencheur est une preuve, pas
+         * une déclaration.** Ce certificat est publié par la station elle-même
+         * au moment où elle active la clé LOVE : il n'existe pas sans MULTIPASS
+         * actif. Le lire récent, c'est donc *savoir* que quelqu'un vient de
+         * s'inscrire sur Astroport — personne n'a eu à l'annoncer, et personne
+         * ne peut se l'attribuer sans passer par la station.
+         *
+         * ⚠ **Ce que ça mesure exactement** : la date à laquelle la station a
+         * scellé ce certificat, pas celle d'une première inscription. Un 30078
+         * est remplaçable (NIP-78) ; quelqu'un qui réactive sa clé LOVE
+         * repasserait donc « nouveau ». C'est assumé — la fête est pour l'entrée
+         * dans la constellation, et une réactivation en est une aussi. Ce qu'il
+         * ne faut surtout pas en conclure, c'est un âge de compte.
+         *
+         * ⚠ Un certificat daté du futur compte comme nouveau. Les horloges de
+         * deux machines ne s'accordent jamais à la seconde, et rater l'honneur
+         * de quelqu'un qui vient tout juste de s'inscrire — le cas même qu'on
+         * veut servir — serait pire qu'en honorer un de trop.
+         */
+        fun isNewcomer(nowMs: Long = System.currentTimeMillis()): Boolean =
+            nowMs - createdAt * 1000L < NEWCOMER_WINDOW_MS
     }
 
     sealed interface State {

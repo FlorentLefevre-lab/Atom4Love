@@ -257,9 +257,16 @@ object Phi2X {
 
     /**
      * Portage de `classifyResonance()` : [resonanceK] seul ne distingue pas
-     * l'union (Δφ ≈ 0) de la friction (Δφ ≈ π) — il vaut 1 aux deux bouts. Le
-     * signe de l'écart, lui, tranche : en deçà du quart de tour c'est une
-     * union, au-delà une friction. C'est le 🤝 et le ⚡ de ses écrans.
+     * l'union (Δφ ≈ 0) du défi (Δφ ≈ π) — il vaut 1 aux deux bouts. L'écart,
+     * lui, tranche : en deçà du quart de tour c'est une union, au-delà un
+     * défi. C'est le 🤝 et le ⚡ de ses écrans.
+     *
+     * ⚠ Le ⚡ dit **de quelle sorte**, jamais **combien** — et surtout pas
+     * « moins ». L'opposable du Tzolkin est le complémentaire, pas le
+     * contraire : sa planche `assets/miz/tzolkin_oracle.svg` nomme l'antipode
+     * « DÉFI », l'un des cinq **pouvoirs** de l'Oracle, et [resonanceK] lui
+     * donne la même valeur qu'à l'union. Ne jamais s'en servir pour dégrader un
+     * rang : ce qui doit tomber, c'est le quart de tour, où k vaut 0,5.
      */
     fun classifyResonance(phaseA: Double, phaseB: Double): Classification {
         val k = resonanceK(phaseA, phaseB)

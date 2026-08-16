@@ -34,10 +34,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.annotation.StringRes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import one.astroport.atom4love.R
 import one.astroport.atom4love.domain.BirthData
 import one.astroport.atom4love.domain.KinMaya
+import one.astroport.atom4love.domain.Match
+import one.astroport.atom4love.domain.Oracle
 import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.proximity.NeighborRegistry
 import one.astroport.atom4love.proximity.ProximityPayload
@@ -90,6 +93,17 @@ fun BoardScreen(
     // Une carte par **personne**, pas par adresse : deux annonces d'un même
     // jeton sont un seul appareil qui vient de changer de visage. Et sans
     // signature il n'y a pas de carte — le pair est là, il n'a rien montré.
+    // ⚠ Le tri se fait sur [Phi2X.resonanceK] SEUL, et c'est délibéré : ne pas
+    // le « corriger » en remontant les 🤝 avant les ⚡. k vaut 1 aux DEUX bouts,
+    // en phase et en opposition, parce que |sin Δφ| s'annule aux deux — la
+    // singularité optique de Fred les traite à égalité stricte. L'opposable
+    // n'est pas le contraire, c'est le complémentaire : il attire.
+    //
+    // Le vrai fond de classement n'est pas l'opposition mais le QUART DE TOUR,
+    // où k atteint son minimum de 0,5 — deux phases qui n'ont rien à se dire.
+    // Trier par k met donc en tête ce qui résonne fort, dans les deux sens, et
+    // laisse en bas ce qui ne résonne pas. C'est la seule lecture cohérente
+    // avec la formule ; le sens du lien se lit sur le badge 🤝/⚡ juste après.
     val hand = neighbors
         .distinctBy { it.identity }
         .filter { it.signature != ProximityPayload.Signature.Unknown }
@@ -201,6 +215,15 @@ fun BoardScreen(
                     stringResource(R.string.board_hint_seek),
                     style = A4LText.Caption.copy(fontSize = 11.sp),
                     color = A4L.TextDim,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+                // La règle du match tient sous la main et pas dans l'Aide : un
+                // mot en capitales sur une carte appelle son explication tout
+                // de suite, sinon il se lit comme une note.
+                Text(
+                    stringResource(R.string.board_match_rule),
+                    style = A4LText.Caption.copy(fontSize = 10.sp),
+                    color = A4L.TextGhost,
                     modifier = Modifier.padding(bottom = 10.dp),
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -233,37 +256,128 @@ fun BoardScreen(
 @Composable
 private fun OwnCard(birth: BirthData, npub: String?) {
     val kin = KinMaya.of(birth)
-    Row(
+    Column(
         Modifier
             .fillMaxWidth()
             .glass(16.dp, A4L.Cyan.tint(0.09f), A4L.Cyan.tint(0.30f))
             .padding(horizontal = 18.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(KinMaya.glyphEmoji(kin?.glyph), fontSize = 44.sp)
-        Spacer(Modifier.width(16.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                KinMaya.glyphName(kin?.glyph) ?: stringResource(R.string.board_no_seal),
-                style = A4LText.H2,
-                color = A4L.TextHigh,
-            )
-            Text(
-                text = if (kin == null) {
-                    stringResource(R.string.board_no_date)
-                } else {
-                    stringResource(R.string.board_kin_tone, kin.kin, kin.tone + 1)
-                },
-                style = A4LText.Data.copy(fontSize = 10.5.sp),
-                color = A4L.TextDim,
-            )
-            birth.wave?.let {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(KinMaya.glyphEmoji(kin?.glyph), fontSize = 44.sp)
+            Spacer(Modifier.width(16.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    stringResource(it.labelRes),
-                    style = A4LText.Caption.copy(fontSize = 11.sp),
-                    color = A4L.TextMuted,
+                    KinMaya.glyphName(kin?.glyph) ?: stringResource(R.string.board_no_seal),
+                    style = A4LText.H2,
+                    color = A4L.TextHigh,
                 )
+                Text(
+                    text = if (kin == null) {
+                        stringResource(R.string.board_no_date)
+                    } else {
+                        stringResource(R.string.board_kin_tone, kin.kin, kin.tone + 1)
+                    },
+                    style = A4LText.Data.copy(fontSize = 10.5.sp),
+                    color = A4L.TextDim,
+                )
+                birth.wave?.let {
+                    Text(
+                        stringResource(it.labelRes),
+                        style = A4LText.Caption.copy(fontSize = 11.sp),
+                        color = A4L.TextMuted,
+                    )
+                }
             }
+        }
+        kin?.let { OracleBlock(it) }
+    }
+}
+
+/** Une des trois cases de l'Oracle — le sceau visé, sous le nom que Fred lui donne. */
+private data class OracleCell(
+    /** Le pictogramme de sa planche, repris tel quel. */
+    val mark: String,
+    @StringRes val labelRes: Int,
+    val kin: KinMaya.Kin,
+    val color: Color,
+)
+
+/**
+ * Les trois compléments de votre KIN — [Oracle], donc la planche de Fred.
+ *
+ * Ils tiennent sur votre carte et nulle part ailleurs : ce sont des sceaux à
+ * **chercher** dans la salle, et la carte est ce qu'on lève au-dessus d'une
+ * table. Rien n'en sort par la radio, tout se calcule de la seule date.
+ *
+ * ⚠ Au ton 7 le défi et l'alternance sont le même KIN : les deux cases se
+ * répètent alors, et une ligne le dit plutôt que d'en cacher une — la
+ * coïncidence est le fait remarquable, pas un doublon à masquer.
+ */
+@Composable
+private fun OracleBlock(kin: KinMaya.Kin) {
+    val reading = Oracle.of(kin)
+    val cells = listOfNotNull(
+        reading.antipode?.let {
+            OracleCell("⚡", R.string.board_oracle_antipode, it, A4L.Violet)
+        },
+        reading.analogue?.let {
+            OracleCell("🌀", R.string.board_oracle_analogue, it, A4L.Mint)
+        },
+        reading.occult?.let {
+            OracleCell("🌙", R.string.board_oracle_occult, it, A4L.Cyan)
+        },
+    )
+    if (cells.isEmpty()) return
+
+    Column(
+        Modifier.padding(top = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SectionLabel(stringResource(R.string.board_oracle_title))
+        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            cells.forEach { cell ->
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .glass(12.dp, cell.color.tint(0.07f), cell.color.tint(0.24f))
+                        .padding(vertical = 10.dp, horizontal = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(KinMaya.glyphEmoji(cell.kin.glyph), fontSize = 21.sp)
+                    Text(
+                        "${cell.mark} ${stringResource(cell.labelRes)}",
+                        style = A4LText.Caption.copy(fontSize = 10.sp),
+                        color = cell.color,
+                        textAlign = TextAlign.Center,
+                    )
+                    KinMaya.glyphName(cell.kin.glyph)?.let {
+                        Text(
+                            it,
+                            style = A4LText.Caption.copy(fontSize = 10.5.sp),
+                            color = A4L.TextMuted,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.board_oracle_kin, cell.kin.kin),
+                        style = A4LText.Data.copy(fontSize = 9.sp),
+                        color = A4L.TextDim,
+                    )
+                }
+            }
+        }
+        Text(
+            stringResource(R.string.board_oracle_note),
+            style = A4LText.Caption.copy(fontSize = 10.sp),
+            color = A4L.TextGhost,
+        )
+        if (kin.tone == 6) {
+            Text(
+                stringResource(R.string.board_oracle_resonant),
+                style = A4LText.Caption.copy(fontSize = 10.sp),
+                color = A4L.Mint,
+            )
         }
     }
 }
@@ -287,6 +401,13 @@ private fun DealtCard(
     val classification = own.phase?.let { mine ->
         theirs.phase?.let { Phi2X.classifyResonance(mine, it) }
     }
+    val match = Match.read(
+        myPhase = own.phase,
+        myGlyph = own.glyph,
+        theirPhase = theirs.phase,
+        theirGlyph = theirs.glyph,
+    )
+    val bond = match.bond
     // Le signal LISSÉ, comme dans la lanterne du rendez-vous — sur du brut, la
     // carte clignoterait pendant que la lanterne reste stable, et deux écrans
     // du même jeu ne diraient pas la même chose du même voisin. La mémoire est
@@ -301,10 +422,22 @@ private fun DealtCard(
         else -> A4L.Violet
     }
 
+    // Un match habille la carte entière plutôt que d'y ajouter une pastille de
+    // plus : c'est un état de la rencontre, pas une donnée à côté des autres.
+    val frame = when (match.level) {
+        Match.Level.Super -> A4L.Gold
+        Match.Level.Match -> accent
+        Match.Level.None -> null
+    }
     Row(
         Modifier
             .fillMaxWidth()
-            .glass(15.dp, A4L.GlassSoft.copy(alpha = 0.04f), A4L.StrokeSoft)
+            .glass(
+                radius = 15.dp,
+                background = frame?.tint(0.07f) ?: A4L.GlassSoft.copy(alpha = 0.04f),
+                border = frame?.tint(0.40f) ?: A4L.StrokeSoft,
+                borderWidth = if (match.level == Match.Level.Super) 2.dp else 1.dp,
+            )
             .clickable(onClick = onSeek)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -312,12 +445,30 @@ private fun DealtCard(
         Text(KinMaya.glyphEmoji(theirs.glyph), fontSize = 34.sp)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                KinMaya.glyphName(theirs.glyph) ?: stringResource(R.string.board_no_seal),
-                style = A4LText.ItemTitle,
-                color = A4L.TextHigh,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    KinMaya.glyphName(theirs.glyph) ?: stringResource(R.string.board_no_seal),
+                    style = A4LText.ItemTitle,
+                    color = A4L.TextHigh,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (match.level != Match.Level.None) {
+                    val superb = match.level == Match.Level.Super
+                    Text(
+                        stringResource(
+                            if (superb) R.string.board_super_match else R.string.board_match,
+                        ),
+                        style = A4LText.Caption.copy(
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        color = if (superb) A4L.Gold else accent,
+                    )
+                }
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -328,6 +479,30 @@ private fun DealtCard(
                     style = A4LText.Caption.copy(fontSize = 11.sp),
                     color = warmth.color,
                 )
+            }
+            // Le lien de l'Oracle, quand il y en a un. Le sceau suffit à le
+            // lire — c'est une relation de colonne, le ton n'y entre pas — et
+            // c'est heureux : l'annonce ne porte jamais le ton. Revers assumé,
+            // dit par le libellé : un sceau seul ne tranche pas entre le défi
+            // et l'alternance, qui le partagent.
+            bond?.let {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(if (it == Oracle.Bond.Challenge) "⚡" else "🌙", fontSize = 11.sp)
+                    Text(
+                        stringResource(
+                            if (it == Oracle.Bond.Challenge) {
+                                R.string.board_bond_challenge
+                            } else {
+                                R.string.board_bond_hidden
+                            },
+                        ),
+                        style = A4LText.Caption.copy(fontSize = 10.5.sp),
+                        color = if (it == Oracle.Bond.Challenge) A4L.Violet else A4L.Cyan,
+                    )
+                }
             }
         }
         classification?.let {

@@ -147,6 +147,24 @@ object KinMaya {
     }
 
     /**
+     * Le KIN qui porte ce sceau **et** ce ton — l'inverse de [ofNumber].
+     *
+     * Il en existe toujours exactement un dans 1..260 : 20 et 13 sont premiers
+     * entre eux, donc chaque couple (sceau, ton) tombe sur une case et une
+     * seule de la grille. C'est ce qui rend l'Oracle calculable — [Oracle] y
+     * nomme un KIN à partir d'un sceau décalé et d'un ton retourné.
+     *
+     * La recherche part du sceau et avance de 20 en 20 : au plus treize pas,
+     * et rien à inverser modulo 13 qu'un lecteur devrait vérifier de tête.
+     */
+    fun ofSealAndTone(glyph: Int, tone: Int): Kin? {
+        if (glyph !in 0..19 || tone !in 0..12) return null
+        var n = glyph
+        while (n % 13 != tone) n += 20
+        return ofNumber(n + 1)
+    }
+
+    /**
      * Le KIN d'une fiche d'incarnation, ou null tant qu'elle n'a pas sa date.
      *
      * Le jour est celui de l'**instant scellé** ([BirthData.birthInstantUtc]),

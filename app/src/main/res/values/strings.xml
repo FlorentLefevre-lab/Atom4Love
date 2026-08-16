@@ -146,6 +146,18 @@
     <string name="board_no_seal">Sceau inconnu</string>
     <string name="board_no_date">votre fiche n\'a pas encore de date</string>
     <string name="board_kin_tone">KIN %1$d · tonalité %2$d</string>
+    <string name="board_oracle_title">Vos trois compléments</string>
+    <string name="board_oracle_antipode">Défi</string>
+    <string name="board_oracle_analogue">Alternance</string>
+    <string name="board_oracle_occult">Occulte</string>
+    <string name="board_oracle_kin">KIN %1$d</string>
+    <string name="board_oracle_note">Le défi et l\'alternance portent le même sceau — seul le ton les sépare. Aucun des trois n\'est un contraire : ce sont les trois façons de vous compléter.</string>
+    <string name="board_oracle_resonant">Votre ton 7 est son propre complément : votre défi et votre alternance sont un seul KIN.</string>
+    <string name="board_match">MATCH</string>
+    <string name="board_super_match">SUPER MATCH</string>
+    <string name="board_match_rule">Un match, c\'est un plan qui s\'aligne : votre résonance au-delà de 0,90, ou un sceau de votre Oracle — une personne croisée sur six. Un super match demande les deux à la fois, la résonance passant alors 0,95 : trois rencontres sur mille. Ce n\'est pas une note, et personne n\'est prévenu.</string>
+    <string name="board_bond_challenge">le sceau de votre défi</string>
+    <string name="board_bond_hidden">le sceau de votre occulte</string>
     <string name="board_warmth_touching">à bout de bras</string>
     <string name="board_warmth_hot">très chaud</string>
     <string name="board_warmth_distance">≈ %1$s</string>
@@ -199,6 +211,12 @@
         <item quantity="one">%1$d noyau</item>
         <item quantity="many">%1$d noyaux</item>
         <item quantity="other">%1$d noyaux</item>
+    </plurals>
+    <string name="map_newcomer">nouveau</string>
+    <plurals name="map_newcomers_banner">
+        <item quantity="one">%1$d noyau vient d\'entrer dans la constellation. Sa clé LOVE a été activée cette semaine : il passe devant tout le monde, quelle que soit sa résonance.</item>
+        <item quantity="many">%1$d noyaux viennent d\'entrer dans la constellation. Leur clé LOVE a été activée cette semaine : ils passent devant tout le monde, quelle que soit leur résonance.</item>
+        <item quantity="other">%1$d noyaux viennent d\'entrer dans la constellation. Leur clé LOVE a été activée cette semaine : ils passent devant tout le monde, quelle que soit leur résonance.</item>
     </plurals>
     <string name="map_reading">Lecture du relais…</string>
     <string name="map_relay">Lu sur %1$s</string>
@@ -349,7 +367,7 @@
     <string name="help_imprint_label">Votre empreinte · l\'accord fondamental</string>
     <string name="help_imprint_body">Imaginez votre corps comme un instrument. Votre lieu et votre date de naissance déterminent la note que vous jouez en permanence : votre phase personnelle. Votre polarité, elle, dit de quel côté de l\'interférence cette note se tient.</string>
     <string name="help_resonance_label">La résonance · quand deux ondes se croisent</string>
-    <string name="help_resonance_body">Rencontrer quelqu\'un, c\'est croiser deux phases. Si elles s\'emboîtent, c\'est la super-cohérence : on se comprend sans parler. Si elles se heurtent, c\'est la friction créatrice : on est faits pour inventer ensemble. Aucun des deux n\'est un score, et aucun n\'est meilleur que l\'autre.</string>
+    <string name="help_resonance_body">Rencontrer quelqu\'un, c\'est croiser deux phases. Si elles s\'emboîtent, c\'est la super-cohérence : on se comprend sans parler. Si elles s\'opposent, c\'est le défi créateur — et ça résonne exactement aussi fort : deux ondes opposées se répondent trait pour trait, comme un aimant trouve son pôle contraire. Opposable ne veut pas dire contraire, mais complémentaire. Ce qui ne dit rien, c\'est le quart de tour, entre les deux.</string>
     <string name="help_singularity_label">La singularité · l\'esprit et la matière</string>
     <string name="help_singularity_body">Votre conception est l\'Esprit, votre naissance la Matière. En les combinant, la station calcule votre archétype — la façon dont vous transformez l\'énergie autour de vous. Vous n\'avez pas à connaître cette date : elle se déduit de votre naissance.</string>
     <string name="help_temp_key_label">Votre clé temporaire</string>
@@ -412,7 +430,7 @@
     <string name="zion_tzolkin_label">📅 Le cycle de 260 jours</string>
     <string name="zion_tzolkin_body">Le Tzolkin croise 20 sceaux — des archétypes — et 13 tonalités — des niveaux d\'énergie : 260 Kin. Chacun naît un jour précis de ce cycle, et son Kin reste son empreinte galactique à vie. Le cycle de 52 ans, le Round du calendrier, est l\'intersection mathématique de 260 et 365.</string>
     <string name="zion_oracle_label">🔮 Les cinq pouvoirs Oracle</string>
-    <string name="zion_oracle_body">Chaque Kin engendre cinq correspondances : le Guide (mentor naturel), l\'Antipode (défi créateur), l\'Analogue (complément de même tonalité), l\'Occulte (partenaire caché, K + K\' = 261) et Soi-même. Ces cinq pouvoirs forment l\'Oracle du Kin.</string>
+    <string name="zion_oracle_body">Chaque Kin engendre cinq correspondances : le Guide (mentor naturel, même famille-couleur), l\'Antipode (défi créateur : sceau + 10, même tonalité), l\'Analogue (alternance : le même sceau que le défi, tonalité retournée — les deux sommes font 14), l\'Occulte (partenaire caché, K + K\' = 261) et Soi-même. Ces cinq pouvoirs forment l\'Oracle du Kin. Aucun n\'est un contraire : ce sont cinq façons de se compléter.</string>
     <string name="zion_maya_universal_label">🌍 Universel, sans religion</string>
     <string name="zion_maya_universal_body">Un nombre de 1 à 260. Pas de doctrine, pas de dogme — une structure mathématique indépendante de toute culture et de tout calendrier.</string>
     <string name="zion_maya_routing_label">🧭 Un routage social sans algorithme</string>

@@ -932,6 +932,12 @@ private fun ResonancePanel(
 ) {
     // Une ligne par personne, comme les points : deux adresses d'un même jeton
     // sont un seul appareil qui vient de changer de visage.
+    //
+    // ⚠ Tri sur [Phi2X.resonanceK] seul — même règle qu'au Plateau, et ici elle
+    // décide de qui est COUPÉ par le `take` qui suit. Ne pas remonter les 🤝
+    // avant les ⚡ : k vaut 1 en phase ET en opposition, et une opposition
+    // parfaite sortirait de la liste alors qu'elle est un maximum de résonance.
+    // Ce qui doit tomber en bas, c'est le quart de tour (k = 0,5).
     val signed = neighbors
         .distinctBy { it.identity }
         .filter { it.signature != ProximityPayload.Signature.Unknown }

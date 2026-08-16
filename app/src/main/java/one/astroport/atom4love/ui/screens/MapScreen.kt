@@ -101,6 +101,15 @@ private data class Sighting(
      * kilomètre n'est que l'arrondi de la maille.
      */
     val isSelf: Boolean,
+    /**
+     * Fraîchement entré dans la constellation — sa clé LOVE vient d'être
+     * activée par la station. La carte lui fait honneur : il passe devant tout
+     * le monde, juste derrière nous, quelle que soit sa résonance.
+     *
+     * C'est le seul endroit du jeu où l'ordre ne dépend pas de ce qu'on a en
+     * commun avec quelqu'un. Une semaine durant, arriver suffit.
+     */
+    val newcomer: Boolean,
 )
 
 /**
@@ -192,7 +201,11 @@ fun MapScreen(
     }
 
     val atoms = (state as? Constellation.State.Loaded)?.atoms.orEmpty()
-    val sightings = remember(atoms, myPhase, home, keys) {
+    // L'instant du calcul est celui de la lecture du relais, pas l'heure
+    // courante : sans ça, la nouveauté se recalculerait à chaque recomposition
+    // et la liste pourrait se réordonner sous le doigt.
+    val readAtMs = (state as? Constellation.State.Loaded)?.readAtMs ?: 0L
+    val sightings = remember(atoms, myPhase, home, keys, readAtMs) {
         atoms
             .map { atom ->
                 val theirs = atom.phase
@@ -212,13 +225,17 @@ fun MapScreen(
                         }
                     },
                     isSelf = self,
+                    newcomer = !self && atom.isNewcomer(readAtMs),
                 )
             }
-            // Nous d'abord, puis la résonance quand notre φ est connue — c'est
-            // l'ordre de son radar. Sinon la proximité, sinon les derniers
-            // arrivés.
+            // Nous d'abord, puis **ceux qui viennent d'arriver** — l'honneur
+            // passe avant l'affinité, et c'est tout le propos : on ne fait pas
+            // fête à quelqu'un parce qu'il nous ressemble. Ensuite seulement la
+            // résonance quand notre φ est connue, comme sur son radar, puis la
+            // proximité, puis les derniers scellés.
             .sortedWith(
                 compareByDescending<Sighting> { it.isSelf }
+                    .thenByDescending { it.newcomer }
                     .thenByDescending { it.resonance?.percent ?: -1 }
                     .thenBy { it.distanceKm ?: Double.MAX_VALUE }
                     .thenByDescending { it.atom.createdAt },
@@ -362,6 +379,33 @@ fun MapScreen(
         // La carte est ce qu'on vient voir ; la liste, ce qu'on vient
         // consulter. Elle attend donc qu'on la demande — et son compte, dans
         // l'en-tête, dit qu'elle a quelque chose à dire.
+        // ── L'honneur aux nouveaux ────────────────────────────────────────
+        //
+        // Il se dit **avant** la liste et hors du pli : c'est la seule chose de
+        // cet écran qui ne parle pas de soi, et elle ne doit pas attendre qu'on
+        // déplie quoi que ce soit pour être vue. Le pli, lui, s'ouvre déjà tout
+        // seul quand on arrive par la carte.
+        val newcomers = sightings.count { it.newcomer }
+        if (newcomers > 0) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, top = 18.dp)
+                    .glass(14.dp, A4L.Gold.tint(0.10f), A4L.Gold.tint(0.34f))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("✨", fontSize = 18.sp)
+                Text(
+                    pluralStringResource(R.plurals.map_newcomers_banner, newcomers, newcomers),
+                    style = A4LText.Caption.copy(fontSize = 11.5.sp),
+                    color = A4L.Gold,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
         if (sightings.isNotEmpty()) {
             Row(
                 Modifier
@@ -647,6 +691,9 @@ private fun SightingRow(
     val dot = atom.phase?.let { phaseColor(it) } ?: A4L.TextFaint
     val accent = when {
         sighting.isSelf -> A4L.Cyan
+        // L'honneur passe devant la résonance dans la couleur comme dans
+        // l'ordre : une ligne d'or, qui ne ressemble à aucune autre.
+        sighting.newcomer -> A4L.Gold
         sighting.resonance == null -> A4L.TextDim
         sighting.resonance.union -> A4L.Mint
         else -> A4L.Violet
@@ -695,6 +742,13 @@ private fun SightingRow(
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (sighting.isSelf) {
                 DataBadge(stringResource(R.string.map_you), A4L.Cyan)
+            }
+            if (sighting.newcomer) {
+                DataBadge(
+                    glyph = "✨",
+                    label = stringResource(R.string.map_newcomer),
+                    color = A4L.Gold,
+                )
             }
             sighting.resonance?.let { r ->
                 DataBadge(
