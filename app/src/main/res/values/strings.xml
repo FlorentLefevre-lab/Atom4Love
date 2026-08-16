@@ -77,6 +77,10 @@
     <string name="cabin_peers_here" tools:ignore="PluralsCandidate">%1$d ici</string>
     <string name="cabin_someone_unnamed">quelqu\'un est là, sans identité déclarée</string>
     <string name="cabin_nobody_in_range">personne à portée</string>
+    <string name="cabin_follow">Suivre</string>
+    <string name="cabin_follow_publishing">…</string>
+    <string name="cabin_following">Suivi ✓</string>
+    <string name="cabin_follow_retry">Réessayer</string>
     <plurals name="cabin_unattested_links">
         <item quantity="one">et %1$d lien sans identité déclarée</item>
         <!-- `many` ne sert qu'à la notation compacte (« 1 million de liens ») :

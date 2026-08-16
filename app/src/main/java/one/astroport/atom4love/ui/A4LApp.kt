@@ -93,6 +93,7 @@ import one.astroport.atom4love.multipass.MultipassService
 import one.astroport.atom4love.nostr.Bech32
 import one.astroport.atom4love.nostr.CabinSalon
 import one.astroport.atom4love.nostr.Certificate
+import one.astroport.atom4love.nostr.Contacts
 import one.astroport.atom4love.nostr.LocalRelayScout
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.RelayStation
@@ -301,6 +302,7 @@ private fun Station(
      * garde tout et on réessaie au prochain démarrage.
      */
     val certificate = remember(scope) { Certificate(scope) }
+    val contacts = remember(scope) { Contacts(scope) }
     LaunchedEffect(loveKeys, forged, birth) {
         val station = loveKeys ?: return@LaunchedEffect
         if (!forged) return@LaunchedEffect
@@ -648,6 +650,8 @@ private fun Station(
                 BackHandler { cabinShown = false }
                 CabinDestination(
                     chat = cabin,
+                    keys = keys,
+                    contacts = contacts,
                     onClose = closeCabin,
                     modifier = Modifier.weight(1f),
                 )
