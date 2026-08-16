@@ -109,13 +109,15 @@
     <string name="board_no_seal">Sello desconocido</string>
     <string name="board_no_date">tu ficha aún no tiene fecha</string>
     <string name="board_kin_tone">KIN %1$d · tono %2$d</string>
-    <string name="board_oracle_title">Tus tres complementos</string>
+    <string name="board_oracle_title">Tus cuatro complementos</string>
+    <string name="board_oracle_guide">Guía</string>
     <string name="board_oracle_antipode">Desafío</string>
     <string name="board_oracle_analogue">Alternancia</string>
     <string name="board_oracle_occult">Oculto</string>
     <string name="board_oracle_kin">KIN %1$d</string>
-    <string name="board_oracle_note">El desafío y la alternancia llevan el mismo sello — solo el tono los separa. Ninguno de los tres es un contrario: son las tres maneras de completarte.</string>
+    <string name="board_oracle_note">El desafío y la alternancia llevan el mismo sello — solo el tono los separa. La guía, en cambio, permanece en tu familia de sellos. Ninguno de los cuatro es un contrario: son las cuatro maneras de completarte.</string>
     <string name="board_oracle_resonant">Tu tono 7 es su propio complemento: tu desafío y tu alternancia son un solo KIN.</string>
+    <string name="board_oracle_guide_self">Eres tu propia guía — uno de cada cinco KIN lo es.</string>
     <string name="board_match">MATCH</string>
     <string name="board_super_match">SÚPER MATCH</string>
     <string name="board_match_rule">Un match es un plano que se alinea: tu resonancia más allá de 0,90, o un sello de tu Oráculo — una persona de cada seis. Un súper match exige las dos a la vez, con la resonancia pasando entonces 0,95: tres encuentros de cada mil. No es una nota, y nadie es avisado.</string>
@@ -378,7 +380,7 @@
     <string name="zion_tzolkin_label">📅 El ciclo de 260 días</string>
     <string name="zion_tzolkin_body">El Tzolkin cruza 20 sellos —arquetipos— con 13 tonos —niveles de energía—: 260 Kin. Cada cual nace un día preciso de ese ciclo, y su Kin sigue siendo su huella galáctica de por vida. El ciclo de 52 años, la Rueda del Calendario, es la intersección matemática de 260 y 365.</string>
     <string name="zion_oracle_label">🔮 Los cinco poderes del Oráculo</string>
-    <string name="zion_oracle_body">Cada Kin engendra cinco correspondencias: la Guía (mentor natural, misma familia de color), el Antípoda (desafío creador: sello + 10, mismo tono), el Análogo (alternancia: el mismo sello que el desafío, tono invertido — los dos suman 14), el Oculto (compañero escondido, K + K\' = 261) y el Sí mismo. Estos cinco poderes forman el Oráculo del Kin. Ninguno es un contrario: son cinco maneras de completarse.</string>
+    <string name="zion_oracle_body">Cada Kin engendra cinco correspondencias: la Guía (mentor natural: tu propia familia de sellos, en el lugar que dicta tu tono), el Antípoda (desafío creador: sello + 10, tono invertido — los dos suman 14), el Análogo (alternancia: el mismo sello que el desafío, tu propio tono), el Oculto (compañero escondido, K + K\' = 261) y el Sí mismo. Estos cinco poderes forman el Oráculo del Kin. Ninguno es un contrario: son cinco maneras de completarse.</string>
     <string name="zion_maya_universal_label">🌍 Universal, sin religión</string>
     <string name="zion_maya_universal_body">Un número del 1 al 260. Sin doctrina ni dogma — una estructura matemática independiente de toda cultura y de todo calendario.</string>
     <string name="zion_maya_routing_label">🧭 Un enrutamiento social sin algoritmo</string>

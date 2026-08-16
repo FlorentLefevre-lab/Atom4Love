@@ -377,7 +377,7 @@ private fun OwnCard(birth: BirthData, npub: String?) {
     }
 }
 
-/** Une des trois cases de l'Oracle — le sceau visé, sous le nom que Fred lui donne. */
+/** Une des quatre cases de l'Oracle — le sceau visé, sous le nom que Fred lui donne. */
 private data class OracleCell(
     /** Le pictogramme de sa planche, repris tel quel. */
     val mark: String,
@@ -387,11 +387,16 @@ private data class OracleCell(
 )
 
 /**
- * Les trois compléments de votre KIN — [Oracle], donc la planche de Fred.
+ * Les quatre compléments de votre KIN — [Oracle], donc les formules de Fred.
  *
  * Ils tiennent sur votre carte et nulle part ailleurs : ce sont des sceaux à
  * **chercher** dans la salle, et la carte est ce qu'on lève au-dessus d'une
  * table. Rien n'en sort par la radio, tout se calcule de la seule date.
+ *
+ * ⚠ Le **guide** n'est pas de la même nature que les trois autres : il reste
+ * dans votre propre famille de sceaux, il peut être vous-même, et cinq KIN le
+ * partagent ([Oracle.guide]). Il est là pour être lu, pas pour être cherché —
+ * d'où sa place en tête et son pictogramme d'orientation.
  *
  * ⚠ Au ton 7 le défi et l'alternance sont le même KIN : les deux cases se
  * répètent alors, et une ligne le dit plutôt que d'en cacher une — la
@@ -401,6 +406,9 @@ private data class OracleCell(
 private fun OracleBlock(kin: KinMaya.Kin) {
     val reading = Oracle.of(kin)
     val cells = listOfNotNull(
+        reading.guide?.let {
+            OracleCell("🧭", R.string.board_oracle_guide, it, A4L.Amber)
+        },
         reading.antipode?.let {
             OracleCell("⚡", R.string.board_oracle_antipode, it, A4L.Violet)
         },
@@ -418,7 +426,7 @@ private fun OracleBlock(kin: KinMaya.Kin) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         SectionLabel(stringResource(R.string.board_oracle_title))
-        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             cells.forEach { cell ->
                 Column(
                     Modifier
@@ -461,6 +469,15 @@ private fun OracleBlock(kin: KinMaya.Kin) {
                 stringResource(R.string.board_oracle_resonant),
                 style = A4LText.Caption.copy(fontSize = 10.sp),
                 color = A4L.Mint,
+            )
+        }
+        // Un KIN sur cinq est son propre guide — le dire, sinon la case a l'air
+        // d'une erreur de calcul.
+        if (reading.guide?.kin == kin.kin) {
+            Text(
+                stringResource(R.string.board_oracle_guide_self),
+                style = A4LText.Caption.copy(fontSize = 10.sp),
+                color = A4L.Amber,
             )
         }
     }

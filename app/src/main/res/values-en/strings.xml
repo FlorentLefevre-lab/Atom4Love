@@ -107,13 +107,15 @@
     <string name="board_no_seal">Unknown seal</string>
     <string name="board_no_date">your card has no date yet</string>
     <string name="board_kin_tone">KIN %1$d · tone %2$d</string>
-    <string name="board_oracle_title">Your three complements</string>
+    <string name="board_oracle_title">Your four complements</string>
+    <string name="board_oracle_guide">Guide</string>
     <string name="board_oracle_antipode">Challenge</string>
     <string name="board_oracle_analogue">Alternation</string>
     <string name="board_oracle_occult">Occult</string>
     <string name="board_oracle_kin">KIN %1$d</string>
-    <string name="board_oracle_note">The challenge and the alternation carry the same seal — only the tone separates them. None of the three is an opposite: they are the three ways of completing you.</string>
+    <string name="board_oracle_note">The challenge and the alternation carry the same seal — only the tone separates them. The guide stays within your own seal family. None of the four is an opposite: they are the four ways of completing you.</string>
     <string name="board_oracle_resonant">Your tone 7 is its own complement: your challenge and your alternation are a single KIN.</string>
+    <string name="board_oracle_guide_self">You are your own guide — one KIN in five is.</string>
     <string name="board_match">MATCH</string>
     <string name="board_super_match">SUPER MATCH</string>
     <string name="board_match_rule">A match is one plane falling into line: your resonance past 0.90, or a seal from your Oracle — one person in six. A super match takes both at once, with the resonance then past 0.95: three encounters in a thousand. It is not a score, and nobody is told.</string>
@@ -374,7 +376,7 @@
     <string name="zion_tzolkin_label">📅 The 260-day cycle</string>
     <string name="zion_tzolkin_body">The Tzolkin crosses 20 seals — archetypes — with 13 tones — energy levels: 260 Kin. Everyone is born on one precise day of that cycle, and their Kin stays their galactic imprint for life. The 52-year cycle, the Calendar Round, is the mathematical intersection of 260 and 365.</string>
     <string name="zion_oracle_label">🔮 The five Oracle powers</string>
-    <string name="zion_oracle_body">Each Kin generates five correspondences: the Guide (natural mentor, same colour family), the Antipode (creative challenge: seal + 10, same tone), the Analogue (alternation: the same seal as the challenge, tone flipped — the two sum to 14), the Occult (hidden partner, K + K\' = 261) and the Self. These five powers form the Oracle of the Kin. None is an opposite: they are five ways of completing one another.</string>
+    <string name="zion_oracle_body">Each Kin generates five correspondences: the Guide (natural mentor: your own seal family, at the place your tone dictates), the Antipode (creative challenge: seal + 10, tone flipped — the two sum to 14), the Analogue (alternation: the same seal as the challenge, your own tone), the Occult (hidden partner, K + K\' = 261) and the Self. These five powers form the Oracle of the Kin. None is an opposite: they are five ways of completing one another.</string>
     <string name="zion_maya_universal_label">🌍 Universal, without religion</string>
     <string name="zion_maya_universal_body">A number from 1 to 260. No doctrine, no dogma — a mathematical structure independent of any culture and any calendar.</string>
     <string name="zion_maya_routing_label">🧭 Social routing without an algorithm</string>
