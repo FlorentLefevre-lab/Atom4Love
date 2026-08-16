@@ -31,6 +31,7 @@ import one.astroport.atom4love.chat.CabinChat
 import one.astroport.atom4love.chat.Medium
 import one.astroport.atom4love.domain.BirthData
 import one.astroport.atom4love.nostr.CabinSalon
+import one.astroport.atom4love.nostr.Constellation
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.ui.components.glass
@@ -93,6 +94,12 @@ fun StationScreen(
     /** La clé LOVE rendue par un MULTIPASS activé, et rien d'autre. */
     worldUnlocked: Boolean = false,
     onOpenMultipass: (() -> Unit)? = null,
+    /**
+     * Celle que la veille des bienvenues tient déjà ouverte, quand il y en a
+     * une : une lecture et une veille sur le même relais n'ont aucune raison
+     * d'ouvrir deux sockets. Null en aperçu, où la Carte fait la sienne.
+     */
+    constellation: Constellation? = null,
 ) {
     Column(modifier.fillMaxSize().background(A4L.Deep)) {
         PlaceSelector(view = view, onSelect = onSelectView, worldUnlocked = worldUnlocked)
@@ -112,7 +119,7 @@ fun StationScreen(
                     )
                     PlaceView.World ->
                         if (worldUnlocked) {
-                            MapScreen(birth = birth, keys = keys)
+                            MapScreen(birth = birth, keys = keys, shared = constellation)
                         } else {
                             WorldLocked(onOpenMultipass = onOpenMultipass)
                         }

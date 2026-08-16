@@ -130,9 +130,15 @@ fun MapScreen(
     modifier: Modifier = Modifier,
     /** Le noyau qui signerait notre certificat. Null tant qu'il n'y en a pas. */
     keys: NostrKeys? = null,
+    /**
+     * L'instance que l'application tient déjà pour la veille des bienvenues.
+     * Null en aperçu et dans les tests, où cet écran fait la sienne : la Carte
+     * doit pouvoir s'afficher toute seule.
+     */
+    shared: Constellation? = null,
 ) {
     val scope = rememberCoroutineScope()
-    val constellation = remember(scope) { Constellation(scope) }
+    val constellation = shared ?: remember(scope) { Constellation(scope) }
     val state by constellation.state.collectAsState()
 
     // Une lecture à l'ouverture. Le certificat est un événement remplaçable :

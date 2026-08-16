@@ -60,6 +60,9 @@ import androidx.compose.runtime.collectAsState
 import android.util.Log
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import one.astroport.atom4love.BuildConfig
 import one.astroport.atom4love.chat.CabinChat
@@ -85,6 +88,10 @@ import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.proximity.CellLocator
 import one.astroport.atom4love.proximity.ProximityPayload
+import one.astroport.atom4love.nostr.Constellation
+import one.astroport.atom4love.nostr.Welcome
+import one.astroport.atom4love.nostr.WelcomeNotifier
+import one.astroport.atom4love.data.WelcomeStore
 import one.astroport.atom4love.proximity.ProximityService
 import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.components.StatusDot
@@ -305,6 +312,53 @@ private fun Station(
     // Le salon de cabine suit la même vie que l'antenne : il n'échange que
     // par le relais local, jamais par les relais publics.
     val salon = remember { CabinSalon(scope, relay.localRelay) }
+
+    // ── La veille de la constellation ─────────────────────────────────────
+    //
+    // Elle vit ici et non dans la Carte, parce qu'une arrivée ne se produit pas
+    // quand on regarde : rater une bienvenue parce qu'on était sur le Noyau
+    // n'aurait aucun sens. La Carte reçoit la même instance, pour qu'une
+    // lecture et une veille ne fassent pas deux sockets vers le même relais.
+    val constellation = remember(scope) { Constellation(scope) }
+    val welcomeStore = remember(context) { WelcomeStore(context.applicationContext) }
+    val welcomeNotifier = remember(context) { WelcomeNotifier(context.applicationContext) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val worldUnlocked = account?.loveActivated == true
+
+    // ⚠ Deux conditions, et aucune n'est décorative. `worldUnlocked` : le relais
+    // public ne se lit pas sans clé LOVE activée — pas de MULTIPASS, pas de
+    // constellation, donc pas de veille. `repeatOnLifecycle(STARTED)` : la
+    // socket s'ouvre quand l'application paraît et se referme quand elle
+    // disparaît. Ce qui s'est publié entre-temps revient au `since` de la
+    // reprise ; tenir une socket ouverte toute la journée pour l'apprendre dix
+    // minutes plus tôt ne le vaut pas.
+    LaunchedEffect(worldUnlocked, keys?.publicKeyHex) {
+        if (!worldUnlocked) return@LaunchedEffect
+        welcomeNotifier.ensureChannel()
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            // La mémoire est relue à chaque reprise et tenue ici : la consulter
+            // sur disque à chaque arrivée serait une écriture pour une lecture.
+            var memory = welcomeStore.celebrated()
+            constellation.watch(welcomeStore.lastSeenAt())
+            try {
+                constellation.arrivals.collect { atom ->
+                    val now = System.currentTimeMillis()
+                    val due = Welcome.toCelebrate(
+                        atoms = listOf(atom),
+                        alreadyCelebrated = Welcome.keysOf(memory),
+                        myPubkey = keys?.publicKeyHex,
+                        nowMs = now,
+                    )
+                    if (due.isEmpty()) return@collect
+                    due.forEach(welcomeNotifier::celebrate)
+                    memory = Welcome.remember(memory, due, now)
+                    welcomeStore.save(memory, now / 1000)
+                }
+            } finally {
+                constellation.stopWatching()
+            }
+        }
+    }
     LaunchedEffect(keys) {
         // La balise dérive son jeton de présence du noyau — sans quoi elle
         // n'annonce rien qui la distingue, et le portail compte des adresses.
@@ -610,7 +664,8 @@ private fun Station(
                                 // La clé rendue par la station, jamais celle
                                 // qu'on dérive ici : le monde est fait de ses
                                 // certificats.
-                                worldUnlocked = account?.loveActivated == true,
+                                worldUnlocked = worldUnlocked,
+                                constellation = constellation,
                                 onOpenMultipass = { overlay = Overlay.Multipass },
                                 birth = birth,
                                 relay = relayStatus,
@@ -657,6 +712,11 @@ private fun Station(
                                         store.clear()
                                         bodyStore.clear()
                                         loveKeyStore.clear()
+                                        // Elle ne dit rien de nous, mais elle dit qui
+                                        // l'on a vu arriver — et la garder ferait
+                                        // manquer les bienvenues au noyau suivant,
+                                        // qui n'a jamais fêté personne.
+                                        welcomeStore.clear()
                                     }
                                 },
                             )

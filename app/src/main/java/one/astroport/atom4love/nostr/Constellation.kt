@@ -1,15 +1,21 @@
 package one.astroport.atom4love.nostr
 
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -42,8 +48,14 @@ import one.astroport.atom4love.domain.KinMaya
  *
  * **Écoute seule, relais public.** L'antenne de la station ([RelayStation])
  * s'accroche au relais local quand il y en a un — la constellation, elle, n'est
- * nulle part ailleurs que sur le relais public : la requête a donc son propre
- * client, ouvert le temps d'une lecture et refermé aussitôt.
+ * nulle part ailleurs que sur le relais public : les requêtes ont donc leur
+ * propre client.
+ *
+ * Deux façons de lire, et elles ne servent pas à la même chose : [refresh]
+ * ouvre, lit, referme — c'est ce que la carte demande quand on l'ouvre ;
+ * [watch] ne referme pas, et c'est ce qui fait arriver les bienvenues. Un
+ * `REQ` NOSTR ne se termine pas à l'EOSE, le relais continue de pousser
+ * dessus : le temps réel n'a demandé aucun canal de plus.
  *
  * Un point sur lequel nous divergeons de sa carte, sciemment : elle écarte les
  * certificats sans φ lisible (`if (isNaN(phi)) return`). Nous les gardons, sans
@@ -88,6 +100,9 @@ class Constellation(
          * plus rien dire.
          */
         const val NEWCOMER_WINDOW_MS = 7 * 24 * 60 * 60 * 1000L
+
+        /** Le temps qu'on laisse passer avant de rouvrir une veille tombée. */
+        private const val WATCH_RETRY_MS = 30_000L
     }
 
     /** Un noyau de la constellation, tel que son certificat le donne. */
@@ -157,7 +172,19 @@ class Constellation(
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state.asStateFlow()
 
+    /**
+     * Les noyaux qui entrent dans la constellation **pendant qu'on regarde**.
+     *
+     * Un tampon plutôt qu'un `StateFlow` : une arrivée est un événement, pas un
+     * état — la rejouer à chaque abonné referait la fête. Le tampon est là pour
+     * qu'une rafale (le relais rejoue son stock à l'ouverture) ne se perde pas
+     * pendant que l'écran se recompose.
+     */
+    private val _arrivals = MutableSharedFlow<Atom>(extraBufferCapacity = 64)
+    val arrivals: SharedFlow<Atom> = _arrivals.asSharedFlow()
+
     private var job: Job? = null
+    private var watchJob: Job? = null
 
     /** Relit la constellation. Un appel pendant une lecture en cours ne fait rien. */
     fun refresh() {
@@ -171,6 +198,75 @@ class Constellation(
                 State.Loaded(atoms = events.toAtoms(), readAtMs = System.currentTimeMillis())
             }
         }
+    }
+
+    /**
+     * La veille : une souscription qu'on **ne referme pas**.
+     *
+     * NOSTR n'a pas besoin d'un canal temps réel de plus — il en est un. Un
+     * `REQ` ne se termine pas à l'EOSE : le relais a fini de rejouer son stock,
+     * puis continue de pousser sur la **même** souscription tout ce qui arrive
+     * ensuite. Il suffit donc de ne pas envoyer le `CLOSE` que fait [read].
+     *
+     * Et comme le certificat est publié **par la station** au moment où elle
+     * active une clé LOVE, chaque événement qui tombe ici *est* une inscription
+     * vérifiée. Rien à ajouter au protocole, rien à demander à Fred.
+     *
+     * [since] borne le rattrapage : ce qui s'est publié pendant que
+     * l'application était fermée arrive à la reconnexion, et pas tout
+     * l'historique du relais.
+     *
+     * ⚠ La veille ne met **pas** [state] à jour toute seule. Un certificat qui
+     * arrive fait une arrivée ; recomposer la carte entière sous le doigt de
+     * quelqu'un qui la manipule serait pire que de la rafraîchir à la prochaine
+     * ouverture.
+     *
+     * ⚠ Elle ne doit tourner que **clé LOVE activée** : le relais public ne se
+     * lit pas sans MULTIPASS. C'est à l'appelant de le tenir — cet objet ne
+     * connaît pas le compte.
+     */
+    fun watch(since: Long) {
+        if (watchJob?.isActive == true) return
+        watchJob = scope.launch(Dispatchers.Default) {
+            while (isActive) {
+                val client = RelayClient(relayUrl, this)
+                try {
+                    client.subscribe(
+                        "$SUBSCRIPTION-watch",
+                        NostrFilter(
+                            kinds = listOf(CERTIFICATE_KIND),
+                            identifiers = listOf(CERTIFICATE_D),
+                            since = since.takeIf { it > 0 },
+                            limit = QUERY_LIMIT,
+                        ),
+                    )
+                    client.inbound
+                        .onSubscription { client.connect() }
+                        .collect { msg ->
+                            if (msg is RelayMessage.Event &&
+                                msg.subscriptionId == "$SUBSCRIPTION-watch"
+                            ) {
+                                msg.event.toAtom()?.let { _arrivals.tryEmit(it) }
+                            }
+                        }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.d(TAG, "veille interrompue : ${e.message}")
+                } finally {
+                    client.close()
+                }
+                // La socket est tombée (réseau perdu, relais qui se recharge).
+                // On repart, sans hâte : rater une bienvenue de trente secondes
+                // ne coûte rien, marteler un relais public si.
+                delay(WATCH_RETRY_MS)
+            }
+        }
+    }
+
+    fun stopWatching() {
+        watchJob?.cancel()
+        watchJob = null
     }
 
     /**

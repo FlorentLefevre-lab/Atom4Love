@@ -507,6 +507,11 @@
 
     <string name="beacon_channel_name">Baliza de proximidad</string>
     <string name="beacon_channel_description">Presencia de la baliza ATOM4LOVE y núcleos al alcance</string>
+    <string name="welcome_channel_name">Bienvenida a un nuevo núcleo</string>
+    <string name="welcome_channel_description">Cuando una llave LOVE acaba de activarse en Astroport</string>
+    <string name="welcome_title">Un núcleo entra en la constelación</string>
+    <string name="welcome_body_seal">Sello %1$s · %2$s acaba de activar su llave LOVE. Encabeza el mapa esta semana.</string>
+    <string name="welcome_body">%1$s acaba de activar su llave LOVE. Encabeza el mapa esta semana.</string>
     <string name="beacon_notification_title">Baliza de proximidad activa</string>
     <string name="beacon_none_in_range">Ningún núcleo al alcance por ahora</string>
     <plurals name="beacon_in_range">
