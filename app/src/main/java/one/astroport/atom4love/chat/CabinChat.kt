@@ -323,9 +323,16 @@ class CabinChat(context: Context) {
          * Le service RFCOMM de la cabine. Il n'est visible que de qui interroge
          * le SDP de l'appareil, donc de qui connaît déjà son adresse — et cette
          * adresse ne se donne que sur un lien scellé.
+         *
+         * ⚠ **Un UUID n'est que de l'hexadécimal.** Le premier bloc écrit ici
+         * disait `a4l0cab1` — un `l` qui n'est pas un chiffre. `UUID.fromString`
+         * lève alors une `NumberFormatException` **dans l'initialiseur de ce
+         * companion**, donc au tout premier accès à [CabinChat] : l'application
+         * mourait avant d'afficher un pixel, et aucun test JVM ni le lint ne
+         * l'a vu. Ne pas « embellir » ces seize chiffres.
          */
         private val RFCOMM_UUID: java.util.UUID =
-            java.util.UUID.fromString("a4l0cab1-9e7d-4c3a-8b21-5f6e7d8c9a0b")
+            java.util.UUID.fromString("a410cab1-9e7d-4c3a-8b21-5f6e7d8c9a0b")
 
         /** Tout groupe Wi-Fi Direct vit dans ce sous-réseau, son maître en `.1`. */
         private const val P2P_SUBNET = "192.168.49."
