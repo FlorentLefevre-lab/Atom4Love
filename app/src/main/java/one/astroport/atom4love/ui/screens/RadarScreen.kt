@@ -1,13 +1,10 @@
 package one.astroport.atom4love.ui.screens
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
 import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
@@ -46,10 +43,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.filled.WifiTethering
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -108,7 +101,6 @@ import one.astroport.atom4love.chat.ChatSounds
 import one.astroport.atom4love.chat.Medium
 import one.astroport.atom4love.chat.ui.ChatPanel
 import one.astroport.atom4love.chat.ui.QuestionsPanel
-import one.astroport.atom4love.domain.GoldbergPortal
 import one.astroport.atom4love.domain.KinMaya
 import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.domain.Questions
@@ -127,6 +119,7 @@ import one.astroport.atom4love.ui.components.SectionLabel
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.components.dashedGlass
 import one.astroport.atom4love.ui.components.glass
+import one.astroport.atom4love.ui.components.icon
 import one.astroport.atom4love.ui.components.hexagonPath
 import one.astroport.atom4love.ui.components.screenBackground
 import one.astroport.atom4love.ui.theme.A4L
@@ -322,8 +315,6 @@ fun RadarScreen(
             delay(FIX_REFRESH_MS)
         }
     }
-    val portal = fix?.let { GoldbergPortal.nearest(it.lat, it.lon) }
-    val heading = rememberHeadingDegrees()
 
 
     // Le défilement de l'écran est tenu ici, et non posé au vol : ouvrir la
@@ -357,45 +348,50 @@ fun RadarScreen(
             .verticalScroll(pageScroll),
     ) {
 
-        // ── Adresse de la tuile + cap ─────────────────────────────────────
+        // ── La balise, tout en haut ───────────────────────────────────────
+        //
+        // ⚠ Elle vivait en BAS de la page, sous la cabine et les compteurs.
+        // C'est pourtant elle qui conditionne tout le reste : sans balise, pas
+        // de voisin, pas de carte à portée, pas de cabine à ouvrir — et la
+        // ligne qui dit « il manque le Bluetooth » se lisait après tout ce
+        // qu'elle empêche. Remontée sous l'onglet « Ici », elle se lit avant.
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                // Elle vient d'une colonne qui portait les marges pour elle ;
+                // à hauteur de page, elle les prend à son compte.
+                .padding(start = 20.dp, end = 20.dp, top = 12.dp)
+                .dashedGlass(
+                    12.dp,
+                    A4L.GlassFaint,
+                    (if (beaconRunning) A4L.Mint else A4L.Stroke).copy(alpha = 0.2f),
+                )
+                // Plus d'interrupteur : la balise est le socle, elle tourne
+                // dès qu'elle le peut. Ne reste à toucher que ce qui manque
+                // pour qu'elle le puisse.
+                .clickable(enabled = !beaconRunning) {
+                    permissionFor = PermissionIntent.BEACON
+                    permissionLauncher.launch(ProximityService.runtimePermissions())
+                }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                StatusDot(if (fix != null) A4L.Green else A4L.TextGhost)
-                Spacer(Modifier.width(2.dp))
-                Text(
-                    // L'adresse réelle : portail Goldberg + cellule H3 du lieu.
-                    if (fix != null && portal != null) {
-                        "${portal.code}H${cellHex(fix!!.cell)}"
-                    } else "a4l:—",
-                    style = A4LText.Data.copy(fontSize = 10.sp),
-                    color = A4L.TextBody,
-                )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Même témoin que sur l'écran Noyau : pendant une démo on vit
-                // sur le Radar, la bascule « relais local » doit s'y voir.
-                relay?.let {
-                    StatusDot(if (it.online) A4L.Green else A4L.TextGhost)
-                    Spacer(Modifier.width(2.dp))
-                    Text(
-                        it.label,
-                        style = A4LText.Data.copy(fontSize = 10.sp),
-                        color = A4L.TextDim,
-                    )
-                    Spacer(Modifier.width(10.dp))
-                }
-                Text(
-                    heading?.let { "↑ %d°".format(it) } ?: "↑ —",
-                    style = A4LText.Data.copy(fontSize = 10.sp),
-                    color = A4L.TextDim,
-                )
-            }
+            StatusDot(if (beaconRunning) A4L.Mint else A4L.TextDim)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                when {
+                    // La cellule ne part QUE si la localisation est
+                    // accordée : sans elle la balise annonce une présence,
+                    // jamais une position (charge utile « cellule inconnue »).
+                    beaconRunning && ownCell4d != null ->
+                        stringResource(R.string.radar_beacon_with_cell, cellHex(ownCell4d!!))
+                    beaconRunning ->
+                        stringResource(R.string.radar_beacon_presence_only)
+                    else -> stringResource(R.string.radar_beacon_needs_bluetooth)
+                },
+                style = A4LText.Caption,
+                color = if (beaconRunning) A4L.Mint else A4L.TextMuted,
+            )
         }
 
         // Le flux de l'hexagone ne passe QUE par le relais du lieu, jamais par
@@ -404,17 +400,68 @@ fun RadarScreen(
         // juste en dessous l'annonce.
         val salonActive = relay?.local == true && relay.online
 
+        // L'état de la cabine : par où elle parle, ce qu'elle accepte, et qui
+        // tient le groupe Wi-Fi Direct. Lu **avant le titre**, parce que le
+        // titre porte désormais les voies.
+        val cabinStatus by (cabin?.status ?: remember { MutableStateFlow(CabinChat.Status()) })
+            .collectAsStateWithLifecycle()
+
         // ── Titre ─────────────────────────────────────────────────────────
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp)) {
-            Text(
-                stringResource(R.string.radar_cabin_in_range),
-                style = A4LText.H2,
-                color = A4L.TextHigh,
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                when {
-                    fix == null -> when (locationBlocker) {
+            // « Cabine à portée · les quatre voies » — elles sont une
+            // **précision du titre**, pas une rubrique à elles. Empilées en
+            // colonne sous le texte, elles occupaient quatre lignes de haut
+            // sans rien hiérarchiser ; sur sa ligne, elles se lisent comme ce
+            // qu'elles sont : par où cette cabine-là parle.
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.radar_cabin_in_range),
+                    style = A4LText.H2,
+                    color = A4L.TextHigh,
+                )
+                Spacer(Modifier.width(9.dp))
+                MediumGlyphs(status = cabinStatus, open = cabinOpen)
+                // ── Le relais du lieu, en bout de ligne ───────────────────
+                //
+                // ⚠ Il occupait une ligne à lui, sous le titre, en face d'une
+                // adresse `a4l:` désormais partie — il y restait seul, à droite
+                // d'un vide. À la suite des voies, il complète la même phrase :
+                // par où ça parle, et par quoi ça sort du lieu.
+                //
+                // ⚠ **Le cap a été retiré de cette ligne** (« ↑ 119° »). Il
+                // tournait avec le téléphone sans commander quoi que ce soit :
+                // le radar ne place pas ses voisins par azimut — il n'en connaît
+                // aucun — et rien ailleurs dans l'écran ne s'oriente.
+                relay?.let {
+                    Spacer(Modifier.weight(1f))
+                    StatusDot(if (it.online) A4L.Green else A4L.TextGhost)
+                    Spacer(Modifier.width(3.dp))
+                    Text(
+                        it.label,
+                        style = A4LText.Data.copy(fontSize = 10.sp),
+                        color = A4L.TextDim,
+                    )
+                }
+            }
+            // ⚠ **La phrase sous le titre ne paraît plus quand la position est
+            // connue.** Elle répétait le code de la cellule, que la ligne du
+            // haut porte déjà à côté du relais, et y ajoutait une distance au
+            // centre géométrique de l'hexagone — un point qui n'est le
+            // rendez-vous de personne (arête de 460 m en résolution 8, cf. le
+            // KDoc du rituel retiré).
+            //
+            // Ce qui reste, et qu'il ne fallait PAS emporter : les quatre
+            // messages du cas **sans position**. Eux ne répètent rien — ils
+            // disent pourquoi il n'y a pas d'hexagone, et ils portent le bouton
+            // juste en dessous. Les supprimer aurait laissé un titre suivi d'un
+            // bouton sans phrase.
+            if (fix == null) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    when (locationBlocker) {
                         CellLocator.Blocker.SERVICE_OFF ->
                             stringResource(R.string.radar_hex_unknown_service_off)
                         CellLocator.Blocker.PERMISSION -> if (locationDeadEnd) {
@@ -424,21 +471,11 @@ fun RadarScreen(
                         }
                         null ->
                             stringResource(R.string.radar_hex_unknown_searching)
-                    }
-                    // L'abonnement tient au relais du lieu, et à lui seul —
-                    // c'est ce que le rituel laissait croire qu'il commandait.
-                    salonActive ->
-                        stringResource(R.string.radar_hex_subscribed, cellHex(fix!!.cell))
-                    else ->
-                        stringResource(
-                            R.string.radar_hex_distance,
-                            cellHex(fix!!.cell),
-                            fix!!.distanceToCenterM,
-                        )
-                },
-                style = A4LText.Body,
-                color = A4L.TextBody.copy(alpha = 0.45f),
-            )
+                    },
+                    style = A4LText.Body,
+                    color = A4L.TextBody.copy(alpha = 0.45f),
+                )
+            }
             if (fix == null && locationBlocker == CellLocator.Blocker.PERMISSION) {
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -465,12 +502,6 @@ fun RadarScreen(
                 )
             }
         }
-
-        // L'état de la cabine : par où elle parle, ce qu'elle accepte, et qui
-        // tient le groupe Wi-Fi Direct. Lu avant le radar, parce que les
-        // glyphes de médium vivent à côté du cadran.
-        val cabinStatus by (cabin?.status ?: remember { MutableStateFlow(CabinChat.Status()) })
-            .collectAsStateWithLifecycle()
 
         // ── Compteurs de la cabine ────────────────────────────────────────
         // Le salon de cabine ne vit que sur le relais local d'une station.
@@ -516,11 +547,6 @@ fun RadarScreen(
                 .padding(start = 20.dp, end = 20.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // Par où la cabine parle. Les trois voies, pas trois positions :
-            // le BLE reste ouvert quand le Wi-Fi porte, et l'ensemble ne fait
-            // que grandir. Chacune dit donc son propre état.
-            MediumGlyphs(status = cabinStatus, open = cabinOpen)
-
             // Les trois fenêtres, de la plus proche à la plus lointaine : ici
             // (la cabine, à portée d'antenne), le portail (ceux qui annoncent
             // notre cellule), l'hexagone (ce qu'on n'atteint que par un relais).
@@ -686,19 +712,53 @@ fun RadarScreen(
             if (salonOpen && salon != null) {
                 CabinSalonPanel(salon = salon, pensees = pensees, active = salonActive)
             }
+            // ── Parler à ceux qui sont ici ────────────────────────────────
+            //
+            // ⚠ **Le seul appel de la page, et il ne se voyait pas.** Rangée en
+            // pointillés, texte gris, dans une colonne où trois autres rangées
+            // ont exactement la même forme : rien ne disait que c'était le
+            // geste. Il a donc, cabine fermée, un **cadre plein** et un corps
+            // qui **bat en orange**.
+            //
+            // ⚠ Le battement s'arrête dès que la cabine est ouverte. Un appel
+            // qui continue à appeler quand on y a répondu n'est plus un appel,
+            // c'est un défaut ; la rangée redevient alors calme et menthe.
+            val calling = !cabinOpen
+            val pulse by rememberInfiniteTransition(label = "cabin-call")
+                .animateFloat(
+                    initialValue = 0.10f,
+                    targetValue = 0.30f,
+                    animationSpec = infiniteRepeatable(
+                        // Lent et large plutôt que vif et court : une pulsation
+                        // de deux secondes se voit du coin de l'œil sans tirer
+                        // le regard hors de ce qu'on lit.
+                        animation = tween(1100, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                    label = "cabin-call-alpha",
+                )
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .dashedGlass(
-                        12.dp,
-                        A4L.GlassFaint,
-                        (if (cabinOpen) A4L.Mint else A4L.Stroke).copy(alpha = 0.2f),
+                    .then(
+                        if (calling) {
+                            // Cadre plein, corps qui bat. `glass` prend un fond
+                            // et un filet — c'est le même composant que partout,
+                            // seules ses deux couleurs changent.
+                            Modifier.glass(
+                                12.dp,
+                                A4L.Orange.copy(alpha = pulse),
+                                A4L.Orange.copy(alpha = 0.85f),
+                            )
+                        } else {
+                            Modifier.dashedGlass(12.dp, A4L.GlassFaint, A4L.Mint.copy(alpha = 0.2f))
+                        },
                     )
                     .clickable(onClick = toggleCabin)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                StatusDot(if (cabinOpen) A4L.Mint else A4L.TextDim)
+                StatusDot(if (cabinOpen) A4L.Mint else A4L.Orange)
                 Spacer(Modifier.width(10.dp))
                 Text(
                     stringResource(
@@ -709,42 +769,10 @@ fun RadarScreen(
                         },
                     ),
                     style = A4LText.Caption,
-                    color = if (cabinOpen) A4L.Mint else A4L.TextMuted,
-                )
-            }
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .dashedGlass(
-                        12.dp,
-                        A4L.GlassFaint,
-                        (if (beaconRunning) A4L.Mint else A4L.Stroke).copy(alpha = 0.2f),
-                    )
-                    // Plus d'interrupteur : la balise est le socle, elle tourne
-                    // dès qu'elle le peut. Ne reste à toucher que ce qui manque
-                    // pour qu'elle le puisse.
-                    .clickable(enabled = !beaconRunning) {
-                        permissionFor = PermissionIntent.BEACON
-                        permissionLauncher.launch(ProximityService.runtimePermissions())
-                    }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                StatusDot(if (beaconRunning) A4L.Mint else A4L.TextDim)
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    when {
-                        // La cellule ne part QUE si la localisation est
-                        // accordée : sans elle la balise annonce une présence,
-                        // jamais une position (charge utile « cellule inconnue »).
-                        beaconRunning && ownCell4d != null ->
-                            stringResource(R.string.radar_beacon_with_cell, cellHex(ownCell4d!!))
-                        beaconRunning ->
-                            stringResource(R.string.radar_beacon_presence_only)
-                        else -> stringResource(R.string.radar_beacon_needs_bluetooth)
-                    },
-                    style = A4LText.Caption,
-                    color = if (beaconRunning) A4L.Mint else A4L.TextMuted,
+                    // L'orange du corps bat ; celui du texte ne bouge pas, sans
+                    // quoi la phrase deviendrait illisible au creux du cycle.
+                    color = if (cabinOpen) A4L.Mint else A4L.Orange,
+                    fontWeight = if (calling) FontWeight.SemiBold else FontWeight.Normal,
                 )
             }
             // Ce que la balise entend des autres, une fois traduit : le panneau
@@ -825,39 +853,6 @@ internal fun CabinDestination(
     }
 }
 
-/**
- * Le cap de l'appareil en degrés (0 = nord), via le capteur de rotation.
- * null tant qu'aucune mesure n'est arrivée ou que l'appareil n'a pas de capteur.
- * Arrondi au degré pour ne recomposer qu'au changement visible.
- */
-@Composable
-private fun rememberHeadingDegrees(): Int? {
-    val context = LocalContext.current
-    var heading by remember { mutableStateOf<Int?>(null) }
-    DisposableEffect(Unit) {
-        val manager = context.getSystemService(SensorManager::class.java)
-        val sensor = manager?.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
-        val listener = object : SensorEventListener {
-            private val rotation = FloatArray(9)
-            private val orientation = FloatArray(3)
-            override fun onSensorChanged(event: SensorEvent) {
-                SensorManager.getRotationMatrixFromVector(rotation, event.values)
-                SensorManager.getOrientation(rotation, orientation)
-                val degrees = (Math.toDegrees(orientation[0].toDouble()) + 360.0) % 360.0
-                heading = degrees.toInt()
-            }
-
-            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
-        }
-        if (sensor != null) {
-            manager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_UI)
-        }
-        onDispose {
-            if (sensor != null) manager.unregisterListener(listener)
-        }
-    }
-    return heading
-}
 
 
 /**
@@ -1440,7 +1435,14 @@ private fun CabinError.text(): String =
     }
 
 /**
- * Les trois voies de la cabine, en glyphes, à côté du radar.
+ * Les voies de la cabine, en glyphes, **à la suite du titre**.
+ *
+ * ⚠ Elles étaient empilées en colonne sous le titre, où elles tenaient quatre
+ * lignes de haut et flottaient sans rien à côté d'elles — le cadran auprès
+ * duquel elles vivaient a disparu depuis longtemps. Sur la ligne du titre elles
+ * se lisent pour ce qu'elles sont : une précision de « Cabine à portée », pas
+ * une rubrique à elles. ⚠ Des parenthèses ont été essayées puis **retirées** —
+ * même en encre discrète, leur graisse tenait tête au titre.
  *
  * Ce sont les **symboles génériques de Material**, pas les marques déposées du
  * Bluetooth SIG ni de la Wi-Fi Alliance : celles-là ont des conditions d'usage
@@ -1459,57 +1461,46 @@ private fun MediumGlyphs(
     open: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        // Le cadran n'a pas de marge à lui : sans ce retrait, les glyphes se
-        // collaient 16 dp plus à gauche que tout le reste de l'écran.
-        modifier.padding(start = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Medium.entries.forEach { medium ->
-            val inUse = open && status.medium == medium
-            val enabled = open && medium in status.enabled
-            val offered = open && status.offered == medium
-            // Le bleu du Bluetooth SIG, ou la marque monochrome de la Wi-Fi
-            // Alliance — la seconde suit le thème, elle n'a pas de couleur.
-            // Les deux Bluetooth partagent la marque : c'est la même radio et
-            // le même bleu du SIG, seule la couche au-dessus change.
-            val bluetooth = medium == Medium.BLE || medium == Medium.BT_CLASSIC
-            val brand = if (bluetooth) A4L.BluetoothBrand else A4L.WifiBrand
-            Icon(
-                imageVector = when (medium) {
-                    Medium.BLE -> Icons.Filled.Bluetooth
-                    // Le même pictogramme que le BLE, et c'est voulu : dans une
-                    // ligne où l'on cherche par où ça passe, ce qui compte est
-                    // « Bluetooth » — le nom court sous l'icône dit lequel.
-                    Medium.BT_CLASSIC -> Icons.Filled.Bluetooth
-                    // les arcs : on est client d'un point d'accès
-                    Medium.WIFI_STATION -> Icons.Filled.Wifi
-                    // les arcs qui rayonnent d'un point : le groupe est à nous
-                    Medium.WIFI_DIRECT -> Icons.Filled.WifiTethering
-                },
-                // le nom de la technologie, d'aucune langue — comme l'indicateur du haut
-                contentDescription = medium.short,
-                // Engagé : la couleur de la marque, vérifiée à la source. Le
-                // bleu du Bluetooth SIG (#0082FC) ne change pas d'heure ; la
-                // marque Wi-Fi Alliance, elle, est monochrome — blanche sur
-                // fond sombre, noire sur fond clair — donc elle suit le thème.
-                // Les autres états restent dans la palette de la station : une
-                // marque dit « ceci marche », pas « ceci est proposé ».
-                tint = when {
-                    // engagé : la marque, pleine
-                    inUse -> brand
-                    // proposé : un accent de la station, parce que c'est une
-                    // invitation à toucher, pas un état de la technologie
-                    offered -> A4L.Cyan
-                    // ouvert : la même marque, éteinte. Un gris neutre disait
-                    // « rien ici », alors que la technologie est bel et bien
-                    // allumée — et il se confondait avec l'état suivant.
-                    enabled -> brand.copy(alpha = 0.38f)
-                    else -> A4L.TextGhost
-                },
-                modifier = Modifier.size(if (inUse) 22.dp else 18.dp),
-            )
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Medium.entries.forEach { medium ->
+                val inUse = open && status.medium == medium
+                val enabled = open && medium in status.enabled
+                val offered = open && status.offered == medium
+                // Le bleu du Bluetooth SIG, ou la marque monochrome de la Wi-Fi
+                // Alliance — la seconde suit le thème, elle n'a pas de couleur.
+                // Les deux Bluetooth partagent la marque : c'est la même radio et
+                // le même bleu du SIG, seule la couche au-dessus change.
+                val bluetooth = medium == Medium.BLE || medium == Medium.BT_CLASSIC
+                val brand = if (bluetooth) A4L.BluetoothBrand else A4L.WifiBrand
+                Icon(
+                    imageVector = medium.icon,
+                    // le nom de la technologie, d'aucune langue — comme l'indicateur du haut
+                    contentDescription = medium.short,
+                    // Engagé : la couleur de la marque, vérifiée à la source. Le
+                    // bleu du Bluetooth SIG (#0082FC) ne change pas d'heure ; la
+                    // marque Wi-Fi Alliance, elle, est monochrome — blanche sur
+                    // fond sombre, noire sur fond clair — donc elle suit le thème.
+                    // Les autres états restent dans la palette de la station : une
+                    // marque dit « ceci marche », pas « ceci est proposé ».
+                    tint = when {
+                        // engagé : la marque, pleine
+                        inUse -> brand
+                        // proposé : un accent de la station, parce que c'est une
+                        // invitation à toucher, pas un état de la technologie
+                        offered -> A4L.Cyan
+                        // ouvert : la même marque, éteinte. Un gris neutre disait
+                        // « rien ici », alors que la technologie est bel et bien
+                        // allumée — et il se confondait avec l'état suivant.
+                        enabled -> brand.copy(alpha = 0.38f)
+                        else -> A4L.TextGhost
+                    },
+                    modifier = Modifier.size(if (inUse) 27.dp else 23.dp),
+                )
+            }
         }
     }
 }

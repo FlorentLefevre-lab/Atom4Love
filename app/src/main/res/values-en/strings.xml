@@ -11,8 +11,6 @@
     <string name="radar_hex_unknown_dead_end">Hexagon unknown — location was denied. Android will not ask again: it reopens from the app settings. It turns on no beacon.</string>
     <string name="radar_hex_unknown_permission">Hexagon unknown — location resolves your cell. It turns on no beacon.</string>
     <string name="radar_hex_unknown_searching">Hexagon unknown — looking for a position…</string>
-    <string name="radar_hex_subscribed">Hexagon %1$s — subscribed to the booth feed.</string>
-    <string name="radar_hex_distance">Hexagon %1$s — you are %2$.0f m from the geometric centre.</string>
 
     <string name="radar_open_app_settings">Open the app settings</string>
     <string name="radar_grant_location">Grant location</string>
@@ -33,8 +31,8 @@
     <string name="radar_cabin_row_return">Booth open — tap to go back in</string>
     <string name="radar_cabin_row_closed">Talk to those who are here — encrypted, no relay</string>
 
-    <string name="radar_beacon_with_cell">Beacon on (location) — announcing hexagon %1$s</string>
-    <string name="radar_beacon_presence_only">Beacon on — presence only, no position</string>
+    <string name="radar_beacon_with_cell">Beacon on — hexagon %1$s</string>
+    <string name="radar_beacon_presence_only">Beacon on — no position</string>
     <string name="radar_beacon_needs_bluetooth">Proximity beacon — Bluetooth required</string>
     <string name="radar_group_fallback">→ switch back to %1$s</string>
     <string name="radar_group_reopen">→ open your own Wi-Fi P2P group</string>
@@ -231,6 +229,7 @@
     <string name="header_cabin_closed">booth closed</string>
     <string name="header_cabin_open_alone">booth open — nobody in range</string>
     <string name="header_medium">Active mode: %1$s</string>
+    <string name="header_medium_pick">Choose which way it goes</string>
     <string name="header_upgrade">switch to %1$s</string>
 
 

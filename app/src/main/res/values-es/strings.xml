@@ -12,8 +12,6 @@
     <string name="radar_hex_unknown_dead_end">Hexágono desconocido — se denegó la ubicación. Android ya no volverá a pedirla: se reabre desde los ajustes de la app. No enciende ninguna baliza.</string>
     <string name="radar_hex_unknown_permission">Hexágono desconocido — la ubicación resuelve tu celda. No enciende ninguna baliza.</string>
     <string name="radar_hex_unknown_searching">Hexágono desconocido — buscando la posición…</string>
-    <string name="radar_hex_subscribed">Hexágono %1$s — suscripción al flujo de la cabina activa.</string>
-    <string name="radar_hex_distance">Hexágono %1$s — estás a %2$.0f m del centro geométrico.</string>
 
     <string name="radar_open_app_settings">Abrir los ajustes de la app</string>
     <string name="radar_grant_location">Conceder la ubicación</string>
@@ -34,8 +32,8 @@
     <string name="radar_cabin_row_return">Cabina abierta — toca para volver</string>
     <string name="radar_cabin_row_closed">Habla con quienes están aquí — cifrado, sin relé</string>
 
-    <string name="radar_beacon_with_cell">Baliza activa (ubicación) — anuncia el hexágono %1$s</string>
-    <string name="radar_beacon_presence_only">Baliza activa — solo presencia, sin posición</string>
+    <string name="radar_beacon_with_cell">Baliza activa — hexágono %1$s</string>
+    <string name="radar_beacon_presence_only">Baliza activa — sin posición</string>
     <string name="radar_beacon_needs_bluetooth">Baliza de proximidad — se requiere Bluetooth</string>
     <string name="radar_group_fallback">→ volver a %1$s</string>
     <string name="radar_group_reopen">→ abrir su propio grupo Wi-Fi P2P</string>
@@ -235,6 +233,7 @@
     <string name="header_cabin_closed">cabina cerrada</string>
     <string name="header_cabin_open_alone">cabina abierta — nadie al alcance</string>
     <string name="header_medium">Modo activo: %1$s</string>
+    <string name="header_medium_pick">Elegir por dónde pasa</string>
     <string name="header_upgrade">pasar a %1$s</string>
 
 

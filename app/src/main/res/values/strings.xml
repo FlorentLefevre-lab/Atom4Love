@@ -30,8 +30,6 @@
     <string name="radar_hex_unknown_dead_end">Hexagone inconnu — la localisation a été refusée. Android ne la redemandera plus : elle se rouvre depuis les réglages de l\'app. Elle n\'allume aucune balise.</string>
     <string name="radar_hex_unknown_permission">Hexagone inconnu — la localisation résout votre cellule. Elle n\'allume aucune balise.</string>
     <string name="radar_hex_unknown_searching">Hexagone inconnu — recherche de position en cours…</string>
-    <string name="radar_hex_subscribed">Hexagone %1$s — abonnement au flux de la cabine actif.</string>
-    <string name="radar_hex_distance">Hexagone %1$s — vous êtes à %2$.0f m du centre géométrique.</string>
 
     <string name="radar_open_app_settings">Ouvrir les réglages de l\'app</string>
     <string name="radar_grant_location">Accorder la localisation</string>
@@ -59,8 +57,8 @@
          fusionné en PRIORITY_BALANCED_POWER_ACCURACY, qui évite exprès le
          satellite quand le Wi-Fi et les antennes suffisent — donc presque
          toujours en intérieur. C\'est aussi le mot de la permission Android. -->
-    <string name="radar_beacon_with_cell">Balise active (localisation) — annonce l\'hexagone %1$s</string>
-    <string name="radar_beacon_presence_only">Balise active — présence seule, sans position</string>
+    <string name="radar_beacon_with_cell">Balise active — hexagone %1$s</string>
+    <string name="radar_beacon_presence_only">Balise active — sans position</string>
     <string name="radar_beacon_needs_bluetooth">Balise de proximité — Bluetooth requis</string>
     <!-- L'hôte d'un groupe Wi-Fi Direct. Dit en entier : « propriétaire » ne
          veut rien dire pour qui n'a pas lu la spec Wi-Fi, alors que la
@@ -281,6 +279,7 @@
     <string name="header_cabin_closed">cabine fermée</string>
     <string name="header_cabin_open_alone">cabine ouverte — personne à portée</string>
     <string name="header_medium">Mode actif : %1$s</string>
+    <string name="header_medium_pick">Choisir par où ça passe</string>
     <string name="header_upgrade">passer en %1$s</string>
 
     <!-- Le glyphe ☀/☾ ne se lit pas à voix haute : ces deux lignes disent le geste. -->

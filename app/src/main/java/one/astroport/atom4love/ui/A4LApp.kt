@@ -1,5 +1,10 @@
 package one.astroport.atom4love.ui
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material3.Icon
+import one.astroport.atom4love.ui.components.icon
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.StringRes
@@ -122,6 +127,7 @@ import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.tint
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
 
 /**
@@ -991,7 +997,12 @@ private fun CabinLine(
         // d'ouvrir, et pouvoir le décider. Le choix se garde et s'applique à
         // l'ouverture — `cabin.select` s'adresse à l'instance vivante, ouverte
         // ou non.
-        if (open || pickerAlways) MediumPicker(status = status, onSelect = onSelect)
+        if (open || pickerAlways) {
+            // La pastille collait au texte : elle en devenait la suite,
+            // pas un bouton à côté.
+            Spacer(Modifier.width(9.dp))
+            MediumPicker(status = status, onSelect = onSelect)
+        }
         if (open && peers.isNotEmpty()) {
             Spacer(Modifier.width(10.dp))
             Text(
@@ -1137,21 +1148,59 @@ private fun MediumPicker(status: CabinChat.Status, onSelect: (Medium) -> Unit) {
     }
 
     Box {
-        Text(
-            if (open) "▴" else "▾",
-            style = A4LText.Data.copy(fontSize = 10.sp),
-            color = A4L.Cyan,
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
+        // ⚠ **On ne voyait pas qu'il y avait une liste.** L'affordance était un
+        // « ▾ » de 10 sp posé sans fond : à côté de « cabine fermée », il se
+        // lisait comme une ponctuation, pas comme un bouton — et le choix du
+        // médium, qui est l'un des rares vrais réglages de l'app, restait
+        // introuvable. Un chevron Material dans une pastille cernée dit ce
+        // qu'il est : quelque chose qui s'ouvre.
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(7.dp))
+                .background(A4L.Cyan.tint(0.10f))
+                .border(1.dp, A4L.Cyan.tint(0.34f), RoundedCornerShape(7.dp))
                 .clickable { open = true }
-                .padding(horizontal = 6.dp, vertical = 2.dp),
-        )
+                .padding(start = 7.dp, end = 3.dp, top = 2.dp, bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Le médium engagé se montre là aussi : la pastille dit à la fois
+            // « ça s'ouvre » et « voilà par où ça passe ».
+            (status.medium ?: Medium.BLE).let { shown ->
+                Icon(
+                    imageVector = shown.icon,
+                    contentDescription = null,
+                    tint = if (status.medium != null) A4L.Cyan else A4L.Cyan.copy(alpha = 0.55f),
+                    modifier = Modifier.size(15.dp),
+                )
+            }
+            Icon(
+                imageVector = if (open) {
+                    Icons.Filled.ArrowDropUp
+                } else {
+                    Icons.Filled.ArrowDropDown
+                },
+                contentDescription = stringResource(R.string.header_medium_pick),
+                tint = A4L.Cyan,
+                modifier = Modifier.size(19.dp),
+            )
+        }
         DropdownMenu(
             expanded = open,
             onDismissRequest = { open = false },
             containerColor = A4L.Deep,
         ) {
-            Medium.entries.forEach { medium ->
+            Medium.entries.forEachIndexed { index, medium ->
+                // Un filet entre les voies. Chaque entrée porte deux lignes —
+                // le nom court, puis ce que le choix coûte — et sans séparation
+                // la conséquence de l'une se lisait comme le début de la
+                // suivante. Pas de filet en tête ni en queue : le bord du menu
+                // fait déjà ce travail.
+                if (index > 0) {
+                    HorizontalDivider(
+                        color = A4L.StrokeSoft,
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                    )
+                }
                 val active = status.medium == medium
                 // Le moteur dit lesquels sont atteignables — pas `offered`,
                 // qui ne nomme que le prochain pas.
@@ -1182,11 +1231,29 @@ private fun MediumPicker(status: CabinChat.Status, onSelect: (Medium) -> Unit) {
                             onSelect(medium)
                         }
                     },
+                    // Le même pictogramme que sur la ligne du titre de la Carte
+                    // — [one.astroport.atom4love.ui.components.icon], une seule
+                    // correspondance pour les deux écrans. Sans lui, la liste
+                    // nommait « BT / BT-C / Wi-Fi / Wi-Fi P2P » sans jamais
+                    // rejoindre les quatre glyphes que l'écran montre par
+                    // ailleurs : deux vocabulaires pour les mêmes quatre voies.
+                    leadingIcon = {
+                        Icon(
+                            imageVector = medium.icon,
+                            contentDescription = null,
+                            tint = when {
+                                active -> A4L.Mint
+                                reachable -> A4L.TextBody
+                                else -> A4L.TextGhost
+                            },
+                            modifier = Modifier.size(20.dp),
+                        )
+                    },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
                                 medium.short,
-                                style = A4LText.Data.copy(fontSize = 11.sp),
+                                style = A4LText.Data.copy(fontSize = 12.sp),
                                 color = when {
                                     active -> A4L.Mint
                                     reachable -> A4L.TextBody
@@ -1195,7 +1262,7 @@ private fun MediumPicker(status: CabinChat.Status, onSelect: (Medium) -> Unit) {
                             )
                             Text(
                                 stringResource(consequence),
-                                style = A4LText.Caption.copy(fontSize = 10.sp),
+                                style = A4LText.Caption,
                                 color = if (reachable) A4L.TextMuted else A4L.TextGhost,
                             )
                         }
