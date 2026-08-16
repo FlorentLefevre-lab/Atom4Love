@@ -1,9 +1,13 @@
 package one.astroport.atom4love.chat.net
 
+import android.bluetooth.BluetoothSocket
+import java.io.Closeable
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.EOFException
 import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import java.net.Socket
 
 /**
@@ -19,24 +23,54 @@ import java.net.Socket
  * occupée », les liens fantômes. `write` rend la main quand l'octet est parti
  * ou lève — il n'y a pas de troisième cas.
  */
-class FramedSocket(val socket: Socket) {
+class FramedSocket private constructor(
+    rawInput: InputStream,
+    rawOutput: OutputStream,
+    /** L'adresse du lien, comme une adresse radio en BLE. */
+    val remote: String,
+    private val closeable: Closeable,
+) {
 
-    init {
-        // Sans ça, l'algorithme de Nagle retient la fin de chaque trame — le
-        // dernier segment, partiel — jusqu'à l'accusé du pair, lui-même retardé
-        // par son delayed-ACK. Mesuré au banc le 2026-08-11 : 290 ms par trame
-        // de 32 Ko, soit 112 Ko/s là où la même liaison porte 11,8 Mo/s. On
-        // écrit des trames entières et on veut qu'elles partent : Nagle n'a rien
-        // à regrouper ici.
+    /**
+     * Un socket TCP — Wi-Fi du lieu ou Wi-Fi Direct.
+     *
+     * Sans `tcpNoDelay`, l'algorithme de Nagle retient la fin de chaque trame —
+     * le dernier segment, partiel — jusqu'à l'accusé du pair, lui-même retardé
+     * par son delayed-ACK. Mesuré au banc le 2026-08-11 : 290 ms par trame de
+     * 32 Ko, soit 112 Ko/s là où la même liaison porte 11,8 Mo/s. On écrit des
+     * trames entières et on veut qu'elles partent : Nagle n'a rien à regrouper
+     * ici.
+     */
+    constructor(socket: Socket) : this(
+        rawInput = socket.getInputStream(),
+        rawOutput = socket.getOutputStream(),
+        remote = "${socket.inetAddress?.hostAddress ?: "?"}:${socket.port}",
+        closeable = socket,
+    ) {
         runCatching { socket.tcpNoDelay = true }
     }
 
-    private val input = DataInputStream(socket.getInputStream().buffered())
-    private val output = DataOutputStream(socket.getOutputStream().buffered())
+    /**
+     * Un socket **Bluetooth classique** (RFCOMM).
+     *
+     * Rien à régler côté Nagle : RFCOMM n'est pas TCP, il porte déjà des
+     * paquets. Le reste est identique — un flux d'octets sans bord, d'où le
+     * même préfixe de longueur.
+     *
+     * ⚠ L'adresse du pair est ici une **MAC BR/EDR, stable à vie**, là où une
+     * adresse BLE tourne toutes les trente secondes. Elle n'est connue que
+     * d'un pair déjà attesté, à qui on l'a donnée sur le lien scellé — jamais
+     * diffusée à la salle.
+     */
+    constructor(socket: BluetoothSocket) : this(
+        rawInput = socket.inputStream,
+        rawOutput = socket.outputStream,
+        remote = socket.remoteDevice?.address ?: "?",
+        closeable = socket,
+    )
 
-    /** `ip:port` du pair — l'adresse du lien, comme une adresse radio en BLE. */
-    val remote: String =
-        "${socket.inetAddress?.hostAddress ?: "?"}:${socket.port}"
+    private val input = DataInputStream(rawInput.buffered())
+    private val output = DataOutputStream(rawOutput.buffered())
 
     /**
      * Bloquant. Rend la trame suivante, ou null quand le pair a fermé
@@ -66,7 +100,7 @@ class FramedSocket(val socket: Socket) {
     }
 
     fun close() {
-        runCatching { socket.close() }
+        runCatching { closeable.close() }
     }
 
     companion object {

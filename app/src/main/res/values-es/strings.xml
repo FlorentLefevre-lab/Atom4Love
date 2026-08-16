@@ -84,6 +84,7 @@
     <string name="medium_leave_group_ok">Cerrar</string>
     <string name="medium_leave_group_cancel">Quedarse</string>
     <string name="medium_ble">en directo</string>
+    <string name="medium_bt_classic">en directo, más rápido</string>
     <string name="medium_wifi_station">por la red del lugar</string>
     <string name="medium_wifi_direct">punto a punto</string>
 

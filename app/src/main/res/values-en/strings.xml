@@ -82,6 +82,7 @@
     <string name="medium_leave_group_ok">Close it</string>
     <string name="medium_leave_group_cancel">Stay</string>
     <string name="medium_ble">direct</string>
+    <string name="medium_bt_classic">direct, faster</string>
     <string name="medium_wifi_station">over the venue\'s network</string>
     <string name="medium_wifi_direct">peer to peer</string>
 

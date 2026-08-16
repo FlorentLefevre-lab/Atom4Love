@@ -1422,10 +1422,17 @@ private fun MediumGlyphs(
             val offered = open && status.offered == medium
             // Le bleu du Bluetooth SIG, ou la marque monochrome de la Wi-Fi
             // Alliance — la seconde suit le thème, elle n'a pas de couleur.
-            val brand = if (medium == Medium.BLE) A4L.BluetoothBrand else A4L.WifiBrand
+            // Les deux Bluetooth partagent la marque : c'est la même radio et
+            // le même bleu du SIG, seule la couche au-dessus change.
+            val bluetooth = medium == Medium.BLE || medium == Medium.BT_CLASSIC
+            val brand = if (bluetooth) A4L.BluetoothBrand else A4L.WifiBrand
             Icon(
                 imageVector = when (medium) {
                     Medium.BLE -> Icons.Filled.Bluetooth
+                    // Le même pictogramme que le BLE, et c'est voulu : dans une
+                    // ligne où l'on cherche par où ça passe, ce qui compte est
+                    // « Bluetooth » — le nom court sous l'icône dit lequel.
+                    Medium.BT_CLASSIC -> Icons.Filled.Bluetooth
                     // les arcs : on est client d'un point d'accès
                     Medium.WIFI_STATION -> Icons.Filled.Wifi
                     // les arcs qui rayonnent d'un point : le groupe est à nous

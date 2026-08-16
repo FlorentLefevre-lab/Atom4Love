@@ -123,6 +123,7 @@
     <string name="medium_leave_group_cancel">Rester</string>
 
     <string name="medium_ble">en direct</string>
+    <string name="medium_bt_classic">en direct, plus vite</string>
     <string name="medium_wifi_station">par le réseau du lieu</string>
     <string name="medium_wifi_direct">pair à pair</string>
 

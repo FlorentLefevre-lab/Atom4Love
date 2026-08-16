@@ -311,6 +311,22 @@ class CabinChat(context: Context) {
          */
         private const val DIAL_TIMEOUT_MS = 4_000
 
+        /**
+         * ⚠ **Deux essais, parce qu'un seul ne suffit pas.** Mesuré au banc le
+         * 16/08 : la première connexion RFCOMM échoue régulièrement (« read
+         * failed, socket might closed or timeout ») et la seconde passe — le
+         * SDP de la pile Android semble avoir besoin d'un premier échec.
+         */
+        private const val RFCOMM_DIAL_ATTEMPTS = 2
+
+        /**
+         * Le service RFCOMM de la cabine. Il n'est visible que de qui interroge
+         * le SDP de l'appareil, donc de qui connaît déjà son adresse — et cette
+         * adresse ne se donne que sur un lien scellé.
+         */
+        private val RFCOMM_UUID: java.util.UUID =
+            java.util.UUID.fromString("a4l0cab1-9e7d-4c3a-8b21-5f6e7d8c9a0b")
+
         /** Tout groupe Wi-Fi Direct vit dans ce sous-réseau, son maître en `.1`. */
         private const val P2P_SUBNET = "192.168.49."
     }
@@ -1070,6 +1086,7 @@ class CabinChat(context: Context) {
         p2p.onGroupLost = { scope.launch { onGroupGone() } }
         startRadio()
         startListener()
+        startRfcommListener()
         scope.launch {
             while (isActive) {
                 delay(PRUNE_PERIOD_MS)
@@ -1094,6 +1111,8 @@ class CabinChat(context: Context) {
         runCatching { listener?.close() }
         listener = null
         listenPort = 0
+        runCatching { rfcommServer?.close() }
+        rfcommServer = null
         releaseWifiLock()
         p2p.onGroupLost = null
         inGroup = false
@@ -2380,6 +2399,10 @@ class CabinChat(context: Context) {
     /** Port de notre socket d'écoute, 0 tant qu'elle n'est pas ouverte. */
     private var listenPort = 0
 
+    /** Le serveur Bluetooth classique, et de quoi savoir s'il est debout. */
+    private var rfcommServer: android.bluetooth.BluetoothServerSocket? = null
+    private val rfcommListening get() = rfcommServer != null
+
     /**
      * Ouvre l'écoute TCP sur un port éphémère, toutes interfaces.
      *
@@ -2388,6 +2411,39 @@ class CabinChat(context: Context) {
      * l'annonce, une socket ouverte sur un LAN n'est qu'un port muet parmi
      * d'autres, et le handshake Noise refuse tout inconnu.
      */
+    /**
+     * Ouvre l'écoute **Bluetooth classique**.
+     *
+     * ⚠ Ni appairage ni découvrabilité : `listenUsingInsecureRfcomm…` accepte
+     * un pair qui connaît déjà notre adresse, et cette adresse ne circule que
+     * sur un lien scellé. L'appareil ne devient donc à aucun moment visible
+     * dans la liste Bluetooth de la salle — c'est la condition pour que ce
+     * médium n'annule pas l'anonymat que le BLE construit.
+     *
+     * Un échec ici n'est pas une panne : le médium reste simplement hors
+     * d'atteinte, et la cabine parle comme avant.
+     */
+    private fun startRfcommListener() {
+        if (rfcommServer != null) return
+        runCatching {
+            adapter?.listenUsingInsecureRfcommWithServiceRecord("Atom4Love", RFCOMM_UUID)
+        }
+            .onFailure { Log.w(TAG, "écoute BT classique impossible — $it") }
+            .onSuccess { server ->
+                if (server == null) return@onSuccess
+                rfcommServer = server
+                Log.i(TAG, "écoute BT classique ouverte")
+                scope.launch {
+                    while (scope.isActive) {
+                        val socket = withContext(Dispatchers.IO) {
+                            runCatching { server.accept() }.getOrNull()
+                        } ?: break
+                        adoptRfcomm(LinkKind.SERVER, socket)
+                    }
+                }
+            }
+    }
+
     private fun startListener() {
         if (listener != null) return
         runCatching { ServerSocket(0) }
@@ -2474,6 +2530,12 @@ class CabinChat(context: Context) {
 
     /** Compose vers un point d'entrée annoncé par un pair attesté. */
     private suspend fun dial(medium: Medium, host: String, port: Int) {
+        // Le Bluetooth classique ne se compose pas par IP : `host` y porte une
+        // MAC, et il n'y a pas de port. Chemin séparé, même contrat.
+        if (medium == Medium.BT_CLASSIC) {
+            dialRfcomm(host)
+            return
+        }
         if (links.values.any { it.medium == medium && it.address.startsWith("$host:") }) return
         val socket = withContext(Dispatchers.IO) {
             runCatching {
@@ -2500,6 +2562,57 @@ class CabinChat(context: Context) {
         }
         unreachable.remove(medium)
         adoptStream(medium, LinkKind.CLIENT, socket)
+    }
+
+    /**
+     * Composer en **Bluetooth classique**, sur une MAC reçue du pair.
+     *
+     * ⚠ **On réessaie une fois, et ce n'est pas de la prudence de façade** :
+     * mesuré au banc le 16/08, la première tentative échoue régulièrement
+     * (« read failed, socket might closed or timeout ») et la seconde passe.
+     * Le SDP de la pile Android a besoin d'un premier échec pour se réveiller.
+     */
+    private suspend fun dialRfcomm(mac: String) {
+        if (links.values.any { it.medium == Medium.BT_CLASSIC && it.address == mac }) return
+        val socket = withContext(Dispatchers.IO) {
+            repeat(RFCOMM_DIAL_ATTEMPTS) { attempt ->
+                val tried = runCatching {
+                    adapter?.cancelDiscovery()
+                    val device = adapter?.getRemoteDevice(mac) ?: return@runCatching null
+                    device.createInsecureRfcommSocketToServiceRecord(RFCOMM_UUID)
+                        .also { it.connect() }
+                }.getOrNull()
+                if (tried != null) return@withContext tried
+                Log.d(TAG, "RFCOMM $mac : essai ${attempt + 1} manqué")
+            }
+            null
+        }
+        if (socket == null) {
+            Log.w(TAG, "BT classique : $mac injoignable")
+            unreachable.add(Medium.BT_CLASSIC)
+            _status.update { it.copy(lastError = CabinError.MediumUnreachable(Medium.BT_CLASSIC)) }
+            refreshLinks()
+            return
+        }
+        unreachable.remove(Medium.BT_CLASSIC)
+        adoptRfcomm(LinkKind.CLIENT, socket)
+    }
+
+    /** Fil protocole. Un lien neuf sur une socket Bluetooth classique. */
+    private suspend fun adoptRfcomm(kind: LinkKind, socket: android.bluetooth.BluetoothSocket) {
+        val stream = runCatching { FramedSocket(socket) }.getOrElse {
+            runCatching { socket.close() }
+            return
+        }
+        val link = Link(Medium.BT_CLASSIC, kind, stream.remote).apply { this.stream = stream }
+        val k = key(Medium.BT_CLASSIC, kind, stream.remote)
+        links[k]?.let { removeLink(Medium.BT_CLASSIC, kind, it.address) }
+        links[k] = link
+        startLinkJob(link)
+        scope.launch { readLoop(link, stream) }
+        Log.i(TAG, "lien BT classique $kind ${stream.remote}")
+        if (kind == LinkKind.CLIENT) beginHandshake(link)
+        refreshLinks()
     }
 
     /** Fil protocole. Un lien neuf sur une socket, dans les deux sens. */
@@ -2570,15 +2683,59 @@ class CabinChat(context: Context) {
      * et seulement si son porteur a accepté la montée.
      */
     private fun announceAddress(link: Link) {
-        if (link.medium != Medium.BLE || listenPort == 0) return
+        if (link.medium != Medium.BLE) return
         // une adresse ne se confie qu'à quelqu'un dont on sait qui il est : un
         // pair sans noyau incarné a mené son handshake, mais n'a rien signé
         if (link.peerNostrKey == null) return
+
+        // ── Le Bluetooth classique ────────────────────────────────────────
+        //
+        // ⚠ **La MAC BR/EDR est stable à vie**, là où une adresse BLE tourne
+        // toutes les trente secondes. C'est exactement pour ça qu'elle passe
+        // ici et nulle part ailleurs : sur un lien déjà scellé, à un pair déjà
+        // attesté, choisi. Jamais dans une annonce, jamais à la salle — ce
+        // serait rendre traçable ce que tout le reste du projet s'applique à
+        // ne pas l'être.
+        //
+        // Elle ne coûte rien à donner quand elle ne sert pas : c'est le pair
+        // qui décide de composer, et seulement si son porteur a accepté la
+        // montée.
+        if (rfcommListening) {
+            localBluetoothMac()?.let { mac ->
+                link.control.trySend(
+                    ChatFrames.encodeAddress(Medium.BT_CLASSIC.ordinal, mac, 0),
+                )
+                Log.i(TAG, "adresse ${Medium.BT_CLASSIC.short} annoncée à ${link.address}")
+            }
+        }
+
+        if (listenPort == 0) return
         val host = localWifiHost() ?: return
         link.control.trySend(
             ChatFrames.encodeAddress(Medium.WIFI_STATION.ordinal, host, listenPort),
         )
         Log.i(TAG, "adresse ${Medium.WIFI_STATION.short} annoncée à ${link.address} : $host:$listenPort")
+    }
+
+    /**
+     * Notre MAC Bluetooth classique.
+     *
+     * ⚠ Android **refuse** `BluetoothAdapter.getAddress()` depuis Marshmallow :
+     * il rend un `02:00:00:00:00:00` de façade, précisément pour empêcher le
+     * pistage par identifiant matériel. La vraie valeur se lit dans les
+     * réglages système, que l'application peut consulter pour elle-même.
+     * Null si le système la refuse aussi — le médium reste alors simplement
+     * hors d'atteinte, sans rien casser.
+     */
+    private fun localBluetoothMac(): String? {
+        val fromAdapter = runCatching { adapter?.address }.getOrNull()
+        if (fromAdapter != null && fromAdapter != "02:00:00:00:00:00") return fromAdapter
+        return runCatching {
+            android.provider.Settings.Secure.getString(
+                appContext.contentResolver,
+                "bluetooth_address",
+            )
+        }.getOrNull()?.takeIf { it.count { c -> c == ':' } == 5 }
     }
 
     /**

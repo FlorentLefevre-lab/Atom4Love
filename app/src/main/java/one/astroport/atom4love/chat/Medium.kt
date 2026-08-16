@@ -50,6 +50,30 @@ enum class Medium(
     BLE(R.string.medium_ble, "BT"),
 
     /**
+     * Le **Bluetooth classique** (RFCOMM), entre la radio basse consommation et
+     * le Wi-Fi — et c'est bien sa place, mesurée le 16/08 sur le banc
+     * `diag/RfcommProbe` : **78 ko/s la balise allumée, 102 sans**, contre
+     * 14 ko/s en BLE et 15,5 Mo/s en Wi-Fi Direct. Cinq à sept fois le BLE,
+     * deux cents fois moins que le Wi-Fi.
+     *
+     * Il ne sert donc qu'à **une** situation, mais elle est réelle : deux
+     * téléphones sans réseau du lieu et sans groupe Wi-Fi possible. Là où l'on
+     * n'avait que 14 ko/s, on en a cinq fois plus.
+     *
+     * ⚠ **Il ne remplace pas le BLE et ne le remplacera pas.** Le BLE porte
+     * l'annonce anonyme — adresses qui tournent toutes les trente secondes,
+     * diffusion sans connexion. Le classique, lui, exige de connaître l'adresse
+     * du pair, et cette adresse est une **MAC publique stable à vie**. Elle
+     * voyage donc sur le lien BLE déjà scellé, comme le nom et la passe du
+     * groupe Wi-Fi, et n'est donnée qu'à un pair attesté — jamais à la salle.
+     *
+     * ⚠ Ni appairage ni découvrabilité (vérifié : `bondState` reste
+     * `BOND_NONE`), mais **la première connexion échoue souvent** : il faut
+     * réessayer.
+     */
+    BT_CLASSIC(R.string.medium_bt_classic, "BT classique"),
+
+    /**
      * « Par la station » disait le contraire de ce qui se passe : dans cette
      * application, *la station* c'est Astroport.ONE — et l'écran d'accueil
      * lui-même. Or ce médium ne passe par aucune des deux : les deux noyaux
@@ -68,6 +92,7 @@ enum class Medium(
     /** Une lettre pour la clé de lien : `b:c:AA:BB` se lit d'un coup d'œil. */
     val tag: Char get() = when (this) {
         BLE -> 'b'
+        BT_CLASSIC -> 'r'
         WIFI_STATION -> 'w'
         WIFI_DIRECT -> 'p'
     }
