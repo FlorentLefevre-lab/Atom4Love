@@ -387,7 +387,7 @@ private data class OracleCell(
 )
 
 /**
- * Les trois compléments de votre KIN — [Oracle], donc la planche de Fred.
+ * Les quatre compléments de votre KIN — [Oracle], donc la planche de Fred.
  *
  * Ils tiennent sur votre carte et nulle part ailleurs : ce sont des sceaux à
  * **chercher** dans la salle, et la carte est ce qu'on lève au-dessus d'une
@@ -401,6 +401,9 @@ private data class OracleCell(
 private fun OracleBlock(kin: KinMaya.Kin) {
     val reading = Oracle.of(kin)
     val cells = listOfNotNull(
+        reading.guide?.let {
+            OracleCell("🧭", R.string.board_oracle_guide, it, A4L.Gold)
+        },
         reading.antipode?.let {
             OracleCell("⚡", R.string.board_oracle_antipode, it, A4L.Violet)
         },

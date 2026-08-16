@@ -147,12 +147,13 @@
     <string name="board_no_seal">Sceau inconnu</string>
     <string name="board_no_date">votre fiche n\'a pas encore de date</string>
     <string name="board_kin_tone">KIN %1$d · tonalité %2$d</string>
-    <string name="board_oracle_title">Vos trois compléments</string>
+    <string name="board_oracle_title">Vos quatre compléments</string>
+    <string name="board_oracle_guide">Guide</string>
     <string name="board_oracle_antipode">Défi</string>
     <string name="board_oracle_analogue">Alternance</string>
     <string name="board_oracle_occult">Occulte</string>
     <string name="board_oracle_kin">KIN %1$d</string>
-    <string name="board_oracle_note">Le défi et l\'alternance portent le même sceau — seul le ton les sépare. Aucun des trois n\'est un contraire : ce sont les trois façons de vous compléter.</string>
+    <string name="board_oracle_note">Le défi et l\'alternance portent le même sceau — seul le ton les sépare. Aucun des quatre n\'est un contraire : ce sont les quatre façons de vous compléter.</string>
     <string name="board_oracle_resonant">Votre ton 7 est son propre complément : votre défi et votre alternance sont un seul KIN.</string>
     <string name="board_match">MATCH</string>
     <string name="board_super_match">SUPER MATCH</string>
