@@ -47,6 +47,10 @@
     <string name="cabin_peers_here" tools:ignore="PluralsCandidate">%1$d aquí</string>
     <string name="cabin_someone_unnamed">alguien está aquí, sin identidad declarada</string>
     <string name="cabin_nobody_in_range">nadie al alcance</string>
+    <string name="cabin_follow">Seguir</string>
+    <string name="cabin_follow_publishing">…</string>
+    <string name="cabin_following">Siguiendo ✓</string>
+    <string name="cabin_follow_retry">Reintentar</string>
     <plurals name="cabin_unattested_links">
         <item quantity="one">y %1$d enlace sin identidad declarada</item>
         <item quantity="many">y %1$d enlaces sin identidad declarada</item>
