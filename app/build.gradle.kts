@@ -71,8 +71,8 @@ android {
         //
         // Un APK publié = un tag `vX.Y.Z` = un versionCode. Voir
         // `tools/release.sh`, qui refuse de publier si les trois divergent.
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
