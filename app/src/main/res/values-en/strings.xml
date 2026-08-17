@@ -430,7 +430,7 @@
     <string name="inc_hh">HH</string>
     <string name="inc_mn">MI</string>
     <string name="inc_place_placeholder">Town, country…</string>
-    <string name="inc_coords_warning">Write these down: they alone reopen your key if you lose this device. Tap to correct them.</string>
+    <string name="inc_coords_warning">Write these down in full, digit for digit: they alone reopen your key if you lose this device. Tap to correct them.</string>
     <string name="inc_body_note">Outside the key. Editable any time in Settings.</string>
     <string name="inc_body_dialog_body">Your body today, not the one you were born with. None of this enters your key: you can correct it after forging, as often as the body changes.</string>
     <string name="inc_height_title">Your height</string>
@@ -476,7 +476,7 @@
     <string name="inc_time_optional_body">Few people know their time of birth: without it, the key derives from noon. But it is what places your personal phase precisely — give it if you know it.</string>
     <string name="inc_time_unknown">I don\'t know it</string>
     <string name="inc_coords_title">Birth coordinates</string>
-    <string name="inc_coords_body">The pair you wrote down, as it is. Two decimals — about 1 km: that is the precision that enters your key.</string>
+    <string name="inc_coords_body">The pair you wrote down, as it is — with every decimal. They count: two records differing by a thousandth of a degree yield two different keys.</string>
     <string name="inc_latitude">Latitude</string>
     <string name="inc_longitude">Longitude</string>
     <string name="inc_coords_south_west">South and West are written negative: −33.45, −70.67.</string>

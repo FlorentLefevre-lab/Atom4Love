@@ -905,12 +905,23 @@ private fun OptionalMeasureDialog(
 }
 
 /**
- * Saisie directe des coordonnées de naissance, au centième de degré.
+ * Saisie directe des coordonnées de naissance, à la précision qu'on veut.
  *
- * Les valeurs sont arrondies à deux décimales à la validation : c'est la
- * précision qui entre dans le SALT, et ce que l'utilisateur tape doit être
- * exactement ce que la clé verra — sans quoi « notez vos coordonnées » resterait
- * un vœu pieux.
+ * ⚠ Ce dialogue arrondissait au centième, au motif que « c'est la précision qui
+ * entre dans le SALT ». **C'était vrai du SALT et faux de la clé** : la
+ * longitude complète sert aussi à convertir l'heure d'horloge en instant
+ * solaire, et quelques millièmes de degré déplacent la minute de conception,
+ * donc le PEPPER, donc la clé.
+ *
+ * Mesuré au banc le 17/08 : une fiche ressaisie ici, au même SALT affiché que
+ * l'originale, a produit une **autre clé** — et la station a refusé
+ * l'activation (`ACTIVATION_FAILED: une clé LOVE différente existe déjà`). Une
+ * commune choisie dans la liste donne six décimales ; on ne pouvait donc plus
+ * jamais retaper à la main ce que la liste avait posé. « Notez vos
+ * coordonnées » était bel et bien un vœu pieux, mais pas pour la raison écrite
+ * ici.
+ *
+ * Ce qui est tapé est désormais gardé tel quel. Voir [LoveKey.formatCoords].
  */
 @Composable
 private fun CoordinatesDialog(
@@ -923,11 +934,13 @@ private fun CoordinatesDialog(
     // seule forme qui entre dans le SALT (cf. LoveKey.salt, Locale.US).
     fun parse(text: String): Double? = text.trim().replace(',', '.').toDoubleOrNull()
 
+    // Pré-remplies telles qu'elles dérivent, pas telles qu'elles s'arrondissent :
+    // rouvrir ce dialogue ne doit pas amputer une fiche venue de la liste.
     var latText by rememberSaveable {
-        mutableStateOf(lat?.let { String.format(Locale.US, "%.2f", it) } ?: "")
+        mutableStateOf(lat?.let { LoveKey.formatDegrees(it) } ?: "")
     }
     var lonText by rememberSaveable {
-        mutableStateOf(lon?.let { String.format(Locale.US, "%.2f", it) } ?: "")
+        mutableStateOf(lon?.let { LoveKey.formatDegrees(it) } ?: "")
     }
 
     val parsedLat = parse(latText)?.takeIf { it in -90.0..90.0 }
@@ -969,12 +982,9 @@ private fun CoordinatesDialog(
             TextButton(
                 enabled = valid,
                 onClick = {
-                    // Arrondi ici, pas seulement à l'affichage : la fiche garde
-                    // ce qui a été tapé, au centième près.
-                    onConfirm(
-                        round(parsedLat!! * 100.0) / 100.0,
-                        round(parsedLon!! * 100.0) / 100.0,
-                    )
+                    // Tel quel, sans arrondi : c'est la valeur entière qui
+                    // dérive la clé (cf. l'avertissement au-dessus).
+                    onConfirm(parsedLat!!, parsedLon!!)
                 },
             ) { Text(stringResource(R.string.inc_confirm), color = if (valid) A4L.Cyan else A4L.TextGhost) }
         },

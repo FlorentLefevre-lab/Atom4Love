@@ -301,8 +301,30 @@ object LoveKey {
     fun formatWeight(res: Resources, kg: Float?): String =
         if (kg == null) "—" else res.getString(R.string.format_weight, kg)
 
-    /** « 48.86 · 2.35 » — les coordonnées telles qu'elles entrent dans le SALT. */
+    /**
+     * « 49.570096 · 3.614939 » — les coordonnées **telles qu'elles dérivent la
+     * clé**, et non telles qu'elles s'écrivent dans le SALT.
+     *
+     * ⚠ La distinction a coûté une clé perdue, mesurée le 17/08. Le SALT n'en
+     * garde que deux décimales, mais la longitude **complète** entre dans la
+     * dérivation par un autre chemin : [BirthData.birthUtc] convertit l'heure
+     * d'horloge en instant solaire via `SolarTime.localSolarToUtc(…, lon)`, et
+     * quelques millièmes de degré suffisent à faire basculer la minute de
+     * conception — donc le PEPPER, donc la clé.
+     *
+     * Conséquence tenue au banc : deux fiches affichant le **même SALT au
+     * caractère près** ont donné deux clés différentes, `49.570096` contre
+     * `49.57`. L'écran promettait pourtant que « ces coordonnées seules
+     * rouvrent votre clé ». Elles ne la rouvraient pas.
+     *
+     * D'où l'affichage entier : ce qu'on demande de noter doit être ce qui
+     * dérive. Les zéros de fin sont retirés — « 49.57 » reste « 49.57 ».
+     */
     fun formatCoords(b: BirthData): String =
         if (b.lat == null || b.lon == null) "— · —"
-        else String.format(saltFormat, "%.2f · %.2f", b.lat, b.lon)
+        else "${formatDegrees(b.lat)} · ${formatDegrees(b.lon)}"
+
+    /** Un degré écrit sans zéro inutile, jusqu'au millionième (~10 cm). */
+    fun formatDegrees(deg: Double): String =
+        String.format(saltFormat, "%.6f", deg).trimEnd('0').trimEnd('.')
 }

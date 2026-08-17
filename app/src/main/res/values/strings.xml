@@ -502,7 +502,7 @@
     <string name="inc_hh">HH</string>
     <string name="inc_mn">MN</string>
     <string name="inc_place_placeholder">Ville, pays…</string>
-    <string name="inc_coords_warning">À noter : eux seuls rouvrent votre clé si vous perdez l\'appareil. Touchez-les pour les corriger.</string>
+    <string name="inc_coords_warning">À noter en entier, chiffre pour chiffre : eux seuls rouvrent votre clé si vous perdez l\'appareil. Touchez-les pour les corriger.</string>
     <string name="inc_body_note">Hors clé. Modifiables à tout moment dans les Réglages.</string>
     <string name="inc_body_dialog_body">Votre corps d\'aujourd\'hui, pas celui de votre naissance. Rien de ceci n\'entre dans votre clé : vous pourrez le corriger après la forge, autant de fois que le corps change.</string>
     <string name="inc_height_title">Votre taille</string>
@@ -554,7 +554,7 @@
     <string name="inc_time_optional_body">Peu de gens connaissent leur heure de naissance : sans elle, la clé se dérive à midi. Mais c\'est elle qui situe précisément votre phase personnelle — donnez-la si vous la connaissez.</string>
     <string name="inc_time_unknown">Je ne la connais pas</string>
     <string name="inc_coords_title">Coordonnées de naissance</string>
-    <string name="inc_coords_body">Le couple que vous avez noté, tel quel. Deux décimales — environ 1 km : c\'est la précision qui entre dans votre clé.</string>
+    <string name="inc_coords_body">Le couple que vous avez noté, tel quel — avec toutes ses décimales. Elles comptent : deux fiches qui ne diffèrent qu\'au millième de degré donnent deux clés différentes.</string>
     <string name="inc_latitude">Latitude</string>
     <string name="inc_longitude">Longitude</string>
     <string name="inc_coords_south_west">Sud et Ouest s\'écrivent en négatif : −33.45, −70.67.</string>
