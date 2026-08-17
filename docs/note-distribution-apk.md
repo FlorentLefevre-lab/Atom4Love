@@ -78,11 +78,29 @@ l'application le voit, refuse, et le dit. Les deux fichiers doivent donc être
 écrasés **ensemble** — un APK neuf avec l'ancien JSON, ou l'inverse, se
 présente comme une corruption.
 
-Et, si tu le veux bien, un troisième qui ne me regarde pas mais qui manque : **une page
-qui propose les APK**. Il y en a deux à cette adresse maintenant (le tien et le mien) et
-aucun lien vers eux. Je ne l'écris pas à ta place — c'est ton dossier, ta grammaire de
-pages, et je ne construis pas là où tu n'as rien écrit. Dis-moi si tu la veux, et sous
-quelle forme.
+Et un troisième, que tu as demandé depuis : **la page qui propose l'APK**. Elle est
+écrite, sur le modèle de ton `www/index.html` de Coracle — `web/apk/index.html` dans
+notre dépôt, à déposer en `earth/apk/index.html` chez toi. Trois règles tenues, les
+mêmes que ton `build-web-compatible-ipfs.sh` :
+
+- **aucune requête sortante** — ni police, ni CDN, ni image distante ; l'icône est en
+  base64 dans la page. Sous un CID, une page doit s'ouvrir sans autre réseau que sa
+  passerelle ;
+- **aucun chemin absolu** vers nos fichiers — `./atom4love-latest.apk` et
+  `./atom4love.json`. La même page sert donc à l'identique depuis l'uSPOT, depuis
+  n'importe quelle passerelle IPFS et depuis un dossier local ;
+- **aucun build** — HTML, CSS et JS à la main, comme le reste d'`earth/` ;
+- **aucune version nommée** — la page ne propose que `latest`. Numéro, taille, date et
+  empreinte sont lus dans `atom4love.json` à l'ouverture, jamais figés dans le HTML :
+  une page servie sous une adresse constante qui annoncerait l'empreinte d'un APK
+  remplacé ferait passer le bon fichier pour un fichier corrompu.
+
+Sans JavaScript, la page ne ment pas : elle renvoie au manifeste, et le bouton marche.
+Et si `atom4love-latest.apk`
+n'est pas là, un `HEAD` le voit et le bouton bascule tout seul sur le dépôt plutôt que
+de promettre un fichier absent — la page peut donc être en ligne avant le miroir.
+
+Je ne touche pas à ton `coracle.apk` : c'est ta page à écrire, pas la mienne.
 
 Une question ouverte, aussi : **veux-tu que les APK entrent dans la publication IPFS ?**
 Un CID est immuable, ce qui est exactement ce qu'on veut d'un binaire signé — mais ça
