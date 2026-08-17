@@ -65,6 +65,21 @@
          application par application (ApkInstall.allowed). -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- Se retirer soi-même. Depuis Android 8, DEMANDER une désinstallation
+         exige cette permission — sans elle l'intent part, le désinstalleur du
+         système démarre, puis se referme AUSSITÔT :
+
+           E UninstallerActivity: Uid 10130 does not have
+             android.permission.REQUEST_DELETE_PACKAGES
+
+         Rien ne s'affiche et aucune exception n'est levée : le runCatching qui
+         entoure l'appel n'a rien à attraper, et l'écran reste muet. Constaté
+         au banc le 17/08, bouton « Désinstaller » resté sans effet.
+
+         Elle ne désinstalle rien par elle-même : elle ouvre la question, et
+         c'est le système qui la pose. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+
     <!-- usesCleartextTraffic : le relais NOSTR local d'une station Astroport est
          servi en ws:// sur la passerelle du hot-spot (IP dynamique, donc pas de
          domain-config possible). Les relais publics restent en wss:// (TLS). -->

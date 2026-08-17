@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Le nom du build de développement, et lui seul.
+
+    Debug et release s'installent CÔTE À CÔTE : leurs applicationId diffèrent
+    (`…atom4love.debug` et `…atom4love`), donc le système les tient pour deux
+    applications distinctes. Sans cette ressource, elles portent le même nom et
+    la même icône sur l'écran d'accueil — et l'on finit par forger un noyau dans
+    l'une en croyant être dans l'autre, ou par désinstaller son banc pour une
+    version publiée.
+
+    Les ressources du variant écrasent celles de `main`, et `app_name` n'y est
+    défini qu'une fois (`translatable="false"`) : aucune variante de langue ne
+    vient reprendre le dessus.
+-->
+<resources>
+    <string name="app_name" translatable="false">A4L (debug)</string>
+</resources>
