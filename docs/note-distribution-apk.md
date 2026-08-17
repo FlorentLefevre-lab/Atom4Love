@@ -1,6 +1,9 @@
 # Distribuer Atom4Love par APK : le dépôt fait foi, la station fait miroir
 
-**De :** Atom4Love · **Pour :** Fred (G1FabLab) · **Date :** 17 août 2026 · **Statut :** en place côté app, une demande côté station
+**De :** Atom4Love · **Pour :** Fred (G1FabLab) · **Date :** 17 août 2026
+**Statut :** v0.2.2 publiée et installée par sa propre mécanique ; **miroir en attente de lui**
+**Envoyée** le 17/08 à `support@qo-op.com` — la seule adresse publique de son écosystème ;
+aucune adresse directe connue, donc le message peut atterrir dans une file de tickets.
 
 Atom4Love ne passera ni par le Play Store ni par F-Droid pour le moment. L'application
 va donc chercher elle-même sa version : elle lit un manifeste, télécharge l'APK, vérifie
@@ -41,12 +44,12 @@ qu'il porte dit quels octets sont les bons, et l'app refuse tout le reste.
 
 ```json
 {
-  "versionCode": 2,
-  "versionName": "0.2.0",
+  "versionCode": 4,
+  "versionName": "0.2.2",
   "minSdk": 26,
-  "publishedAt": "2026-08-20",
-  "sha256": "3f2a…",
-  "sizeBytes": 28311552,
+  "publishedAt": "2026-08-17",
+  "sha256": "354afa20c4843d4bb6ad3dd62c2ce367c2d0bf39019c0f3d272c9b1f01d3fb8b",
+  "sizeBytes": 6772892,
   "url": "https://github.com/FlorentLefevre-lab/Atom4Love/releases/latest/download/atom4love-latest.apk",
   "mirrors": ["https://u.copylaradio.com/earth/apk/atom4love-latest.apk"],
   "notes": "une phrase sur ce qui change"
