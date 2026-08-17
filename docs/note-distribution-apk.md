@@ -2,8 +2,12 @@
 
 **De :** Atom4Love · **Pour :** Fred (G1FabLab) · **Date :** 17 août 2026
 **Statut :** v0.2.2 publiée et installée par sa propre mécanique ; **miroir en attente de lui**
-**Envoyée** le 17/08 à `support@qo-op.com` — la seule adresse publique de son écosystème ;
+**Envoyée deux fois** à `support@qo-op.com` — la seule adresse publique de son écosystème ;
 aucune adresse directe connue, donc le message peut atterrir dans une file de tickets.
+Le 17/08, puis le 17/08 au soir avec la page (`web/apk/index.html`), livrée par un
+`curl` vers le fichier brut du dépôt plutôt qu'en pièce jointe : elle doit atterrir
+dans `earth/apk/index.html`, une commande l'y met. Les deux envois portent une copie
+adaptée — sans ces trois lignes de statut, qui ne regardent que nous.
 
 Atom4Love ne passera ni par le Play Store ni par F-Droid pour le moment. L'application
 va donc chercher elle-même sa version : elle lit un manifeste, télécharge l'APK, vérifie
