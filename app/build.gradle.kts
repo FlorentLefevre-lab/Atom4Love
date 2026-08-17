@@ -63,6 +63,14 @@ android {
         applicationId = "one.astroport.atom4love"
         minSdk = 26
         targetSdk = 36
+        // ⚠ Le versionCode est le SEUL nombre qu'Android regarde pour accepter
+        // une mise à jour : il doit croître à chaque APK diffusé, et ne jamais
+        // reculer. Tenu à la main, parce qu'un diff doit le montrer — le
+        // dériver du dépôt (compte de commits) donne un nombre juste sur ce
+        // poste et faux partout où le clone est superficiel.
+        //
+        // Un APK publié = un tag `vX.Y.Z` = un versionCode. Voir
+        // `tools/release.sh`, qui refuse de publier si les trois divergent.
         versionCode = 1
         versionName = "0.1.0"
 
@@ -97,10 +105,27 @@ android {
         // sept jours. Le passage en UPlanet ẐEN demande une station dédiée.
         buildConfigField("String", "ASTROPORT_USPOT", "\"https://u.copylaradio.com\"")
         buildConfigField("boolean", "ASTROPORT_ORIGIN", "true")
-        // Où l'on va chercher une version plus récente. L'app ne se met pas à
-        // jour toute seule : l'AGPL s'accorde mal avec le Play Store, la
-        // distribution se fera par F-Droid et par APK signé — d'ici là, c'est
-        // la page des releases du dépôt, ouverte dans le navigateur.
+        // ── Où l'on va chercher une version plus récente ──────────────────
+        //
+        // Ni Play Store ni F-Droid : l'APK se prend au dépôt du projet, et la
+        // station de Fred en tient le miroir — il servait déjà un APK à cette
+        // adresse-là, avec le bon type MIME, avant qu'on s'y mette.
+        //
+        // Le manifeste `latest.json` est le MÊME fichier aux deux endroits.
+        // L'app essaie le premier, puis le second : peu importe lequel répond,
+        // c'est l'empreinte SHA-256 qu'il porte qui dit quels octets sont bons.
+        buildConfigField(
+            "String",
+            "UPDATE_MANIFEST_URL",
+            "\"https://raw.githubusercontent.com/FlorentLefevre-lab/Atom4Love/main/latest.json\"",
+        )
+        buildConfigField(
+            "String",
+            "UPDATE_MANIFEST_MIRROR",
+            "\"https://u.copylaradio.com/earth/apk/atom4love.json\"",
+        )
+        // La page humaine des versions : le repli quand le manifeste ne répond
+        // pas, et le seul chemin pour qui préfère faire à la main.
         buildConfigField(
             "String",
             "RELEASES_URL",
@@ -117,6 +142,18 @@ android {
                 storePassword = keystoreProperties["storePassword"] as String
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
+
+                // v2 suffit à installer (minSdk 26), et c'est tout ce qu'AGP
+                // pose par défaut ici. v3 ajoute la ROTATION de clé : le jour
+                // où cette clé-là devrait être remplacée, les appareils
+                // accepteraient la nouvelle sans que personne désinstalle.
+                // Sans v3, une clé perdue ou compromise est sans recours.
+                //
+                // ⚠ À poser AVANT la première version publiée : un APK déjà
+                // installé ne connaît que les schémas qu'il portait.
+                // Rétrocompatible — Android antérieur à 9 lit le v2.
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }

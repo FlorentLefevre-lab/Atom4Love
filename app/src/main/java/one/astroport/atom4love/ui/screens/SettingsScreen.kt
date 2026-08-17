@@ -53,6 +53,7 @@ import one.astroport.atom4love.ui.components.HeightWheels
 import one.astroport.atom4love.ui.components.LanguageChoice
 import one.astroport.atom4love.ui.components.SectionLabel
 import one.astroport.atom4love.ui.components.ThemeChoice
+import one.astroport.atom4love.ui.components.UpdateDialog
 import one.astroport.atom4love.ui.components.WeightWheels
 import one.astroport.atom4love.ui.components.glass
 import one.astroport.atom4love.ui.components.screenBackground
@@ -391,38 +392,9 @@ fun SettingsScreen(
         )
     }
 
-    // ── Mettre à jour : la page s'ouvre, l'app ne s'installe pas seule ───
+    // ── Mettre à jour : chercher, vérifier, puis passer la main ──────────
     if (confirmUpdate) {
-        val context = LocalContext.current
-        val noBrowser = stringResource(R.string.settings_update_unavailable)
-        AlertDialog(
-            onDismissRequest = { confirmUpdate = false },
-            title = { Text(stringResource(R.string.settings_update_title), style = A4LText.Title) },
-            text = {
-                Text(
-                    stringResource(R.string.settings_update_body),
-                    style = A4LText.Body,
-                    color = A4L.TextBody,
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmUpdate = false
-                    // Un appareil sans navigateur existe : mieux vaut le dire
-                    // que laisser le geste tomber dans le vide.
-                    runCatching { context.startActivity(releasesIntent()) }.onFailure {
-                        Toast.makeText(context, noBrowser, Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Text(stringResource(R.string.settings_update_confirm), color = A4L.Green)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmUpdate = false }) {
-                    Text(stringResource(R.string.settings_cancel), color = A4L.TextBody)
-                }
-            },
-        )
+        UpdateDialog(onDismiss = { confirmUpdate = false })
     }
 
     // ── Désinstaller : notre confirmation, puis celle du système ─────────
@@ -489,15 +461,6 @@ private fun buildStamp(): String {
     }
     return stringResource(R.string.settings_built_on, stamp)
 }
-
-/**
- * La page des versions publiées, dans le navigateur. Atom4Love ne se met pas à
- * jour toute seule : l'AGPL s'accorde mal avec le Play Store, et installer un
- * APK depuis l'app demanderait `REQUEST_INSTALL_PACKAGES` — une permission qui
- * vaut bien plus que le service rendu. On ouvre la page, la personne décide.
- */
-private fun releasesIntent(): Intent =
-    Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.RELEASES_URL))
 
 /**
  * Le désinstalleur du système. `ACTION_DELETE` n'efface rien de lui-même : il

@@ -656,10 +656,27 @@
     <string name="settings_uninstall_link">✕  Désinstaller</string>
     <string name="settings_close">Fermer</string>
     <string name="settings_cancel">Annuler</string>
-    <string name="settings_update_title">Mettre à jour ?</string>
-    <string name="settings_update_body">Atom4Love ne se met pas à jour toute seule. La page des versions s\'ouvre dans votre navigateur : c\'est vous qui téléchargez l\'APK, et vous qui l\'installez.</string>
-    <string name="settings_update_confirm">Ouvrir la page</string>
-    <string name="settings_update_unavailable">Aucun navigateur sur cet appareil.</string>
+    <!-- La bulle de mise à jour. Atom4Love ne passe ni par le Play Store ni
+         par F-Droid : elle va chercher son APK au dépôt du projet, ou au site
+         de la station qui en tient le miroir. Chaque étape se dit, et la
+         dernière appartient au système. -->
+    <string name="update_title">Mettre à jour</string>
+    <string name="update_checking">Recherche d\'une version…</string>
+    <string name="update_uptodate">Vous avez la dernière version.</string>
+    <string name="update_offline">Ni le dépôt ni le site de la station n\'ont répondu. La page des versions reste ouvrable dans votre navigateur.</string>
+    <string name="update_available">Version %1$s disponible</string>
+    <string name="update_weight">%1$d Mo à télécharger</string>
+    <string name="update_download">Télécharger</string>
+    <string name="update_downloading">Téléchargement…</string>
+    <string name="update_ready">Version reçue, et son empreinte est la bonne. Le système va vous demander de confirmer l\'installation.</string>
+    <string name="update_install">Installer</string>
+    <!-- L'autorisation d'installer ne se demande pas dans une fenêtre : elle
+         se donne dans les réglages du système, application par application. -->
+    <string name="update_permission_needed">Android veut votre accord pour qu\'Atom4Love puisse présenter cet APK à l\'installeur. L\'accord ne vaut que pour elle, et se retire quand vous voulez.</string>
+    <string name="update_permission_open">Autoriser</string>
+    <string name="update_failed">Le téléchargement n\'a pas abouti.</string>
+    <string name="update_corrupt">Les octets reçus ne sont pas ceux annoncés : rien n\'a été installé, et le fichier est effacé.</string>
+    <string name="update_open_page">Ouvrir la page</string>
     <string name="settings_uninstall_title">Désinstaller ?</string>
     <string name="settings_uninstall_body">Le système vous le redemandera à son tour : rien n\'est effacé avant que vous ne le lui confirmiez.</string>
     <string name="settings_uninstall_warning">Votre noyau scellé et la clé de cette station partent avec l\'application. Rien n\'en est gardé ailleurs — mais vos cinq données la reforgent à l\'identique.</string>

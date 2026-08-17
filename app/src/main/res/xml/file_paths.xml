@@ -3,4 +3,8 @@
      exposées à la visionneuse système via FileProvider. -->
 <paths>
     <files-path name="chat" path="chat/" />
+    <!-- L'APK d'une nouvelle version, le temps que l'installeur du système le
+         lise. Dans le cache et non dans files/ : ces octets-là sont jetables,
+         et le système peut les balayer sans rien casser. -->
+    <cache-path name="update" path="update/" />
 </paths>

@@ -57,6 +57,14 @@
     -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Mise à jour par APK : ni Play Store ni F-Droid, la version se prend au
+         dépôt du projet ou au site de la station. Cette permission n'installe
+         rien par elle-même — elle donne seulement le droit de PRÉSENTER un APK
+         à l'installeur du système, qui pose ensuite sa propre question. Elle
+         reste inerte tant que la personne ne l'a pas accordée dans les réglages,
+         application par application (ApkInstall.allowed). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- usesCleartextTraffic : le relais NOSTR local d'une station Astroport est
          servi en ws:// sur la passerelle du hot-spot (IP dynamique, donc pas de
          domain-config possible). Les relais publics restent en wss:// (TLS). -->
