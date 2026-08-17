@@ -121,7 +121,7 @@ des participants — le retour social passe par le son plutôt que par un score.
 | Géographie | [H3](https://h3geo.org/) (Uber) pour le pavage hexagonal statique (AAR patché vendorisé) |
 | Proximité | BLE advertising + scan (beacon d'adresse 4D, service continu) |
 | Typographie | [Atkinson Hyperlegible Next](https://fonts.google.com/specimen/Atkinson+Hyperlegible+Next) (texte — dessinée pour la basse vision), [JetBrains Mono](https://fonts.google.com/specimen/JetBrains+Mono) (données, adresses, compteurs) et [Cinzel Decorative](https://fonts.google.com/specimen/Cinzel+Decorative) (le nom, sur le splash) — embarquées, SIL OFL 1.1, textes dans `licenses/` |
-| Build | Gradle KTS, module unique `:app` — minSdk 26, targetSdk 36, JDK 17 |
+| Build | Gradle KTS, module unique `:composeApp` — minSdk 26, targetSdk 36, JDK 17. Arborescence déjà nommée comme un projet multiplateforme (`commonMain`, `androidMain`, `iosMain`), Android seul compilé — voir `docs/note-portage-ios.md` |
 
 > **Note d'implémentation.** H3 fournit le pavage hexagonal de référence ; la couche de
 > rotation temporelle décrite en D2 s'applique par-dessus, à l'encodage et au décodage

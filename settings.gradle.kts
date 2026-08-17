@@ -23,4 +23,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Atom4Love"
-include(":app")
+include(":composeApp")

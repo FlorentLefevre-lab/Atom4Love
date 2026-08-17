@@ -35,10 +35,10 @@ say() { printf '· %s\n' "$*"; }
 NOTES="${1:-}"
 
 # ── 1. Ce que le build déclare ────────────────────────────────────────────
-VERSION_NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts | head -1)
-VERSION_CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' app/build.gradle.kts | head -1)
-MIN_SDK=$(grep -oP 'minSdk\s*=\s*\K[0-9]+' app/build.gradle.kts | head -1)
-[ -n "$VERSION_NAME" ] && [ -n "$VERSION_CODE" ] || die "versionName/versionCode illisibles dans app/build.gradle.kts"
+VERSION_NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' composeApp/build.gradle.kts | head -1)
+VERSION_CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' composeApp/build.gradle.kts | head -1)
+MIN_SDK=$(grep -oP 'minSdk\s*=\s*\K[0-9]+' composeApp/build.gradle.kts | head -1)
+[ -n "$VERSION_NAME" ] && [ -n "$VERSION_CODE" ] || die "versionName/versionCode illisibles dans composeApp/build.gradle.kts"
 TAG="v$VERSION_NAME"
 say "version $VERSION_NAME · code $VERSION_CODE · minSdk $MIN_SDK · tag $TAG"
 
@@ -64,9 +64,9 @@ fi
 
 # ── 3. Compiler et signer ─────────────────────────────────────────────────
 say "compilation release…"
-./gradlew --quiet :app:assembleRelease
+./gradlew --quiet :composeApp:assembleRelease
 
-APK_BUILT="app/build/outputs/apk/release/app-release.apk"
+APK_BUILT="composeApp/build/outputs/apk/release/composeApp-release.apk"
 [ -f "$APK_BUILT" ] || die "APK introuvable : $APK_BUILT"
 
 # apksigner vit dans le SDK, jamais dans le PATH — on le cherche là où il est.

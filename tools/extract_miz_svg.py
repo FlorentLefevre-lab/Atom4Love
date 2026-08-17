@@ -28,7 +28,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DST = ROOT / "app/src/main/assets/miz"
+DST = ROOT / "composeApp/src/androidMain/assets/miz"
 
 # index dans miz.html -> nom de fichier
 PLATES = {

@@ -59,6 +59,51 @@ android {
     namespace = "one.astroport.atom4love"
     compileSdk = 36
 
+    // ── Arborescence Kotlin Multiplatform ────────────────────────────────────
+    //
+    // Le module ne compile que pour Android, mais ses répertoires portent déjà
+    // les noms d'un projet KMP : `androidMain` au lieu de `main`, `kotlin` au
+    // lieu de `java`, `androidUnitTest` et `androidInstrumentedTest` au lieu de
+    // `test` et `androidTest`. `commonMain` et `iosMain` existent, vides.
+    //
+    // Ce sont exactement les noms qu'attend le plugin `kotlin.multiplatform`.
+    // Le jour où on l'applique, ce bloc disparaît et pas un fichier ne bouge —
+    // c'est tout l'objet de la manœuvre. Voir docs/note-portage-ios.md.
+    //
+    // ⚠ Un chemin de convention est perdu au passage : AGP ramasse tout seul
+    // les règles R8 de `src/main/keepRules`, et ce chemin-là n'est pas
+    // redéclarable ici. Le fichier a été déplacé sous `androidMain/keepRules`
+    // où il n'est plus lu — sans conséquence, il ne contient que des
+    // commentaires. Une vraie règle à garder irait dans proguard-rules.pro.
+    //
+    // ⚠⚠ `java.srcDirs` en plus de `kotlin.srcDirs`, et ce n'est pas une
+    // ceinture-bretelles : les 29 fichiers `.java` de Noise vivent sous
+    // `androidMain/kotlin`. Déclarés en `kotlin` SEULEMENT, le compilateur
+    // Kotlin les lit pour résoudre les types — donc tout compile, et l'APK se
+    // fabrique — mais javac ne les voit jamais : aucune classe n'est émise, et
+    // la cabine chiffrée meurt au premier échange sur un NoClassDefFoundError.
+    // Mesuré le 17/08 : APK vert, 27 tests rouges. Le jour où Noise passe en
+    // Kotlin (étape 1 de docs/note-portage-ios.md), cette ligne part avec lui.
+    sourceSets {
+        getByName("main") {
+            manifest.srcFile("src/androidMain/AndroidManifest.xml")
+            kotlin.srcDirs("src/commonMain/kotlin", "src/androidMain/kotlin")
+            java.srcDirs("src/commonMain/kotlin", "src/androidMain/kotlin")
+            res.srcDirs("src/androidMain/res")
+            assets.srcDirs("src/androidMain/assets")
+        }
+        getByName("debug") {
+            manifest.srcFile("src/androidDebug/AndroidManifest.xml")
+            res.srcDirs("src/androidDebug/res")
+        }
+        getByName("test") {
+            kotlin.srcDirs("src/commonTest/kotlin", "src/androidUnitTest/kotlin")
+        }
+        getByName("androidTest") {
+            kotlin.srcDirs("src/androidInstrumentedTest/kotlin")
+        }
+    }
+
     defaultConfig {
         applicationId = "one.astroport.atom4love"
         minSdk = 26

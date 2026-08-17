@@ -212,7 +212,7 @@ Signer #1 certificate SHA-256 digest: f64a78a8a96fee398b089d773614aca8a08660a935
 Signer #1 key algorithm: RSA · 4096 bits
 ```
 
-Signature **v2 + v3** (`enableV3Signing` dans `app/build.gradle.kts`). Le v2 suffit
+Signature **v2 + v3** (`enableV3Signing` dans `composeApp/build.gradle.kts`). Le v2 suffit
 à installer ; le v3 garde ouverte la **rotation de clé** — remplacer cette clé un
 jour sans que personne ait à désinstaller. Sans lui, une clé perdue serait sans
 recours. C'est pour cela qu'il est posé avant la première publication : un APK
@@ -221,7 +221,7 @@ déjà installé ne connaît que les schémas qu'il portait.
 ### Publier une version
 
 ```bash
-# 1. incrémenter versionName ET versionCode dans app/build.gradle.kts, commiter
+# 1. incrémenter versionName ET versionCode dans composeApp/build.gradle.kts, commiter
 # 2. puis :
 ./tools/release.sh "ce qui change, en une phrase"
 ```
