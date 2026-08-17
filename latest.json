@@ -1,11 +1,11 @@
 {
-  "versionCode": 3,
-  "versionName": "0.2.1",
+  "versionCode": 4,
+  "versionName": "0.2.2",
   "minSdk": 26,
   "publishedAt": "2026-08-17",
-  "sha256": "e9115fc4a723b67557bdec35951e6286016a443063242425225a9e140d34c112",
-  "sizeBytes": 6772672,
+  "sha256": "354afa20c4843d4bb6ad3dd62c2ce367c2d0bf39019c0f3d272c9b1f01d3fb8b",
+  "sizeBytes": 6772892,
   "url": "https://github.com/FlorentLefevre-lab/Atom4Love/releases/latest/download/atom4love-latest.apk",
   "mirrors": ["https://u.copylaradio.com/earth/apk/atom4love-latest.apk"],
-  "notes": "Le bouton Désinstaller ouvre enfin le désinstalleur du système, et le build de développement s'appelle « A4L (debug) »."
+  "notes": "Les coordonnées de naissance s'affichent et se saisissent en entier : notées telles quelles, elles rouvrent vraiment votre clé."
 }
