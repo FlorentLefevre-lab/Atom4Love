@@ -102,6 +102,25 @@ La vérification SHA-256 n'est pas décorative : sans elle, un miroir compromis 
 transfert tronqué mettrait un APK inconnu devant l'installeur. En cas d'écart, le fichier
 est effacé et l'app le dit — elle ne retente pas.
 
+### ⚠ Un troisième verrou, qui n'est pas d'Android : Play Protect
+
+Sur tout appareil portant les services Google, **un écran de plus** s'intercale après
+l'installeur : « Cette appli est inconnue de Play Protect ». Il n'offre que deux issues —
+*Analyser l'appli*, qui **envoie l'APK à Google**, ou *Ne pas installer*. Pas de troisième
+voie, « Plus de détails » ne déplie qu'un texte.
+
+Constaté sur le A5 le 17/08, à la première installation de la v0.2.0. C'est le prix d'une
+distribution hors store, et il faut le dire aux gens plutôt que les laisser buter dessus :
+
+- soit ils font analyser (l'APK part chez Google ; à force d'installations, l'application
+  devient « connue » et l'avertissement s'espace pour tout le monde) ;
+- soit ils coupent Play Protect : Play Store → avatar → Play Protect → engrenage →
+  *Analyser les applis*. Au banc, en `adb` :
+  `settings put global package_verifier_user_consent -1`,
+  `package_verifier_enable 0`, `upload_apk_enable 0` — à remettre à `1`, `1`, `1`.
+
+Les appareils dégooglisés (LineageOS sans GApps, /e/OS) ne voient jamais cet écran.
+
 ## 5. Mode d'emploi, côté maintenance
 
 ### La clé de signature — avant tout le reste
