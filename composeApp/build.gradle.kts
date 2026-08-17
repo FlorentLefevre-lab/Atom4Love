@@ -98,6 +98,12 @@ android {
         }
         getByName("test") {
             kotlin.srcDirs("src/commonTest/kotlin", "src/androidUnitTest/kotlin")
+            // `java` en plus, pour la même raison qu'au-dessus : les tests
+            // portent la copie Java de référence de Noise
+            // (`com.southernstorm.noise.ref`), oracle du port Kotlin. Sans
+            // cette ligne elle serait lue par kotlinc et jamais compilée par
+            // javac — et le test différentiel comparerait le port à rien.
+            java.srcDirs("src/commonTest/kotlin", "src/androidUnitTest/kotlin")
         }
         getByName("androidTest") {
             kotlin.srcDirs("src/androidInstrumentedTest/kotlin")

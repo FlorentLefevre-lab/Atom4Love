@@ -58,17 +58,33 @@ Sur 110 fichiers Kotlin, **51 importent `android.*`**.
 Le découpage est favorable : l'assise identitaire — dérivation de clé LOVE,
 φ/KIN, MULTIPASS, protocole NOSTR — est justement la partie la moins couplée.
 
-## Le coût caché : Noise
+## ~~Le coût caché : Noise~~ — FAIT le 17 août 2026
 
-`com/southernstorm/noise/` contient **29 fichiers `.java`, zéro Kotlin**. Java ne
-compile pas vers Kotlin/Native. Deux issues, aucune gratuite :
+`com/southernstorm/noise/` contenait **29 fichiers `.java`, zéro Kotlin**, et
+Java ne compile pas vers Kotlin/Native. C'était un préalable au partage, pas une
+option — et il ne dépendait d'aucune décision iOS.
 
-1. réécrire les 29 fichiers en Kotlin — mécanique, ce sont des primitives, mais
-   c'est du travail et du risque sur du code cryptographique ;
-2. passer par `noise-c` en `cinterop`.
+**Les 29 fichiers sont portés** (10 587 lignes de Kotlin, zéro `.java` restant).
+Le détail est dans `composeApp/src/androidMain/kotlin/com/southernstorm/noise/PROVENANCE.md`.
+Les trois points qui comptent pour la suite :
 
-C'est un préalable au partage, pas une option, et il ne dépend d'aucune décision
-iOS. Il peut donc commencer avant tout arbitrage.
+- une transcription littérale n'aurait rien donné — quatre classes héritaient de
+  `java.security.MessageDigest` et deux exceptions de `javax.crypto` traversaient
+  l'API. Tout est remplacé, et **les substitutions tiennent dans un seul
+  fichier**, `Platform.kt` ;
+- **une seule classe reste liée à la JVM** : `AESGCMOnCtrCipherState`, qui
+  n'existe que pour déléguer AES à `javax.crypto`. Elle restera dans
+  `androidMain` ; côté iOS il n'y a rien à écrire, la fabrique retombe seule sur
+  l'implémentation pure. Rien chez nous n'appelle AES-GCM ;
+- l'unique couture de plateforme restante est **la source d'aléa**
+  (`SecureRandomSource`), qui deviendra un `expect`/`actual`.
+
+Le filet : la copie Java intacte de l'amont vit dans les tests, et
+`PortageDifferentielTest` compare les deux implémentations **octet par octet** —
+primitives, handshake XX complet à clés éphémères fixées, échange New Hope de
+bout en bout. 349 tests verts.
+
+⚠ Ce test-là ne pourra pas monter dans `commonTest` : il dépend de sources Java.
 
 ---
 
@@ -244,8 +260,8 @@ actuel.
 
 ## Ordre de marche
 
-1. **Réécrire Noise en Kotlin** — 29 fichiers, préalable à tout partage,
-   indépendant de toute décision iOS. Peut commencer immédiatement.
+1. ~~**Réécrire Noise en Kotlin**~~ — **FAIT le 17/08** : 29 fichiers, 10 587
+   lignes, vérifiées octet par octet contre le Java d'origine.
 2. **Trancher la cible fonctionnelle iOS** au vu des contraintes ci-dessus :
    app complète au sens dégradé, ou hexagone et MULTIPASS sans la cabine radio.
 3. **Extraire `shared/`** — `domain`, `multipass`, `nostr`, `noise` d'abord, qui

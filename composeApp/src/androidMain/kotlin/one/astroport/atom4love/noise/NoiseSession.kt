@@ -95,7 +95,10 @@ class NoiseSession private constructor(
     /** Chiffre pour le pair. Le résultat est plus long de 16 octets (le MAC). */
     fun encrypt(plaintext: ByteArray): ByteArray {
         val pair = ciphers ?: error("canal non établi : handshake inachevé")
-        val sender = pair.sender
+        // `sender` n'est nul que pour les motifs de handshake à sens unique,
+        // où `receiverOnly()` l'a détruit. XX va dans les deux sens : ici c'est
+        // impossible, et le dire vaut mieux qu'un `!!` muet.
+        val sender = pair.sender ?: error("canal en réception seule : rien à chiffrer")
         val buffer = ByteArray(plaintext.size + sender.macLength)
         val length = sender.encryptWithAd(null, plaintext, 0, buffer, 0, plaintext.size)
         return buffer.copyOf(length)
@@ -110,7 +113,7 @@ class NoiseSession private constructor(
      */
     fun decrypt(ciphertext: ByteArray): ByteArray {
         val pair = ciphers ?: error("canal non établi : handshake inachevé")
-        val receiver = pair.receiver
+        val receiver = pair.receiver ?: error("canal en émission seule : rien à déchiffrer")
         val buffer = ByteArray(ciphertext.size)
         val length = receiver.decryptWithAd(null, ciphertext, 0, buffer, 0, ciphertext.size)
         return buffer.copyOf(length)
@@ -165,7 +168,11 @@ class NoiseSession private constructor(
                 "clé statique de ${NoiseIdentity.KEY_LENGTH} octets attendue"
             }
             val handshake = HandshakeState(PROTOCOL, role)
-            handshake.localKeyPair.setPrivateKey(staticPrivateKey, 0)
+            // XX porte une clé statique locale des deux côtés : le motif la
+            // crée toujours. Nul ici voudrait dire que PROTOCOL a changé.
+            val local = handshake.localKeyPair
+                ?: error("$PROTOCOL n'a pas de clé statique locale")
+            local.setPrivateKey(staticPrivateKey, 0)
             handshake.start()
             return NoiseSession(handshake)
         }

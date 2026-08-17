@@ -1,6 +1,10 @@
 package one.astroport.atom4love.noise
 
-import javax.crypto.BadPaddingException
+// Depuis le portage de Noise en Kotlin, l'échec de MAC ne remonte plus
+// `javax.crypto.BadPaddingException` (absente de Kotlin/Native) mais son
+// équivalent de la bibliothèque. Le comportement testé est le même : un
+// message altéré, hors séquence ou venu d'un tiers est refusé.
+import com.southernstorm.noise.BadPaddingException
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
