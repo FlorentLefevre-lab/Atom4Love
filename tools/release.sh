@@ -46,7 +46,12 @@ say "version $VERSION_NAME · code $VERSION_CODE · minSdk $MIN_SDK · tag $TAG"
 [ -f keystore.properties ] || die "keystore.properties absent : voir docs/note-distribution-apk.md.
   Sans clé stable, l'APK publié ne pourra jamais mettre à jour celui d'avant."
 
-[ -z "$(git status --porcelain)" ] || die "l'arbre n'est pas propre : commitez d'abord."
+# `latest.json` est exclu du contrôle : c'est CE script qui l'écrit, et il doit
+# rester rejouable — corriger une coquille dans les notes, refaire l'APK avant
+# publication. Tout le reste doit être commité : une version est un point du
+# dépôt, pas un état du bureau.
+[ -z "$(git status --porcelain -- . ':!latest.json')" ] ||
+  die "l'arbre n'est pas propre : commitez d'abord."
 
 if git rev-parse "$TAG" >/dev/null 2>&1; then
   die "le tag $TAG existe déjà : incrémentez versionName ET versionCode."
@@ -114,6 +119,20 @@ say "empreinte: $SHA"
 say "manifeste: latest.json"
 
 # ── 5. Ce qu'il reste à faire — de votre main ─────────────────────────────
+#
+# Le conseil est composé AVANT l'affichage : un heredoc dans une substitution
+# de commande, avec un `||` entre deux, ne s'analyse pas — et un script qui
+# finit sur une erreur de syntaxe fait douter de tout ce qu'il vient de faire.
+if command -v gh >/dev/null; then
+  PUBLISH_HINT="       gh release create $TAG \"$OUT/$APK_NAME\" \"$OUT/SHA256SUMS\" \\
+         --title \"$TAG\" --notes \"${NOTES:-$TAG}\""
+else
+  PUBLISH_HINT="       (gh n'est pas installé — par la page des releases)
+       git push && git tag -a $TAG -m \"$TAG\" && git push origin $TAG
+       puis https://github.com/FlorentLefevre-lab/Atom4Love/releases/new?tag=$TAG
+       en y joignant $OUT/$APK_NAME et $OUT/SHA256SUMS"
+fi
+
 cat <<FIN
 
 Reste à publier. Dans l'ordre, parce que l'app lit le manifeste AVANT de
@@ -121,17 +140,7 @@ télécharger : si latest.json arrive le premier, il annonce un APK qui n'existe
 pas encore.
 
   1. La release GitHub, avec l'APK et ses sommes :
-$(command -v gh >/dev/null && cat <<GH
-       gh release create $TAG "$OUT/$APK_NAME" "$OUT/SHA256SUMS" \\
-         --title "$TAG" --notes "${NOTES:-$TAG}"
-GH
-  || cat <<MANUEL
-       (gh n'est pas installé — passez par la page des releases)
-       git tag -a $TAG -m "$TAG" && git push origin $TAG
-       puis https://github.com/FlorentLefevre-lab/Atom4Love/releases/new
-       en y joignant $OUT/$APK_NAME et $OUT/SHA256SUMS
-MANUEL
-)
+$PUBLISH_HINT
   2. Le manifeste, une fois l'APK en ligne :
        git add latest.json && git commit -m "$TAG" && git push
 
