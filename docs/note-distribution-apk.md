@@ -121,7 +121,46 @@ distribution hors store, et il faut le dire aux gens plutôt que les laisser but
 
 Les appareils dégooglisés (LineageOS sans GApps, /e/OS) ne voient jamais cet écran.
 
-## 5. Mode d'emploi, côté maintenance
+## 5. En marge : deux codes arrivent par mail, un seul récupère le compte
+
+Rien à voir avec l'APK, mais c'est sorti du même essai et ça touche le même
+moment — quelqu'un qui change de téléphone.
+
+Éprouvé le 17/08 sur ORIGIN, de bout en bout : téléphone neuf, fiche reforgée
+depuis les cinq données, puis `POST /g1nostr` avec l'adresse déjà connue.
+
+```
+sans code      → 409 {"error":"MULTIPASS_EXISTS","need_pass":true,
+                      "message":"Saisissez le code PASS reçu par email lors de la création."}
+avec le code   → 200 : même npub, même salt, même pepper, même g1pub
+```
+
+**La récupération marche parfaitement.** Le compte revient à l'identique, et la
+clé LOVE est redérivée puis acceptée. Rien à changer là-dessus.
+
+Un seul point d'achoppement, et il est dans le mail, pas dans le code : **la
+création envoie deux messages à une minute d'intervalle, portant deux codes à
+quatre chiffres différents** — l'un annoncé comme *Passeport UPlanet*, l'autre
+comme *ZEN Card*. Or `/g1nostr` n'en accepte qu'un : l'autre repart en
+`401 INVALID_PASS`.
+
+Le message de l'API dit « le code PASS reçu par email lors de la création ». Il
+y en a deux. Quelqu'un qui vient de perdre son téléphone a donc une chance sur
+deux de croire que son code ne marche pas — et rien ne lui dit d'essayer
+l'autre.
+
+**Ce qu'il suffirait de faire, et c'est chez toi** : nommer le bon dans le
+message d'erreur (« le code de votre ZEN Card »), ou accepter les deux. Nous, on
+peut au mieux deviner ; le mail est écrit par la station.
+
+Question ouverte au passage : le npub du compte est tiré au hasard
+(`make_NOSTRCARD.sh`, contexte birth-derived → `identité MULTIPASS forcée en
+aléatoire`). Il n'est donc dérivable de rien, et ce code est **la seule porte de
+retour**. Est-ce bien l'intention ? Si oui, il mériterait d'être annoncé comme
+tel — à garder comme on garde une phrase de récupération, pas comme un code de
+confirmation qu'on jette après usage.
+
+## 6. Mode d'emploi, côté maintenance
 
 ### La clé de signature — avant tout le reste
 
