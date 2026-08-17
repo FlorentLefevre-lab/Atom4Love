@@ -1,0 +1,11 @@
+{
+  "versionCode": 2,
+  "versionName": "0.2.0",
+  "minSdk": 26,
+  "publishedAt": "2026-08-17",
+  "sha256": "67999e4a2bc4d29ba0891d6c6a9990da0a0d2efdf495b22287552e158f212058",
+  "sizeBytes": 6772652,
+  "url": "https://github.com/FlorentLefevre-lab/Atom4Love/releases/latest/download/atom4love-latest.apk",
+  "mirrors": ["https://u.copylaradio.com/earth/apk/atom4love-latest.apk"],
+  "notes": "La position demande enfin au ciel, et l'app sait aller chercher sa version."
+}
