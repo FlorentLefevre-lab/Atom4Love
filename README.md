@@ -60,7 +60,7 @@ rythme dans une salle, chacun l'ayant calculé seul.
 
 ---
 
-## UI/UX : L'expérience utilisateur de votre  propre incarnation en mode jeu de carte (Tolzien)
+## UI/UX : l'expérience utilisateur de votre propre incarnation en mode jeu de cartes (Tzolkin)
 
 La barre du bas ne compte que trois entrées : **Carte**, **Plateau**, **Noyau** — ce qui est
 dehors, le jeu, et soi. Les maquettes d'origine en prévoyaient six ; trois ont quitté la barre,
