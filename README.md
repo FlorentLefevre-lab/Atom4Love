@@ -18,6 +18,45 @@
 
 ---
 
+## Par quoi les gens se rencontrent ici
+
+Il n'y a pas de profil à remplir, pas de photo, pas de préférences à cocher et aucun
+algorithme de recommandation. Ce qu'Atom4Love compare, c'est **l'instant et le lieu de la
+naissance** — l'éphéméride : où la Terre se trouvait sur son orbite, où elle en était de sa
+rotation, et sous quel point du globe. De là sortent deux grandeurs, et rien d'autre ne
+circule.
+
+**L'onde — la phase personnelle φ.** L'instant de naissance donne un angle, à la minute et
+au degré près : l'angle annuel de l'orbite, l'angle du jour, et le décalage du lieu sur une
+grille pentagonale qui tourne en 14,83 h. Deux personnes qui se croisent croisent deux ondes,
+et leur accord se lit dans un seul nombre, **`k`**, entre 0,5 et 1. Il monte quand les deux
+ondes sont en phase — **ou exactement en opposition**, ce qui revient à se répondre : un
+aimant trouve son pôle contraire. Ce qui ne dit rien, c'est le quart de tour, entre les deux.
+Aucun de ces calculs ne demande le réseau : les deux appareils trouvent le même `k`, chacun
+de son côté, à partir de ce que l'annonce BLE porte déjà.
+
+**Le sceau — le compte galactique du Tzolkin.** Le Tzolkin est le compte maya de 260 jours :
+vingt sceaux, qui sont des archétypes, croisés de treize tons, qui sont des niveaux
+d'énergie. Une date de naissance tombe sur l'une des 260 cases — c'est le **KIN**, ce que le
+vocabulaire du calendrier appelle une signature galactique. Autour de lui, l'Oracle en
+désigne quatre autres : le **guide**, le **défi**, l'**alternance** et l'**occulte**. Ce sont
+quatre façons de se compléter, jamais un contraire — un défi ne vaut pas moins qu'une union.
+
+**Ce qui en sort, et ce qui n'en sort pas.** Un plan qui s'aligne fait un **match** : `k`
+au-delà de 0,90, ou un sceau de votre Oracle en face — une personne croisée sur six. Les deux
+ensemble font un **super match**, `k` passant alors 0,95 : trois rencontres sur mille. Ces
+deux seuils viennent de Fred et ont été mesurés sur 79 800 paires. Il n'y a rien d'autre :
+pas de note, pas de classement, pas de file de suggestions, et **personne n'apprend qu'on
+l'a vu**. La réciprocité existe, mais elle est physique — deux écrans qui battent le même
+rythme dans une salle, chacun l'ayant calculé seul.
+
+> Les formules sont celles de Fred R. / G1FabLab, publiées en **D1** (phase personnelle) et
+> **D4** (matrices d'oracle Tzolkin) — voir « Fondations techniques ». Le modèle s'appuie sur
+> des correspondances symboliques transposées en calculs déterministes : c'est un choix de
+> conception assumé, pas une théorie physique. Voir « Ce que ce n'est pas ».
+
+---
+
 ## Le parcours
 
 Deux destinations seulement dans la barre du bas — **dehors** et **soi** — plus le Plateau au
@@ -67,6 +106,35 @@ constellation sont deux façons de regarder le même dehors.
     </td>
   </tr>
 </table>
+
+<p><i>Les vignettes sont réduites pour tenir en une grille. Pour lire un écran en pleine
+taille <b>sans quitter cette page</b>, ouvrez-le ici — cliquer la vignette, elle, emmène sur
+la page du fichier.</i></p>
+
+<details>
+  <summary>🔍 &nbsp;<b>Carte · Ici</b></summary>
+  <p><img src="docs/captures/02-carte-ici.png" alt="Carte · Ici, en pleine taille" width="540" /></p>
+</details>
+<details>
+  <summary>🔍 &nbsp;<b>Plateau</b></summary>
+  <p><img src="docs/captures/03-plateau.png" alt="Plateau, en pleine taille" width="540" /></p>
+</details>
+<details>
+  <summary>🔍 &nbsp;<b>Rendez-vous</b></summary>
+  <p><img src="docs/captures/04-lanterne.png" alt="Rendez-vous, en pleine taille" width="540" /></p>
+</details>
+<details>
+  <summary>🔍 &nbsp;<b>Cabine</b></summary>
+  <p><img src="docs/captures/05-cabine.png" alt="Cabine, en pleine taille" width="540" /></p>
+</details>
+<details>
+  <summary>🔍 &nbsp;<b>Carte · Le monde</b></summary>
+  <p><img src="docs/captures/06-constellation.png" alt="Constellation, en pleine taille" width="540" /></p>
+</details>
+<details>
+  <summary>🔍 &nbsp;<b>Noyau</b></summary>
+  <p><img src="docs/captures/07-noyau.png" alt="Noyau, en pleine taille" width="540" /></p>
+</details>
 
 <details>
   <summary>Le splash, les Réglages, l'Aide — et les maquettes d'origine</summary>
