@@ -190,6 +190,8 @@ la page du fichier.</i></p>
 
 ## État du projet
 
+> La suite est écrite dans la [feuille de route](ROADMAP.md).
+
 **Stade : alpha publiée — v0.2.2 (versionCode 4, 17 août 2026).** L'application s'installe,
 se met à jour toute seule, et le parcours complet a été éprouvé sur appareils réels : forger
 son noyau, dériver ses clés, se voir apparaître sur le radar de l'autre, ouvrir une cabine

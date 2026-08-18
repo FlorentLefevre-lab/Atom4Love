@@ -190,6 +190,8 @@ the file's page.</i></p>
 
 ## Project status
 
+> What comes next is written in the [roadmap](ROADMAP.en.md).
+
 **Stage: published alpha — v0.2.2 (versionCode 4, 17 August 2026).** The application
 installs, updates itself, and the whole journey has been exercised on real devices: forging
 your nucleus, deriving your keys, appearing on someone else's radar, opening an encrypted
