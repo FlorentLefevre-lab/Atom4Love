@@ -1,6 +1,5 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/663bee21-ba78-4f4b-bf05-3211b5cdd080"
-       alt="Atom4Love" width="240" />
+  <img src="docs/logo.webp" alt="Atom4Love" width="240" />
 </p>
 
 <h1 align="center">Atom4Love</h1>
@@ -99,7 +98,7 @@ constellation sont deux façons de regarder le même dehors.
   </p>
 
   <p align="center">
-    <img src="https://github.com/user-attachments/assets/19243fbf-1f71-4bf6-a295-212b0dffde45"
+    <img src="docs/maquettes-origine.png"
          alt="Parcours Android — maquettes d'origine" width="720" />
   </p>
 </details>
