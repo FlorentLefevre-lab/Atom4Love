@@ -242,19 +242,9 @@ arrêtée, et la confiance au premier contact reste à durcir.
   (7 m) borne l'information révélée à des appareils déjà dans la même pièce.
 - **Confiance au premier contact** — la cabine chiffre et atteste, mais rien ne protège encore
   contre un inconnu qui se présenterait pour un autre à la toute première rencontre.
-- **Synthèse sonore collective (D5)** — retirée du dépôt le 15 août 2026, concept entier. Elle
-  n'est pas implémentée et n'est pas en chantier.
-- **Miroir de distribution** — l'APK est sur GitHub ; le miroir de la station attend Fred
-  (voir [`docs/note-distribution-apk.md`](docs/note-distribution-apk.md)).
-- **TLS sous Android 10** — le relais et le MULTIPASS de la station ne présentent qu'une
-  courbe P-384, qu'aucun Android antérieur à 10 n'accepte. Rien à corriger côté application
-  ([`docs/note-courbe-p384.md`](docs/note-courbe-p384.md)).
-- **Portage iOS** — l'étude est faite et l'arborescence est déjà nommée pour un projet
-  multiplateforme, mais le sujet est mis de côté
-  ([`docs/note-portage-ios.md`](docs/note-portage-ios.md)).
 
-Les décisions d'architecture les plus structurantes (rotation D2, premier contact) sont
-encore ouvertes : c'est le bon moment pour peser sur elles.
+**Les décisions d'architecture les plus structurantes (rotation D2, premier contact) sont
+encore ouvertes : c'est le bon moment pour peser sur elles.**
 
 ---
 
