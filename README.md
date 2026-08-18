@@ -18,7 +18,7 @@
 
 ---
 
-## Par quoi les gens se rencontrent ici
+## Comment l'affinité entre deux personnes est calculée
 
 Il n'y a pas de profil à remplir, pas de photo, pas de préférences à cocher et aucun
 algorithme de recommandation. Ce qu'Atom4Love compare, c'est **l'instant et le lieu de la
