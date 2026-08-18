@@ -65,8 +65,7 @@ rythme dans une salle, chacun l'ayant calculé seul.
 La barre du bas ne compte que trois entrées : **Carte**, **Plateau**, **Noyau** — ce qui est
 dehors, le jeu, et soi. Les maquettes d'origine en prévoyaient six ; trois ont quitté la barre,
 chacune pour une raison différente. L'**Aide** et les **Réglages** sont devenus deux boutons
-dans la ligne du haut : on les ouvre et on les referme, on n'y « revient » pas, et un onglet
-promet un lieu où l'on revient. Le **Radar** et la **Constellation**, eux, n'étaient pas deux
+dans la ligne du haut. Le **Radar** et la **Constellation**, eux, n'étaient pas deux
 endroits mais deux façons de regarder les autres — de près par la radio, ou à l'échelle du monde
 par le relais ; ils sont réunis dans l'onglet Carte, où un sélecteur bascule entre *Ici* et *Le
 monde*. Le **Plateau** garde sa place au milieu, mais reste éteint tant qu'aucun sceau n'est à
