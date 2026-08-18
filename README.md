@@ -63,8 +63,7 @@ rythme dans une salle, chacun l'ayant calculé seul.
 ## UI/UX : l'expérience utilisateur de votre propre incarnation en mode jeu de cartes (Tzolkin)
 
 La barre du bas ne compte que trois entrées : **Carte**, **Plateau**, **Noyau** — ce qui est
-dehors, le jeu, et soi. Les maquettes d'origine en prévoyaient six ; trois ont quitté la barre,
-chacune pour une raison différente. L'**Aide** et les **Réglages** sont devenus deux boutons
+dehors, le jeu, et soi. L'**Aide** et les **Réglages** sont devenus deux boutons
 dans la ligne du haut. Le **Radar** et la **Constellation**, eux, n'étaient pas deux
 endroits mais deux façons de regarder les autres — de près par la radio, ou à l'échelle du monde
 par le relais ; ils sont réunis dans l'onglet Carte, où un sélecteur bascule entre *Ici* et *Le
