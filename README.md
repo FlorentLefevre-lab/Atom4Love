@@ -33,7 +33,9 @@ et leur accord se lit dans un seul nombre, **`k`**, entre 0,5 et 1. Il monte qua
 ondes sont en phase — **ou exactement en opposition**, ce qui revient à se répondre : un
 aimant trouve son pôle contraire. Ce qui ne dit rien, c'est le quart de tour, entre les deux.
 Aucun de ces calculs ne demande le réseau : les deux appareils trouvent le même `k`, chacun
-de son côté, à partir de ce que l'annonce BLE porte déjà.
+de son côté, à partir de ce que porte déjà l'annonce **BLE** — *Bluetooth Low Energy*, la
+diffusion sans connexion et sans appairage par laquelle deux appareils se signalent l'un à
+l'autre à quelques mètres.
 
 **Le sceau — le compte galactique du Tzolkin.** Le Tzolkin est le compte maya de 260 jours :
 vingt sceaux, qui sont des archétypes, croisés de treize tons, qui sont des niveaux
@@ -59,10 +61,15 @@ rythme dans une salle, chacun l'ayant calculé seul.
 
 ## Le parcours
 
-Deux destinations seulement dans la barre du bas — **dehors** et **soi** — plus le Plateau au
-milieu, qui s'allume quand un sceau est à portée. Les six onglets des maquettes d'origine ont
-fondu : l'aide et les réglages sont des poignées, pas des lieux, et le radar et la
-constellation sont deux façons de regarder le même dehors.
+La barre du bas ne compte que trois entrées : **Carte**, **Plateau**, **Noyau** — ce qui est
+dehors, le jeu, et soi. Les maquettes d'origine en prévoyaient six ; trois ont quitté la barre,
+chacune pour une raison différente. L'**Aide** et les **Réglages** sont devenus deux boutons
+dans la ligne du haut : on les ouvre et on les referme, on n'y « revient » pas, et un onglet
+promet un lieu où l'on revient. Le **Radar** et la **Constellation**, eux, n'étaient pas deux
+endroits mais deux façons de regarder les autres — de près par la radio, ou à l'échelle du monde
+par le relais ; ils sont réunis dans l'onglet Carte, où un sélecteur bascule entre *Ici* et *Le
+monde*. Le **Plateau** garde sa place au milieu, mais reste éteint tant qu'aucun sceau n'est à
+portée.
 
 <table>
   <tr>
