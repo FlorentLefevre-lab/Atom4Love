@@ -10,6 +10,10 @@
 </p>
 
 <p align="center">
+  <b>Français</b> · <a href="README.en.md">English</a>
+</p>
+
+<p align="center">
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/Licence-AGPL%20v3-blue.svg" alt="Licence AGPL v3" /></a>
   <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/Kotlin-2.2-7F52FF.svg" alt="Kotlin" /></a>
   <a href="https://github.com/FlorentLefevre-lab/Atom4Love/releases/latest"><img src="https://img.shields.io/badge/APK-t%C3%A9l%C3%A9charger-00ffcc.svg" alt="Télécharger l'APK" /></a>
@@ -426,7 +430,7 @@ réalisables sans connaître l'ensemble du système.
      caractérisation de la portée RSSI, tests unitaires sur l'encodeur H3, relecture des
      traductions es/en, accessibilité du Plateau. -->
 
-**Discussion.** : Salons dédiés sur WhatsApp et Telegram ...
+**Discussion.** Salons dédiés sur WhatsApp et Telegram…
 
 ---
 
