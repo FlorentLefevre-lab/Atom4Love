@@ -44,10 +44,11 @@ vocabulaire du calendrier appelle une signature galactique. Autour de lui, l'Ora
 désigne quatre autres : le **guide**, le **défi**, l'**alternance** et l'**occulte**. Ce sont
 quatre façons de se compléter, jamais un contraire — un défi ne vaut pas moins qu'une union.
 
-**Ce qui en sort, et ce qui n'en sort pas.** Un plan qui s'aligne fait un **match** : `k`
-au-delà de 0,90, ou un sceau de votre Oracle en face — une personne croisée sur six. Les deux
-ensemble font un **super match**, `k` passant alors 0,95 : trois rencontres sur mille. Ces
-deux seuils viennent de Fred et ont été mesurés sur 79 800 paires. Il n'y a rien d'autre :
+**Ce qui en sort, et ce qui n'en sort pas.** Un plan qui s'aligne fait un
+$\color{orange}{\textsf{\textbf{match}}}$ : `k` au-delà de 0,90, ou un sceau de votre Oracle en
+face — une personne croisée sur six. Les deux ensemble font un
+$\color{red}{\textsf{\textbf{super match}}}$, `k` passant alors 0,95 : trois rencontres sur
+mille. Ces deux seuils viennent de Fred et ont été mesurés sur 79 800 paires. Il n'y a rien d'autre :
 pas de note, pas de classement, pas de file de suggestions, et **personne n'apprend qu'on
 l'a vu**. La réciprocité existe, mais elle est physique — deux écrans qui battent le même
 rythme dans une salle, chacun l'ayant calculé seul.
@@ -220,8 +221,9 @@ arrêtée, et la confiance au premier contact reste à durcir.
   La balise ne s'annonce que si la localisation est accordée, et se tait pendant les
   transferts.
 - **Le jeu en trois coups** — tirage (Plateau), reconnaissance (lanterne), questions (cabine).
-  Match et super match sur les seuils de Fred, calibrés sur 79 800 paires. Rien n'est classé,
-  rien n'est noté, et personne n'apprend qu'on l'a choisi.
+  $\color{orange}{\textsf{\textbf{Match}}}$ et
+  $\color{red}{\textsf{\textbf{super match}}}$ sur les seuils de Fred, calibrés sur 79 800
+  paires. Rien n'est classé, rien n'est noté, et personne n'apprend qu'on l'a choisi.
 - **Cabine chiffrée** — Noise, **entièrement porté en Kotlin** (29 fichiers, vérifiés octet
   pour octet contre l'implémentation Java de référence et en cabine réelle Kotlin ↔ Java).
   Quatre médiums, avec escalade sur échec : BLE (la seule porte, la seule qui découvre et
