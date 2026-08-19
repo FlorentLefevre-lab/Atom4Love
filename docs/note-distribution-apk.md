@@ -2,12 +2,18 @@
 
 **De :** Atom4Love · **Pour :** Fred (G1FabLab) · **Date :** 17 août 2026
 **Statut :** v0.2.2 publiée et installée par sa propre mécanique ; **miroir en attente de lui**
-**Envoyée deux fois** à `support@qo-op.com` — la seule adresse publique de son écosystème ;
-aucune adresse directe connue, donc le message peut atterrir dans une file de tickets.
-Le 17/08, puis le 17/08 au soir avec la page (`www/index.html`), livrée par un
-`curl` vers le fichier brut du dépôt plutôt qu'en pièce jointe : elle doit atterrir
-dans `earth/apk/index.html`, une commande l'y met. Les deux envois portent une copie
-adaptée — sans ces trois lignes de statut, qui ne regardent que nous.
+**Envoyée une fois**, le 17/08 à 22h42, à `support@qo-op.com` — la seule adresse publique
+de son écosystème, et une file de tickets faute d'adresse directe connue. Elle portait la
+page (`www/index.html`), livrée par un `curl` vers le fichier brut du dépôt plutôt qu'en
+pièce jointe : elle doit atterrir dans `earth/apk/index.html`, une commande l'y met. La
+copie envoyée est adaptée — sans ces lignes de statut, qui ne regardent que nous.
+
+⚠ **Aucune réponse, et le courriel n'est pas le canal.** Boîte vérifiée le 19/08 : pas de
+rebond, donc le serveur a bien accepté — mais rien n'est jamais revenu de `qo-op.com`, ni
+de `papiche`, `g1fablab`, `copylaradio`. Toutes les réponses de Fred, depuis le début,
+passent par GitHub. Écrire ici reste utile pour laisser une trace datée ; **attendre une
+réponse par ce chemin est une impasse.** (La copie locale des envois vers cette adresse
+finit en corbeille — cause non identifiée, filtre ou geste ; le message part quand même.)
 
 Atom4Love ne passera ni par le Play Store ni par F-Droid pour le moment. L'application
 va donc chercher elle-même sa version : elle lit un manifeste, télécharge l'APK, vérifie
