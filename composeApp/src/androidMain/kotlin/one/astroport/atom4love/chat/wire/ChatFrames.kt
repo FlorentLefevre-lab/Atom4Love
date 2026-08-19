@@ -111,6 +111,12 @@ sealed interface ChatFrame {
     data object Bye : ChatFrame
 
     /**
+     * « Je suis encore là. » Voir [ChatFrames.encodePing] et le faucheur de
+     * [one.astroport.atom4love.chat.ChatEngine].
+     */
+    object Ping : ChatFrame
+
+    /**
      * Un des trois messages du handshake Noise XX. [step] vaut 1, 2 ou 3 : il
      * ne sert qu'à repérer une trame hors séquence, la machine de Noise étant
      * seule juge de ce qui est acceptable.
@@ -177,6 +183,14 @@ object ChatFrames {
     private const val TYPE_BYE = 0x09
     private const val TYPE_QUESTION = 0x0B
     private const val TYPE_NAME = 0x0C
+
+    /**
+     * ⚠ **0x0D, et surtout pas 0x0A** : celui-là est brûlé — il portait la
+     * trame VERSION retirée le 17/08, et le champ BLE standard AD 0x0A le
+     * réutilise dans les airs. Un jour quelqu'un relira ce fichier en cherchant
+     * le prochain numéro libre ; c'est écrit ici pour qu'il ne le reprenne pas.
+     */
+    private const val TYPE_PING = 0x0D
     private const val QUESTION_LEN = 5
 
     /** [type][longueur du nom] — le nom suit, en UTF-8. */
@@ -322,6 +336,17 @@ object ChatFrames {
         frame.isNotEmpty() && frame[0].toInt() == TYPE_HANDSHAKE
 
     /** Enveloppe un chiffré produit par la session Noise du lien. */
+    /**
+     * Un octet, et il ne dit rien d'autre que « je suis encore là ».
+     *
+     * ⚠ Volontairement vide. Y mettre un compteur ou une horloge inviterait à
+     * s'en servir pour autre chose — mesurer une latence, ordonner des
+     * évènements — et un battement qui porte du sens finit par devoir être
+     * fiable. Celui-ci a le droit de se perdre : c'est le silence prolongé qui
+     * conclut, jamais un battement manquant.
+     */
+    fun encodePing(): ByteArray = byteArrayOf(TYPE_PING.toByte())
+
     fun encodeSealed(ciphertext: ByteArray): ByteArray =
         ByteArray(1 + ciphertext.size).also {
             it[0] = TYPE_SEALED.toByte()
@@ -459,6 +484,7 @@ object ChatFrames {
             return ChatFrame.Group(name, passphrase, port)
         }
         if (bytes.size == 1 && bytes[0].toInt() == TYPE_BYE) return ChatFrame.Bye
+        if (bytes.size == 1 && bytes[0].toInt() == TYPE_PING) return ChatFrame.Ping
         // La taille d'abord : `decode` reçoit aussi des trames vides, et lire
         // l'octet de tête avant de l'avoir vérifié coûte une exception.
         if (bytes.size >= QUESTION_LEN && bytes[0].toInt() == TYPE_QUESTION) {

@@ -250,6 +250,45 @@ class ChatEngine(context: Context) {
         private const val PRUNE_PERIOD_MS = 5_000L
 
         /**
+         * ⚠ **Un pair dont l'application MEURT n'est jamais vu partir.**
+         *
+         * Mesuré le 19/08 : `am force-stop` sur la tablette, et le Pixel n'a
+         * rien journalisé pendant 80 s — ni « parti » ni « perdu ». Un arrêt
+         * propre envoie un adieu ([ChatFrame.Bye]) et tout se referme ; un
+         * processus tué n'en envoie aucun, et la déconnexion GATT ne remonte
+         * pas — pas dans un délai utile, parfois pas du tout. La conversation
+         * restait « à portée » en vert, les messages partaient et restaient
+         * à ✓ pour toujours, et rien ne pouvait déclencher le mot « il est
+         * parti ».
+         *
+         * D'où ces deux nombres. La radio ne dit pas la vérité : on la lui
+         * demande.
+         *
+         * Battre toutes les dix secondes coûte un octet scellé par lien —
+         * invisible même au plancher BLE, et seulement quand la ligne est
+         * muette : dès qu'on se parle, le trafic tient lieu de battement.
+         */
+        private const val HEARTBEAT_MS = 10_000L
+
+        /**
+         * Trois battements manqués, plus une marge.
+         *
+         * ⚠ Ne pas descendre : une pile Bluetooth occupée par un transfert peut
+         * rester une dizaine de secondes sans rendre la main, et **faucher un
+         * lien vivant est bien pire que d'en garder un mort quelques secondes
+         * de plus** — cela couperait une conversation en cours au moment
+         * précis où elle sert.
+         */
+        private const val SILENCE_MS = 35_000L
+
+        /**
+         * Le pas de la boucle. Plus court que le battement : c'est lui qui
+         * donne la finesse du fauchage, et une seconde de retard sur un départ
+         * se voit à l'écran.
+         */
+        private const val HEARTBEAT_TICK_MS = 2_000L
+
+        /**
          * Fenêtre de contre-pression de bout en bout : 1 fragment sur
          * [ACK_WINDOW] (et le dernier) part en écriture AVEC réponse ATT —
          * le pair doit digérer la fenêtre avant la suivante. Observé sur
@@ -994,6 +1033,21 @@ class ChatEngine(context: Context) {
         var nameAnnounced = false
 
         /**
+         * Quand ce lien a fait entendre quelque chose pour la dernière fois, et
+         * quand on lui a parlé pour la dernière fois. Voir [HEARTBEAT_MS].
+         *
+         * ⚠ `elapsedRealtime` et non `currentTimeMillis` : une horloge murale
+         * peut reculer — mise à l'heure réseau, changement d'heure — et un lien
+         * bien vivant se ferait alors faucher pour un silence qui n'a pas eu
+         * lieu. Le reste du moteur mesure déjà ses durées comme ça.
+         *
+         * Écrits depuis le fil protocole, lus depuis lui seul : pas de barrière
+         * nécessaire ici, contrairement à `pseudo`.
+         */
+        var lastHeardMs = SystemClock.elapsedRealtime()
+        var lastSpokeMs = SystemClock.elapsedRealtime()
+
+        /**
          * Chronos d'un transfert, remis à zéro à chaque départ : temps passé à
          * sceller (Noise, sur le fil protocole) et temps passé à remettre au
          * transport. Les deux se mesurent séparément parce qu'ils se soignent
@@ -1290,6 +1344,7 @@ class ChatEngine(context: Context) {
         startRadio()
         startListener()
         startRfcommListener()
+        startHeartbeat()
         scope.launch {
             while (isActive) {
                 delay(PRUNE_PERIOD_MS)
@@ -1299,6 +1354,48 @@ class ChatEngine(context: Context) {
                     updateMessage(failed.msgId) { it.copy(status = ChatStatus.FAILED) }
                 }
                 maybeResumeRadio()
+            }
+        }
+    }
+
+    /**
+     * **Le battement de vie, et le faucheur.**
+     *
+     * Deux gestes dans la même boucle, parce qu'ils n'ont de sens qu'ensemble :
+     * on ne peut conclure d'un silence que si l'on sait que l'autre aurait
+     * parlé. Voir [HEARTBEAT_MS] pour ce que ça répare.
+     *
+     * ⚠ Tourne sur le **fil protocole** — comme toute coroutine de `scope`,
+     * dont le dispatcher est l'exécuteur à un thread. C'est ce qui autorise à
+     * lire et modifier `links` ici sans aucune synchronisation, exactement
+     * comme le fait la réception.
+     *
+     * ⚠ **On fauche lien par lien, pas personne par personne**, à l'inverse de
+     * l'adieu. Un adieu est une décision : elle vaut pour tout ce que la
+     * personne tenait. Un silence n'est qu'un fait local — une voie peut mourir
+     * pendant qu'une autre tient, et c'est même la raison d'être du double lien
+     * croisé. Quand la dernière tombe, le pair disparaît de lui-même de
+     * [peers] : c'est là que l'écran apprend le départ.
+     */
+    private fun startHeartbeat() = scope.launch {
+        while (isActive) {
+            delay(HEARTBEAT_TICK_MS)
+            val now = SystemClock.elapsedRealtime()
+            // Copie : faucher retire de `links` pendant qu'on le parcourt.
+            links.values.toList().forEach { link ->
+                if (!link.ready) return@forEach
+                when {
+                    now - link.lastHeardMs > SILENCE_MS -> {
+                        Log.i(
+                            TAG,
+                            "${link.address} muet depuis ${(now - link.lastHeardMs) / 1000} s : " +
+                                "lien fauché",
+                        )
+                        removeLink(link.medium, link.kind, link.address)
+                    }
+                    now - link.lastSpokeMs > HEARTBEAT_MS ->
+                        link.control.trySend(ChatFrames.encodePing())
+                }
             }
         }
     }
@@ -2325,6 +2422,9 @@ class ChatEngine(context: Context) {
      */
     private suspend fun writeFrame(link: Link, plain: ByteArray, withResponse: Boolean = false): Boolean {
         val sealStart = SystemClock.elapsedRealtime()
+        // Tout ce qu'on envoie vaut battement : inutile d'en ajouter un
+        // par-dessus une ligne qui parle déjà.
+        link.lastSpokeMs = sealStart
         val frame = seal(link, plain) ?: return false
         val sealed = SystemClock.elapsedRealtime()
         link.sealMs += sealed - sealStart
@@ -2437,6 +2537,12 @@ class ChatEngine(context: Context) {
      * dépend — le lien client de A répond au lien serveur de B, pas l'inverse.
      */
     private fun handleFrame(medium: Medium, kind: LinkKind, from: String, bytes: ByteArray) {
+        // ⚠ **Avant le décodage, et même si la trame est illisible.** Ce qu'on
+        // guette ici n'est pas un message mais un signe de vie : des octets
+        // arrivés prouvent que quelqu'un est au bout, quoi qu'ils disent. Le
+        // faire après le `when` aurait laissé le faucheur emporter un pair
+        // bavard dont on ne comprend pas la version.
+        links[key(medium, kind, from)]?.lastHeardMs = SystemClock.elapsedRealtime()
         when (val frame = ChatFrames.decode(bytes)) {
             null -> Log.w(TAG, "trame illisible de $from (${bytes.size} o)")
             is ChatFrame.Handshake -> onHandshakeFrame(medium, kind, from, frame)
@@ -2467,6 +2573,9 @@ class ChatEngine(context: Context) {
             is ChatFrame.Name -> onNameFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Group -> onGroupFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Ack -> onAck(frame)
+            // Rien à faire : l'avoir reçue EST tout le message, et l'horloge du
+            // lien a déjà été remise à l'heure en entrant.
+            is ChatFrame.Ping -> Unit
             // Le pair ferme sa cabine. On le retire tout de suite plutôt que
             // d'attendre que la radio s'en aperçoive.
             is ChatFrame.Bye -> {
