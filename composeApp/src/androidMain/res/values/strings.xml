@@ -62,7 +62,7 @@
     <string name="chat_follow_publishing">…</string>
     <string name="chat_following">Suivi ✓</string>
     <string name="chat_follow_retry">Réessayer</string>
-    <string name="chat_placeholder">à cette personne, chiffré…</string>
+    <string name="chat_placeholder">chiffré…</string>
     <string name="chat_saved_to_downloads">Enregistré dans Téléchargements</string>
     <string name="chat_save_failed">Échec de l\'enregistrement</string>
 

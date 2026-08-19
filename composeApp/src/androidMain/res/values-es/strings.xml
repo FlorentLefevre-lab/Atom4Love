@@ -32,7 +32,7 @@
     <string name="chat_follow_publishing">…</string>
     <string name="chat_following">Siguiendo ✓</string>
     <string name="chat_follow_retry">Reintentar</string>
-    <string name="chat_placeholder">a esta persona, cifrado…</string>
+    <string name="chat_placeholder">cifrado…</string>
     <string name="chat_saved_to_downloads">Guardado en Descargas</string>
     <string name="chat_save_failed">No se pudo guardar</string>
 

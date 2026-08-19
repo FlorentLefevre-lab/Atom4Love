@@ -170,17 +170,60 @@ object Journal {
         lastMeetings = mutual
     }
 
-    /** Les noyaux attestés, par clé publique hexadécimale. */
+    /**
+     * Les noyaux attestés, par clé publique hexadécimale.
+     *
+     * ⚠ **La ligne d'arrivée se COMPLÈTE quand le nom arrive.** Vu à l'écran le
+     * 19/08 : le journal disait « sans pseudo rejoint la radio » pendant que la
+     * liste des conversations affichait « Flow_tab ». Ce n'était pas un cas
+     * limite mais la règle — le nom voyage dans une trame scellée, donc APRÈS
+     * l'attestation qui fait apparaître le pair. La ligne aurait donc été fausse
+     * pour tout le monde, à chaque fois, et le journal n'aurait jamais nommé
+     * personne.
+     *
+     * On ne réécrit pas l'histoire pour autant : ce qu'on complète est une ligne
+     * **incomplète**, écrite quelques millisecondes plus tôt, sur le même
+     * évènement et pour la même personne. L'heure ne bouge pas, le rang non
+     * plus. Et seulement tant qu'elle est encore là : passée sous la capacité,
+     * ou le pair reparti, plus rien ne se retouche.
+     */
     fun notePeers(present: Map<String, String?>) {
         val before = lastPeers
         present.forEach { (hex, name) ->
-            if (hex !in before) record(Entry.Peer(name, joined = true))
+            if (hex !in before) {
+                val entry = Entry.Peer(name, joined = true)
+                arrivals[hex] = entry.seq
+                record(entry)
+            } else if (lastPeerNames[hex] != name && name != null) {
+                amendArrival(hex, name)
+            }
         }
         before.forEach { hex ->
-            if (hex !in present) record(Entry.Peer(lastPeerNames[hex], joined = false))
+            if (hex !in present) {
+                record(Entry.Peer(lastPeerNames[hex], joined = false))
+                arrivals.remove(hex)
+            }
         }
         lastPeerNames = present
         lastPeers = present.keys
+    }
+
+    /** Où se trouve la ligne d'arrivée de chaque pair, tant qu'elle vit. */
+    private val arrivals = mutableMapOf<String, Long>()
+
+    private fun amendArrival(hex: String, name: String) {
+        val seq = arrivals[hex] ?: return
+        _entries.update { current ->
+            val index = current.indexOfFirst { it.seq == seq }
+            if (index < 0) {
+                current
+            } else {
+                val old = current[index] as? Entry.Peer ?: return@update current
+                current.toMutableList().also {
+                    it[index] = old.copy(name = name)
+                }
+            }
+        }
     }
 
     private var lastPeerNames: Map<String, String?> = emptyMap()
@@ -205,6 +248,7 @@ object Journal {
         lastMeetings = emptySet()
         lastPeers = emptySet()
         lastPeerNames = emptyMap()
+        arrivals.clear()
     }
 
     /**

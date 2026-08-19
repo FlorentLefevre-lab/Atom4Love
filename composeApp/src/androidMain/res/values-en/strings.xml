@@ -31,7 +31,7 @@
     <string name="chat_follow_publishing">…</string>
     <string name="chat_following">Following ✓</string>
     <string name="chat_follow_retry">Retry</string>
-    <string name="chat_placeholder">to this person, encrypted…</string>
+    <string name="chat_placeholder">encrypted…</string>
     <string name="chat_saved_to_downloads">Saved to Downloads</string>
     <string name="chat_save_failed">Could not save</string>
 

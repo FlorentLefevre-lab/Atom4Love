@@ -1,6 +1,8 @@
 package one.astroport.atom4love.journal
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -137,5 +139,45 @@ class JournalTest {
         assertTrue(Journal.entries.value.isEmpty())
         Journal.noteBeacon(false)
         assertEquals(1, Journal.entries.value.size)
+    }
+
+    /**
+     * ⚠ **Le nom arrive TOUJOURS après l'attestation** — il voyage dans une
+     * trame scellée, donc après le handshake qui fait apparaître le pair. Sans
+     * cette reprise, le journal aurait dit « sans pseudo rejoint la radio »
+     * pour tout le monde, à chaque fois, pendant que la liste des conversations
+     * affichait le bon nom deux écrans plus loin. Vu à l'écran le 19/08.
+     */
+    @Test
+    fun `la ligne d'arrivée se complète quand le nom arrive`() {
+        Journal.notePeers(mapOf("aa" to null))
+        assertEquals(1, Journal.entries.value.size)
+        assertNull((Journal.entries.value.single() as Journal.Entry.Peer).name)
+
+        Journal.notePeers(mapOf("aa" to "Flow_tab"))
+        // Une seule ligne, toujours : on complète, on n'en ajoute pas une.
+        assertEquals(1, Journal.entries.value.size)
+        val amended = Journal.entries.value.single() as Journal.Entry.Peer
+        assertEquals("Flow_tab", amended.name)
+        assertTrue(amended.joined)
+    }
+
+    @Test
+    fun `changer de nom en cours de présence ne réécrit pas l'arrivée deux fois`() {
+        Journal.notePeers(mapOf("aa" to "Flow_tab"))
+        Journal.notePeers(mapOf("aa" to "Flower"))
+        assertEquals(1, Journal.entries.value.size)
+        assertEquals("Flower", (Journal.entries.value.single() as Journal.Entry.Peer).name)
+    }
+
+    /** Le départ garde le dernier nom connu, et ferme la reprise. */
+    @Test
+    fun `le départ porte le nom, et rien ne se retouche après`() {
+        Journal.notePeers(mapOf("aa" to "Flow_tab"))
+        Journal.notePeers(emptyMap())
+        assertEquals(2, Journal.entries.value.size)
+        val left = Journal.entries.value.first() as Journal.Entry.Peer
+        assertEquals("Flow_tab", left.name)
+        assertFalse(left.joined)
     }
 }
