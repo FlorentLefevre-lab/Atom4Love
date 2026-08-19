@@ -625,7 +625,8 @@
     <string name="chats_preview_video">un vídeo</string>
     <string name="chats_preview_file">un archivo</string>
     <string name="conv_in_range">al alcance: cifrado de extremo a extremo</string>
-    <string name="conv_out_of_range">fuera de alcance: ya no se puede escribir</string>
+    <string name="conv_out_of_range">fuera de alcance</string>
+    <string name="conv_gone">%1$s se ha ido. La conversación se reanudará sola en cuanto vuelva al alcance.</string>
 
     <string name="tab_chats">Chats</string>
     <string name="tab_world">Mundo</string>
@@ -645,4 +646,7 @@
         <item quantity="one">Un mensaje le espera.</item>
         <item quantity="other">%1$d mensajes le esperan.</item>
     </plurals>
+    <string name="chat_channel_name">Mensajes</string>
+    <string name="chat_channel_description">Cuando un mensaje le espera en una conversación. Ni quién escribe ni lo que escribe: la barra de estado se lee por encima del hombro.</string>
+    <string name="chat_notification_title">Atom4Love</string>
 </resources>

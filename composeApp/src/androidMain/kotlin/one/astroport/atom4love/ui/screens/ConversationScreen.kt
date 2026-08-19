@@ -44,9 +44,11 @@ import one.astroport.atom4love.domain.Questions
 import one.astroport.atom4love.nostr.Contacts
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.ui.components.StatusDot
+import one.astroport.atom4love.ui.components.glass
 import one.astroport.atom4love.ui.components.screenBackground
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
+import one.astroport.atom4love.ui.theme.tint
 
 /**
  * 💬 Une conversation — deux personnes, et rien qui les déborde.
@@ -246,6 +248,41 @@ fun ConversationScreen(
                 FollowChip(
                     state = follows[conversation.peerHex],
                     onClick = { contacts.follow(keys, conversation.peerHex) },
+                )
+            }
+        }
+
+        // ── Il est parti, et ça se dit ────────────────────────────────────
+        //
+        // ⚠ **Une ligne à part, pas seulement un sous-titre.** Le départ se
+        // lisait dans les deux mots sous le nom — « hors de portée » — et dans
+        // une pastille qui s'éteint. C'est exact et c'est trop discret : quand
+        // on écrit à quelqu'un, on ne relit pas l'en-tête, on regarde le bas de
+        // l'écran, et la saisie qui se ferme ressemble à une panne plutôt qu'à
+        // un départ.
+        //
+        // ⚠ Et elle porte la **promesse de reprise**, qui est la moitié la plus
+        // importante : rien n'est fini, rien n'est perdu, le fil se rouvre tout
+        // seul dès que la radio le retrouve. Sans elle, l'écran annonce une
+        // rupture là où il n'y a qu'une porte franchie.
+        if (!conversation.inRange) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, bottom = 8.dp)
+                    .glass(12.dp, A4L.Amber.tint(0.08f), A4L.Amber.tint(0.28f))
+                    .padding(horizontal = 14.dp, vertical = 11.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StatusDot(A4L.Amber)
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    stringResource(
+                        R.string.conv_gone,
+                        conversation.name ?: stringResource(R.string.chat_from_unnamed),
+                    ),
+                    style = A4LText.Caption,
+                    color = A4L.TextBody,
                 )
             }
         }

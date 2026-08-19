@@ -620,7 +620,8 @@
     <string name="chats_preview_video">a video</string>
     <string name="chats_preview_file">a file</string>
     <string name="conv_in_range">in range — end-to-end encrypted</string>
-    <string name="conv_out_of_range">out of range — you can no longer write</string>
+    <string name="conv_out_of_range">out of range</string>
+    <string name="conv_gone">%1$s has left. The conversation will resume on its own as soon as they are back in range.</string>
 
     <string name="tab_chats">Chats</string>
     <string name="tab_world">World</string>
@@ -640,4 +641,7 @@
         <item quantity="one">A message is waiting for you.</item>
         <item quantity="other">%1$d messages are waiting for you.</item>
     </plurals>
+    <string name="chat_channel_name">Messages</string>
+    <string name="chat_channel_description">When a message is waiting in a conversation. Neither who wrote it nor what it says: the status bar is read over your shoulder.</string>
+    <string name="chat_notification_title">Atom4Love</string>
 </resources>

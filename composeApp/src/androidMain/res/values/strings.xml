@@ -728,7 +728,8 @@
     <string name="chats_preview_video">une vidéo</string>
     <string name="chats_preview_file">un fichier</string>
     <string name="conv_in_range">à portée — chiffré de bout en bout</string>
-    <string name="conv_out_of_range">hors de portée — on ne peut plus écrire</string>
+    <string name="conv_out_of_range">hors de portée</string>
+    <string name="conv_gone">%1$s est parti·e. La conversation reprendra d\'elle-même dès son retour à portée.</string>
 
     <string name="tab_chats">Chats</string>
     <string name="tab_world">Monde</string>
@@ -748,4 +749,7 @@
         <item quantity="one">Un message vous attend.</item>
         <item quantity="other">%1$d messages vous attendent.</item>
     </plurals>
+    <string name="chat_channel_name">Messages</string>
+    <string name="chat_channel_description">Quand un message vous attend dans une conversation. Ni le nom de qui écrit, ni ce qui est écrit : la barre d\'état se lit par-dessus votre épaule.</string>
+    <string name="chat_notification_title">Atom4Love</string>
 </resources>

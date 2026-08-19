@@ -66,6 +66,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import android.util.Log
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -108,6 +109,7 @@ import one.astroport.atom4love.trial.TrialStore
 import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.chat.Conversations
+import one.astroport.atom4love.chat.UnreadNotifier
 import one.astroport.atom4love.journal.Journal
 import one.astroport.atom4love.journal.JournalRecorder
 import one.astroport.atom4love.ui.screens.BoardScreen
@@ -795,6 +797,38 @@ private fun Station(
             conversation.messages.count { !it.mine && it.atMs > since }
         }
     }
+    // ── Ce que dit la barre d'état quand l'application n'est pas là ───────
+    //
+    // ⚠ **Seulement quand elle n'est PAS à l'écran.** Une notification système
+    // par-dessus un bandeau qui dit déjà la même chose ferait sonner le
+    // téléphone qu'on tient en main. Le suivi du premier plan passe par le
+    // cycle de vie plutôt que par un drapeau posé à la main : `repeatOnLifecycle`
+    // le lève à l'entrée et le baisse à la sortie, y compris quand l'activité
+    // meurt sans prévenir.
+    val unreadNotifier = remember(context) { UnreadNotifier(context.applicationContext) }
+    var foreground by remember { mutableStateOf(true) }
+    LaunchedEffect(lifecycleOwner) {
+        unreadNotifier.ensureChannel()
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            foreground = true
+            try {
+                awaitCancellation()
+            } finally {
+                foreground = false
+            }
+        }
+    }
+    // ⚠ La notification **suit la pastille**, elle ne la double pas : tant qu'il
+    // reste quelque chose à lire elle tient, et elle tombe à la lecture. Revenir
+    // à l'application sans lire ne l'efface donc pas — le message attend
+    // toujours, et c'est ce qu'elle dit.
+    LaunchedEffect(unreadTotal, foreground) {
+        when {
+            unreadTotal == 0 -> unreadNotifier.clear()
+            !foreground -> unreadNotifier.waiting(unreadTotal)
+        }
+    }
+
     // L'invitation ne se lève qu'au PASSAGE de zéro à un : elle dit « il y a
     // quelque chose », pas « il y en a un de plus ». Un bandeau qui se relève à
     // chaque message ferait de la conversation un harcèlement.
