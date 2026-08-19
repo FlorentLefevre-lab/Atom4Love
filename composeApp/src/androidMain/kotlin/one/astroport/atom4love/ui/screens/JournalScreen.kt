@@ -179,7 +179,7 @@ private fun Journal.Entry.render(): Pair<androidx.compose.ui.graphics.Color, Str
     }
 
     is Journal.Entry.Cell -> if (cell4d != null) {
-        A4L.Mint to stringResource(R.string.journal_cell, cellLabel(cell4d))
+        A4L.Mint to stringResource(R.string.journal_cell, cellHex(cell4d))
     } else {
         // Ce n'est pas une panne : la balise annonce une présence, simplement
         // sans position. La couleur le dit — ambre, pas rouge.
@@ -222,5 +222,8 @@ private fun Journal.Entry.render(): Pair<androidx.compose.ui.graphics.Color, Str
 private fun sealName(glyph: Int?): String =
     KinMaya.glyphName(glyph) ?: stringResource(R.string.board_no_seal)
 
-/** L'adresse 4D, en hexadécimal — la même écriture que sur le Plateau. */
-private fun cellLabel(cell: Long): String = java.lang.Long.toHexString(cell)
+// ⚠ **La même fonction que le Plateau, pas une seconde qui lui ressemble.**
+// Celle d'ici écrivait `Long.toHexString` brut : le journal disait
+// `881fb5b861fffff` pendant que la balise, deux écrans plus loin, disait
+// `881FB5B861` de la même cellule. Vu à l'écran le 19/08. Une adresse qu'on
+// compare d'un appareil à l'autre ne peut pas avoir deux orthographes.

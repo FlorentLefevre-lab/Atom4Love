@@ -90,6 +90,19 @@ object Journal {
     private fun next(): Long = sequence.incrementAndGet()
 
     // ── Les transitions, retenues ici et non dans la composition ───────────
+    //
+    // ⚠ **La première observation ensemence, elle n'écrit pas.** Vu à l'écran le
+    // 19/08 : au lancement, le journal s'ouvrait sur « Balise éteinte », « Relais
+    // perdu », « Présence annoncée sans position » — puis, deux secondes plus
+    // tard, les trois lignes inverses. Six lignes pour dire « l'application
+    // démarre », et les trois premières étaient les valeurs par défaut des flux,
+    // pas des évènements.
+    //
+    // Une valeur initiale n'est pas une transition. On la retient en silence, et
+    // seul ce qui change ensuite s'inscrit. Ce que ça ne cache pas : une balise
+    // qui reste éteinte se lit sur le Plateau, en tête, dans la ligne qui porte
+    // le geste pour l'allumer — c'est là que ça doit se dire, pas dans une
+    // fenêtre qui raconte ce qui se passe.
     private var lastBeacon: Boolean? = null
     private var lastCell: Long? = null
     private var lastCellKnown = false
@@ -100,21 +113,28 @@ object Journal {
 
     fun noteBeacon(on: Boolean) {
         if (lastBeacon == on) return
+        val first = lastBeacon == null
         lastBeacon = on
-        record(Entry.Beacon(on))
+        if (!first) record(Entry.Beacon(on))
     }
 
     fun noteCell(cell4d: Long?) {
         if (lastCellKnown && lastCell == cell4d) return
+        val first = !lastCellKnown
         lastCellKnown = true
         lastCell = cell4d
-        record(Entry.Cell(cell4d))
+        // ⚠ Une exception à l'ensemencement muet, et une seule : une cellule
+        // **connue** dès la première observation mérite sa ligne. C'est une
+        // information — voilà l'hexagone où vous êtes —, là où son absence n'est
+        // que l'état de départ de tout le monde.
+        if (!first || cell4d != null) record(Entry.Cell(cell4d))
     }
 
     fun noteRelay(online: Boolean) {
         if (lastRelay == online) return
+        val first = lastRelay == null
         lastRelay = online
-        record(Entry.Relay(online))
+        if (!first) record(Entry.Relay(online))
     }
 
     /**

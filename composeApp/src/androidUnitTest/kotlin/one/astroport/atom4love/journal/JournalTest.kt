@@ -19,14 +19,44 @@ class JournalTest {
     @Before
     fun clean() = Journal.clear()
 
+    /**
+     * ⚠ Vu à l'écran le 19/08 : au lancement, le journal s'ouvrait sur « Balise
+     * éteinte », « Relais perdu », « Présence annoncée sans position », puis les
+     * trois lignes inverses deux secondes plus tard. Six lignes pour dire que
+     * l'application démarre — et les trois premières n'étaient pas des
+     * évènements, c'étaient les valeurs par défaut des flux.
+     */
+    @Test
+    fun `la première observation ensemence sans écrire`() {
+        Journal.noteBeacon(false)
+        Journal.noteRelay(false)
+        assertTrue(Journal.entries.value.isEmpty())
+    }
+
     @Test
     fun `la balise ne s'inscrit que sur un vrai changement`() {
+        Journal.noteBeacon(false) // l'état de départ : muet
         Journal.noteBeacon(true)
         Journal.noteBeacon(true)
         Journal.noteBeacon(true)
         assertEquals(1, Journal.entries.value.size)
         Journal.noteBeacon(false)
         assertEquals(2, Journal.entries.value.size)
+    }
+
+    /**
+     * L'exception à l'ensemencement muet, et la seule : une cellule **connue**
+     * dès la première observation est une information — voilà l'hexagone où
+     * vous êtes —, là où son absence n'est que l'état de départ de tout le monde.
+     */
+    @Test
+    fun `une cellule connue d'emblée s'inscrit, son absence non`() {
+        Journal.noteCell(null)
+        assertTrue(Journal.entries.value.isEmpty())
+
+        Journal.clear()
+        Journal.noteCell(0x881fb5b861fffffL)
+        assertEquals(1, Journal.entries.value.size)
     }
 
     @Test
@@ -74,6 +104,8 @@ class JournalTest {
 
     @Test
     fun `le plus récent est en tête`() {
+        Journal.noteBeacon(false)
+        Journal.noteRelay(false)
         Journal.noteBeacon(true)
         Journal.noteRelay(true)
         assertTrue(Journal.entries.value.first() is Journal.Entry.Relay)
@@ -94,9 +126,16 @@ class JournalTest {
      */
     @Test
     fun `l'effacement remet la mémoire à zéro, pas seulement les lignes`() {
+        Journal.noteBeacon(false)
         Journal.noteBeacon(true)
+        assertEquals(1, Journal.entries.value.size)
         Journal.clear()
+        // La mémoire est vide : « allumée » redevient un état de départ, donc
+        // muet. Sans la remise à zéro, elle serait restée « déjà allumée » et
+        // la première ligne du noyau suivant aurait manqué.
         Journal.noteBeacon(true)
+        assertTrue(Journal.entries.value.isEmpty())
+        Journal.noteBeacon(false)
         assertEquals(1, Journal.entries.value.size)
     }
 }

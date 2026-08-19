@@ -305,11 +305,25 @@ fun WorldMap(
     // centré sur l'équateur. La clé de l'effet est `box` et non `Unit` : la vue
     // se mesure après la première composition, et un cadrage calculé sur une
     // taille nulle plaçait la carte n'importe où.
+    // ⚠ **Le plancher se recalcule ICI, il ne se capture pas.**
+    //
+    // Mesuré sur la tablette le 19/08, et c'est une course que rien hors de
+    // l'appareil ne montre. `box` est un état : lu dans le corps de l'effet, il
+    // rend la valeur du moment où la coroutine démarre — après la mise en page,
+    // donc 1140×1140. `minScale`, lui, est un `val` de composition, **capturé**
+    // quand l'effet a été créé — c'est-à-dire à la composition précédente, où
+    // `box` valait encore zéro et où le plancher valait donc 1. La garde
+    // `box.width > 0f` passait avec la nouvelle valeur, le cadrage se posait
+    // avec l'ancienne, et la carte s'ouvrait sur le monde entier. La
+    // recomposition suivante avait bien 6,67 — mais `pan` était déjà posé, et
+    // elle renonçait.
+    //
+    // Les deux lectures viennent maintenant de la même source, au même instant.
     LaunchedEffect(box) {
-        if (box.width > 0f && !pan.isSpecified) {
-            scale = minScale
-            pan = centreOn(Frame.centre, minScale)
-        }
+        if (box.width <= 0f || pan.isSpecified) return@LaunchedEffect
+        val floor = Frame.fitScale(box.height / box.width)
+        scale = floor
+        pan = centreOn(Frame.centre, floor)
     }
 
     // Se porter quelque part : sur soi, ou sur quelqu'un qu'on vient de toucher
