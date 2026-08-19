@@ -432,10 +432,19 @@ réalisables sans connaître l'ensemble du système.
      caractérisation de la portée RSSI, tests unitaires sur l'encodeur H3, relecture des
      traductions es/en, accessibilité du Plateau. -->
 
-     <img alt="open collective badge" src="https://opencollective.com/atom4love/tiers/mode-lover/badge.svg?label=En%20mode%20%22FRIEND%22&color=brightgreen" />
-     <img alt="open collective badge" src="https://opencollective.com/atom4love/tiers/atom4love-extension-zen/badge.svg?label=En%20mode%20%22LOVER%22&color=brightgreen" />
-     <img alt="open collective badge" src="https://opencollective.com/atom4love/tiers/en-mode-super-lover/badge.svg?label=En%20mode%20%22SUPER%20LOVER%22&color=brightgreen" />
 
+<p align="center">
+  <a href="https://opencollective.com/atom4love/contribute/mode-lover-104989/checkout">
+    <img alt="Tier FRIEND sur Open Collective" src="https://opencollective.com/atom4love/tiers/mode-lover/badge.svg?label=En%20mode%20%22FRIEND%22&amp;color=brightgreen" />
+  </a>
+  <a href="https://opencollective.com/atom4love/contribute/atom4love-extension-zen-104988/checkout">
+    <img alt="Tier LOVER sur Open Collective" src="https://opencollective.com/atom4love/tiers/atom4love-extension-zen/badge.svg?label=En%20mode%20%22LOVER%22&amp;color=brightgreen" />
+  </a>
+  <a href="https://opencollective.com/atom4love/contribute/en-mode-super-lover-104990/checkout">
+    <img alt="Tier SUPER LOVER sur Open Collective" src="https://opencollective.com/atom4love/tiers/en-mode-super-lover/badge.svg?label=En%20mode%20%22SUPER%20LOVER%22&amp;color=brightgreen" />
+  </a>
+</p>
+  
 **Discussion.** Salons dédiés sur WhatsApp et Telegram…
 
 ---
