@@ -432,6 +432,7 @@ réalisables sans connaître l'ensemble du système.
      caractérisation de la portée RSSI, tests unitaires sur l'encodeur H3, relecture des
      traductions es/en, accessibilité du Plateau. -->
 
+## Nous soutenir
 
 <p align="center">
   <a href="https://opencollective.com/atom4love/contribute/mode-lover-104989/checkout">
@@ -444,8 +445,9 @@ réalisables sans connaître l'ensemble du système.
     <img alt="Tier SUPER LOVER sur Open Collective" src="https://opencollective.com/atom4love/tiers/en-mode-super-lover/badge.svg?label=En%20mode%20%22SUPER%20LOVER%22&amp;color=brightgreen" />
   </a>
 </p>
-  
-**Discussion.** Salons dédiés sur WhatsApp et Telegram…
+
+## Communauté
+**Discussion.** : Salons dédiés sur WhatsApp et Telegram…
 
 ---
 
