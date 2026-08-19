@@ -1,14 +1,7 @@
 package one.astroport.atom4love.ui
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
-import androidx.compose.material3.Icon
-import one.astroport.atom4love.ui.components.icon
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.StringRes
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -80,10 +73,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import one.astroport.atom4love.BuildConfig
-import one.astroport.atom4love.chat.CabinChat
+import one.astroport.atom4love.chat.ChatEngine
 import one.astroport.atom4love.chat.Medium
-import one.astroport.atom4love.chat.net.P2pGroup
 import one.astroport.atom4love.data.BodyStore
+import one.astroport.atom4love.data.Pseudo
+import one.astroport.atom4love.data.PseudoStore
 import one.astroport.atom4love.data.LoveKeyStore
 import one.astroport.atom4love.data.IncarnationStore
 import one.astroport.atom4love.data.MultipassAccount
@@ -96,7 +90,7 @@ import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.multipass.Enrollment
 import one.astroport.atom4love.multipass.MultipassService
 import one.astroport.atom4love.nostr.Bech32
-import one.astroport.atom4love.nostr.CabinSalon
+import one.astroport.atom4love.nostr.HexagonSalon
 import one.astroport.atom4love.nostr.Certificate
 import one.astroport.atom4love.nostr.Contacts
 import one.astroport.atom4love.nostr.LocalRelayScout
@@ -109,62 +103,98 @@ import one.astroport.atom4love.nostr.Welcome
 import one.astroport.atom4love.nostr.WelcomeNotifier
 import one.astroport.atom4love.data.WelcomeStore
 import one.astroport.atom4love.proximity.ProximityService
+import one.astroport.atom4love.trial.Trial
+import one.astroport.atom4love.trial.TrialStore
 import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.components.StatusDot
+import one.astroport.atom4love.chat.Conversations
+import one.astroport.atom4love.journal.Journal
+import one.astroport.atom4love.journal.JournalRecorder
 import one.astroport.atom4love.ui.screens.BoardScreen
+import one.astroport.atom4love.ui.screens.ChatsScreen
+import one.astroport.atom4love.ui.screens.ConversationScreen
+import one.astroport.atom4love.ui.screens.JournalScreen
+import one.astroport.atom4love.ui.screens.MapScreen
+import one.astroport.atom4love.ui.screens.RadioSection
+import one.astroport.atom4love.ui.screens.WorldLocked
 import one.astroport.atom4love.ui.screens.HelpScreen
 import one.astroport.atom4love.ui.screens.SettingsScreen
-import one.astroport.atom4love.ui.screens.CabinDestination
 import one.astroport.atom4love.ui.screens.IncarnationScreen
 import one.astroport.atom4love.ui.screens.MultipassScreen
-import one.astroport.atom4love.ui.screens.PlaceView
 import one.astroport.atom4love.ui.screens.SPLASH_HOLD_MS
 import one.astroport.atom4love.R
 import one.astroport.atom4love.ui.screens.SplashScreen
-import one.astroport.atom4love.ui.screens.StationScreen
+import one.astroport.atom4love.ui.screens.TrialWall
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 import one.astroport.atom4love.ui.theme.tint
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.AlertDialog
 
 /**
- * Les deux destinations de la barre du bas : dehors, et soi.
+ * Les quatre destinations de la barre du bas — **ici, à qui, ailleurs, soi**.
  *
- * Il y en avait six. Quatre sont parties, chacune pour une raison différente :
- * - **Radar** et **Constellation** n'étaient pas deux endroits mais deux façons
- *   de regarder qui est là — elles sont les deux segments de [A4LTab.Map]
- *   (`StationScreen`).
- * - **Aide** et **Réglages** ne sont pas des lieux, ce sont des poignées : elles
- *   vivent dans la ligne d'en-tête, à côté du thème et des langues.
- * - **Plateau** a repris sa place au milieu depuis qu'un sceau à portée l'allume.
- * - **Résonance** montrait trois liaisons écrites en dur. Elle a longtemps
- *   attendu dans le dépôt d'avoir de vraies liaisons à montrer ; **supprimée le
- *   15/08** avec le reste du code mort — une maquette qu'on ne peut pas
- *   atteindre n'attend rien, elle encombre. `git` la garde si elle revient.
+ * ## Comment on en est arrivé là
+ *
+ * Il y en a eu six, puis trois, et l'histoire de chaque départ vaut d'être
+ * gardée : **Aide** et **Réglages** ne sont pas des lieux mais des poignées, et
+ * vivent dans la ligne d'en-tête ; **Résonance** montrait trois liaisons écrites
+ * en dur et a été supprimée le 15/08 faute d'en avoir de vraies ; **Radar** et
+ * **Constellation** avaient été réunies sous une seule entrée « Carte », à deux
+ * segments — ici, et le monde.
+ *
+ * Ce dernier arrangement est celui qui vient de tomber, et pour deux raisons
+ * indépendantes qui pointaient dans le même sens.
+ *
+ * **Le monde est un onglet, pas un segment.** Il est fermé tant qu'une station
+ * n'a pas activé la clé LOVE, et un segment fermé au milieu d'un écran ne se
+ * voit pas : il faut d'abord aller sur la Carte pour découvrir qu'il existe une
+ * porte, et qu'elle est close. Un onglet **cadenassé dans la barre** est visible
+ * en permanence, depuis n'importe où — on sait que le monde existe avant d'avoir
+ * voulu y entrer, ce qui est exactement l'intention d'origine.
+ *
+ * **Le Radar n'était pas un lieu.** Retirée sa liste de résonances — qui était
+ * le Plateau, en moins bien —, il ne restait qu'un état d'appareil et trois
+ * compteurs. Ça se met en tête de ce que ça conditionne ; c'est aujourd'hui
+ * [one.astroport.atom4love.ui.screens.RadioSection], au sommet du Plateau.
+ *
+ * La place ainsi libérée revient à ce qui n'en avait aucune : **les
+ * conversations**. Elles vivaient dans une destination sans onglet, qu'on
+ * atteignait par une rangée au fond d'un écran — c'est-à-dire que la chose pour
+ * laquelle on ouvre cette application était le seul endroit qu'on ne pouvait pas
+ * désigner du pouce.
+ *
+ * ## L'ordre, qui n'est pas libre
+ *
+ * Du plus proche au plus lointain, et soi en bout : ce qui est **ici**, ceux à
+ * **qui** l'on parle, ce qui se passe **ailleurs**, et **soi**. C'est le même
+ * mouvement que les trois compteurs du Plateau, et il place le Plateau — celui
+ * qu'on ouvre en entrant dans une salle — sous le pouce, à gauche.
  */
 enum class A4LTab(
     /** L'emoji reste en dur : un pictogramme n'est d'aucune langue. */
     val icon: String,
     @StringRes val labelRes: Int,
 ) {
-    Map("🌍", R.string.tab_map),
-
     /**
-     * Le Plateau, **au milieu** : le lieu, ceux qui y sont, soi — du dehors
-     * vers le dedans, et la meilleure place du pouce pour l'échelon qu'on veut
-     * voir monter.
-     *
-     * Il était sorti de la barre parce qu'« il n'a pas de partie, et un onglet
-     * promet un lieu où l'on revient ». Il en a une depuis qu'un sceau à portée
-     * l'allume. Sa place est **tenue en permanence** et non ajoutée à l'arrivée
-     * d'un voisin : une barre qui passe de deux à trois entrées déplacerait les
-     * deux autres sous le pouce, au moment précis où quelqu'un entre dans la
-     * pièce. Elle s'éteint, elle ne disparaît pas.
+     * Le Plateau : la radio, les cartes à portée, et le geste qui part en
+     * chercher une. C'est l'écran d'entrée — celui qu'on ouvre en poussant la
+     * porte d'un café.
      */
     Board("🎴", R.string.tab_board),
+
+    /** À qui l'on parle. Voir [one.astroport.atom4love.ui.screens.ChatsScreen]. */
+    Chats("💬", R.string.tab_chats),
+
+    /**
+     * Le monde, **sous cadenas jusqu'au MULTIPASS**.
+     *
+     * ⚠ Sa place est tenue en permanence, fermée ou non — jamais ajoutée au
+     * moment de l'activation. Une barre qui passe de trois à quatre entrées
+     * déplacerait les trois autres sous le pouce, et le ferait précisément
+     * pendant que quelqu'un lit l'écran qui vient de s'ouvrir.
+     */
+    World("🌍", R.string.tab_world),
+
+    /** Soi : la fiche scellée, le nom, la porte d'Astroport.ONE. */
     Nucleus("⚛", R.string.tab_nucleus),
     ;
 
@@ -175,8 +205,9 @@ enum class A4LTab(
      */
     val accent: Color
         @Composable @ReadOnlyComposable get() = when (this) {
-            Map -> A4L.Mint
             Board -> A4L.Violet
+            Chats -> A4L.Mint
+            World -> A4L.Indigo
             Nucleus -> A4L.Cyan
         }
 }
@@ -234,11 +265,9 @@ private fun Station(
     // Premier lancement : fiche entièrement vierge — aucune donnée d'exemple.
     var birth by remember { mutableStateOf(restored?.birth ?: BirthData.Empty) }
     var forged by remember { mutableStateOf(restored?.forged ?: false) }
-    var tab by rememberSaveable { mutableStateOf(A4LTab.Map) }
-    // La Carte s'ouvre sur ce qui est à portée : c'est là qu'on vit. Le monde
-    // n'est l'accueil qu'une fois, au sortir de la forge — voir la constellation
-    // où l'on ne figure pas encore est ce qui donne envie d'y entrer.
-    var place by rememberSaveable { mutableStateOf(PlaceView.Here) }
+    var tab by rememberSaveable { mutableStateOf(A4LTab.Board) }
+    // ⚠ `place` vivait ici : le segment Ici|Monde de l'ancienne Carte. Les deux
+    // segments sont devenus deux onglets, il n'y a plus de vue à retenir.
 
     // ── Le compte Astroport.ONE, s'il y en a un ───────────────────────────
     val context = LocalContext.current
@@ -250,6 +279,12 @@ private fun Station(
     val bodyStore = remember { BodyStore(context.applicationContext) }
     var body by remember { mutableStateOf(BodyMetrics.Empty) }
     LaunchedEffect(Unit) { body = bodyStore.load() }
+    // Le nom qu'on se donne. Même vie que le corps : son propre magasin, chargé
+    // après coup, et rien au démarrage n'en dépend — ni la clé, ni l'antenne,
+    // ni la balise. Le splash n'a donc pas à l'attendre.
+    val pseudoStore = remember { PseudoStore(context.applicationContext) }
+    var pseudo by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) { pseudo = pseudoStore.load() }
     val multipassStore = remember { MultipassStore(context.applicationContext) }
     val enrollment = remember {
         Enrollment(scope, MultipassService(BuildConfig.ASTROPORT_USPOT), multipassStore)
@@ -330,7 +365,7 @@ private fun Station(
     val relay = remember { RelayStation(scope, scout = scout) }
     // Le salon de cabine suit la même vie que l'antenne : il n'échange que
     // par le relais local, jamais par les relais publics.
-    val salon = remember { CabinSalon(scope, relay.localRelay) }
+    val salon = remember { HexagonSalon(scope, relay.localRelay) }
 
     // ── La veille de la constellation ─────────────────────────────────────
     //
@@ -417,6 +452,7 @@ private fun Station(
     }
     val relayStatus by relay.status.collectAsState()
 
+
     // ── La cabine, au-dessus des onglets ──────────────────────────────────
     // Elle vivait dans l'écran Radar : changer d'onglet détruisait le moteur et
     // effaçait la conversation sans que personne ne l'ait fermée. En la logeant
@@ -425,20 +461,148 @@ private fun Station(
     //
     // Le moteur ne vit plus dans la composition : elle le fermait sans que
     // personne ne l'ait demandé dès que l'activité se recréait (rotation,
-    // thème, langue, fenêtres partagées). C'est [CabinHost] qui le tient
+    // thème, langue, fenêtres partagées). C'est [ChatHost] qui le tient
     // désormais, et l'ouverture comme la fermeture y sont des gestes.
-    val cabinHost: CabinHost = viewModel()
+    val cabinHost: ChatHost = viewModel()
     val cabin = cabinHost.chat
     val cabinOpen = cabinHost.open
-    // Ouverte et **affichée** sont deux choses. Le retour système quitte la
-    // destination sans fermer la cabine ; celle-ci continue de tenir ses liens,
-    // et l'on y revient par la rangée du radar.
-    var cabinShown by rememberSaveable { mutableStateOf(false) }
+    /**
+     * ⚠ **La radio n'a plus de geste d'ouverture, et c'est le changement le
+     * plus profond de cette refonte.**
+     *
+     * La cabine s'ouvrait : on touchait une rangée, les liens se nouaient, une
+     * salle s'ouvrait, et la refermer effaçait tout. Ce geste portait une
+     * promesse — rien ne se garde — mais il portait aussi un malentendu : tant
+     * que personne ne l'avait fait, **personne n'était joignable**, et deux
+     * personnes dans la même pièce pouvaient s'être cherchées sans qu'aucune
+     * radio ne se parle. « Il faut que l'autre ait ouvert sa cabine » était
+     * écrit dans l'aide ; c'est le genre de phrase qu'on n'a pas le droit
+     * d'écrire.
+     *
+     * Depuis que chaque personne a son fil, il n'y a plus rien à ouvrir : la
+     * radio parle dès que la clé existe et que le Bluetooth est accordé — les
+     * deux mêmes conditions que la balise, demandées dans le même dialogue. La
+     * promesse, elle, ne bouge pas : elle est devenue un geste au bas des
+     * conversations, là où l'on voit ce qu'on efface.
+     */
+    val beaconRunning by ProximityService.running.collectAsStateWithLifecycle()
+    LaunchedEffect(keys, beaconRunning) {
+        if (keys != null && ChatEngine.permissionsGranted(context)) cabinHost.open(keys)
+    }
+
+    /**
+     * La position du moment.
+     *
+     * Elle sert à deux choses qui n'ont rien à voir : rattacher un compte à une
+     * UMAP au moment de l'inscription, et savoir si l'on a quitté le lieu de la
+     * forge ([Trial]). Une seule lecture pour les deux — remonter le locator
+     * jusqu'ici évite qu'un écran en fabrique un second.
+     */
+    suspend fun currentCoords(): Pair<Double?, Double?> {
+        val fix = CellLocator(context.applicationContext).currentFix()
+        return fix?.lat to fix?.lon
+    }
+
+    // ── La période d'essai ────────────────────────────────────────────────
+    //
+    // ⚠ **Elle décide du seul moment où l'application réclame quelque chose.**
+    // Tout le reste est proposé et refusable ; cette porte-là se referme. Voir
+    // [one.astroport.atom4love.trial.Trial] pour la règle et ce qu'elle ne fait
+    // pas — notamment : sans position, la proposition ne vient jamais.
+    val trialStore = remember { TrialStore(context.applicationContext) }
+    var trialOrigin by remember { mutableStateOf<Trial.Origin?>(null) }
+    var trialDeclined by remember { mutableStateOf(false) }
+    LaunchedEffect(forged) {
+        if (!forged) {
+            trialOrigin = null
+            trialDeclined = false
+            return@LaunchedEffect
+        }
+        trialOrigin = trialStore.origin()
+        trialDeclined = trialStore.declined()
+    }
+    // Le départ se pose au premier lancement suivant la forge, et se **complète**
+    // dès que la position se résout : la forge arrive souvent avant le premier
+    // fix. [TrialStore.begin] ne déplace jamais la date — sinon chaque fix
+    // repousserait l'horloge et la proposition n'arriverait jamais.
+    LaunchedEffect(forged, trialOrigin?.lat) {
+        if (!forged) return@LaunchedEffect
+        if (trialOrigin?.lat != null) return@LaunchedEffect
+        val (lat, lon) = currentCoords()
+        trialStore.begin(lat, lon, System.currentTimeMillis())
+        trialOrigin = trialStore.origin()
+    }
+    // ⚠ **Une seule évaluation, à l'ouverture** — et non une veille continue.
+    // Le déclencheur est « la personne revient à l'application après être
+    // partie » : le regarder en permanence ferait surgir un formulaire de compte
+    // pendant qu'elle marche, ce qui est exactement le mauvais moment. La clé
+    // `forged` suffit : la composition se refait au lancement.
+    var trialDue by remember { mutableStateOf(false) }
+    LaunchedEffect(forged, trialOrigin, worldUnlocked) {
+        if (!forged || worldUnlocked || trialOrigin == null) return@LaunchedEffect
+        val (lat, lon) = currentCoords()
+        trialDue = Trial.isDue(trialOrigin, lat, lon, System.currentTimeMillis())
+    }
+    // La proposition s'ouvre d'elle-même, une fois. La refuser ferme le MULTIPASS
+    // ET pose le mur ; l'accepter mène au formulaire, et c'est le coffre du
+    // compte qui fera foi ensuite.
+    LaunchedEffect(trialDue, trialDeclined) {
+        if (trialDue && !trialDeclined && overlay == Overlay.None) {
+            overlay = Overlay.Multipass
+        }
+    }
+    // L'essai est fini et la porte a été refusée : le mur couvre tout, sauf le
+    // Noyau. On ne prend jamais quelqu'un en otage de ses propres données.
+    val walled = forged && trialDue && trialDeclined && !worldUnlocked
+
+    // ── Le journal ────────────────────────────────────────────────────────
+    //
+    // Monté ici, une fois, au-dessus des onglets : il doit écrire même quand
+    // personne ne le regarde. Le poser dans son propre écran ne l'aurait rempli
+    // que pendant qu'on le lit — c'est-à-dire jamais avec ce qui vient de se
+    // passer.
+    JournalRecorder(chat = cabin, relayOnline = relayStatus.online)
+
+    /** Le fil ouvert en plein écran, null quand on est dans la liste. */
+    var openPeer by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // ── Les conversations, rangées par personne ───────────────────────────
+    //
+    // Dérivées, jamais stockées : le moteur tient une liste de messages et une
+    // liste de pairs, et un message porte la clé de son correspondant. Voir
+    // [one.astroport.atom4love.chat.Conversations] pour ce que ce choix coûte et
+    // rapporte.
+    val cabinPeers by cabin.peers.collectAsStateWithLifecycle()
+    val cabinMessages by cabin.messages.collectAsStateWithLifecycle()
+    /**
+     * Ceux qu'on a retenus depuis le Monde — voir [Conversations.of].
+     *
+     * ⚠ En mémoire, comme le reste des conversations : ce qui ne se garde pas
+     * ne se garde nulle part, y compris la liste de qui l'on a voulu joindre.
+     * Un fichier de gens retenus serait un carnet d'adresses, c'est-à-dire
+     * exactement la chose que « tout s'efface » promet de ne pas être. Ce qui
+     * se garde vraiment existe déjà et se dit : c'est **Suivre**, qui écrit un
+     * kind 3 signé sur le relais et qu'on décide ligne par ligne.
+     */
+    var pinnedPeers by rememberSaveable { mutableStateOf(emptySet<String>()) }
+    val conversations = remember(cabinPeers, cabinMessages, pinnedPeers) {
+        Conversations.of(cabinPeers, cabinMessages, pinnedPeers)
+    }
+    // ⚠ On retrouve le fil par sa CLÉ à chaque recomposition, on ne le garde
+    // pas. Un `Conversation` est un instantané : le retenir figerait la conversation
+    // au moment où on l'a ouverte, et les messages suivants n'y entreraient
+    // jamais. Le fil disparaît de la liste — plus de messages, plus de pair —,
+    // l'écran se referme de lui-même, ce qui est le comportement voulu quand on
+    // vient d'effacer.
+    val openConversation = conversations.firstOrNull { it.peerHex == openPeer }
+
+    /** Le journal ouvert en plein écran, à la place qu'occupait la cabine. */
+    var journalShown by rememberSaveable { mutableStateOf(false) }
     // Ce que la fiche saura répondre au jeu des questions. Rien ne part de
     // là — c'est un geste par question, et il coûte la même réponse.
     //
     // ⚠ `cabin` fait partie des clés, et ce n'est pas décoratif : fermer la
-    // cabine y installe une instance NEUVE (CabinHost.close), et une liaison
+    // cabine y installe une instance NEUVE (ChatHost.close), et une liaison
     // faite sur l'ancienne ne la suivrait pas. Sans cette clé, une cabine
     // rouverte ne savait plus rien répondre.
     //
@@ -446,37 +610,36 @@ private fun Station(
     // Partie le 15/08 avec Watson — le jeu compte cinq questions, toutes lues
     // dans la fiche, et plus aucune n'a besoin d'être jointe du dehors.
     LaunchedEffect(cabin, birth) { cabin.bindTraits(birth) }
-    // Fermer efface : la destination se retire avec, sinon on resterait devant
-    // une conversation qui n'existe plus.
-    val closeCabin: () -> Unit = { cabinHost.close(); cabinShown = false }
-    // Le Wi-Fi Direct est le seul médium qui demande une permission de plus.
-    // Elle se demande ICI, au moment d'accepter la montée — pas à l'ouverture
-    // de la cabine : parler à portée n'a jamais eu besoin de fabriquer un
-    // réseau, et faire payer cette permission à tout le monde serait le même
-    // contresens que le salon jadis adossé à la balise.
-    val nearbyLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { results -> if (results.values.all { it }) cabin.enable(Medium.WIFI_DIRECT) }
-    val upgrade: (Medium) -> Unit = { medium ->
-        if (medium == Medium.WIFI_DIRECT && !P2pGroup.permissionsGranted(context)) {
-            nearbyLauncher.launch(P2pGroup.RUNTIME_PERMISSIONS)
-        } else {
-            cabin.enable(medium)
-        }
-    }
-
+    // ⚠ `cabin` fait partie des clés pour la même raison que ci-dessus : fermer
+    // installe une instance NEUVE, qui ne saurait plus comment on s'appelle.
+    // Le nom se relie **avant** l'ouverture — un handshake déjà engagé garderait
+    // le silence, et le pair nous lirait « sans nom » jusqu'au lien suivant.
+    LaunchedEffect(cabin, pseudo) { cabin.bindPseudo(pseudo) }
     /**
-     * Forcer la voie porteuse. Même porte que [upgrade] pour la permission :
-     * ouvrir un groupe Wi-Fi Direct la demande, et l'écran est le seul endroit
-     * d'où l'on peut encore l'accorder.
+     * **Fermer efface** — la promesse de la cabine, tenue telle quelle.
+     *
+     * Le moteur repart neuf : messages, fils et pièces jointes reçues
+     * disparaissent de l'appareil. Ce qui change est le moment où l'on peut le
+     * faire : ce n'était pas un geste mais la sortie d'un lieu, si bien qu'on
+     * effaçait une conversation en croyant refermer un écran. C'est maintenant
+     * une décision qu'on prend en regardant la liste de ce qu'elle emporte.
+     *
+     * La radio se rallume aussitôt derrière ([beaconRunning] rejoue l'effet
+     * d'ouverture) : on efface ce qui s'est dit, on ne se coupe pas du monde.
      */
-    val selectMedium: (Medium) -> Unit = { medium ->
-        if (medium == Medium.WIFI_DIRECT && !P2pGroup.permissionsGranted(context)) {
-            nearbyLauncher.launch(P2pGroup.RUNTIME_PERMISSIONS)
-        } else {
-            cabin.select(medium)
-        }
+    val eraseConversations: () -> Unit = {
+        cabinHost.close()
+        openPeer = null
     }
+    // ⚠ **Trois choses ont disparu d'ici, et elles tenaient ensemble** : le
+    // lanceur de permissions du Wi-Fi Direct, la montée `enable` et le choix
+    // forcé `select`. Elles n'ont plus de destinataire depuis que la bêta ne
+    // nomme qu'une voie locale ([Medium.inBeta]) — un écran qui ne propose
+    // aucune montée n'a personne à qui demander une permission de plus.
+    //
+    // Le moteur, lui, garde les quatre voies et leurs deux méthodes : ce n'est
+    // pas du code mort, c'est du code sans porte. La porte se rouvre en une
+    // ligne, dans `Medium.inBeta`, le jour où la bêta s'élargit.
 
     fun updateBirth(b: BirthData) {
         birth = b
@@ -488,28 +651,31 @@ private fun Station(
         scope.launch { bodyStore.save(b) }
     }
 
+    fun updatePseudo(name: String) {
+        pseudo = Pseudo.clean(name)
+        scope.launch { pseudoStore.save(pseudo) }
+    }
+
     fun forge() {
         forged = true
         scope.launch { store.save(birth, forged = true) }
-        // La Carte reste sur « Ici » : le monde est fermé tant que la station
-        // n'a pas rendu la clé LOVE, et atterrir sur une porte close n'accueille
-        // personne. (J'avais posé l'inverse le 15/08 — Florent a tranché.)
-        // C'est en revanche le moment où la proposition d'ouvrir un compte a du sens.
-        // On atterrit derrière sur le Noyau, là où la porte se retrouve —
-        // refuser ne la fait pas revenir d'elle-même.
-        if (account == null) {
-            tab = A4LTab.Nucleus
-            overlay = Overlay.Multipass
-        } else {
-            tab = A4LTab.Map
-        }
+        // ⚠ **La forge n'ouvre plus le MULTIPASS**, et c'est une décision de
+        // Florent du 19/08. Elle le faisait aussitôt, sur le seul fait qu'aucun
+        // compte n'existait : quelqu'un qui venait de saisir sa date de
+        // naissance recevait un formulaire de compte avant d'avoir vu une
+        // carte, une conversation ou un seul écran de l'application. On lui
+        // demandait de régulariser une situation qu'il n'avait pas encore eue.
+        //
+        // La proposition attend maintenant que la **première expérience ait eu
+        // lieu** — c'est le GPS qui le dit, quand on a quitté le lieu et qu'on
+        // rouvre l'application. Voir `trial/`.
+        //
+        // On atterrit donc sur le Plateau, à l'endroit où il y a quelque chose à
+        // voir : la balise s'allume, les cartes paraissent, et c'est ça qu'on
+        // vient de fabriquer.
+        tab = A4LTab.Board
     }
 
-    /** La position du moment, pour rattacher le compte à une UMAP. */
-    suspend fun currentCoords(): Pair<Double?, Double?> {
-        val fix = CellLocator(context.applicationContext).currentFix()
-        return fix?.lat to fix?.lon
-    }
 
     // ── Une carte se montre, et on est ailleurs ───────────────────────────
     //
@@ -607,67 +773,77 @@ private fun Station(
                         modifier = Modifier.weight(1f),
                         body = body,
                         onBodyChange = ::updateBody,
+                        pseudo = pseudo,
+                        onPseudoChange = ::updatePseudo,
                         relay = relayStatus,
                         onHelp = { showHelp = true },
                         onSettings = { showSettings = true },
                     )
                 }
             }
-        } else if (cabinOpen && cabinShown) {
-            // La cabine ouverte est une destination, au même rang que l'Aide et
-            // les Réglages : plein écran, **par-dessus la barre de menus**.
-            //
-            // Elle vivait dans la page du radar, en panneau de hauteur fixe que
-            // la page faisait défiler de force. Le clavier recouvrait alors la
-            // rangée de saisie — il fallait le refermer pour atteindre Envoyer.
-            // Ici la liste prend ce qui reste et cède au clavier ; et couvrir la
-            // barre supprime les 64 dp de vide que sa place réservée laissait
-            // sous la saisie.
-            Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
-                // La ligne de cabine reste au-dessus, comme sur les onglets :
-                // c'est elle qui porte le sélecteur de voie (BT / réseau du lieu
-                // / point à point), le compteur de pairs et les deux poignées.
-                // La destination l'avait emportée avec la barre du haut — et
-                // c'est justement dans la cabine qu'on veut changer de voie,
-                // puisque c'est là que le débit se sent.
-                CabinLine(
-                    cabin = cabin,
-                    open = cabinOpen,
-                    onUpgrade = upgrade,
-                    onSelect = selectMedium,
-                    onHelp = { overlay = Overlay.Help },
-                    onSettings = { overlay = Overlay.Settings },
-                    // ⚠ C'est ICI que la pastille compte le plus : la cabine
-                    // prend l'écran entier, barre du bas comprise. Sans elle,
-                    // quelqu'un en pleine conversation n'a plus aucun moyen de
-                    // savoir qu'une carte se montre à côté de lui.
-                    cardsInRange = cardsInRange,
-                    onOpenBoard = {
-                        cabinShown = false
-                        tab = A4LTab.Board
-                    },
-                )
-                // ⚠ Le retour QUITTE LA VUE, il ne ferme rien. Fermer une
-                // cabine efface la conversation — un geste de retour distrait
-                // emporterait l'échange. La cabine reste ouverte derrière, ses
-                // liens tiennent, et la rangée du radar y ramène. Le seul geste
-                // qui efface est celui de la rangée du haut, dans la cabine,
-                // là où l'on voit ce qu'on efface.
-                BackHandler { cabinShown = false }
-                CabinDestination(
+        } else if (openConversation != null) {
+            // Une conversation prend l'écran entier, barre du bas comprise —
+            // même montage que la cabine dont elle hérite, et pour la même
+            // raison : la liste doit céder sa hauteur au clavier, et la place
+            // réservée à la barre laissait 64 dp de vide sous la saisie.
+            Column(modifier.fillMaxSize().background(A4L.Deep)) {
+                // ⚠ Le retour QUITTE la conversation, il n'efface rien. Un
+                // geste de retour distrait ne doit jamais emporter un échange.
+                // Le seul geste qui efface est au bas des conversations, là où
+                // l'on voit ce qu'on efface.
+                BackHandler { openPeer = null }
+                ConversationScreen(
+                    conversation = openConversation,
                     chat = cabin,
                     keys = keys,
                     contacts = contacts,
-                    onClose = closeCabin,
+                    onBack = { openPeer = null },
                     modifier = Modifier.weight(1f),
                 )
+            }
+        } else if (journalShown) {
+            // Le journal a exactement la place, et le geste, de l'ancienne
+            // cabine : plein écran depuis une rangée du Plateau, et le retour
+            // referme. Voir [one.astroport.atom4love.journal.Journal].
+            Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
+                RadioLine(
+                    cabin = cabin,
+                    open = cabinOpen,
+                    onHelp = { overlay = Overlay.Help },
+                    onSettings = { overlay = Overlay.Settings },
+                    cardsInRange = cardsInRange,
+                    onOpenBoard = {
+                        journalShown = false
+                        tab = A4LTab.Board
+                    },
+                )
+                BackHandler { journalShown = false }
+                JournalScreen(modifier = Modifier.weight(1f))
             }
         } else if (overlay != Overlay.None) {
             // Plein écran, comme l'aide avant la forge : ce qui s'ouvre ici est
             // ce dont la barre a été débarrassée. Un lieu où l'on va se garde
             // dans la barre ; une chose qu'on consulte et qu'on referme, non.
             Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
-                val close = { overlay = Overlay.None }
+                /**
+                 * ⚠ **Refermer le MULTIPASS ne veut pas dire la même chose
+                 * avant et après la première expérience.**
+                 *
+                 * Avant, c'est « pas maintenant » : l'application continue
+                 * entière, et c'est ce qu'elle a toujours fait. Après — quand la
+                 * proposition est due —, c'est la fin de l'essai, et le mur se
+                 * pose. Le geste est le même ; seul son moment lui donne son
+                 * poids, et c'est pour ça que le refus se lit ici, à la
+                 * fermeture, plutôt que dans un bouton « non merci » qui aurait
+                 * dû exister en deux versions.
+                 */
+                val close = {
+                    if (overlay == Overlay.Multipass && trialDue && !trialDeclined) {
+                        trialDeclined = true
+                        scope.launch { trialStore.decline() }
+                    }
+                    overlay = Overlay.None
+                }
                 // Ces écrans ne sont plus des onglets : le geste de retour du
                 // système doit les refermer, pas quitter la station. Le
                 // MULTIPASS remet en plus son inscription à zéro, comme sa ✕.
@@ -713,14 +889,11 @@ private fun Station(
             // Les voisins que la balise entend : c'est ce qui réveille le
             // Plateau dans la barre du bas.
             Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
-                CabinLine(
+                RadioLine(
                     cabin = cabin,
                     open = cabinOpen,
-                    onUpgrade = upgrade,
-                    onSelect = selectMedium,
                     onHelp = { overlay = Overlay.Help },
                     onSettings = { overlay = Overlay.Settings },
-                    pickerAlways = tab == A4LTab.Map,
                     // Pas sur le Plateau lui-même : on y a les cartes sous les
                     // yeux, un compte de plus ne dirait rien.
                     cardsInRange = if (tab == A4LTab.Board) 0 else cardsInRange,
@@ -742,31 +915,57 @@ private fun Station(
                         },
                         label = "tab",
                     ) { t ->
-                        when (t) {
-                            A4LTab.Map -> StationScreen(
-                                view = place,
-                                onSelectView = { place = it },
-                                // La clé rendue par la station, jamais celle
-                                // qu'on dérive ici : le monde est fait de ses
-                                // certificats.
-                                worldUnlocked = worldUnlocked,
-                                constellation = constellation,
-                                onOpenMultipass = { overlay = Overlay.Multipass },
-                                birth = birth,
-                                relay = relayStatus,
-                                salon = salon,
-                                keys = keys,
-                                cabin = cabin,
-                                onSelectMedium = selectMedium,
-                                cabinOpen = cabinOpen,
-                                onOpenCabin = { cabinHost.open(keys); cabinShown = true },
-                                onEnterCabin = { cabinShown = true },
-                                onCloseCabin = closeCabin,
+                        when {
+                            // ⚠ Le Noyau reste ouvert, toujours : il porte la
+                            // fiche, le nom, les mesures et la dissolution. On
+                            // ne prend jamais quelqu'un en otage de ses propres
+                            // données — un mur qui couvrirait ça ferait de
+                            // l'application un ravisseur, pas un service.
+                            walled && t != A4LTab.Nucleus -> TrialWall(
+                                onOpenMultipass = {
+                                    trialDeclined = false
+                                    scope.launch { trialStore.reconsider() }
+                                    overlay = Overlay.Multipass
+                                },
                             )
+                            else -> when (t) {
                             A4LTab.Board -> BoardScreen(
                                 npub = keys?.npubShort,
                                 birth = birth,
+                                radio = {
+                                    RadioSection(
+                                        relay = relayStatus,
+                                        salon = salon,
+                                        reachable = conversations.count { it.inRange },
+                                        onOpenJournal = { journalShown = true },
+                                    )
+                                },
                             )
+                            A4LTab.Chats -> ChatsScreen(
+                                conversations = conversations,
+                                onOpen = { openPeer = it.peerHex },
+                                onErase = eraseConversations,
+                            )
+                            A4LTab.World ->
+                                // La clé rendue par la station, jamais celle
+                                // qu'on dérive ici : le monde est fait de ses
+                                // certificats.
+                                if (worldUnlocked) {
+                                    MapScreen(
+                                        birth = birth,
+                                        keys = keys,
+                                        shared = constellation,
+                                        onOpenChat = { pubkey ->
+                                            pinnedPeers = pinnedPeers + pubkey
+                                            openPeer = pubkey
+                                            tab = A4LTab.Chats
+                                        },
+                                    )
+                                } else {
+                                    WorldLocked(
+                                        onOpenMultipass = { overlay = Overlay.Multipass },
+                                    )
+                                }
                             A4LTab.Nucleus -> IncarnationScreen(
                                 birth = birth,
                                 onBirthChange = ::updateBirth,
@@ -774,6 +973,8 @@ private fun Station(
                                 onForge = {},
                                 body = body,
                                 onBodyChange = ::updateBody,
+                                pseudo = pseudo,
+                                onPseudoChange = ::updatePseudo,
                                 npub = keys?.npub,
                                 relay = relayStatus,
                                 onMultipass = { overlay = Overlay.Multipass },
@@ -790,13 +991,24 @@ private fun Station(
                                     // quoi la promesse d'oubli serait tenue à moitié.
                                     birth = BirthData.Empty
                                     body = BodyMetrics.Empty
+                                    // Le nom part avec le reste : il ne dit
+                                    // rien de la clé, mais il dit comment on
+                                    // s'appelait — et le suivant n'a pas à
+                                    // hériter de ça.
+                                    pseudo = ""
                                     forged = false
-                                    tab = A4LTab.Map
-                                    place = PlaceView.Here
+                                    tab = A4LTab.Board
                                     scope.launch {
                                         store.clear()
                                         bodyStore.clear()
                                         loveKeyStore.clear()
+                                        pseudoStore.clear()
+                                        // Un noyau neuf n'a pas d'histoire :
+                                        // l'essai reprend au premier jour, et
+                                        // le journal ne garde pas le souvenir
+                                        // de la radio du précédent.
+                                        trialStore.clear()
+                                        Journal.clear()
                                         // Elle ne dit rien de nous, mais elle dit qui
                                         // l'on a vu arriver — et la garder ferait
                                         // manquer les bienvenues au noyau suivant,
@@ -805,6 +1017,7 @@ private fun Station(
                                     }
                                 },
                             )
+                            }
                         }
                     }
                     ElectronSweep(trigger = tab)
@@ -812,15 +1025,27 @@ private fun Station(
                 A4LNavBar(
                     current = tab,
                     onSelect = { tab = it },
-                    // Un sceau à portée réveille le Plateau. Pas « quelqu'un
-                    // ici » : un pair sans signature est là sans rien avoir
-                    // montré, et ne donne aucune carte. Même prédicat que la
-                    // main du Plateau, à la lettre.
+                    // ⚠ **Le Plateau ne s'endort plus.** Il s'éteignait tant
+                    // qu'aucun sceau n'était à portée, du temps où il n'était
+                    // qu'un jeu au milieu de la barre. C'est aujourd'hui
+                    // l'écran d'entrée, celui qui porte l'état de la radio :
+                    // l'éteindre reviendrait à griser la porte par laquelle on
+                    // apprend justement qu'il n'y a personne.
+                    //
+                    // Ce qui s'endort, ce sont les **conversations** — il n'y
+                    // en a aucune tant que personne n'est passé — et le monde
+                    // reste cadenassé jusqu'au MULTIPASS.
                     awake = { entry ->
-                        entry != A4LTab.Board || neighbors
-                            .distinctBy { it.identity }
-                            .any { it.signature != ProximityPayload.Signature.Unknown }
+                        when (entry) {
+                            A4LTab.Chats -> conversations.isNotEmpty()
+                            A4LTab.World -> worldUnlocked
+                            else -> true
+                        }
                     },
+                    // Le cadenas plutôt qu'un onglet grisé : un onglet éteint se
+                    // lit « en panne », un cadenas se lit « pas encore ». C'est
+                    // le mot exact qui décidait déjà de l'ancien segment.
+                    locked = { it == A4LTab.World && !worldUnlocked },
                 )
             }
         }
@@ -834,7 +1059,8 @@ private fun Station(
         count = cardsInRange,
         onOpen = {
             presenceBanner = false
-            cabinShown = false
+            openPeer = null
+            journalShown = false
             tab = A4LTab.Board
         },
         onDismiss = { presenceBanner = false },
@@ -912,31 +1138,31 @@ private fun PresenceBanner(
 }
 
 /**
- * L'indicateur de liaison, tout en haut, sous l'encoche — le même sur les cinq
+ * L'état de la radio, tout en haut, sous l'encoche — le même sur tous les
  * onglets.
  *
- * Il dit **par où** la cabine parle en ce moment, parce que ça change ce qu'on
- * peut en attendre : 14 Ko/s en BLE contre 11,8 Mo/s par la station. Et quand un
- * pair a annoncé une voie plus rapide, il la propose — sans jamais l'emprunter
- * de lui-même. La cabine s'établit toujours seule en BLE ; la montée, elle, se
- * décide.
+ * ⚠ **Il disait par où la cabine parlait, et il n'a plus qu'une réponse.** Tant
+ * qu'il y avait quatre voies, la question valait d'être posée : 14 Ko/s en BLE
+ * contre 11,8 Mo/s par la station, ça change ce qu'on peut attendre d'un envoi.
+ * La bêta n'en garde qu'une ([Medium.inBeta]) — la ligne ne nomme donc plus un
+ * médium, elle dit l'état : éteinte, allumée et seule, allumée avec quelqu'un.
+ * Le sélecteur et la proposition de montée sont partis avec les trois autres
+ * voies ; un menu à une entrée n'est pas un choix, c'est un obstacle.
+ *
+ * ⚠ **Et le mot « cabine » est parti avec.** Il désignait ici une salle qu'on
+ * ouvrait et refermait ; il désigne surtout, chez Fred, **Cabine-33** — un autre
+ * projet, cité tel quel dans nos pages d'aide. Deux choses différentes sous le
+ * même nom, dans la même constellation de projets, ne pouvaient pas tenir. Ce
+ * que l'utilisateur lit est donc « chat » là où l'on parle à quelqu'un, et
+ * « radio » là où l'appareil écoute — deux mots, pour les deux choses que la
+ * cabine confondait.
  */
 @Composable
-private fun CabinLine(
-    cabin: CabinChat,
+private fun RadioLine(
+    cabin: ChatEngine,
     open: Boolean,
-    onUpgrade: (Medium) -> Unit,
-    onSelect: (Medium) -> Unit,
     onHelp: () -> Unit,
     onSettings: () -> Unit,
-    /**
-     * Montrer le sélecteur de voie même cabine fermée. Vrai sur la **Carte** :
-     * c'est l'écran des liaisons, et savoir par où ça passera — ou le choisir
-     * d'avance — s'y lit comme un état du lieu, pas comme un réglage de trafic.
-     * Ailleurs il reste lié à l'ouverture : sur le Noyau ou le Plateau, une
-     * liste de voies ne désignerait rien.
-     */
-    pickerAlways: Boolean = false,
     /**
      * Combien de cartes se montrent à portée, et de quoi aller les voir.
      *
@@ -956,7 +1182,6 @@ private fun CabinLine(
     val status by cabin.status.collectAsState()
     val peers by cabin.peers.collectAsState()
     val medium = status.medium
-    val offered = status.offered
 
     Row(
         Modifier
@@ -975,53 +1200,27 @@ private fun CabinLine(
         Spacer(Modifier.width(8.dp))
         Text(
             when {
-                !open -> stringResource(R.string.header_cabin_closed)
+                !open -> stringResource(R.string.header_radio_off)
                 // le médium ne se lit qu'une fois quelqu'un joint : dire « BT »
                 // dans le vide ferait passer une antenne allumée pour un lien
-                medium == null -> stringResource(R.string.header_cabin_open_alone)
-                // Le nom court seul : dans cette ligne on ne cherche pas une
-                // description, on cherche lequel des trois porte en ce moment.
-                // La phrase longue (« par le réseau du lieu ») vit là où il y a
-                // la place de l'expliquer — les dialogues de refus.
-                else -> stringResource(R.string.header_medium, medium.short)
+                medium == null -> stringResource(R.string.header_radio_alone)
+                // Quelqu'un est joint. Le nom de la voie ne se dit plus : il
+                // n'y en a qu'une, et l'écrire reviendrait à répéter « BT » sur
+                // tous les écrans de l'application sans jamais rien apprendre.
+                else -> stringResource(R.string.header_radio_linked)
             },
             style = A4LText.Data.copy(fontSize = 10.sp),
             color = if (open && medium != null) A4L.Mint else A4L.TextMuted,
         )
-        // Choisir soi-même par où ça passe, plutôt que d'attendre qu'on le
-        // propose.
-        //
-        // ⚠ La liste ne s'ouvrait QUE cabine ouverte, au motif qu'« hors cabine
-        // il n'y a pas de trafic à router ». Vrai pour le trafic, faux pour la
-        // personne : sur la Carte on veut savoir par où ça passera avant
-        // d'ouvrir, et pouvoir le décider. Le choix se garde et s'applique à
-        // l'ouverture — `cabin.select` s'adresse à l'instance vivante, ouverte
-        // ou non.
-        if (open || pickerAlways) {
-            // La pastille collait au texte : elle en devenait la suite,
-            // pas un bouton à côté.
-            Spacer(Modifier.width(9.dp))
-            MediumPicker(status = status, onSelect = onSelect)
-        }
         if (open && peers.isNotEmpty()) {
             Spacer(Modifier.width(10.dp))
             Text(
-                stringResource(R.string.cabin_peers_here, peers.size),
+                stringResource(R.string.chat_peers_here, peers.size),
                 style = A4LText.Data.copy(fontSize = 10.sp),
                 color = A4L.TextDim,
             )
         }
         Spacer(Modifier.weight(1f))
-        if (open && offered != null) {
-            Text(
-                stringResource(R.string.header_upgrade, offered.short),
-                style = A4LText.Data.copy(fontSize = 10.sp),
-                color = A4L.Cyan,
-                modifier = Modifier
-                    .clickable { onUpgrade(offered) }
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-            )
-        }
         if (cardsInRange > 0 && onOpenBoard != null) {
             Row(
                 Modifier
@@ -1082,208 +1281,18 @@ private fun HeaderButton(
 
 
 /**
- * La liste des voies, à côté du mode actif — pour forcer celle qu'on veut.
+ * ⚠ **La liste des quatre voies vivait ici**, dans une pastille à chevron de la
+ * ligne d'en-tête : chaque entrée nommait un médium, disait ce que le choix
+ * coûtait, et quitter son propre groupe Wi-Fi Direct demandait même une
+ * confirmation — parce que le départ de l'hôte dissout la voie pour tout le
+ * monde.
  *
- * Elle n'annonce pas trois positions exclusives, parce que les médiums se
- * cumulent : **le BT reste dessous quoi qu'on choisisse**, c'est la porte
- * d'entrée et la seule qui atteste un inconnu. Choisir revient à dire par où
- * doit passer le trafic — ce qui ferme les voies plus rapides, pas la porte.
- *
- * Une voie que personne n'offre reste dans la liste, éteinte : la voir absente
- * n'apprend rien, la voir hors d'atteinte dit qu'elle existe et qu'il manque
- * quelqu'un en face.
+ * Elle est partie avec les trois voies qu'elle servait ([Medium.inBeta]). Ce
+ * n'était pas un mauvais composant, c'était un composant sans objet : un menu
+ * qui ne propose qu'une entrée déjà active n'offre pas un choix, il ajoute un
+ * geste. Le moteur, lui, sait toujours router sur quatre rangs — `git` garde le
+ * menu pour le jour où la bêta les rouvre.
  */
-@Composable
-private fun MediumPicker(status: CabinChat.Status, onSelect: (Medium) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    // Quitter un groupe qu'on tient le referme POUR TOUS. Ça ne se fait pas
-    // d'un doigt distrait — d'où la seule confirmation de cette liste, réservée
-    // au cas où le geste engage quelqu'un d'autre que soi.
-    var confirmLeaving by remember { mutableStateOf<Medium?>(null) }
-
-    confirmLeaving?.let { target ->
-        AlertDialog(
-            onDismissRequest = { confirmLeaving = null },
-            containerColor = A4L.Deep,
-            title = {
-                Text(
-                    stringResource(R.string.medium_leave_group_title),
-                    style = A4LText.H2,
-                    color = A4L.TextHigh,
-                )
-            },
-            text = {
-                Text(
-                    stringResource(R.string.medium_leave_group_body, target.short),
-                    style = A4LText.Body,
-                    color = A4L.TextBody,
-                )
-            },
-            confirmButton = {
-                Text(
-                    stringResource(R.string.medium_leave_group_ok),
-                    style = A4LText.Caption,
-                    color = A4L.Red,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable {
-                            confirmLeaving = null
-                            onSelect(target)
-                        }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                )
-            },
-            dismissButton = {
-                Text(
-                    stringResource(R.string.medium_leave_group_cancel),
-                    style = A4LText.Caption,
-                    color = A4L.TextMuted,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { confirmLeaving = null }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                )
-            },
-        )
-    }
-
-    Box {
-        // ⚠ **On ne voyait pas qu'il y avait une liste.** L'affordance était un
-        // « ▾ » de 10 sp posé sans fond : à côté de « cabine fermée », il se
-        // lisait comme une ponctuation, pas comme un bouton — et le choix du
-        // médium, qui est l'un des rares vrais réglages de l'app, restait
-        // introuvable. Un chevron Material dans une pastille cernée dit ce
-        // qu'il est : quelque chose qui s'ouvre.
-        Row(
-            Modifier
-                .clip(RoundedCornerShape(7.dp))
-                .background(A4L.Cyan.tint(0.10f))
-                .border(1.dp, A4L.Cyan.tint(0.34f), RoundedCornerShape(7.dp))
-                .clickable { open = true }
-                .padding(start = 7.dp, end = 3.dp, top = 2.dp, bottom = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Le médium engagé se montre là aussi : la pastille dit à la fois
-            // « ça s'ouvre » et « voilà par où ça passe ».
-            (status.medium ?: Medium.BLE).let { shown ->
-                Icon(
-                    imageVector = shown.icon,
-                    contentDescription = null,
-                    tint = if (status.medium != null) A4L.Cyan else A4L.Cyan.copy(alpha = 0.55f),
-                    modifier = Modifier.size(15.dp),
-                )
-            }
-            Icon(
-                imageVector = if (open) {
-                    Icons.Filled.ArrowDropUp
-                } else {
-                    Icons.Filled.ArrowDropDown
-                },
-                contentDescription = stringResource(R.string.header_medium_pick),
-                tint = A4L.Cyan,
-                modifier = Modifier.size(19.dp),
-            )
-        }
-        DropdownMenu(
-            expanded = open,
-            onDismissRequest = { open = false },
-            containerColor = A4L.Deep,
-        ) {
-            Medium.entries.forEachIndexed { index, medium ->
-                // Un filet entre les voies. Chaque entrée porte deux lignes —
-                // le nom court, puis ce que le choix coûte — et sans séparation
-                // la conséquence de l'une se lisait comme le début de la
-                // suivante. Pas de filet en tête ni en queue : le bord du menu
-                // fait déjà ce travail.
-                if (index > 0) {
-                    HorizontalDivider(
-                        color = A4L.StrokeSoft,
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    )
-                }
-                val active = status.medium == medium
-                // Le moteur dit lesquels sont atteignables — pas `offered`,
-                // qui ne nomme que le prochain pas.
-                val reachable = medium in status.reachable
-                // Ce que ce choix coûte ou apporte, sous le nom. Une liste qui
-                // ne dit que « BT / Wi-Fi AP / Wi-Fi P2P » laisse deviner, et
-                // ces trois-là n'ont pas du tout les mêmes conséquences.
-                val consequence = when {
-                    !reachable -> R.string.medium_note_unreachable
-                    medium == Medium.BLE -> R.string.medium_note_ble
-                    medium == Medium.WIFI_STATION -> R.string.medium_note_station
-                    // hôte ou invité, ce n'est pas le même engagement — et ça se
-                    // sait AVANT d'entrer, par l'invitation reçue
-                    status.groupHost != null || status.groupInvited ->
-                        R.string.medium_note_direct_join
-                    else -> R.string.medium_note_direct_host
-                }
-                DropdownMenuItem(
-                    enabled = reachable && !active,
-                    onClick = {
-                        open = false
-                        // On ne quitte pas son propre groupe sans le savoir.
-                        if (status.groupHost is CabinChat.GroupHost.Self &&
-                            medium.rank < Medium.WIFI_DIRECT.rank
-                        ) {
-                            confirmLeaving = medium
-                        } else {
-                            onSelect(medium)
-                        }
-                    },
-                    // Le même pictogramme que sur la ligne du titre de la Carte
-                    // — [one.astroport.atom4love.ui.components.icon], une seule
-                    // correspondance pour les deux écrans. Sans lui, la liste
-                    // nommait « BT / BT-C / Wi-Fi / Wi-Fi P2P » sans jamais
-                    // rejoindre les quatre glyphes que l'écran montre par
-                    // ailleurs : deux vocabulaires pour les mêmes quatre voies.
-                    leadingIcon = {
-                        Icon(
-                            imageVector = medium.icon,
-                            contentDescription = null,
-                            tint = when {
-                                active -> A4L.Mint
-                                reachable -> A4L.TextBody
-                                else -> A4L.TextGhost
-                            },
-                            modifier = Modifier.size(20.dp),
-                        )
-                    },
-                    text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                medium.short,
-                                style = A4LText.Data.copy(fontSize = 12.sp),
-                                color = when {
-                                    active -> A4L.Mint
-                                    reachable -> A4L.TextBody
-                                    else -> A4L.TextGhost
-                                },
-                            )
-                            Text(
-                                stringResource(consequence),
-                                style = A4LText.Caption,
-                                color = if (reachable) A4L.TextMuted else A4L.TextGhost,
-                            )
-                        }
-                    },
-                    trailingIcon = {
-                        Text(
-                            when {
-                                active -> "●"
-                                reachable -> ""
-                                // hors d'atteinte : personne ne l'offre
-                                else -> "—"
-                            },
-                            style = A4LText.Data.copy(fontSize = 10.sp),
-                            color = if (active) A4L.Mint else A4L.TextGhost,
-                        )
-                    },
-                )
-            }
-        }
-    }
-}
 
 /** Barre de navigation — l'onglet actif prend la couleur de son espace. */
 @Composable
@@ -1296,6 +1305,16 @@ private fun A4LNavBar(
      * qu'un bouton qui refuse le doigt sans un mot.
      */
     awake: (A4LTab) -> Boolean = { true },
+    /**
+     * Une porte fermée qu'on doit voir fermée.
+     *
+     * Le cadenas se pose **sur le pictogramme**, pas à la place du libellé : le
+     * mot reste lisible, parce qu'il faut savoir de quoi la porte est la porte.
+     * Un onglet cadenassé reste touchable — l'écran derrière explique lui-même
+     * comment l'ouvrir, ce qui vaut mieux qu'un bouton qui refuse le doigt sans
+     * un mot.
+     */
+    locked: (A4LTab) -> Boolean = { false },
 ) {
     // le filet du haut se dessine hors composition : sa couleur se prend ici
     val hairline = A4L.StrokeFaint
@@ -1333,10 +1352,10 @@ private fun A4LNavBar(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    entry.icon,
+                    if (locked(entry)) "🔒" else entry.icon,
                     fontSize = 16.sp,
                     // ⚛ est un glyphe monochrome : sans teinte explicite il se
-                    // perdrait, là où 🌀 🎴 💜 portent leurs propres couleurs.
+                    // perdrait, là où 🎴 💬 🌍 portent leurs propres couleurs.
                     color = if (selected) entry.accent else A4L.TextStrong,
                 )
                 Text(

@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     English — translated from `values/`, which holds the source language.
-    « Cabine » is rendered as “booth”: a phone booth you step into, not a hut.
+    « Cabine » is gone: what was a shared booth is now one private chat per person.
 -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- ─── 02 · Radar ────────────────────────────────────────────────── -->
-    <string name="radar_cabin_in_range">Booth in range</string>
 
     <string name="radar_hex_unknown_service_off">Hexagon unknown — the phone\'s Location is switched off: turn it back on from the quick settings.</string>
     <string name="radar_hex_unknown_dead_end">Hexagon unknown — location was denied. Android will not ask again: it reopens from the app settings. It turns on no beacon.</string>
@@ -20,69 +19,39 @@
     <string name="radar_stat_in_portal">in the portal</string>
     <string name="radar_stat_here_no_relay">here, no relay</string>
 
-    <string name="radar_resonance_title">Resonances in range</string>
-    <string name="radar_resonance_k">k %1$s</string>
-    <string name="radar_resonance_singularity">singularity</string>
-    <string name="radar_resonance_no_phase">phase unknown</string>
-    <string name="radar_resonance_mine_missing">Your phase needs your place of birth — without it there is nothing to compare.</string>
-    <string name="radar_resonance_hint">k runs from 0.5 to 1. It rises when two waves cross in phase — or exactly out of phase, which amounts to answering each other.</string>
 
-    <string name="radar_cabin_row_open">Booth open — tap to close and erase</string>
-    <string name="radar_cabin_row_return">Booth open — tap to go back in</string>
-    <string name="radar_cabin_row_closed">Talk to those who are here — encrypted, no relay</string>
 
     <string name="radar_beacon_with_cell">Beacon on — hexagon %1$s</string>
     <string name="radar_beacon_presence_only">Beacon on — no position</string>
     <string name="radar_beacon_needs_bluetooth">Proximity beacon — Bluetooth required</string>
-    <string name="radar_group_fallback">→ switch back to %1$s</string>
-    <string name="radar_group_reopen">→ open your own Wi-Fi P2P group</string>
-    <string name="radar_group_closed">%1$s closed the Wi-Fi Direct group. The cabin carries on, more slowly — tap to dismiss.</string>
-    <string name="radar_group_host_self">You hold the Wi-Fi Direct group — leaving closes it, and everyone loses their fast path to you.</string>
-    <string name="radar_group_host_peer">%1$s holds the Wi-Fi Direct group — if they leave, it closes and your fast path to them is gone.</string>
 
-    <!-- ─── The booth ─────────────────────────────────────────────────── -->
-    <string name="cabin_peers_here" tools:ignore="PluralsCandidate">%1$d here</string>
-    <string name="cabin_someone_unnamed">someone is here, with no declared identity</string>
-    <string name="cabin_nobody_in_range">nobody in range</string>
-    <string name="cabin_follow">Follow</string>
-    <string name="cabin_follow_publishing">…</string>
-    <string name="cabin_following">Following ✓</string>
-    <string name="cabin_follow_retry">Retry</string>
-    <plurals name="cabin_unattested_links">
-        <item quantity="one">and %1$d link with no declared identity</item>
-        <item quantity="other">and %1$d links with no declared identity</item>
-    </plurals>
-    <string name="cabin_chat_placeholder">here, encrypted…</string>
-    <string name="cabin_saved_to_downloads">Saved to Downloads</string>
-    <string name="cabin_save_failed">Could not save</string>
+    <!-- ─── 💬 Chats: one conversation per person in range ─────────────── -->
+    <string name="chat_peers_here" tools:ignore="PluralsCandidate">%1$d here</string>
+    <string name="chat_follow">Follow</string>
+    <string name="chat_follow_publishing">…</string>
+    <string name="chat_following">Following ✓</string>
+    <string name="chat_follow_retry">Retry</string>
+    <string name="chat_placeholder">to this person, encrypted…</string>
+    <string name="chat_saved_to_downloads">Saved to Downloads</string>
+    <string name="chat_save_failed">Could not save</string>
 
-    <string name="cabin_too_big_title">Attachment too heavy</string>
-    <string name="cabin_video_wifi_title">Video travels over Wi-Fi</string>
-    <string name="cabin_video_wifi_named">“%1$s” is a video, and it leaves exactly as it was filmed — never re-encoded. The cabin is %2$s: the radio carries 14 kB/s, where one second of footage would take minutes. Switch to Wi-Fi from the indicator at the top.</string>
-    <string name="cabin_video_wifi_unnamed">A video leaves exactly as it was filmed — never re-encoded. The cabin is %1$s: the radio carries 14 kB/s, where one second of footage would take minutes. Switch to Wi-Fi from the indicator at the top.</string>
-    <string name="cabin_refused_ok">Got it</string>
-    <string name="cabin_too_big_sized">“%1$s” is %2$s, beyond the %3$s the booth carries %4$s.</string>
-    <string name="cabin_too_big_unsized">“%1$s” goes beyond the %2$s the booth carries %3$s.</string>
-    <string name="cabin_too_big_ble_advice">BLE holds 14 KB/s: the same attachment would take a quarter of an hour. Switch to Wi-Fi from the indicator at the top and the limit rises to %1$s.</string>
+    <string name="chat_too_big_title">Attachment too heavy</string>
+    <string name="chat_video_wifi_title">Video travels over Wi-Fi</string>
+    <string name="chat_video_wifi_named">“%1$s” is a video, and it leaves exactly as it was filmed — never re-encoded. The radio carries 14 kB/s: one second of footage would take minutes. A video is handed over in person, not over the air.</string>
+    <string name="chat_video_wifi_unnamed">A video leaves exactly as it was filmed — never re-encoded. The radio carries 14 kB/s: one second of footage would take minutes. A video is handed over in person, not over the air.</string>
+    <string name="chat_refused_ok">Got it</string>
+    <string name="chat_too_big_sized">“%1$s” is %2$s, beyond the %3$s the radio carries %4$s.</string>
+    <string name="chat_too_big_unsized">“%1$s” goes beyond the %2$s the radio carries %3$s.</string>
 
-    <!-- ─── The booth lounge ──────────────────────────────────────────── -->
-    <string name="salon_title">BOOTH LOUNGE</string>
+    <!-- ─── The hexagon lounge: the venue's ephemeral thoughts ─────────── -->
+    <string name="salon_title">HEXAGON LOUNGE</string>
     <string name="salon_closed">Lounge closed — it opens when the venue\'s station is in range (the “local relay” dot). Nothing goes onto the Internet.</string>
     <string name="salon_empty">Nobody has left anything here yet. Thoughts are ephemeral: they live as long as the lounge does, nothing is archived.</string>
     <string name="salon_mine">me · %1$s</string>
     <string name="salon_draft_placeholder">a thought for this place…</string>
     <string name="salon_post">post</string>
 
-    <!-- ─── Booth media ───────────────────────────────────────────────── -->
-    <string name="medium_note_ble">slowest — attachments capped, video refused</string>
-    <string name="medium_note_station">fast — goes through the venue\'s box</string>
-    <string name="medium_note_direct_host">fast — you open the group, and you hold it</string>
-    <string name="medium_note_direct_join">fast — you join the group already open</string>
-    <string name="medium_note_unreachable">nobody is offering it right now</string>
-    <string name="medium_leave_group_title">Close the group?</string>
-    <string name="medium_leave_group_body">You hold this Wi-Fi Direct group: switching to %1$s closes it. Everyone in it loses their fast path to you, and your exchanges with them fall back to the slowest. What they say to each other never went through it, and carries on.</string>
-    <string name="medium_leave_group_ok">Close it</string>
-    <string name="medium_leave_group_cancel">Stay</string>
+    <!-- ─── Radio media ───────────────────────────────────────────────── -->
     <string name="medium_ble">direct</string>
     <string name="medium_bt_classic">direct, faster</string>
     <string name="medium_wifi_station">over the venue\'s network</string>
@@ -147,7 +116,7 @@
     <!-- ─── The chat: bubbles, attachments, send states ───────────────── -->
     <string name="chat_send">Send</string>
     <string name="chat_from_me">me</string>
-    <string name="chat_from_peer">peer %1$s</string>
+    <string name="chat_from_unnamed">unnamed</string>
     <string name="chat_save_attachment">⬇ save</string>
     <string name="chat_image_sending">image going out…</string>
     <string name="chat_image_receiving">image coming in…</string>
@@ -161,12 +130,10 @@
     <string name="chat_failed">failed</string>
 
     <!-- ─── The Map: its two scales ──────────────────────────────────── -->
-    <string name="place_here">Here</string>
-    <string name="place_world">The world</string>
 
     <!-- ─── The world, closed until the station hands the key over ────── -->
     <string name="world_locked_title">The world is waiting for your key</string>
-    <string name="world_locked_body">The constellation is made of certificates sealed by an Astroport station. Until yours is activated you stay here: the radar, the booth, whatever is within antenna range. Nothing is read from the public relay.</string>
+    <string name="world_locked_body">The constellation is made of certificates sealed by an Astroport station. Until yours is activated you stay here: the Board, the conversations, whatever is within antenna range. Nothing is read from the public relay.</string>
     <string name="world_locked_open">Open a MULTIPASS</string>
 
     <!-- ─── 03 · Constellation: the map of activated LOVE keys ────────── -->
@@ -219,18 +186,15 @@
     <string name="language_follows_phone">This Android follows the phone\'s language: a per-app choice needs Android 13 or newer.</string>
 
     <!-- ─── The bottom bar ────────────────────────────────────────────── -->
-    <string name="tab_map">Map</string>
     <string name="tab_board">Board</string>
     <string name="tab_nucleus">Nucleus</string>
     <string name="tab_help">Help</string>
     <string name="tab_settings">Settings</string>
 
     <!-- ─── The link indicator, at the very top ───────────────────────── -->
-    <string name="header_cabin_closed">booth closed</string>
-    <string name="header_cabin_open_alone">booth open — nobody in range</string>
-    <string name="header_medium">Active mode: %1$s</string>
-    <string name="header_medium_pick">Choose which way it goes</string>
-    <string name="header_upgrade">switch to %1$s</string>
+    <string name="header_radio_off">radio off</string>
+    <string name="header_radio_alone">radio on — nobody in range</string>
+    <string name="header_radio_linked">radio on — someone is here</string>
 
 
     <!-- ─── 06 · MULTIPASS: the door onto Astroport.ONE ───────────────── -->
@@ -280,7 +244,7 @@
     <string name="mp_rederive_body">The station recomputes the key from the birth data of your current nucleus. Worth doing if you reforged your nucleus with different data — otherwise it hands back exactly the same key, which costs nothing. Your account, your wallets and your PASS code stay untouched.</string>
 
     <string name="mp_no_account_title">Atom4Love works without an account</string>
-    <string name="mp_no_account_body">Your forged nucleus is enough for the radar, the booth and everything that happens within antenna range. Nothing forces you to open an account, now or ever.</string>
+    <string name="mp_no_account_body">Your forged nucleus is enough for the Board, the conversations and everything that happens within antenna range. Nothing forces you to open an account, now or ever.</string>
     <string name="mp_adds_title">What a MULTIPASS adds</string>
     <string name="mp_adds_identity">A published NOSTR identity, reachable beyond radio range.</string>
     <string name="mp_adds_love">Your LOVE key, derived from your birth by the station: it carries the LOVE channel and your resonance profile.</string>
@@ -290,7 +254,7 @@
     <string name="mp_sandbox_body">That word is Astroport.ONE\'s, not ours: the open world where one learns. A Ẑen is worth 0.1 Ğ1 there — play money. An account left at zero, without a single movement, is deleted after seven days.</string>
     <string name="mp_sandbox_keys">Your birth data, on the other hand, does not fade: the same data will always give the same LOVE key, on any station.</string>
     <string name="mp_provisional_title">Your current nucleus is provisional</string>
-    <string name="mp_provisional_body">As long as no station knows you, Atom4Love forges a proximity key of its own. The station will derive another — the real one. Your npub will change, and those who met you in a booth before today will no longer recognise you.</string>
+    <string name="mp_provisional_body">As long as no station knows you, Atom4Love forges a proximity key of its own. The station will derive another — the real one. Your npub will change, and those who met you before today will no longer recognise you.</string>
 
     <string name="mp_note_pass_title">Write down your PASS code</string>
     <string name="mp_note_pass_body">It recovers your account from any UPlanet terminal, and it was mailed to you as well. The station alone holds it: nobody will be able to give it back to you elsewhere.</string>
@@ -323,7 +287,7 @@
     <string name="help_singularity_label">Singularity · spirit and matter</string>
     <string name="help_singularity_body">Your conception is Spirit, your birth is Matter. Combining them, the station computes your archetype — the way you transform the energy around you. You do not need to know that date: it follows from your birth.</string>
     <string name="help_temp_key_label">Your temporary key</string>
-    <string name="help_temp_key_body">On first launch, the station forges a key of its own, derived from your birth data. It is enough for everything that happens within antenna range: the radar, the booth, proximity links. It is temporary — one day an Astroport.ONE station will derive your real LOVE key.</string>
+    <string name="help_temp_key_body">On first launch, the station forges a key of its own, derived from your birth data. It is enough for everything that happens within antenna range: the Board, the conversations, proximity links. It is temporary — one day an Astroport.ONE station will derive your real LOVE key.</string>
     <string name="help_multipass_label">The MULTIPASS</string>
     <string name="help_multipass_body">It is your decentralised identity on the UPlanet network: a published NOSTR key, a Ğ1 / Ẑen wallet, a storage space, and your LOVE key. It opens from the bottom of the Nucleus tab, with an email address. UPlanet ORIGIN, where you land, is a sandbox: a Ẑen is worth 0.1 Ğ1 there, and an account left at zero without movement is deleted after seven days.</string>
     <string name="help_forge_label">Forging your nucleus</string>
@@ -333,19 +297,19 @@
     <string name="help_redo_label">Getting it wrong, starting over</string>
     <string name="help_redo_body">Wrong data? In the Nucleus tab, “Dissolve the nucleus” erases the form and this station\'s key (two confirmations). Nothing goes onto the network: enter the right data and forge again.</string>
     <string name="help_station_label">The station</string>
-    <string name="help_station_body">🌀 Radar: the booths within range, by real proximity. 🎴 Board: your cards. 💜 Resonance: your bonds. ⚛ Nucleus: your sealed form and your npub. At the top, “relay · x / y” says how many NOSTR relays answer — green as soon as the station is on the network.</string>
+    <string name="help_station_body">🎴 Board: the state of the radio and the cards in range. 💬 Chats: one conversation per person, end-to-end encrypted. 🌍 World: the constellation, opened by the MULTIPASS. ⚛ Nucleus: your sealed form, your name and your npub. At the top, “relay · x / y” says how many NOSTR relays answer.</string>
 
     <string name="faq_title">F.A.Q.</string>
     <string name="faq_lead">The questions that keep coming back, and what the station answers.</string>
 
     <string name="faq_network_label">Do I need an Internet connection?</string>
-    <string name="faq_network_body">Not for the cabin: it speaks over Bluetooth, or over a Wi-Fi network it builds itself between the two devices. Nothing passes through a server. The rest of the station — the NOSTR relays, the MULTIPASS — does need the network, and you can see it in the “relay · x / y” at the top of the screen.</string>
-    <string name="faq_cabin_label">What is said in the cabin, where does it go?</string>
-    <string name="faq_cabin_body">Nowhere else. The content is end-to-end encrypted and crosses no relay. On closing the cabin, the conversation and the attachments you received are wiped from the device — that is what “touch to close and erase” promises, and it keeps it.</string>
+    <string name="faq_network_body">Not for conversations in range: they speak over Bluetooth, from one device to the other. Nothing passes through a server. The rest of the station — the NOSTR relays, the MULTIPASS — does need the network, and you can see it in the “relay · x / y” at the top of the screen.</string>
+    <string name="faq_chat_label">What is said in a chat, where does it go?</string>
+    <string name="faq_chat_body">Nowhere else. The content is end-to-end encrypted and crosses no relay. “Close and erase”, at the bottom of the conversations, removes the messages and the attachments you received from the phone — that is what the line promises, and it keeps it.</string>
     <string name="faq_weight_label">Why two weights: my birth weight and today\'s?</string>
     <string name="faq_weight_body">They do not serve the same purpose. Birth weight enters your key: it is optional, and without it the station keeps 3.5 kg — exactly what Astroport.ONE does when that field arrives empty. Your height and weight today enter no key at all: they only feed the shape on the last step, and are edited in Settings.</string>
-    <string name="faq_nobody_label">The Radar shows nobody.</string>
-    <string name="faq_nobody_body">Bluetooth must be on at both ends, and the other person must have opened their cabin: you only see cores whose cabin is open. Until someone makes that gesture, nothing announces itself — by design.</string>
+    <string name="faq_nobody_label">The Board shows nobody.</string>
+    <string name="faq_nobody_body">Bluetooth must be on at both ends, and the beacon must be running. Nothing else: a conversation opens by itself as soon as a nucleus shows up near you, with no gesture from anyone.</string>
     <string name="faq_change_label">Can I correct my data after forging?</string>
     <string name="faq_change_body">Not directly: once confirmed, the record is sealed. In the Core tab, “Dissolve the core” erases this station\'s record and key, and you forge again with the right data. Your key depends on that data: the smallest correction yields a different one.</string>
 
@@ -414,6 +378,9 @@
 
 
     <string name="inc_section_datetime">Date and time of birth</string>
+    <string name="inc_section_pseudo">Your name</string>
+    <string name="inc_pseudo_placeholder">the name people will read…</string>
+    <string name="inc_pseudo_note">This is what others see instead of your key. It is not part of your nucleus: change it whenever you like.</string>
     <string name="inc_section_place">Place of birth</string>
     <string name="inc_section_birth_weight">Birth weight</string>
     <string name="inc_birth_weight_optional">optional — 3.5 kg by default</string>
@@ -499,19 +466,19 @@
     <string name="inc_forge_action">FORGE YOUR NUCLEUS</string>
     <string name="inc_forge_incomplete">Complete your form to forge</string>
 
-    <string name="cabin_err_bluetooth_off">Bluetooth off</string>
-    <string name="cabin_err_bluetooth_cut">Bluetooth switched off</string>
-    <string name="cabin_err_text_too_long">text too long (max %1$d B)</string>
-    <string name="cabin_err_unreadable_attachment">unreadable attachment</string>
-    <string name="cabin_err_no_link">no link to send on</string>
-    <string name="cabin_err_no_ack">no acknowledgement from %1$s</string>
-    <string name="cabin_err_send_failed">failed to send to %1$s</string>
-    <string name="cabin_err_medium_unreachable">%1$s unreachable</string>
-    <string name="cabin_err_p2p_unreachable">Wi-Fi Direct group unreachable</string>
-    <string name="cabin_err_p2p_impossible">Wi-Fi Direct group impossible</string>
-    <string name="cabin_err_advertise_unavailable">BLE advertising unavailable</string>
-    <string name="cabin_err_advertise_refused">advertising refused (%1$d)</string>
-    <string name="cabin_err_scan_refused">scan refused (%1$d)</string>
+    <string name="chat_err_bluetooth_off">Bluetooth off</string>
+    <string name="chat_err_bluetooth_cut">Bluetooth switched off</string>
+    <string name="chat_err_text_too_long">text too long (max %1$d B)</string>
+    <string name="chat_err_unreadable_attachment">unreadable attachment</string>
+    <string name="chat_err_no_link">no link to send on</string>
+    <string name="chat_err_no_ack">no acknowledgement from %1$s</string>
+    <string name="chat_err_send_failed">failed to send to %1$s</string>
+    <string name="chat_err_medium_unreachable">%1$s unreachable</string>
+    <string name="chat_err_p2p_unreachable">Wi-Fi Direct group unreachable</string>
+    <string name="chat_err_p2p_impossible">Wi-Fi Direct group impossible</string>
+    <string name="chat_err_advertise_unavailable">BLE advertising unavailable</string>
+    <string name="chat_err_advertise_refused">advertising refused (%1$d)</string>
+    <string name="chat_err_scan_refused">scan refused (%1$d)</string>
 
     <string name="beacon_channel_name">Proximity beacon</string>
     <string name="beacon_channel_description">Presence of the ATOM4LOVE beacon and nuclei in range</string>
@@ -616,6 +583,7 @@
     <string name="forge_step_shape_sub">what your height and weight say</string>
     <string name="inc_section_sex">Your sex</string>
     <string name="inc_row_sex">Sex</string>
+    <string name="inc_missing_pseudo">your name</string>
     <string name="inc_missing_sex">your sex</string>
     <string name="inc_language_auto_title">The language follows your phone</string>
     <string name="inc_language_auto_body">Android\'s. To change it, or switch day to night: the ⚙️ gear above.</string>
@@ -637,5 +605,48 @@
     <string name="mp_copy">Copy %1$s</string>
     <string name="mp_copied">Copied</string>
     <string name="mp_field_nsec">NOSTR private key</string>
-    <string name="cabin_empty">Nothing leaves through a relay. Everything is wiped on closing.</string>
+    <string name="chat_empty">Nothing leaves through a relay. Everything is wiped when you decide.</string>
+
+    <!-- ─── 📡 The journal ────────────────────────────────────────────── -->
+    <string name="journal_title">Journal</string>
+    <string name="journal_intro">What the radio does, as it does it. Nothing is kept here.</string>
+    <string name="journal_empty">The beacon has just come on. What it hears will be written here.</string>
+    <string name="journal_beacon_on">Beacon on — advertising and listening.</string>
+    <string name="journal_beacon_off">Beacon off.</string>
+    <string name="journal_cell">4D address advertised: %1$s</string>
+    <string name="journal_cell_none">Presence advertised, without a position.</string>
+    <string name="journal_card_seen">A card appears: %1$s</string>
+    <string name="journal_card_seen_pct">A card appears: %1$s · %2$d %%</string>
+    <string name="journal_card_gone">%1$s moves away.</string>
+    <string name="journal_meeting">Meeting: %1$s is looking for you, and so are you.</string>
+    <string name="journal_peer_joined">%1$s joins the radio — encrypted channel.</string>
+    <string name="journal_peer_left">%1$s leaves the radio.</string>
+    <string name="journal_relay_on">Relay connected.</string>
+    <string name="journal_relay_off">Relay lost.</string>
+
+    <!-- ─── 💬 Conversations ──────────────────────────────────────────── -->
+    <string name="chats_title">Conversations</string>
+    <string name="chats_count">%1$d in range</string>
+    <string name="chats_empty">Nobody in range right now.</string>
+    <string name="chats_empty_hint">A conversation opens by itself as soon as a nucleus shows up near you. Nothing to ask for, nothing to accept.</string>
+    <string name="chats_preview_new">Nothing yet — write the first word.</string>
+    <string name="chats_preview_out_of_range">Out of range.</string>
+    <string name="chats_preview_mine">You: %1$s</string>
+    <string name="chats_preview_image">an image</string>
+    <string name="chats_preview_video">a video</string>
+    <string name="chats_preview_file">a file</string>
+    <string name="conv_in_range">in range — end-to-end encrypted</string>
+    <string name="conv_out_of_range">out of range — you can no longer write</string>
+
+    <string name="tab_chats">Chats</string>
+    <string name="tab_world">World</string>
+    <string name="chats_erase">Close and erase every conversation</string>
+    <string name="radar_journal_row">Journal — what the radio is doing right now</string>
+
+    <!-- ─── 🔑 End of the trial ───────────────────────────────────────── -->
+    <string name="trial_over_title">The trial period is over</string>
+    <string name="trial_over_body">You could try everything — the beacon, the cards in range, the encrypted conversations — with no account and giving nothing away. That was the point: nobody should be asked to sign up for something they have not seen.</string>
+    <string name="trial_over_kept">Nothing is lost. Your nucleus stays sealed, your name and your key are here: opening your MULTIPASS on the relay picks up exactly where you are.</string>
+    <string name="trial_over_open">Open my MULTIPASS</string>
+    <string name="map_open_chat">Open a conversation</string>
 </resources>

@@ -29,9 +29,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import one.astroport.atom4love.chat.Attachments
 import one.astroport.atom4love.chat.ChatSounds
-import one.astroport.atom4love.chat.CabinChat
+import one.astroport.atom4love.chat.ChatEngine
 import one.astroport.atom4love.chat.ui.ChatPanel
 import one.astroport.atom4love.data.IncarnationStore
+import one.astroport.atom4love.nostr.Hex
 import one.astroport.atom4love.nostr.LoveKeyForge
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
@@ -51,7 +52,7 @@ class BleChatProbeActivity : ComponentActivity() {
         // Écran maintenu allumé : la mise en veille (ZUI surtout) étrangle le
         // traitement BLE et fait mourir les réceptions en volume — vu sur banc.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        val probe = CabinChat(applicationContext)
+        val probe = ChatEngine(applicationContext)
 
         setContent {
             Atom4LoveTheme {
@@ -92,17 +93,18 @@ class BleChatProbeActivity : ComponentActivity() {
 }
 
 @Composable
-private fun BleChatScreen(probe: CabinChat) {
+private fun BleChatScreen(probe: ChatEngine) {
     val context = LocalContext.current
     val status by probe.status.collectAsState()
     val messages by probe.messages.collectAsState()
+    val peers by probe.peers.collectAsState()
     val sounds = remember { ChatSounds() }
 
     LaunchedEffect(Unit) {
         probe.chimes.collect { chime ->
             when (chime) {
-                CabinChat.Chime.SENT -> sounds.send()
-                CabinChat.Chime.RECEIVED -> sounds.receive()
+                ChatEngine.Chime.SENT -> sounds.send()
+                ChatEngine.Chime.RECEIVED -> sounds.receive()
             }
         }
     }
@@ -130,15 +132,21 @@ private fun BleChatScreen(probe: CabinChat) {
 
         ChatPanel(
             messages = messages,
-            canSend = status.links > 0,
+            canSend = peers.isNotEmpty(),
             placeholder = "message chiffré…",
             emptyHint = "En attente d'un pair… Lancez cette sonde sur les deux appareils, " +
                 "Bluetooth activé. La connexion est automatique. Images et fichiers " +
-                "jusqu'à ${Attachments.humanSize(context.resources, CabinChat.MAX_TRANSFER_STREAM)} " +
+                "jusqu'à ${Attachments.humanSize(context.resources, ChatEngine.MAX_TRANSFER_STREAM)} " +
                 "(compter ~10 Ko/s).",
-            onSendText = { text -> probe.sendText(text) },
-            onSendImage = { uri -> probe.sendImage(uri) },
-            onSendFile = { uri -> probe.sendFile(uri) },
+            // ⚠ La sonde parle au **premier pair attesté** et à lui seul.
+            // Elle envoyait à la salle, du temps où la cabine était une salle ;
+            // depuis que chaque conversation appartient à deux personnes, un
+            // banc d'essai n'a plus de « tout le monde » à qui s'adresser. Deux
+            // appareils face à face, c'est le seul cas que cette sonde a jamais
+            // servi à mesurer, et c'est exactement ce que « le premier » désigne.
+            onSendText = { text -> peers.firstOrNull()?.let { probe.sendText(text, Hex.encode(it.nostrKey)) } == true },
+            onSendImage = { uri -> peers.firstOrNull()?.let { probe.sendImage(uri, Hex.encode(it.nostrKey)) } },
+            onSendFile = { uri -> peers.firstOrNull()?.let { probe.sendFile(uri, Hex.encode(it.nostrKey)) } },
             onCancel = { message -> probe.cancelSend(message.id) },
             onOpen = { message ->
                 message.file?.let { file ->

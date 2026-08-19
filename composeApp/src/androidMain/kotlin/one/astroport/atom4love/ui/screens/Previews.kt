@@ -60,13 +60,13 @@ fun MultipassPreview() {
     }
 }
 
-@Preview(name = "02 Radar", device = A4L_DEVICE, showBackground = true)
-@Composable
-fun RadarPreview() {
-    Atom4LoveTheme { RadarScreen() }
-}
+// ⚠ L'aperçu « 02 Radar » vivait ici. L'écran a été dissous : ce qu'il montrait
+// de la radio est devenu l'en-tête du Plateau (RadioSection), et sa liste de
+// résonances était le Plateau lui-même, en moins bien. Il n'y a plus d'aperçu
+// à faire de lui — RadioSection ne s'affiche pas seule, elle n'a pas d'existence
+// hors de ce qu'elle surmonte.
 
-@Preview(name = "03 Plateau", device = A4L_DEVICE, showBackground = true)
+@Preview(name = "02 Plateau", device = A4L_DEVICE, showBackground = true)
 @Composable
 fun BoardPreview() {
     Atom4LoveTheme { BoardScreen() }

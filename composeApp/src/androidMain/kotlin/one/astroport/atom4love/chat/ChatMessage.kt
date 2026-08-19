@@ -30,6 +30,21 @@ data class ChatMessage(
      * traiter un port comme un nom serait faux.
      */
     val fromAttested: Boolean = false,
+    /**
+     * **Avec qui** — la clé publique NOSTR du pair, en hexadécimal.
+     *
+     * ⚠ C'est ce champ qui a fait passer la cabine d'une salle à des
+     * conversations. Un message n'appartenait à personne : il était dit à tous
+     * ceux qui étaient là, et la liste des messages était la salle elle-même.
+     * En le rattachant à un pair — le destinataire quand il part, l'expéditeur
+     * quand il arrive — la même liste se relit comme autant de fils séparés,
+     * sans qu'aucun octet du transport ait changé.
+     *
+     * null pour un message qui n'a pas de correspondant identifié : il en reste
+     * un cas, l'envoi vers un lien non attesté, qu'on ne sait rattacher à
+     * personne parce que personne n'a signé derrière.
+     */
+    val peer: String? = null,
     val kind: ChatKind,
     val status: ChatStatus,
     val text: String = "",

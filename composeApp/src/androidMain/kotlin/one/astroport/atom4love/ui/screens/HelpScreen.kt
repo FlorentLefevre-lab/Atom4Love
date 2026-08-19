@@ -164,7 +164,7 @@ fun HelpScreen(
                     HelpTab.Faq -> HelpPanel(
                         listOf(
                             answer(R.string.faq_network_label, R.string.faq_network_body),
-                            answer(R.string.faq_cabin_label, R.string.faq_cabin_body),
+                            answer(R.string.faq_chat_label, R.string.faq_chat_body),
                             answer(R.string.faq_weight_label, R.string.faq_weight_body),
                             answer(R.string.faq_nobody_label, R.string.faq_nobody_body),
                             answer(R.string.faq_change_label, R.string.faq_change_body),

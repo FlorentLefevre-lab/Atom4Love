@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.chat.Attachments
-import one.astroport.atom4love.chat.CabinChat
+import one.astroport.atom4love.chat.ChatEngine
 import one.astroport.atom4love.chat.net.P2pGroup
 import one.astroport.atom4love.nostr.NostrKeys
 
@@ -27,7 +27,7 @@ import one.astroport.atom4love.nostr.NostrKeys
  * vidé que lorsque l'activité s'en va pour de bon — c'est exactement la durée
  * de vie que la cabine devait avoir.
  */
-class CabinHost(application: Application) : AndroidViewModel(application) {
+class ChatHost(application: Application) : AndroidViewModel(application) {
 
     private val context = application.applicationContext
 
@@ -35,7 +35,7 @@ class CabinHost(application: Application) : AndroidViewModel(application) {
      *  (son scope est annulé), et ce qui s'est dit en cabine n'a pas à
      *  survivre à la sortie. L'instance existe même fermée : l'indicateur du
      *  haut lit ses flux en permanence. */
-    var chat by mutableStateOf(CabinChat(context))
+    var chat by mutableStateOf(ChatEngine(context))
         private set
 
     var open by mutableStateOf(false)
@@ -67,7 +67,7 @@ class CabinHost(application: Application) : AndroidViewModel(application) {
         if (!open) return
         open = false
         chat.stop()
-        chat = CabinChat(context)
+        chat = ChatEngine(context)
     }
 
     /** L'activité s'en va pour de bon (et non pour se recréer). */

@@ -18,7 +18,7 @@ import one.astroport.atom4love.BuildConfig
  * Le carnet NOSTR de la clé LOVE — NIP-02, kind 3.
  *
  * Un seul geste : ajouter à la liste le pair qu'on vient d'attester en cabine
- * ([CabinChat.Peer.nostrKey], connu dès le handshake — voir la note à Fred du
+ * ([ChatEngine.Peer.nostrKey], connu dès le handshake — voir la note à Fred du
  * 16 août, pas besoin de QR). Ni retrait, ni import, ni relais tiers : juste ce
  * qu'une rencontre réelle donne d'elle-même, avec la même clé LOVE et le même
  * relais que [Certificate].

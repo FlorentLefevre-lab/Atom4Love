@@ -154,7 +154,7 @@ object Attachments {
      * Efface tout ce que la cabine détient dans files/chat/.
      *
      * « Fermer = effacer » ne portait jusqu'ici que sur la conversation, qui
-     * meurt avec l'instance de `CabinChat` ; les fichiers, eux, n'étaient
+     * meurt avec l'instance de `ChatEngine` ; les fichiers, eux, n'étaient
      * supprimés nulle part et s'accumulaient depuis la toute première cabine.
      *
      * Ce qui est parti dans Téléchargements ([saveToDownloads]) n'est **pas**

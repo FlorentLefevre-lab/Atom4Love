@@ -49,6 +49,8 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -136,6 +138,21 @@ fun MapScreen(
      * doit pouvoir s'afficher toute seule.
      */
     shared: Constellation? = null,
+    /**
+     * Ouvrir une conversation avec quelqu'un de la constellation.
+     *
+     * ⚠ **Elle naîtra hors de portée**, et c'est exact : cette personne est à
+     * son lieu de naissance sur la carte, pas dans la pièce. Le fil se pose
+     * dans la liste des chats et s'allume le jour où elle est là — soit parce
+     * que la radio l'entend, soit parce que le canal par le relais existe.
+     *
+     * ⚠ **Le canal distant n'existe pas encore.** Le bouton n'en promet pas un :
+     * il retient quelqu'un, et l'écran de la conversation dit franchement
+     * qu'elle est hors de portée plutôt que d'ouvrir une saisie qui n'irait
+     * nulle part. C'est le seul endroit de cette refonte où il manque une
+     * pièce, et elle est nommée : voir le mot à Fred.
+     */
+    onOpenChat: ((String) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val constellation = shared ?: remember(scope) { Constellation(scope) }
@@ -466,6 +483,9 @@ fun MapScreen(
                                     )
                                 }
                             },
+                            onOpenChat = onOpenChat?.let { open ->
+                                { open(sighting.atom.pubkey) }
+                            },
                             modifier = Modifier.onGloballyPositioned {
                                 rowTops[sighting.atom.pubkey] = it.positionInRoot().y.toInt()
                             },
@@ -682,6 +702,17 @@ private fun SightingRow(
     sighting: Sighting,
     selected: Boolean,
     onClick: () -> Unit,
+    /**
+     * Ouvrir une conversation avec cette personne — null pour soi-même, et pour
+     * les aperçus où il n'y a pas de moteur derrière.
+     *
+     * ⚠ **Le geste est le seul de cet écran qui désigne quelqu'un**, et il ne
+     * dit rien à personne : il pose la conversation dans la liste des chats, de
+     * notre côté. La constellation reste ce qu'elle est — une carte de
+     * certificats publics —, et la regarder n'a jamais prévenu ceux qu'on
+     * regarde.
+     */
+    onOpenChat: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     /**
      * L'opacité du liseré quand la ligne est désignée — elle bat.
@@ -695,6 +726,9 @@ private fun SightingRow(
 ) {
     val atom = sighting.atom
     val dot = atom.phase?.let { phaseColor(it) } ?: A4L.TextFaint
+    // Lue ici et non dans le rappel : une ressource lue depuis un lambda ne
+    // serait pas réévaluée si la langue change sous l'application.
+    val openChatLabel = stringResource(R.string.map_open_chat)
     val accent = when {
         sighting.isSelf -> A4L.Cyan
         // L'honneur passe devant la résonance dans la couleur comme dans
@@ -771,6 +805,28 @@ private fun SightingRow(
                     style = A4LText.Data.copy(fontSize = 9.5.sp),
                     color = A4L.TextFaint,
                 )
+            }
+        }
+
+        // ⚠ **Hors de la colonne des badges, et c'est délibéré.** Tout ce qui
+        // précède se lit ; ceci se touche. Rangé avec les pastilles, un bouton
+        // se serait lu comme une donnée de plus, et on l'aurait touché par
+        // erreur en voulant lire le pourcentage.
+        //
+        // Jamais sur sa propre ligne : s'écrire à soi-même n'a pas de sens, et
+        // la carte montre notre certificat parce que s'y voir est tout
+        // l'intérêt, pas pour qu'on s'y réponde.
+        if (onOpenChat != null && !sighting.isSelf) {
+            Box(
+                Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .glass(17.dp, A4L.Mint.tint(0.12f), A4L.Mint.tint(0.34f))
+                    .clickable(onClick = onOpenChat)
+                    .semantics { contentDescription = openChatLabel },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("💬", fontSize = 14.sp)
             }
         }
     }

@@ -89,9 +89,10 @@ import one.astroport.atom4love.domain.BirthData
 import one.astroport.atom4love.domain.Questions
 import one.astroport.atom4love.noise.NoiseIdentity
 import one.astroport.atom4love.noise.NoiseSession
+import one.astroport.atom4love.data.Pseudo
 import one.astroport.atom4love.noise.NoiseVouch
 import one.astroport.atom4love.nostr.Bech32
-import one.astroport.atom4love.nostr.CabinSalon
+import one.astroport.atom4love.nostr.HexagonSalon
 import one.astroport.atom4love.nostr.Hex
 import one.astroport.atom4love.nostr.NostrKeys
 import one.astroport.atom4love.proximity.RadioSilence
@@ -102,7 +103,7 @@ import one.astroport.atom4love.proximity.RadioSilence
  * Rien de ce qui passe par ce moteur ne part sur un relais NOSTR ni ne sort de
  * la portée : la cabine et l'hexagone sont deux mondes étanches, et cette
  * étanchéité est le principe, pas un effet de bord. Le salon d'hexagone
- * ([CabinSalon]) sert l'autre portée, celle qu'on n'atteint pas directement.
+ * ([HexagonSalon]) sert l'autre portée, celle qu'on n'atteint pas directement.
  *
  * Le trafic est chiffré par Noise XX dès qu'un lien a mené son handshake :
  * tout ce qui suit — START, DATA, ACK, ADDR — voyage scellé. Restent en clair
@@ -132,10 +133,10 @@ import one.astroport.atom4love.proximity.RadioSilence
  * `scope.launch`.
  */
 @SuppressLint("MissingPermission")
-class CabinChat(context: Context) {
+class ChatEngine(context: Context) {
 
     companion object {
-        private const val TAG = "CabinChat"
+        private const val TAG = "ChatEngine"
 
         /** UUID 16 bits vendor, distinct de la balise (fff0). */
         val CHAT_SERVICE: ParcelUuid =
@@ -337,7 +338,7 @@ class CabinChat(context: Context) {
          * ⚠ **Un UUID n'est que de l'hexadécimal.** Le premier bloc écrit ici
          * disait `a4l0cab1` — un `l` qui n'est pas un chiffre. `UUID.fromString`
          * lève alors une `NumberFormatException` **dans l'initialiseur de ce
-         * companion**, donc au tout premier accès à [CabinChat] : l'application
+         * companion**, donc au tout premier accès à [ChatEngine] : l'application
          * mourait avant d'afficher un pixel, et aucun test JVM ni le lint ne
          * l'a vu. Ne pas « embellir » ces seize chiffres.
          */
@@ -432,9 +433,9 @@ class CabinChat(context: Context) {
         /**
          * Le dernier incident, **en valeur** : ce moteur n'a pas de `Context`
          * et ne saurait pas dans quelle langue l'écrire. L'écran s'en charge
-         * ([CabinError.text]).
+         * ([ChatError.text]).
          */
-        val lastError: CabinError? = null,
+        val lastError: ChatError? = null,
     )
 
     /**
@@ -444,9 +445,32 @@ class CabinChat(context: Context) {
      * Une même personne tient souvent DEUX liens avec nous (le sien vers nous,
      * le nôtre vers elle) : c'est le npub qui les réunit en une seule présence.
      */
-    data class Peer(val nostrKey: ByteArray, val npub: String) {
+    data class Peer(
+        val nostrKey: ByteArray,
+        val npub: String,
+        /**
+         * Le nom qu'il s'est donné, quand il en a envoyé un
+         * ([one.astroport.atom4love.chat.wire.ChatFrame.Name]). null tant qu'il
+         * se tait — un pair d'une version plus ancienne, ou qui n'a rien saisi.
+         */
+        val name: String? = null,
+    ) {
         /** `npub1u9v…eqx2` — de quoi reconnaître sans étaler la clé. */
         val short: String get() = "${npub.take(8)}…${npub.takeLast(4)}"
+
+        /**
+         * Ce que l'écran doit écrire de ce pair.
+         *
+         * ⚠ **Le npub n'est plus une réponse acceptable.** Une clé publique
+         * n'est pas un nom : elle ne se retient pas, ne se prononce pas, ne se
+         * reconnaît pas d'une salle à l'autre — et l'écrire sur chaque ligne
+         * d'une conversation revenait à demander de suivre un échange en lisant
+         * trente-deux caractères de base32. Quand le pair s'est nommé, c'est son
+         * nom ; sinon c'est **null**, et l'écran met le mot qu'il faut dans la
+         * langue du moment. [short] reste — pour le journal technique, et pour
+         * lui seul.
+         */
+        val display: String? get() = name
 
         override fun equals(other: Any?) =
             this === other || (other is Peer && nostrKey.contentEquals(other.nostrKey))
@@ -819,6 +843,42 @@ class CabinChat(context: Context) {
         }
     }
 
+    /**
+     * Fil protocole. Le pair se nomme.
+     *
+     * Trois refus, et chacun ferme une porte différente :
+     *  - **pas de lien** — la trame vient d'une adresse qu'on ne suit plus ;
+     *  - **pair non attesté** — un nom posé sur un canal dont on ignore la clé
+     *    ne désigne personne, et laisserait n'importe qui s'appeler comme
+     *    quelqu'un d'autre sur un lien anonyme ;
+     *  - **nom vide ou trop long** — [Pseudo.clean] tranche, et un nom qui
+     *    n'arrive pas à [Pseudo.MIN_LENGTH] ne se retient pas de toute façon.
+     *
+     * ⚠ Le nom **se remplace** à chaque trame, contrairement aux réponses du
+     * jeu qui ne se réécrivent jamais. Ce n'est pas une inconséquence : une
+     * réponse est un don qu'on ne reprend pas, un nom est une étiquette. Le
+     * pair qui change de nom en cours de route doit être lu sous son nouveau
+     * nom — le figer ferait mentir l'écran.
+     */
+    private fun onNameFrame(link: Link?, frame: ChatFrame.Name) {
+        if (link == null) {
+            Log.w(TAG, "nom reçu sur un lien inconnu : ignoré")
+            return
+        }
+        if (link.peerNostrKey == null) {
+            Log.w(TAG, "nom envoyé par un pair non attesté : ignoré")
+            return
+        }
+        val clean = Pseudo.clean(frame.pseudo)
+        if (!Pseudo.isValid(clean)) {
+            Log.w(TAG, "nom inutilisable de ${link.address} : ignoré")
+            return
+        }
+        if (link.peerName == clean) return
+        link.peerName = clean
+        refreshLinks()
+    }
+
     private val executor = Executors.newSingleThreadExecutor { Thread(it, "BleChat") }
     private val dispatcher = executor.asCoroutineDispatcher()
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -899,6 +959,19 @@ class CabinChat(context: Context) {
         var peerNostrKey: ByteArray? = null
 
         /**
+         * Le nom que le pair s'est donné, s'il l'a envoyé.
+         *
+         * Porté par le **lien** et non par la personne, parce que c'est le lien
+         * qui reçoit la trame ; [refreshLinks] le remonte ensuite sur le pair,
+         * où les deux liens croisés d'un même appareil se rejoignent. Un nom
+         * reçu sur un seul des deux liens vaut donc pour la personne entière.
+         */
+        var peerName: String? = null
+
+        /** Évite de renvoyer son nom à chaque passage de la file de contrôle. */
+        var nameAnnounced = false
+
+        /**
          * Chronos d'un transfert, remis à zéro à chaque départ : temps passé à
          * sceller (Noise, sur le fil protocole) et temps passé à remettre au
          * transport. Les deux se mesurent séparément parce qu'ils se soignent
@@ -956,6 +1029,22 @@ class CabinChat(context: Context) {
      * Rattache la sonde à un noyau. À appeler avant [start] : les liens déjà
      * ouverts garderaient l'identité précédente.
      */
+    /**
+     * Le nom que ce noyau se donne — vide tant que l'assistant n'en a pas
+     * demandé un, ou tant que le magasin n'a pas répondu.
+     *
+     * Il ne fait partie d'aucune identité : la clé seule dit qui parle. C'est
+     * pour ça qu'il se lie à part de [bindIdentity] et qu'il peut changer à
+     * tout moment — un pair déjà en ligne recevra simplement le nouveau nom au
+     * prochain lien.
+     */
+    private var pseudo: String = ""
+
+    /** Le nom sous lequel paraître. Voir [one.astroport.atom4love.data.PseudoStore]. */
+    fun bindPseudo(name: String) {
+        pseudo = name.trim()
+    }
+
     fun bindIdentity(keys: NostrKeys) {
         nostrKeys = keys
         noiseStaticKey = NoiseIdentity.staticPrivateKey(keys)
@@ -1133,7 +1222,7 @@ class CabinChat(context: Context) {
     fun start() {
         val adapter = this.adapter
         if (adapter == null || !adapter.isEnabled) {
-            _status.update { it.copy(lastError = CabinError.BluetoothOff) }
+            _status.update { it.copy(lastError = ChatError.BluetoothOff) }
             return
         }
         // journalisée pour recouper les deux bancs : la clé que le pair
@@ -1360,7 +1449,7 @@ class CabinChat(context: Context) {
                         runCatching { server?.close() }
                         server = null
                         _status.update {
-                            it.copy(advertising = false, scanning = false, lastError = CabinError.BluetoothCut)
+                            it.copy(advertising = false, scanning = false, lastError = ChatError.BluetoothCut)
                         }
                     }
                     BluetoothAdapter.STATE_ON -> scope.launch {
@@ -1377,26 +1466,50 @@ class CabinChat(context: Context) {
     // ── Envoi ─────────────────────────────────────────────────────────────
 
     /** Envoie un texte. false si vide, trop long ou aucun lien. */
-    fun sendText(text: String): Boolean {
+    /**
+     * Envoie un texte **à quelqu'un**.
+     *
+     * ⚠ [to] n'a pas de valeur par défaut, et c'est délibéré. Cette méthode
+     * s'appelait sans destinataire et parlait à toute la salle ; lui donner un
+     * défaut aurait laissé ce comportement joignable par oubli, c'est-à-dire
+     * qu'un jour un message privé serait parti à tout le monde parce qu'un
+     * appelant n'avait pas passé son paramètre. Le compilateur tient la règle
+     * mieux qu'un commentaire.
+     */
+    fun sendText(text: String, to: String): Boolean {
         val content = text.trim()
-        if (content.isEmpty() || status.value.links == 0) return false
+        if (content.isEmpty()) return false
+        if (routesTo(to).isEmpty()) {
+            _status.update { it.copy(lastError = ChatError.NoLink) }
+            return false
+        }
         val bytes = content.toByteArray(Charsets.UTF_8)
         if (bytes.size > MAX_TEXT_BYTES) {
-            _status.update { it.copy(lastError = CabinError.TextTooLong(MAX_TEXT_BYTES)) }
+            _status.update { it.copy(lastError = ChatError.TextTooLong(MAX_TEXT_BYTES)) }
             return false
         }
         val msgId = Random.nextInt()
         addMessage(
             ChatMessage(
-                id = msgId, mine = true, from = "moi",
+                id = msgId, mine = true, from = "moi", peer = to,
                 kind = ChatKind.TEXT, status = ChatStatus.SENDING,
                 text = content, sizeBytes = bytes.size,
             ),
         )
         _chimes.tryEmit(Chime.SENT)
-        scope.launch { dispatch(msgId, ChatFrames.KIND_TEXT, "", "", BytesSource(bytes)) }
+        scope.launch { dispatch(msgId, ChatFrames.KIND_TEXT, "", "", BytesSource(bytes), to) }
         return true
     }
+
+    /**
+     * Fil protocole. Les routes qui mènent à **une** personne.
+     *
+     * Le double lien croisé fait que deux liens portent souvent la même clé :
+     * [routes] en a déjà retenu le meilleur par personne, il ne reste qu'à
+     * garder celui qui va où l'on veut.
+     */
+    private fun routesTo(peerHex: String): List<Link> =
+        routes().filter { link -> link.peerNostrKey?.let { Hex.encode(it) } == peerHex }
 
     /**
      * Prépare (recompression) puis envoie une image.
@@ -1405,24 +1518,24 @@ class CabinChat(context: Context) {
      * n'est pas une image, et surtout **ne doit pas être recompressée**. Elle
      * repart donc par le chemin des vidéos, quel que soit le bouton touché.
      */
-    fun sendImage(uri: Uri) {
+    fun sendImage(uri: Uri, to: String) {
         scope.launch(Dispatchers.IO) {
-            if (isVideo(uri)) return@launch sendVideo(uri)
+            if (isVideo(uri)) return@launch sendVideo(uri, to)
             val read = Attachments.prepareImage(appContext, uri)
             withContext(dispatcher) {
                 // la voie rapide d'abord : le plafond se lit APRÈS, sinon il
                 // dirait deux mégaoctets alors qu'on vient d'en ouvrir deux
                 // cents
                 raiseForAttachment()
-                dispatchAttachment(ChatKind.IMAGE, ChatFrames.KIND_IMAGE, read, transferLimit())
+                dispatchAttachment(ChatKind.IMAGE, ChatFrames.KIND_IMAGE, read, transferLimit(), to)
             }
         }
     }
 
     /** Envoie un fichier tel quel, plafonné selon le médium ([transferLimit]). */
-    fun sendFile(uri: Uri) {
+    fun sendFile(uri: Uri, to: String) {
         scope.launch(Dispatchers.IO) {
-            if (isVideo(uri)) return@launch sendVideo(uri)
+            if (isVideo(uri)) return@launch sendVideo(uri, to)
             // le plafond se lit AVANT la copie : inutile de recopier deux cents
             // mégaoctets pour découvrir ensuite qu'ils ne passeront pas — mais
             // après la montée, qui décide justement de ce plafond
@@ -1432,7 +1545,7 @@ class CabinChat(context: Context) {
             }
             val read = Attachments.stage(appContext, uri, limit)
             withContext(dispatcher) {
-                dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, limit)
+                dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, limit, to)
             }
         }
     }
@@ -1482,7 +1595,7 @@ class CabinChat(context: Context) {
      * **avant** la copie : recopier deux cents mégaoctets pour dire non
      * ensuite serait une minute perdue pour rien.
      */
-    private suspend fun sendVideo(uri: Uri) {
+    private suspend fun sendVideo(uri: Uri, to: String) {
         val verdict = withContext(dispatcher) {
             // ⚠ La montée AVANT le verdict, sinon une vidéo se voyait refuser
             // au motif que « le médium est BT » — alors que le réseau du lieu
@@ -1500,7 +1613,7 @@ class CabinChat(context: Context) {
         }
         val read = Attachments.stage(appContext, uri, limit)
         withContext(dispatcher) {
-            dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, limit)
+            dispatchAttachment(ChatKind.FILE, ChatFrames.KIND_FILE, read, limit, to)
         }
     }
 
@@ -1509,6 +1622,7 @@ class CabinChat(context: Context) {
         wireKind: Int,
         read: Attachments.Read,
         limit: Int,
+        to: String,
     ) {
         when (read) {
             is Attachments.Read.TooBig -> {
@@ -1521,7 +1635,7 @@ class CabinChat(context: Context) {
                 Log.w(TAG, "pièce refusée : ${read.name} (${read.bytes} o > $limit)")
             }
             is Attachments.Read.Unreadable -> _status.update {
-                it.copy(lastError = CabinError.UnreadableAttachment)
+                it.copy(lastError = ChatError.UnreadableAttachment)
             }
             is Attachments.Read.Ok -> {
                 if (read.size > limit) {
@@ -1542,21 +1656,32 @@ class CabinChat(context: Context) {
                         // elle sert à la fois de source d'envoi et de trace à
                         // l'écran, là où on en écrivait deux
                         file = read.file, name = read.name, mime = read.mime,
-                        sizeBytes = read.size,
+                        sizeBytes = read.size, peer = to,
                     ),
                 )
                 _chimes.tryEmit(Chime.SENT)
-                dispatch(msgId, wireKind, read.name, read.mime, FileSource(read.file, read.size))
+                dispatch(
+                    msgId, wireKind, read.name, read.mime,
+                    FileSource(read.file, read.size), to,
+                )
             }
         }
     }
 
     /** Fil protocole. Une émission par personne, au meilleur médium accepté. */
-    private fun dispatch(msgId: Int, kind: Int, name: String, mime: String, source: Source) {
-        val perAddress = routes()
+    private fun dispatch(
+        msgId: Int,
+        kind: Int,
+        name: String,
+        mime: String,
+        source: Source,
+        /** À qui — la clé publique NOSTR du destinataire, en hexadécimal. */
+        to: String,
+    ) {
+        val perAddress = routesTo(to)
         if (perAddress.isEmpty()) {
             updateMessage(msgId) { it.copy(status = ChatStatus.FAILED) }
-            _status.update { it.copy(lastError = CabinError.NoLink) }
+            _status.update { it.copy(lastError = ChatError.NoLink) }
             return
         }
         // Texte : tout le monde (léger). Image/fichier : la contrainte est
@@ -1581,7 +1706,7 @@ class CabinChat(context: Context) {
         // autant de fois qu'il y a de pairs.
         val crc = crcOf(source) ?: run {
             updateMessage(msgId) { it.copy(status = ChatStatus.FAILED) }
-            _status.update { it.copy(lastError = CabinError.UnreadableAttachment) }
+            _status.update { it.copy(lastError = ChatError.UnreadableAttachment) }
             return
         }
         var primary = true
@@ -1812,6 +1937,7 @@ class CabinChat(context: Context) {
             // parade `isHandshake` ne protège que le handshake lui-même. Depuis
             // onHandshakeDone, la file contient déjà HELLO 3 : l'ordre tient.
             announceAddress(link)
+            announceName(link)
             followMedium(link)
             refreshLinks()
         }
@@ -2110,7 +2236,7 @@ class CabinChat(context: Context) {
             }
             if (lost) {
                 Log.w(TAG, "message $msgId sans accusé après ${wait / 1000} s : perdu")
-                _status.update { it.copy(lastError = CabinError.NoAck(address.takeLast(5))) }
+                _status.update { it.copy(lastError = ChatError.NoAck(address.takeLast(5))) }
             }
         }
     }
@@ -2122,7 +2248,7 @@ class CabinChat(context: Context) {
             sentAtMs.remove(out.msgId)
             ackWatchdogs.remove(out.msgId)?.cancel()
             updateMessage(out.msgId) { it.copy(status = ChatStatus.FAILED) }
-            _status.update { it.copy(lastError = CabinError.SendFailed(link.address.takeLast(5))) }
+            _status.update { it.copy(lastError = ChatError.SendFailed(link.address.takeLast(5))) }
         }
     }
 
@@ -2289,6 +2415,7 @@ class CabinChat(context: Context) {
                 Log.w(TAG, "trame ${frame::class.simpleName} imbriquée de $from : ignorée")
             is ChatFrame.Address -> onAddressFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Question -> onQuestionFrame(links[key(medium, kind, from)], frame)
+            is ChatFrame.Name -> onNameFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Group -> onGroupFrame(links[key(medium, kind, from)], frame)
             is ChatFrame.Ack -> onAck(frame)
             // Le pair ferme sa cabine. On le retire tout de suite plutôt que
@@ -2344,8 +2471,14 @@ class CabinChat(context: Context) {
         val attested = attestedShort(event.from)
         addMessage(
             ChatMessage(
-                id = start.msgId, mine = false,
-                from = attested ?: event.from.takeLast(5),
+                id = start.msgId, mine = false, peer = attestedKey(event.from),
+                // ⚠ **Plus de suffixe d'adresse radio en repli.** Il nommait
+                // l'expéditeur « pair 36219 » — un port qui change à chaque
+                // session, que personne ne reconnaît d'un message au suivant, et
+                // qui a exactement le défaut qu'on reproche au npub : ce n'est
+                // pas un nom. Sans nom déclaré, l'écran écrit « sans nom », qui
+                // est vrai et se lit.
+                from = attested.orEmpty(),
                 fromAttested = attested != null,
                 kind = kindOf(start.kind), status = ChatStatus.RECEIVING,
                 name = start.name, mime = start.mime, sizeBytes = start.totalBytes,
@@ -2354,20 +2487,41 @@ class CabinChat(context: Context) {
     }
 
     /**
-     * Le npub court de qui parle depuis [address], ou null tant que personne
-     * n'a signé d'attestation sur cette adresse.
+     * **Le nom** de qui parle depuis [address], ou null tant que personne n'a
+     * signé d'attestation sur cette adresse.
      *
      * On cherche par adresse et non par lien : le double lien croisé d'un même
      * pair porte la même adresse, et il suffit qu'un des deux ait vérifié
      * l'attestation pour qu'on sache à qui on parle. Sans ça, le panneau
      * nommait l'expéditeur par un suffixe d'adresse — un port qui change à
-     * chaque session — alors que le npub était déjà connu, affiché juste
+     * chaque session — alors que l'identité était déjà connue, affichée juste
      * au-dessus dans la liste de ceux qui sont là.
+     *
+     * ⚠ **Rendait le npub court, il rend maintenant le nom déclaré.** Un pair
+     * attesté qui ne s'est pas nommé revient donc `null`, comme un pair non
+     * attesté — et c'est voulu : ces deux-là ont exactement le même problème vu
+     * de l'écran, on ne sait pas comment les appeler. Ce que l'attestation
+     * garantit ne se lit plus dans l'étiquette, il se lit dans le fait qu'il y
+     * ait une étiquette.
      */
     private fun attestedShort(address: String): String? = links.values
+        .filter { it.address == address && it.peerNostrKey != null }
+        .firstNotNullOfOrNull { it.peerName }
+
+    /**
+     * **De qui** vient ce qui arrive par [address] — la clé publique NOSTR en
+     * hexadécimal, ou null tant que rien n'a été attesté sur cette adresse.
+     *
+     * C'est le pendant exact de [attestedShort] : l'un donne le mot qu'on
+     * affiche, l'autre la clé qui range le message dans la bonne conversation.
+     * Les deux se cherchent par adresse et non par lien, pour la même raison —
+     * le double lien croisé d'un même pair porte la même adresse, et il suffit
+     * qu'un des deux ait vérifié l'attestation.
+     */
+    private fun attestedKey(address: String): String? = links.values
         .firstOrNull { it.address == address && it.peerNostrKey != null }
         ?.peerNostrKey
-        ?.let { Peer(it, Bech32.encode("npub", it)).short }
+        ?.let { Hex.encode(it) }
 
     private fun onIncomingCompleted(event: Reassembler.Event.Completed) {
         val start = event.start
@@ -2634,7 +2788,7 @@ class CabinChat(context: Context) {
             // en toute bonne foi. C'est l'échec qui fait descendre l'échelle
             // d'un cran vers le Direct — pas l'absence d'annonce.
             unreachable.add(medium)
-            _status.update { it.copy(lastError = CabinError.MediumUnreachable(medium)) }
+            _status.update { it.copy(lastError = ChatError.MediumUnreachable(medium)) }
             refreshLinks()
             return
         }
@@ -2668,7 +2822,7 @@ class CabinChat(context: Context) {
         if (socket == null) {
             Log.w(TAG, "BT classique : $mac injoignable")
             unreachable.add(Medium.BT_CLASSIC)
-            _status.update { it.copy(lastError = CabinError.MediumUnreachable(Medium.BT_CLASSIC)) }
+            _status.update { it.copy(lastError = ChatError.MediumUnreachable(Medium.BT_CLASSIC)) }
             refreshLinks()
             return
         }
@@ -2760,6 +2914,26 @@ class CabinChat(context: Context) {
      * LAN. Annoncer n'engage à rien : c'est le pair qui décidera de composer,
      * et seulement si son porteur a accepté la montée.
      */
+    /**
+     * Fil protocole. Dit son nom à un pair attesté — une fois par lien.
+     *
+     * **Après l'attestation, et sur la file de contrôle**, comme l'adresse et
+     * pour la même raison : la trame part donc scellée, derrière le 3e message
+     * du handshake, et n'est lisible que par quelqu'un dont la clé a été
+     * vérifiée. Un nom en clair dans une annonce ferait de la radio un traqueur
+     * — c'est la seule chose de ce protocole qu'un être humain reconnaît d'une
+     * salle à l'autre.
+     *
+     * Rien à envoyer quand on n'a pas de nom : le pair nous lira « sans nom »,
+     * ce qui est exact, plutôt que de recevoir une chaîne vide à afficher.
+     */
+    private fun announceName(link: Link) {
+        if (link.peerNostrKey == null || link.nameAnnounced) return
+        val name = pseudo.takeIf { it.isNotBlank() } ?: return
+        link.nameAnnounced = true
+        link.control.trySend(ChatFrames.encodeName(name))
+    }
+
     private fun announceAddress(link: Link) {
         if (link.medium != Medium.BLE) return
         // une adresse ne se confie qu'à quelqu'un dont on sait qui il est : un
@@ -2936,7 +3110,7 @@ class CabinChat(context: Context) {
             if (radioPaused && listener != null) acquireWifiLock()
         }
         if (!joined) {
-            _status.update { it.copy(lastError = CabinError.P2pUnreachable) }
+            _status.update { it.copy(lastError = ChatError.P2pUnreachable) }
             return
         }
         inGroup = true
@@ -2956,7 +3130,7 @@ class CabinChat(context: Context) {
     private suspend fun hostGroup() {
         if (listenPort == 0) return
         val credentials = p2p.host() ?: run {
-            _status.update { it.copy(lastError = CabinError.P2pImpossible) }
+            _status.update { it.copy(lastError = ChatError.P2pImpossible) }
             return
         }
         inGroup = true
@@ -3015,7 +3189,7 @@ class CabinChat(context: Context) {
                 } else {
                     Log.w(TAG, "groupe non retiré : le médium reste engagé")
                     enabledMedia.add(medium)
-                    _status.update { it.copy(lastError = CabinError.P2pUnreachable) }
+                    _status.update { it.copy(lastError = ChatError.P2pUnreachable) }
                 }
             }
             refreshLinks()
@@ -3067,7 +3241,7 @@ class CabinChat(context: Context) {
                             val alone = links.values.none { it.peerNostrKey != null && it.ready }
                             if (attempt < REDIAL_ATTEMPTS - 1 || alone) {
                                 _status.update {
-                                    if (it.lastError is CabinError.MediumUnreachable) {
+                                    if (it.lastError is ChatError.MediumUnreachable) {
                                         it.copy(lastError = null)
                                     } else {
                                         it
@@ -3256,7 +3430,7 @@ class CabinChat(context: Context) {
 
     private fun startAdvertising() {
         val advertiser = adapter?.bluetoothLeAdvertiser ?: run {
-            _status.update { it.copy(lastError = CabinError.AdvertiseUnavailable) }
+            _status.update { it.copy(lastError = ChatError.AdvertiseUnavailable) }
             return
         }
         val callback = object : AdvertiseCallback() {
@@ -3266,7 +3440,7 @@ class CabinChat(context: Context) {
             }
 
             override fun onStartFailure(errorCode: Int) {
-                _status.update { it.copy(lastError = CabinError.AdvertiseRefused(errorCode)) }
+                _status.update { it.copy(lastError = ChatError.AdvertiseRefused(errorCode)) }
             }
         }
         advertiseCallback = callback
@@ -3300,7 +3474,7 @@ class CabinChat(context: Context) {
             }
 
             override fun onScanFailed(errorCode: Int) {
-                _status.update { it.copy(scanning = false, lastError = CabinError.ScanRefused(errorCode)) }
+                _status.update { it.copy(scanning = false, lastError = ChatError.ScanRefused(errorCode)) }
             }
         }
         scanCallback = callback
@@ -3586,9 +3760,21 @@ class CabinChat(context: Context) {
         // dédoublonné par npub : les deux liens croisés d'une même personne ne
         // font qu'une présence, et une adresse radio qui tourne n'en crée pas
         // une nouvelle
+        // Le nom arrive par UN des deux liens croisés, jamais forcément le
+        // même que la clé : on le cherche donc sur tous les liens de la
+        // personne, pas sur celui qu'on regarde. `firstNotNullOfOrNull` rend le
+        // premier nom connu — un pair n'en a qu'un, et le dernier reçu a déjà
+        // remplacé le précédent sur son lien.
         _peers.value = ready
-            .mapNotNull { it.peerNostrKey }
-            .map { Peer(it, Bech32.encode("npub", it)) }
-            .distinctBy { it.npub }
+            .mapNotNull { link -> link.peerNostrKey?.let { it to link } }
+            .groupBy { (key, _) -> Hex.encode(key) }
+            .map { (_, group) ->
+                val nostrKey = group.first().first
+                Peer(
+                    nostrKey = nostrKey,
+                    npub = Bech32.encode("npub", nostrKey),
+                    name = group.firstNotNullOfOrNull { (_, link) -> link.peerName },
+                )
+            }
     }
 }

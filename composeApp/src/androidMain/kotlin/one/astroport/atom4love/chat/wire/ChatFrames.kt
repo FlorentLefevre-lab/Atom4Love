@@ -23,6 +23,7 @@ import java.util.zip.CRC32
  *   CANCEL [0x08][id 4]
  *   BYE    [0x09]
  *   QUESTION [0x0B][étape 1][trait 1][valeur 2]
+ *   NAME   [0x0C][lgNom 1][nom…]
  *
  * ⚠ Le type **0x0A (ONDE)** a existé : quatre octets d'ω_bio. Il est parti le
  * 15/08 avec la formule de Watson. Le numéro reste **brûlé** — un appareil
@@ -65,6 +66,24 @@ sealed interface ChatFrame {
 
     /** Un coup du jeu des questions. Voir [ChatFrames.encodeQuestion]. */
     data class Question(val step: Int, val traitId: Int, val value: Int) : ChatFrame
+
+    /**
+     * Le nom sous lequel ce pair veut paraître — voir
+     * [one.astroport.atom4love.data.PseudoStore].
+     *
+     * ⚠ **Elle ne circule que scellée, et seulement après l'attestation.** Ce
+     * n'est pas de la prudence de principe : un nom est la seule chose de ce
+     * protocole qu'un être humain reconnaît d'une salle à l'autre. En clair
+     * dans une annonce, il ferait de la radio un traqueur — bien pire que le
+     * npub, qui au moins ne se retient pas. Derrière le handshake, il n'est
+     * lisible que par quelqu'un dont on a déjà vérifié la clé.
+     *
+     * ⚠ **Elle se déclare, elle ne se prouve pas.** Deux pairs peuvent envoyer
+     * le même mot ; c'est le npub attesté en dessous qui les sépare, comme
+     * avant. Un pair qui n'en envoie aucune reste anonyme — il n'est pas
+     * refusé, il est « sans nom ».
+     */
+    data class Name(val pseudo: String) : ChatFrame
 
     /**
      * L'émetteur renonce à un transfert en cours.
@@ -157,7 +176,11 @@ object ChatFrames {
     private const val TYPE_CANCEL = 0x08
     private const val TYPE_BYE = 0x09
     private const val TYPE_QUESTION = 0x0B
+    private const val TYPE_NAME = 0x0C
     private const val QUESTION_LEN = 5
+
+    /** [type][longueur du nom] — le nom suit, en UTF-8. */
+    private const val NAME_FIXED = 2
 
     /** J'offre, et je donne : la valeur qui suit est la mienne. */
     const val QUESTION_OFFER = 1
@@ -366,6 +389,24 @@ object ChatFrames {
             .putShort((if (step == QUESTION_DECLINE) 0 else value).toShort())
             .array()
 
+    /**
+     * Le nom qu'on se donne, tronqué à la frontière UTF-8.
+     *
+     * Le plafond est celui de [one.astroport.atom4love.data.Pseudo.MAX_LENGTH]
+     * en **caractères**, mais ce qui voyage est en octets : un nom d'accents ou
+     * d'idéogrammes vaut deux ou trois fois sa longueur. On borne donc ici en
+     * octets, à 255 — la limite du préfixe de longueur —, et [fitUtf8] coupe au
+     * point de code entier plutôt qu'au milieu d'un caractère.
+     */
+    fun encodeName(pseudo: String): ByteArray {
+        val bytes = fitUtf8(pseudo, 255)
+        return ByteBuffer.allocate(NAME_FIXED + bytes.size)
+            .put(TYPE_NAME.toByte())
+            .put(bytes.size.toByte())
+            .put(bytes)
+            .array()
+    }
+
     /** [type][id] — cinq octets, la plus courte trame à identifiant. */
     fun encodeCancel(msgId: Int): ByteArray =
         ByteBuffer.allocate(5)
@@ -429,6 +470,18 @@ object ChatFrames {
             // Non signée : les valeurs du jeu sont toutes positives, et un KIN
             // qui reviendrait négatif ne serait pas un KIN.
             return ChatFrame.Question(step, traitId, buffer.short.toInt() and 0xFFFF)
+        }
+        // NAME est court : deux octets et le nom, sous le plancher des trames
+        // à identifiant vérifié plus bas.
+        if (bytes.isNotEmpty() && bytes[0].toInt() == TYPE_NAME) {
+            if (bytes.size < NAME_FIXED) return null
+            val buffer = ByteBuffer.wrap(bytes)
+            buffer.get()
+            val pseudo = lengthPrefixed(buffer) ?: return null
+            // Un nom vide n'est pas un nom : le taire vaut mieux que d'installer
+            // une étiquette invisible à la place de celle qu'on avait.
+            if (pseudo.isBlank()) return null
+            return ChatFrame.Name(pseudo)
         }
         // CANCEL ne porte qu'un identifiant : cinq octets, sous le plancher
         // des trames vérifié juste après

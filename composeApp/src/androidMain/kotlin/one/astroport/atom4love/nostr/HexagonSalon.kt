@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
  * Le tag `["h", cellule]` porte la cellule H3 du salon, dans l'encodage de
  * l'adresse affichée par le Radar.
  */
-class CabinSalon(
+class HexagonSalon(
     private val scope: CoroutineScope,
     private val localRelay: StateFlow<RelayClient?>,
 ) {

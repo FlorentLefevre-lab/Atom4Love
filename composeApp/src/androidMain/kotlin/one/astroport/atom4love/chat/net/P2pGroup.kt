@@ -45,7 +45,7 @@ class P2pGroup(context: Context) {
         private const val RELEASE_WAIT_MS = 6_000L
         private const val RELEASE_POLL_MS = 250L
 
-        private const val TAG = "CabinChat"
+        private const val TAG = "ChatEngine"
 
         /** Le propriétaire d'un groupe Wi-Fi Direct est toujours à cette adresse. */
         const val OWNER_ADDRESS = "192.168.49.1"
@@ -143,8 +143,8 @@ class P2pGroup(context: Context) {
      * La connexion vit tant que la requête vit : la rendre, c'est sortir.
      *
      * Elle appartient au **processus**, pas à cette instance — même raison que
-     * la trace sur le disque, un cran plus court. `CabinHost` jette sa
-     * `CabinChat`, et donc son `P2pGroup`, à chaque fermeture de cabine : une
+     * la trace sur le disque, un cran plus court. `ChatHost` jette sa
+     * `ChatEngine`, et donc son `P2pGroup`, à chaque fermeture de cabine : une
      * requête laissée derrière deviendrait irrattrapable, et Android
      * continuerait de courir après un SSID mort. C'est ce qui bloquait la
      * jointure suivante — la nouvelle requête faisait la queue derrière un
@@ -589,7 +589,7 @@ class P2pGroup(context: Context) {
         }
         // La cabine se ferme sans attendre : les tentatives vivent sur le
         // Looper principal, celui-là même qui porte le canal P2P, et survivent
-        // donc à l'annulation du scope de CabinChat.
+        // donc à l'annulation du scope de ChatEngine.
         fun attempt(left: Int) {
             runCatching {
                 manager.removeGroup(channel, object : WifiP2pManager.ActionListener {
@@ -687,7 +687,7 @@ class P2pGroup(context: Context) {
         manager: WifiP2pManager,
         channel: WifiP2pManager.Channel,
     ): Boolean {
-        // Le ramassage part sans que personne l'attende (`CabinHost` le lance
+        // Le ramassage part sans que personne l'attende (`ChatHost` le lance
         // et passe à autre chose) : la cabine peut s'ouvrir en plein milieu.
         // Elle doit voir ce retrait-là comme les autres.
         beginRelease()

@@ -23,8 +23,7 @@
          le splash, la bulle de version, les Réglages. -->
     <string name="app_name" translatable="false">A4L</string>
 
-    <!-- ─── 02 · Radar : le rituel et la cabine à portée ─────────────── -->
-    <string name="radar_cabin_in_range">Cabine à portée</string>
+    <!-- ─── 🎴 Le Plateau : la radio et les cartes à portée ───────────── -->
 
     <string name="radar_hex_unknown_service_off">Hexagone inconnu — la Localisation du téléphone est coupée : réactivez-la dans les réglages rapides.</string>
     <string name="radar_hex_unknown_dead_end">Hexagone inconnu — la localisation a été refusée. Android ne la redemandera plus : elle se rouvre depuis les réglages de l\'app. Elle n\'allume aucune balise.</string>
@@ -42,16 +41,7 @@
     <!-- Les résonances : ce que la balise lit dans l'annonce des voisins.
          « k » est le nom que Fred lui donne partout — on ne le traduit pas, et
          le sceau garde son nom maya, qui est un nom propre. -->
-    <string name="radar_resonance_title">Résonances à portée</string>
-    <string name="radar_resonance_k">k %1$s</string>
-    <string name="radar_resonance_singularity">singularité</string>
-    <string name="radar_resonance_no_phase">phase inconnue</string>
-    <string name="radar_resonance_mine_missing">Votre phase demande votre lieu de naissance — sans lui, rien à comparer.</string>
-    <string name="radar_resonance_hint">k va de 0,5 à 1. Il monte quand deux ondes se croisent en phase — ou exactement en opposition, ce qui revient à se répondre.</string>
 
-    <string name="radar_cabin_row_open">Cabine ouverte — toucher pour fermer et effacer</string>
-    <string name="radar_cabin_row_return">Cabine ouverte — toucher pour y revenir</string>
-    <string name="radar_cabin_row_closed">Parler à ceux qui sont ici — chiffré, sans relais</string>
 
     <!-- « (localisation) » et non « (GPS) » : la position vient du fournisseur
          fusionné en PRIORITY_BALANCED_POWER_ACCURACY, qui évite exprès le
@@ -63,66 +53,45 @@
     <!-- L'hôte d'un groupe Wi-Fi Direct. Dit en entier : « propriétaire » ne
          veut rien dire pour qui n'a pas lu la spec Wi-Fi, alors que la
          conséquence, elle, se comprend. -->
-    <string name="radar_group_fallback">→ repasser en %1$s</string>
-    <string name="radar_group_reopen">→ ouvrir votre propre groupe Wi-Fi P2P</string>
-    <string name="radar_group_closed">%1$s a fermé le groupe Wi-Fi Direct. La cabine continue, en plus lent — toucher pour effacer.</string>
-    <string name="radar_group_host_self">Vous tenez le groupe Wi-Fi Direct — en sortant, il se referme et chacun perd sa voie rapide vers vous.</string>
-    <string name="radar_group_host_peer">%1$s tient le groupe Wi-Fi Direct — s\'il sort, il se referme et votre voie rapide vers lui disparaît.</string>
 
-    <!-- ─── La cabine : ce qui se dit ici, entre gens à portée ────────── -->
+    <!-- ─── 💬 Les chats : une conversation par personne à portée ─────── -->
     <!-- Pas un pluriel : « 1 ici » et « 2 ici » s'écrivent pareil dans les
          trois langues. -->
-    <string name="cabin_peers_here" tools:ignore="PluralsCandidate">%1$d ici</string>
-    <string name="cabin_someone_unnamed">quelqu\'un est là, sans identité déclarée</string>
-    <string name="cabin_nobody_in_range">personne à portée</string>
-    <string name="cabin_follow">Suivre</string>
-    <string name="cabin_follow_publishing">…</string>
-    <string name="cabin_following">Suivi ✓</string>
-    <string name="cabin_follow_retry">Réessayer</string>
-    <plurals name="cabin_unattested_links">
-        <item quantity="one">et %1$d lien sans identité déclarée</item>
-        <!-- `many` ne sert qu'à la notation compacte (« 1 million de liens ») :
-             nous ne l'employons pas, mais le CLDR l'attend pour fr et es. -->
-        <item quantity="many">et %1$d liens sans identité déclarée</item>
-        <item quantity="other">et %1$d liens sans identité déclarée</item>
-    </plurals>
-    <string name="cabin_chat_placeholder">ici, chiffré…</string>
-    <string name="cabin_saved_to_downloads">Enregistré dans Téléchargements</string>
-    <string name="cabin_save_failed">Échec de l\'enregistrement</string>
+    <string name="chat_peers_here" tools:ignore="PluralsCandidate">%1$d ici</string>
+    <string name="chat_follow">Suivre</string>
+    <string name="chat_follow_publishing">…</string>
+    <string name="chat_following">Suivi ✓</string>
+    <string name="chat_follow_retry">Réessayer</string>
+    <string name="chat_placeholder">à cette personne, chiffré…</string>
+    <string name="chat_saved_to_downloads">Enregistré dans Téléchargements</string>
+    <string name="chat_save_failed">Échec de l\'enregistrement</string>
 
     <!-- Pièce jointe refusée. Deux phrases entières plutôt qu'une
          concaténation : l'ordre des mots n'est pas le même d'une langue à
          l'autre, et une bribe seule ne se traduit pas. -->
-    <string name="cabin_too_big_title">Pièce trop lourde</string>
-    <string name="cabin_refused_ok">Compris</string>
-    <string name="cabin_video_wifi_title">La vidéo passe en Wi-Fi</string>
-    <string name="cabin_video_wifi_named">« %1$s » est une vidéo, et elle part telle qu\'elle a été filmée — jamais recompressée. La cabine est %2$s : la radio tient 14 Ko/s, une seconde d\'image y prendrait des minutes. Passez en Wi-Fi depuis l\'indicateur du haut.</string>
-    <string name="cabin_video_wifi_unnamed">Une vidéo part telle qu\'elle a été filmée — jamais recompressée. La cabine est %1$s : la radio tient 14 Ko/s, une seconde d\'image y prendrait des minutes. Passez en Wi-Fi depuis l\'indicateur du haut.</string>
-    <string name="cabin_too_big_sized">« %1$s » fait %2$s, au-delà des %3$s que porte la cabine %4$s.</string>
-    <string name="cabin_too_big_unsized">« %1$s » dépasse les %2$s que porte la cabine %3$s.</string>
-    <string name="cabin_too_big_ble_advice">Le BLE tient 14 Ko/s : la même pièce y prendrait un quart d\'heure. Passez en Wi-Fi depuis l\'indicateur du haut et la limite monte à %1$s.</string>
+    <string name="chat_too_big_title">Pièce trop lourde</string>
+    <string name="chat_refused_ok">Compris</string>
+    <string name="chat_video_wifi_title">La vidéo passe en Wi-Fi</string>
+    <string name="chat_video_wifi_named">« %1$s » est une vidéo, et elle part telle qu\'elle a été filmée — jamais recompressée. La radio tient 14 Ko/s : une seconde d\'image y prendrait des minutes. Une vidéo se donne de la main à la main, pas par la radio.</string>
+    <string name="chat_video_wifi_unnamed">Une vidéo part telle qu\'elle a été filmée — jamais recompressée. La radio tient 14 Ko/s : une seconde d\'image y prendrait des minutes. Une vidéo se donne de la main à la main, pas par la radio.</string>
+    <string name="chat_too_big_sized">« %1$s » fait %2$s, au-delà des %3$s que porte la radio %4$s.</string>
+    <string name="chat_too_big_unsized">« %1$s » dépasse les %2$s que porte la radio %3$s.</string>
 
-    <!-- ─── Le salon de cabine : les pensées éphémères du lieu ────────── -->
-    <string name="salon_title">SALON DE CABINE</string>
+    <!-- ─── Le salon de l'hexagone : les pensées éphémères du lieu ────── -->
+    <string name="salon_title">SALON DE L\'HEXAGONE</string>
     <string name="salon_closed">Salon fermé — il s\'ouvre quand la station du lieu est à portée (pastille « relais local »). Rien ne part sur Internet.</string>
     <string name="salon_empty">Personne n\'a encore rien déposé ici. Les pensées sont éphémères : elles vivent le temps du salon, rien n\'est archivé.</string>
     <string name="salon_mine">moi · %1$s</string>
     <string name="salon_draft_placeholder">une pensée pour ce lieu…</string>
     <string name="salon_post">déposer</string>
 
-    <!-- ─── Les médiums de la cabine (chat/Medium.kt) ─────────────────── -->
-    <!-- Ce que chaque voie coûte ou apporte, dit dans la liste au moment du
-         choix : les trois n'ont pas du tout les mêmes conséquences. -->
-    <string name="medium_note_ble">le plus lent — pièces jointes bornées, vidéo refusée</string>
-    <string name="medium_note_station">rapide — passe par la box du lieu</string>
-    <string name="medium_note_direct_host">rapide — vous ouvrez le groupe, et vous le tenez</string>
-    <string name="medium_note_direct_join">rapide — vous entrez dans le groupe ouvert</string>
-    <string name="medium_note_unreachable">personne ne l\'offre pour l\'instant</string>
+    <!-- ─── Les médiums de la radio (chat/Medium.kt) ──────────────────── -->
+    <!-- ⚠ Ce que chaque voie coûte, et la confirmation avant de refermer son
+         propre groupe Wi-Fi Direct, vivaient ici : neuf chaînes pour la liste
+         de l'en-tête. Elles sont parties avec elle — la bêta ne nomme qu'une
+         voie locale (Medium.inBeta). Les quatre libellés ci-dessous restent :
+         les dialogues de refus de pièce jointe nomment toujours le médium. -->
 
-    <string name="medium_leave_group_title">Refermer le groupe ?</string>
-    <string name="medium_leave_group_body">Vous tenez ce groupe Wi-Fi Direct : en passant en %1$s, il se referme. Chacun de ses membres perd sa voie rapide vers vous, et vos échanges avec eux repassent par le plus lent. Ce qu\'ils se disent entre eux n\'y passait pas, et continue.</string>
-    <string name="medium_leave_group_ok">Refermer</string>
-    <string name="medium_leave_group_cancel">Rester</string>
 
     <string name="medium_ble">en direct</string>
     <string name="medium_bt_classic">en direct, plus vite</string>
@@ -193,7 +162,7 @@
     <!-- ─── La causerie : bulles, pièces jointes, états d'envoi ───────── -->
     <string name="chat_send">Envoyer</string>
     <string name="chat_from_me">moi</string>
-    <string name="chat_from_peer">pair %1$s</string>
+    <string name="chat_from_unnamed">sans nom</string>
     <string name="chat_save_attachment">⬇ enregistrer</string>
     <string name="chat_image_sending">image en envoi…</string>
     <string name="chat_image_receiving">image en réception…</string>
@@ -207,12 +176,10 @@
     <string name="chat_cancel_send">✕ annuler l\'envoi</string>
 
     <!-- ─── La Carte : ses deux échelles ─────────────────────────────── -->
-    <string name="place_here">Ici</string>
-    <string name="place_world">Le monde</string>
 
     <!-- ─── Le monde, fermé tant que la station n'a pas rendu la clé ──── -->
     <string name="world_locked_title">Le monde attend votre clé</string>
-    <string name="world_locked_body">La constellation est faite des certificats que scelle une station Astroport. Tant que la vôtre n\'est pas activée, vous restez ici : le radar, la cabine, ce qui est à portée d\'antenne. Rien n\'est lu sur le relais public.</string>
+    <string name="world_locked_body">La constellation est faite des certificats que scelle une station Astroport. Tant que la vôtre n\'est pas activée, vous restez ici : le Plateau, les conversations, ce qui est à portée d\'antenne. Rien n\'est lu sur le relais public.</string>
     <string name="world_locked_open">Ouvrir un MULTIPASS</string>
 
     <!-- ─── 03 · Constellation : la carte des clés LOVE activées ──────── -->
@@ -269,18 +236,15 @@
     <string name="language_follows_phone">Cet Android suit la langue du téléphone : le choix par application demande Android 13 ou plus récent.</string>
 
     <!-- ─── La barre du bas : les cinq destinations ───────────────────── -->
-    <string name="tab_map">Carte</string>
     <string name="tab_board">Plateau</string>
     <string name="tab_nucleus">Noyau</string>
     <string name="tab_help">Aide</string>
     <string name="tab_settings">Réglages</string>
 
     <!-- ─── L'indicateur de liaison, tout en haut ─────────────────────── -->
-    <string name="header_cabin_closed">cabine fermée</string>
-    <string name="header_cabin_open_alone">cabine ouverte — personne à portée</string>
-    <string name="header_medium">Mode actif : %1$s</string>
-    <string name="header_medium_pick">Choisir par où ça passe</string>
-    <string name="header_upgrade">passer en %1$s</string>
+    <string name="header_radio_off">radio éteinte</string>
+    <string name="header_radio_alone">radio allumée — personne à portée</string>
+    <string name="header_radio_linked">radio allumée — quelqu\'un est là</string>
 
     <!-- Le glyphe ☀/☾ ne se lit pas à voix haute : ces deux lignes disent le geste. -->
 
@@ -332,7 +296,7 @@
     <string name="mp_rederive_body">La station recalcule la clé depuis les données de naissance de votre noyau actuel. À faire si vous avez reforgé votre noyau avec d\'autres données — sinon elle redonnera exactement la même clé, ce qui ne coûte rien. Votre compte, vos portefeuilles et votre code PASS ne bougent pas.</string>
 
     <string name="mp_no_account_title">Atom4Love fonctionne sans compte</string>
-    <string name="mp_no_account_body">Votre noyau forgé suffit au radar, à la cabine et à tout ce qui se passe à portée d\'antenne. Rien ne vous oblige à ouvrir un compte, ni maintenant ni jamais.</string>
+    <string name="mp_no_account_body">Votre noyau forgé suffit au Plateau, aux conversations et à tout ce qui se passe à portée d\'antenne. Rien ne vous oblige à ouvrir un compte, ni maintenant ni jamais.</string>
     <string name="mp_adds_title">Ce qu\'un MULTIPASS ajoute</string>
     <string name="mp_adds_identity">Une identité NOSTR publiée, joignable au-delà de la portée radio.</string>
     <string name="mp_adds_love">Votre clé LOVE, dérivée de votre naissance par la station : c\'est elle qui porte le canal LOVE et votre profil de résonance.</string>
@@ -342,7 +306,7 @@
     <string name="mp_sandbox_body">C\'est le mot d\'Astroport.ONE, pas le nôtre : le monde ouvert où l\'on apprend. Le Ẑen y vaut 0,1 Ğ1 — une monnaie pour de faux. Un compte laissé à zéro, sans le moindre mouvement, y est supprimé au bout de sept jours.</string>
     <string name="mp_sandbox_keys">Vos données de naissance, elles, ne s\'effacent pas : les mêmes redonneront toujours la même clé LOVE, sur n\'importe quelle station.</string>
     <string name="mp_provisional_title">Votre noyau actuel est provisoire</string>
-    <string name="mp_provisional_body">Tant qu\'aucune station ne vous connaît, Atom4Love se forge une clé de proximité, la sienne. La station en dérivera une autre — la vraie. Votre npub changera, et ceux qui vous ont croisé en cabine avant aujourd\'hui ne vous reconnaîtront plus.</string>
+    <string name="mp_provisional_body">Tant qu\'aucune station ne vous connaît, Atom4Love se forge une clé de proximité, la sienne. La station en dérivera une autre — la vraie. Votre npub changera, et ceux qui vous ont croisé avant aujourd\'hui ne vous reconnaîtront plus.</string>
 
     <string name="mp_note_pass_title">Notez votre code PASS</string>
     <string name="mp_note_pass_body">Il récupère votre compte depuis n\'importe quel terminal UPlanet, et vous a aussi été envoyé par mail. La station est la seule à le détenir : personne ne pourra vous le redonner ailleurs.</string>
@@ -383,7 +347,7 @@
     <string name="help_singularity_label">La singularité · l\'esprit et la matière</string>
     <string name="help_singularity_body">Votre conception est l\'Esprit, votre naissance la Matière. En les combinant, la station calcule votre archétype — la façon dont vous transformez l\'énergie autour de vous. Vous n\'avez pas à connaître cette date : elle se déduit de votre naissance.</string>
     <string name="help_temp_key_label">Votre clé temporaire</string>
-    <string name="help_temp_key_body">Au premier lancement, la station se forge une clé à elle, dérivée de vos données de naissance. Elle suffit à tout ce qui se passe à portée d\'antenne : le radar, la cabine, les liens de proximité. Elle est temporaire — c\'est une station Astroport.ONE qui dérivera un jour votre vraie clé LOVE.</string>
+    <string name="help_temp_key_body">Au premier lancement, la station se forge une clé à elle, dérivée de vos données de naissance. Elle suffit à tout ce qui se passe à portée d\'antenne : le Plateau, les conversations, les liens de proximité. Elle est temporaire — c\'est une station Astroport.ONE qui dérivera un jour votre vraie clé LOVE.</string>
     <string name="help_multipass_label">Le MULTIPASS</string>
     <string name="help_multipass_body">C\'est votre identité décentralisée sur le réseau UPlanet : une clé NOSTR publiée, un portefeuille Ğ1 / Ẑen, un espace de stockage, et votre clé LOVE. Il s\'ouvre depuis le bas de l\'onglet Noyau, avec une adresse email. UPlanet ORIGIN, où l\'on arrive, est un bac à sable : le Ẑen y vaut 0,1 Ğ1, et un compte laissé à zéro sans mouvement y est supprimé après sept jours.</string>
     <string name="help_forge_label">Forger son noyau</string>
@@ -393,7 +357,7 @@
     <string name="help_redo_label">Se tromper, recommencer</string>
     <string name="help_redo_body">Une donnée fausse ? Dans l\'onglet Noyau, « Dissoudre le noyau » efface la fiche et la clé de cette station (deux confirmations). Rien ne part sur le réseau : ressaisissez les bonnes données et forgez à nouveau.</string>
     <string name="help_station_label">La station</string>
-    <string name="help_station_body">🌀 Radar : les cabines à portée, par proximité réelle. 🎴 Plateau : vos cartes. 💜 Résonance : vos liens. ⚛ Noyau : votre fiche scellée et votre npub. En haut, « relay · x / y » indique combien de relais NOSTR répondent — vert dès que la station est reliée au réseau.</string>
+    <string name="help_station_body">🎴 Plateau : l\'état de la radio et les cartes à portée. 💬 Chats : une conversation par personne, chiffrée de bout en bout. 🌍 Monde : la constellation, ouverte par le MULTIPASS. ⚛ Noyau : votre fiche scellée, votre nom et votre npub. En haut, « relay · x / y » indique combien de relais NOSTR répondent.</string>
 
     <!-- F.A.Q. — le second onglet, de plain-pied avec l'Aide. Chaque réponse
          ne dit que ce que la station fait vraiment ; aucune ne promet. -->
@@ -401,13 +365,13 @@
     <string name="faq_lead">Les questions qui reviennent, et ce que la station y répond.</string>
 
     <string name="faq_network_label">Faut-il une connexion Internet ?</string>
-    <string name="faq_network_body">Pas pour la cabine : elle parle en Bluetooth, ou par un réseau Wi-Fi qu\'elle fabrique elle-même entre les deux appareils. Rien ne transite par un serveur. Le reste de la station — les relais NOSTR, le MULTIPASS — a besoin du réseau, et vous le voyez au « relay · x / y » en haut de l\'écran.</string>
-    <string name="faq_cabin_label">Ce qui se dit en cabine, où va-t-il ?</string>
-    <string name="faq_cabin_body">Nulle part ailleurs. Le contenu est chiffré de bout en bout et ne franchit aucun relais. En fermant la cabine, la conversation et les pièces jointes reçues sont effacées de l\'appareil — c\'est ce que promet la ligne « toucher pour fermer et effacer », et elle le tient.</string>
+    <string name="faq_network_body">Pas pour les conversations à portée : elles parlent en Bluetooth, d\'un appareil à l\'autre. Rien ne transite par un serveur. Le reste de la station — les relais NOSTR, le MULTIPASS — a besoin du réseau, et vous le voyez au « relay · x / y » en haut de l\'écran.</string>
+    <string name="faq_chat_label">Ce qui se dit dans un chat, où va-t-il ?</string>
+    <string name="faq_chat_body">Nulle part ailleurs. Le contenu est chiffré de bout en bout et ne franchit aucun relais. « Fermer et effacer », au bas des conversations, retire du téléphone les messages et les pièces jointes reçues — c\'est ce que la ligne promet, et elle le tient.</string>
     <string name="faq_weight_label">Pourquoi deux poids : celui de ma naissance et celui d\'aujourd\'hui ?</string>
     <string name="faq_weight_body">Ils ne servent pas à la même chose. Le poids de naissance entre dans votre clé : il est facultatif, et sans lui la station retient 3,5 kg — exactement ce que fait Astroport.ONE quand ce champ arrive vide. Votre taille et votre poids d\'aujourd\'hui, eux, n\'entrent dans aucune clé : ils ne servent qu\'à la silhouette de la dernière étape, et se modifient dans les Réglages.</string>
-    <string name="faq_nobody_label">Le Radar ne montre personne.</string>
-    <string name="faq_nobody_body">Il faut le Bluetooth allumé des deux côtés, et que l\'autre ait ouvert sa cabine : on ne voit que les noyaux dont la cabine est ouverte. Tant que personne ne fait ce geste, rien ne s\'annonce — c\'est voulu.</string>
+    <string name="faq_nobody_label">Le Plateau ne montre personne.</string>
+    <string name="faq_nobody_body">Il faut le Bluetooth allumé des deux côtés, et que la balise tourne. Rien d\'autre : une conversation s\'ouvre d\'elle-même dès qu\'un noyau se présente près de vous, sans que personne ait de geste à faire.</string>
     <string name="faq_change_label">Puis-je corriger mes données après la forge ?</string>
     <string name="faq_change_body">Pas directement : après confirmation, la fiche est scellée. Dans l\'onglet Noyau, « Dissoudre le noyau » efface la fiche et la clé de cette station, et vous reforgez avec les bonnes données. Votre clé dépend de ces données : la moindre correction en donne une autre.</string>
 
@@ -486,6 +450,9 @@
 
 
     <string name="inc_section_datetime">Date et heure de naissance</string>
+    <string name="inc_section_pseudo">Votre nom</string>
+    <string name="inc_pseudo_placeholder">le nom qu\'on lira de vous…</string>
+    <string name="inc_pseudo_note">C\'est ce que les autres verront à la place de votre clé. Il ne fait pas partie de votre noyau : changez-en quand vous voulez.</string>
     <string name="inc_section_place">Lieu de naissance</string>
     <string name="inc_section_birth_weight">Poids de naissance</string>
     <string name="inc_birth_weight_optional">optionnel — 3,5 kg à défaut</string>
@@ -581,22 +548,22 @@
          « Cette date… ». -->
     <string name="inc_date_problem" translatable="false">%1$s.</string>
 
-    <!-- ─── Ce que la cabine signale quand ça se passe mal ────────────── -->
+    <!-- ─── Ce que la radio signale quand ça se passe mal ─────────────── -->
     <!-- Ces phrases naissent dans le moteur, qui n'a pas de Context : il rend
-         une valeur (CabinError), l'écran l'écrit. -->
-    <string name="cabin_err_bluetooth_off">Bluetooth désactivé</string>
-    <string name="cabin_err_bluetooth_cut">Bluetooth coupé</string>
-    <string name="cabin_err_text_too_long">texte trop long (max %1$d o)</string>
-    <string name="cabin_err_unreadable_attachment">pièce illisible</string>
-    <string name="cabin_err_no_link">aucun lien pour émettre</string>
-    <string name="cabin_err_no_ack">sans accusé de %1$s</string>
-    <string name="cabin_err_send_failed">échec d\'envoi vers %1$s</string>
-    <string name="cabin_err_medium_unreachable">%1$s injoignable</string>
-    <string name="cabin_err_p2p_unreachable">groupe Wi-Fi Direct injoignable</string>
-    <string name="cabin_err_p2p_impossible">groupe Wi-Fi Direct impossible</string>
-    <string name="cabin_err_advertise_unavailable">annonce BLE indisponible</string>
-    <string name="cabin_err_advertise_refused">annonce refusée (%1$d)</string>
-    <string name="cabin_err_scan_refused">scan refusé (%1$d)</string>
+         une valeur (ChatError), l'écran l'écrit. -->
+    <string name="chat_err_bluetooth_off">Bluetooth désactivé</string>
+    <string name="chat_err_bluetooth_cut">Bluetooth coupé</string>
+    <string name="chat_err_text_too_long">texte trop long (max %1$d o)</string>
+    <string name="chat_err_unreadable_attachment">pièce illisible</string>
+    <string name="chat_err_no_link">aucun lien pour émettre</string>
+    <string name="chat_err_no_ack">sans accusé de %1$s</string>
+    <string name="chat_err_send_failed">échec d\'envoi vers %1$s</string>
+    <string name="chat_err_medium_unreachable">%1$s injoignable</string>
+    <string name="chat_err_p2p_unreachable">groupe Wi-Fi Direct injoignable</string>
+    <string name="chat_err_p2p_impossible">groupe Wi-Fi Direct impossible</string>
+    <string name="chat_err_advertise_unavailable">annonce BLE indisponible</string>
+    <string name="chat_err_advertise_refused">annonce refusée (%1$d)</string>
+    <string name="chat_err_scan_refused">scan refusé (%1$d)</string>
 
     <!-- ─── La balise, dans la zone de notification ───────────────────── -->
     <string name="beacon_channel_name">Balise de proximité</string>
@@ -721,6 +688,7 @@
     <string name="forge_step_shape_sub">ce que disent votre taille et votre poids</string>
     <string name="inc_section_sex">Votre sexe</string>
     <string name="inc_row_sex">Sexe</string>
+    <string name="inc_missing_pseudo">votre nom</string>
     <string name="inc_missing_sex">votre sexe</string>
     <string name="inc_language_auto_title">La langue suit votre téléphone</string>
     <string name="inc_language_auto_body">Celle d\'Android. Pour en changer, ou passer du jour à la nuit : le rouage ⚙️ en haut.</string>
@@ -742,5 +710,51 @@
     <string name="mp_copy">Copier %1$s</string>
     <string name="mp_copied">Copié</string>
     <string name="mp_field_nsec">Clé privée NOSTR</string>
-    <string name="cabin_empty">Rien ne part sur un relais. Tout s\'efface en fermant.</string>
+    <string name="chat_empty">Rien ne part sur un relais. Tout s\'efface quand vous le décidez.</string>
+
+    <!-- ─── 📡 Le journal : ce que la radio fait ──────────────────────── -->
+    <!-- ⚠ Ce que le journal N'ÉCRIT PAS n'a pas de chaîne ici, et c'est
+         normal : partir chercher quelqu'un et ouvrir une conversation ne s'y
+         inscrivent jamais. Voir journal/Journal.kt. -->
+    <string name="journal_title">Journal</string>
+    <string name="journal_intro">Ce que la radio fait, pendant qu\'elle le fait. Rien ne s\'y garde.</string>
+    <string name="journal_empty">La balise vient de s\'allumer. Ce qu\'elle entend s\'écrira ici.</string>
+    <string name="journal_beacon_on">Balise allumée — elle annonce et elle écoute.</string>
+    <string name="journal_beacon_off">Balise éteinte.</string>
+    <string name="journal_cell">Adresse 4D annoncée : %1$s</string>
+    <string name="journal_cell_none">Présence annoncée, sans position.</string>
+    <string name="journal_card_seen">Une carte paraît : %1$s</string>
+    <string name="journal_card_seen_pct">Une carte paraît : %1$s · %2$d %%</string>
+    <string name="journal_card_gone">%1$s s\'éloigne.</string>
+    <string name="journal_meeting">Rencontre : %1$s vous cherche, et vous aussi.</string>
+    <string name="journal_peer_joined">%1$s rejoint la radio — canal chiffré.</string>
+    <string name="journal_peer_left">%1$s quitte la radio.</string>
+    <string name="journal_relay_on">Relais accroché.</string>
+    <string name="journal_relay_off">Relais perdu.</string>
+
+    <!-- ─── 💬 Les conversations ──────────────────────────────────────── -->
+    <string name="chats_title">Conversations</string>
+    <string name="chats_count">%1$d à portée</string>
+    <string name="chats_empty">Personne à portée pour l\'instant.</string>
+    <string name="chats_empty_hint">Une conversation s\'ouvre toute seule dès qu\'un noyau se présente près de vous. Rien à demander, rien à accepter.</string>
+    <string name="chats_preview_new">Rien encore — écrivez le premier mot.</string>
+    <string name="chats_preview_out_of_range">Hors de portée.</string>
+    <string name="chats_preview_mine">Vous : %1$s</string>
+    <string name="chats_preview_image">une image</string>
+    <string name="chats_preview_video">une vidéo</string>
+    <string name="chats_preview_file">un fichier</string>
+    <string name="conv_in_range">à portée — chiffré de bout en bout</string>
+    <string name="conv_out_of_range">hors de portée — on ne peut plus écrire</string>
+
+    <string name="tab_chats">Chats</string>
+    <string name="tab_world">Monde</string>
+    <string name="chats_erase">Fermer et effacer toutes les conversations</string>
+    <string name="radar_journal_row">Journal — ce que la radio fait en ce moment</string>
+
+    <!-- ─── 🔑 La fin de la période d\'essai ───────────────────────────── -->
+    <string name="trial_over_title">La période d\'essai est finie</string>
+    <string name="trial_over_body">Vous avez pu tout essayer — la balise, les cartes à portée, les conversations chiffrées — sans compte et sans rien donner. C\'était fait pour : on ne demande pas de s\'inscrire à quelque chose qu\'on n\'a pas vu.</string>
+    <string name="trial_over_kept">Rien n\'est perdu. Votre noyau reste scellé, votre nom et votre clé sont là : ouvrir votre MULTIPASS sur le relais reprend exactement ici.</string>
+    <string name="trial_over_open">Ouvrir mon MULTIPASS</string>
+    <string name="map_open_chat">Ouvrir une conversation</string>
 </resources>

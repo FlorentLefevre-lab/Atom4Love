@@ -146,6 +146,59 @@ data class LatLon(val lat: Double, val lon: Double)
 data class MapFocus(val place: LatLon, val minScale: Float, val request: Int)
 
 /**
+ * **La fenêtre du monde, en bêta : l'Europe et rien d'autre.**
+ *
+ * ⚠ Ce n'est pas une préférence d'affichage, c'est une **borne**. La carte
+ * s'ouvre dessus, ne se dézoome pas au-delà, et ne se traîne pas hors de ses
+ * bords. On peut toujours **entrer** — jusqu'à la rue, comme avant.
+ *
+ * Pourquoi borner ce qu'on savait déjà montrer en entier : parce qu'une carte du
+ * monde ouverte sur le monde ne montre rien. Les certificats de la constellation
+ * se comptent aujourd'hui en dizaines, tous européens ; à l'échelle du globe, ils
+ * tiennent dans un demi-centimètre carré, et le premier geste de quiconque
+ * l'ouvre est de zoomer là où il vit. On lui épargne ce geste, et on lui épargne
+ * surtout la question qu'il se pose entre-temps — « est-ce que c'est vide, ou
+ * est-ce que je regarde au mauvais endroit ? ».
+ *
+ * Les bornes sont larges à dessein : de l'Atlantique à l'Oural, de la
+ * Méditerranée au cap Nord. Elles ne coupent aucun pays du continent, et la
+ * seule chose qu'elles retirent est l'océan.
+ *
+ * ⚠ **Ça ne cache rien.** Un atome hors de ces bornes est toujours lu, compté,
+ * classé et présent dans la liste des résonances — il n'est simplement pas
+ * dessiné. Le jour où la constellation déborde du continent, il n'y a que ces
+ * quatre nombres à retirer.
+ */
+private object Frame {
+    const val WEST = -12.0
+    const val EAST = 42.0
+    const val SOUTH = 33.0
+    const val NORTH = 71.5
+
+    /** Largeur et hauteur de la fenêtre, en unités Mercator (le monde vaut 1). */
+    val width: Float = (Mercator.x(EAST) - Mercator.x(WEST)).toFloat()
+    val height: Float = (Mercator.y(SOUTH) - Mercator.y(NORTH)).toFloat()
+
+    val centre = LatLon(
+        lat = Mercator.lat((Mercator.y(NORTH) + Mercator.y(SOUTH)) / 2.0),
+        lon = (WEST + EAST) / 2.0,
+    )
+
+    /**
+     * L'échelle qui fait entrer la fenêtre dans la vue — **la plus grande des
+     * deux contraintes**, pas la plus petite.
+     *
+     * `scale` compte combien de fois la largeur de la vue le monde occupe. Pour
+     * que la fenêtre remplisse la largeur, il faut `1 / width` ; pour qu'elle
+     * remplisse la hauteur, `ratio / height`. On prend le **maximum** : la vue
+     * est alors entièrement couverte par la fenêtre, quitte à en rogner un bord.
+     * Prendre le minimum aurait laissé de l'océan sur les côtés — c'est-à-dire
+     * une zone qu'on interdit de traîner et qui n'a rien à montrer.
+     */
+    fun fitScale(ratio: Float): Float = maxOf(1f / width, ratio / height)
+}
+
+/**
  * La carte de la constellation, en Web Mercator.
  *
  * Le fond se choisit ([Basemap]) : le trait de côte embarqué, qui ne parle à
@@ -198,12 +251,25 @@ fun WorldMap(
 
     fun worldPx(s: Float = scale) = box.width * s
 
-    /** Le monde ne se traîne pas hors de sa fenêtre. */
+    /**
+     * Le monde ne se traîne pas hors de **la fenêtre imposée** — voir [Frame].
+     *
+     * ⚠ Il bornait le monde entier : `pan` restait dans `[box − worldPx, 0]`.
+     * Les bornes sont maintenant celles du continent, exprimées en pixels de la
+     * vue courante. `minOf(…, max)` n'est pas décoratif : quand la fenêtre est
+     * plus petite que la vue — impossible à l'échelle plancher, possible si un
+     * appareil très large arrivait —, l'intervalle s'inverserait et `coerceIn`
+     * lèverait. On garde alors le bord haut/gauche.
+     */
     fun clamp(candidate: Offset, s: Float): Offset {
         val w = worldPx(s)
+        val left = -Mercator.x(Frame.WEST).toFloat() * w
+        val top = -Mercator.y(Frame.NORTH).toFloat() * w
+        val right = box.width - Mercator.x(Frame.EAST).toFloat() * w
+        val bottom = box.height - Mercator.y(Frame.SOUTH).toFloat() * w
         return Offset(
-            candidate.x.coerceIn(minOf(box.width - w, 0f), 0f),
-            candidate.y.coerceIn(minOf(box.height - w, 0f), 0f),
+            candidate.x.coerceIn(minOf(right, left), left),
+            candidate.y.coerceIn(minOf(bottom, top), top),
         )
     }
 
@@ -224,11 +290,25 @@ fun WorldMap(
         return Offset(Mercator.x(lon).toFloat() * w + p.x, Mercator.y(lat).toFloat() * w + p.y)
     }
 
-    // Premier cadrage : le monde entier, centré. La fenêtre étant deux fois plus
-    // large que haute, elle en montre la bande ±66° — les pôles n'ont personne.
+    /**
+     * Le plancher : on ne recule pas plus loin que l'Europe.
+     *
+     * Il dépend de la vue, donc il ne peut pas être une constante — une tablette
+     * et un téléphone n'ont pas le même rapport, et la même fenêtre géographique
+     * n'y demande pas la même échelle. Zéro tant que la vue n'est pas mesurée :
+     * `coerceIn(0f, MAX)` reste alors licite, et le premier cadrage arrive dès
+     * que `box` est connue.
+     */
+    val minScale = if (box.width <= 0f) 1f else Frame.fitScale(box.height / box.width)
+
+    // ⚠ **Premier cadrage : l'Europe, centrée** — c'était le monde entier,
+    // centré sur l'équateur. La clé de l'effet est `box` et non `Unit` : la vue
+    // se mesure après la première composition, et un cadrage calculé sur une
+    // taille nulle plaçait la carte n'importe où.
     LaunchedEffect(box) {
         if (box.width > 0f && !pan.isSpecified) {
-            pan = clamp(Offset(0f, (box.height - worldPx()) / 2f), scale)
+            scale = minScale
+            pan = centreOn(Frame.centre, minScale)
         }
     }
 
@@ -278,13 +358,29 @@ fun WorldMap(
             .aspectRatio(MAP_RATIO)
             .clip(RoundedCornerShape(MAP_RADIUS))
             .onSizeChanged { box = Size(it.width.toFloat(), it.height.toFloat()) }
-            .pointerInput(Unit) {
-                detectTransformGestures { centroid, drag, pinch, _ ->
-                    val next = (scale * pinch).coerceIn(1f, MAX_SCALE)
+            // ⚠ **Le déplacement du fond a été retiré, le pincement borné.**
+            //
+            // Ce sont deux décisions distinctes, et la seconde découle de la
+            // première. Borner le dézoom sans retirer le déplacement aurait
+            // laissé traîner la carte d'un bord à l'autre du continent à
+            // l'échelle plancher — c'est-à-dire glisser vers un océan vide sans
+            // pouvoir reculer pour se retrouver. Les deux ensemble donnent une
+            // fenêtre stable : on entre, on ressort, on est toujours au même
+            // endroit.
+            //
+            // ⚠ `drag` n'est plus lu, mais `detectTransformGestures` reste : lui
+            // seul donne le centroïde d'un pincement, et pincer doit continuer
+            // de zoomer là où sont les deux doigts. Un `detectTransformGestures`
+            // qui ignore la translation n'est pas un geste mort — c'est un geste
+            // qui n'en fait qu'un.
+            .pointerInput(box) {
+                detectTransformGestures { centroid, _, pinch, _ ->
+                    val floor = Frame.fitScale(box.height / box.width)
+                    val next = (scale * pinch).coerceIn(floor, MAX_SCALE)
                     val ratio = next / scale
                     scale = next
                     val p = if (pan.isSpecified) pan else Offset.Zero
-                    pan = clamp((p - centroid) * ratio + centroid + drag, next)
+                    pan = clamp((p - centroid) * ratio + centroid, next)
                 }
             }
             .pointerInput(clusters, box, scale, pan, selected) {
@@ -436,8 +532,10 @@ fun WorldMap(
                 pan = clamp((p - centre) * (next / scale) + centre, next)
                 scale = next
             }
-            MapButton("−", enabled = scale > 1.01f) {
-                val next = (scale / 2f).coerceAtLeast(1f)
+            // Il s'arrête à l'Europe, et s'éteint là : un bouton qui reste
+            // allumé sans plus rien faire laisse croire que la carte est bloquée.
+            MapButton("−", enabled = scale > minScale * 1.01f) {
+                val next = (scale / 2f).coerceAtLeast(minScale)
                 val centre = Offset(box.width / 2f, box.height / 2f)
                 val p = if (pan.isSpecified) pan else Offset.Zero
                 pan = clamp((p - centre) * (next / scale) + centre, next)

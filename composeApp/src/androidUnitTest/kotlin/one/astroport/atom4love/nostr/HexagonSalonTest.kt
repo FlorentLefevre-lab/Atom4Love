@@ -25,7 +25,7 @@ import org.junit.Test
  * Le salon face à un faux relais : une pensée étrangère arrive à la
  * souscription, la nôtre part et revient en écho local.
  */
-class CabinSalonTest {
+class HexagonSalonTest {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val server = MockWebServer()
@@ -53,7 +53,7 @@ class CabinSalonTest {
                     if (subId == "a4l-cabine") {
                         val stranger = NostrEvent.create(
                             keys = strangerKeys,
-                            kind = CabinSalon.KIND_PENSEE,
+                            kind = HexagonSalon.KIND_PENSEE,
                             content = "bienvenue dans la cabine",
                             tags = listOf(listOf("h", cell)),
                         )
@@ -82,7 +82,7 @@ class CabinSalonTest {
 
         val client = RelayClient(server.url("/").toString(), scope)
         val localRelay = MutableStateFlow<RelayClient?>(null)
-        val salon = CabinSalon(scope, localRelay)
+        val salon = HexagonSalon(scope, localRelay)
         salon.start(myKeys)
         salon.setCell(cell)
 

@@ -210,10 +210,11 @@ private fun MessageBubble(
             Text(
                 when {
                     message.mine -> stringResource(R.string.chat_from_me)
-                    // un npub se donne tel quel, comme dans la liste de ceux
-                    // qui sont là ; « pair » n'annonce qu'une adresse
+                    // Le nom se donne tel quel, comme dans la liste de ceux
+                    // qui sont là. À défaut, un mot — jamais une adresse ni une
+                    // clé : les deux sont du bruit qu'on relit à chaque ligne.
                     message.fromAttested -> message.from
-                    else -> stringResource(R.string.chat_from_peer, message.from)
+                    else -> stringResource(R.string.chat_from_unnamed)
                 },
                 style = A4LText.Data,
                 color = if (message.mine) A4L.Mint else A4L.TextDim,

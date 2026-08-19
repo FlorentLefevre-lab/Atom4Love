@@ -69,6 +69,7 @@ class Reassembler(
         is ChatFrame.Sealed -> null // déjà ouvert par le lien avant d'arriver ici
         is ChatFrame.Address -> null // affaire de médium, pas de flux
         is ChatFrame.Question -> null // un coup du jeu, pas du contenu
+        is ChatFrame.Name -> null // une étiquette posée sur le lien, pas du contenu
         is ChatFrame.Group -> null // idem : une invitation, pas du contenu
         is ChatFrame.Bye -> null // affaire de lien, pas de flux
     }

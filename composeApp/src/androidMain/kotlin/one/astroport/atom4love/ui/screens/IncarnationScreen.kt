@@ -71,6 +71,7 @@ import kotlin.math.round
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.R
+import one.astroport.atom4love.data.Pseudo
 import one.astroport.atom4love.domain.BirthData
 import one.astroport.atom4love.domain.BodyMetrics
 import one.astroport.atom4love.domain.DateProblem
@@ -122,6 +123,18 @@ fun IncarnationScreen(
     modifier: Modifier = Modifier,
     body: BodyMetrics = BodyMetrics.Empty,
     onBodyChange: (BodyMetrics) -> Unit = {},
+    /**
+     * Le nom sous lequel on paraît — voir
+     * [one.astroport.atom4love.data.PseudoStore].
+     *
+     * ⚠ **Il n'est PAS dans [birth], et ce n'est pas un oubli de rangement.**
+     * Tout ce que porte `BirthData` entre dans le SALT et fait la clé ; y
+     * glisser un nom ferait qu'en changer changerait de npub, c'est-à-dire
+     * qu'on cesserait d'être reconnu par ceux qu'on a croisés. Il vit donc
+     * dehors, il se change quand on veut, et rien ne bouge.
+     */
+    pseudo: String = "",
+    onPseudoChange: (String) -> Unit = {},
     npub: String? = null,
     onDissolve: (() -> Unit)? = null,
     relay: RelayStation.Status? = null,
@@ -141,8 +154,8 @@ fun IncarnationScreen(
     // L'étape courante de l'assistant, et la plus lointaine qu'on ait le droit
     // d'atteindre : on revient où l'on veut, on n'avance que sur du renseigné.
     var step by rememberSaveable { mutableIntStateOf(0) }
-    val furthest = remember(birth, step) {
-        val firstOpen = ForgeStep.entries.indexOfFirst { !it.isSatisfied(birth) }
+    val furthest = remember(birth, pseudo, step) {
+        val firstOpen = ForgeStep.entries.indexOfFirst { !it.isSatisfied(birth, pseudo) }
         maxOf(step, if (firstOpen < 0) ForgeStep.entries.lastIndex else firstOpen)
     }
 
@@ -260,6 +273,8 @@ fun IncarnationScreen(
                 onDissolve = { showDissolveWarning = true },
                 modifier = Modifier.weight(1f),
                 body = body,
+                pseudo = pseudo,
+                onPseudoChange = onPseudoChange,
             )
         } else {
             // L'assistant, calqué sur celui d'ATOM4LOVE : cinq stations, une
@@ -366,6 +381,19 @@ fun IncarnationScreen(
                         ForgeStep.Card -> Column(
                             verticalArrangement = Arrangement.spacedBy(15.dp),
                         ) {
+                            // ⚠ **En tête, avant tout le reste.** Ce n'est pas
+                            // une donnée de plus dans un formulaire : c'est le
+                            // seul mot de cette page que quelqu'un d'autre
+                            // lira. Le demander après la date et le lieu le
+                            // ferait passer pour un détail administratif, alors
+                            // que c'est la première chose qu'on choisit — et la
+                            // seule qu'on puisse changer ensuite.
+                            PseudoSection(
+                                pseudo = pseudo,
+                                editable = true,
+                                onChange = onPseudoChange,
+                                onDone = { focusManager.clearFocus() },
+                            )
                             SexSection(
                                 birth = birth,
                                 editable = true,
@@ -452,6 +480,18 @@ fun IncarnationScreen(
                         ForgeStep.Confirm -> Column(
                             verticalArrangement = Arrangement.spacedBy(13.dp),
                         ) {
+                            // ⚠ Modifiable ici aussi, et **hors de la carte
+                            // de relecture** : celle-ci montre ce qui va être
+                            // scellé, le nom ne l'est pas. Les mêler ferait
+                            // croire qu'en changer coûte une clé. Le geste
+                            // reste ouvert parce qu'une relecture est
+                            // exactement le moment où l'on se ravise sur un mot.
+                            PseudoSection(
+                                pseudo = pseudo,
+                                editable = true,
+                                onChange = onPseudoChange,
+                                onDone = { focusManager.clearFocus() },
+                            )
                             RecapCard(birth)
                             ImmutableWarning()
                             // Ce que la station calcule toute seule à partir de
@@ -465,7 +505,7 @@ fun IncarnationScreen(
                                 style = A4LText.Caption,
                                 color = A4L.TextMuted,
                             )
-                            if (!birth.complete) MissingLine(birth)
+                            if (!birth.complete) MissingLine(birth, pseudo = pseudo)
                         }
 
                         // ── 3. La silhouette, et la forge ──────────────────
@@ -509,7 +549,7 @@ fun IncarnationScreen(
                                 onClick = { showForgeConfirm = true },
                             )
                         } else {
-                            val ready = ForgeStep.entries[step].isSatisfied(birth)
+                            val ready = ForgeStep.entries[step].isSatisfied(birth, pseudo)
                             Box(
                                 Modifier
                                     .fillMaxWidth()
@@ -541,9 +581,9 @@ fun IncarnationScreen(
                     }
                 }
                 if (step < ForgeStep.entries.lastIndex &&
-                    !ForgeStep.entries[step].isSatisfied(birth)
+                    !ForgeStep.entries[step].isSatisfied(birth, pseudo)
                 ) {
-                    MissingLine(birth, only = ForgeStep.entries[step])
+                    MissingLine(birth, pseudo = pseudo, only = ForgeStep.entries[step])
                 }
             }
         }
@@ -1105,9 +1145,14 @@ private enum class ForgeStep(
      * et la fiche sait quoi mettre à sa place ([BirthData.saltHour]). La taille
      * et le poids non plus — sans eux la silhouette est neutre, et c'est tout.
      */
-    fun isSatisfied(b: BirthData): Boolean = when (this) {
-        Card -> b.dateComplete && b.isPlausible() && b.lat != null && b.lon != null &&
-            b.wave != null
+    fun isSatisfied(b: BirthData, pseudo: String): Boolean = when (this) {
+        // Le nom est exigé au même rang que le sexe, la date et le lieu — et
+        // pourtant il n'entre dans aucune clé. C'est délibéré : une personne
+        // sans nom paraît « sans nom » dans toutes les conversations de tout le
+        // monde, et ce vide-là ne se rattrape pas au moment où il gêne, en
+        // pleine salle. Une ligne de saisie coûte moins qu'une rencontre ratée.
+        Card -> Pseudo.isValid(pseudo) && b.dateComplete && b.isPlausible() &&
+            b.lat != null && b.lon != null && b.wave != null
         Confirm -> b.complete
         Shape -> b.complete
     }
@@ -1363,6 +1408,71 @@ private fun BirthPlaceSection(
  * garde intact — [Wave] n'a pas bougé, `sex` vaut toujours 0 ou 1 et entre tel
  * quel dans le SALT. Seul le mot affiché change.
  */
+/**
+ * Le nom sous lequel on paraît — une ligne, et la phrase qui dit ce qu'elle
+ * engage.
+ *
+ * ⚠ **La phrase n'est pas décorative.** Tout le reste de cet assistant est
+ * irréversible et le dit ; celle-ci est la seule chose qu'on puisse changer
+ * après coup, et ne pas le dire ferait hésiter au mauvais endroit — quelqu'un
+ * qui croit sceller son nom pour toujours passe dix minutes sur un champ qui
+ * n'engage rien. Elle dit donc les deux moitiés : ce que les autres verront, et
+ * que ça se change.
+ *
+ * ⚠ Ce champ ne propose **aucune suggestion** et ne pré-remplit rien. Un nom
+ * proposé par la machine est un nom qu'on garde par défaut, et la salle finirait
+ * peuplée de gens que l'application a nommés.
+ */
+@Composable
+private fun PseudoSection(
+    pseudo: String,
+    editable: Boolean,
+    onChange: (String) -> Unit,
+    onDone: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        SectionLabel(stringResource(R.string.inc_section_pseudo))
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(46.dp)
+                .glass(11.dp, A4L.Glass, A4L.Stroke)
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BasicTextField(
+                value = pseudo,
+                // Borné à la saisie et pas seulement à l'enregistrement : un
+                // champ qui accepte trente caractères puis en garde vingt-quatre
+                // fait disparaître ce qu'on vient de taper sans rien dire.
+                onValueChange = { onChange(Pseudo.clean(it)) },
+                enabled = editable,
+                singleLine = true,
+                textStyle = A4LText.Body.copy(fontSize = 14.sp, color = A4L.TextHigh),
+                cursorBrush = SolidColor(A4L.Cyan),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onDone() }),
+                decorationBox = { inner ->
+                    if (pseudo.isEmpty()) {
+                        Text(
+                            stringResource(R.string.inc_pseudo_placeholder),
+                            style = A4LText.Body.copy(fontSize = 14.sp),
+                            color = A4L.TextGhost,
+                        )
+                    }
+                    inner()
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Text(
+            stringResource(R.string.inc_pseudo_note),
+            style = A4LText.Caption,
+            color = A4L.TextMuted,
+        )
+    }
+}
+
 @Composable
 private fun SexSection(birth: BirthData, editable: Boolean, onBirthChange: (BirthData) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -1751,12 +1861,15 @@ private fun SaltLine(birth: BirthData, npub: String?) {
  * [only] restreint la liste à ce que l'étape courante réclame.
  */
 @Composable
-private fun MissingLine(birth: BirthData, only: ForgeStep? = null) {
+private fun MissingLine(birth: BirthData, pseudo: String = "", only: ForgeStep? = null) {
     // Tout ce qui manque se réclame désormais à la même étape : la fiche est
     // d'un seul tenant, `only` ne trie donc plus qu'entre « cette étape » et
     // « la relecture », qui disent la même liste.
     val missing = buildList {
         if (only == null || only == ForgeStep.Card) {
+            // En tête de la liste comme du formulaire : c'est le champ qu'on
+            // vient de passer, il doit être le premier mot de ce qui manque.
+            if (!Pseudo.isValid(pseudo)) add(stringResource(R.string.inc_missing_pseudo))
             if (birth.wave == null) add(stringResource(R.string.inc_missing_sex))
             if (!birth.dateComplete) add(stringResource(R.string.inc_missing_date))
             if (birth.lat == null || birth.lon == null) {
@@ -1867,6 +1980,8 @@ private fun ColumnScope.SealedNucleus(
     onDissolve: () -> Unit,
     modifier: Modifier = Modifier,
     body: BodyMetrics = BodyMetrics.Empty,
+    pseudo: String = "",
+    onPseudoChange: (String) -> Unit = {},
 ) {
     Column(
         modifier.verticalScroll(rememberScrollState()),
@@ -1888,6 +2003,17 @@ private fun ColumnScope.SealedNucleus(
             Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(13.dp),
         ) {
+            // ⚠ **La seule chose modifiable de cet écran, et elle est en
+            // tête.** Tout ce qui suit est scellé et se relit ; le nom, lui,
+            // se change — c'est justement pour ça qu'il ne doit pas se ranger
+            // au milieu de ce qui ne bouge plus. Quelqu'un qui vient changer
+            // de nom le trouve avant d'avoir lu une seule ligne de sa fiche.
+            PseudoSection(
+                pseudo = pseudo,
+                editable = true,
+                onChange = onPseudoChange,
+                onDone = {},
+            )
             RecapCard(birth)
             SingularityCard(birth)
             // Le corps se montre ici, il ne s'y modifie plus : les deux

@@ -89,6 +89,35 @@ enum class Medium(
     /** Rang de routage — l'ordre de déclaration est l'échelle. */
     val rank: Int get() = ordinal
 
+    /**
+     * Ce que la bêta laisse voir, et donc emprunter.
+     *
+     * **Le code des quatre médiums reste entier** : rien n'est supprimé, ni les
+     * sockets, ni les trames `ADDRESS`/`GROUP`, ni le routage par rang. Ce
+     * drapeau ne ferme qu'une porte — celle de l'écran. Or la cabine ne monte
+     * JAMAIS d'elle-même : elle s'établit en BLE et toute montée se décide
+     * (`enable`, `select`). Une voie que l'interface ne propose plus est donc
+     * une voie que personne n'emprunte, sans qu'aucune ligne du moteur ait à
+     * changer. Le jour où la bêta s'ouvre, il n'y a qu'ici à revenir.
+     *
+     * Pourquoi les trois autres, alors qu'elles marchent et qu'elles sont
+     * mesurées (78 ko/s en RFCOMM, 15,5 Mo/s en Wi-Fi Direct) : parce qu'elles
+     * coûtent toutes une **explication**. Le Wi-Fi Direct demande une
+     * permission de plus, fabrique un groupe dont le départ de l'hôte dissout
+     * la voie pour tout le monde, et impose deux bandeaux pour dire qui le
+     * tient ; le Wi-Fi AP ne marche qu'entre deux personnes sur la même box.
+     * Ça fait quatre entrées dans une liste, quatre conséquences à lire et deux
+     * bandeaux, pour un débit que l'application ne promet nulle part. La bêta
+     * porte deux voies et deux seulement — **la radio pour ce qui est ici, le
+     * relais pour ce qui est loin** — et c'est déjà toute la portée du produit.
+     */
+    val inBeta: Boolean get() = this == BLE
+
+    companion object {
+        /** Les voies que l'interface a le droit de nommer. Voir [inBeta]. */
+        val betaEntries: List<Medium> = entries.filter { it.inBeta }
+    }
+
     /** Une lettre pour la clé de lien : `b:c:AA:BB` se lit d'un coup d'œil. */
     val tag: Char get() = when (this) {
         BLE -> 'b'

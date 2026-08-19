@@ -110,6 +110,16 @@ fun BoardScreen(
     /** Non nul quand le Plateau s'ouvre en plein écran depuis le Noyau. */
     onClose: (() -> Unit)? = null,
     birth: BirthData = BirthData.Empty,
+    /**
+     * L'état de la radio, greffé en tête — voir [RadioSection].
+     *
+     * Passé en composable et non en données : cette section demande des
+     * permissions, tient un lanceur de réglages et sonde la position toutes les
+     * trente secondes. Lui faire traverser le Plateau sous forme d'une douzaine
+     * de paramètres aurait fait du Plateau le porteur d'un état qui ne le
+     * regarde pas. Nul en aperçu, où le Plateau doit pouvoir s'afficher seul.
+     */
+    radio: (@Composable () -> Unit)? = null,
 ) {
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
     val own by ProximityService.signature.collectAsStateWithLifecycle()
@@ -234,11 +244,21 @@ fun BoardScreen(
                 .padding(horizontal = 20.dp)
                 .then(if (onClose != null) Modifier.navigationBarsPadding() else Modifier),
         ) {
+            // ⚠ **Avant tout le reste, et ce n'est pas décoratif.** Sans
+            // balise il n'y a pas de voisin, donc pas de carte, donc rien de ce
+            // qui suit. La ligne qui dit « il manque le Bluetooth » se lit donc
+            // avant ce qu'elle empêche — c'était l'argument qui l'avait déjà
+            // fait remonter en tête de l'écran Radar, il vaut encore ici.
+            radio?.let {
+                Spacer(Modifier.height(12.dp))
+                it()
+            }
+
             Text(
                 stringResource(R.string.board_deal_intro),
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
-                modifier = Modifier.padding(top = 10.dp),
+                modifier = Modifier.padding(top = 18.dp),
             )
 
             // ── Notre carte ───────────────────────────────────────────────

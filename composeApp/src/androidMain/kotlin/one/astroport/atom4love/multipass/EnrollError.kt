@@ -6,7 +6,7 @@ import one.astroport.atom4love.R
 /**
  * Pourquoi une demande de MULTIPASS n'a pas abouti.
  *
- * Comme [one.astroport.atom4love.chat.CabinError], c'est une **valeur** :
+ * Comme [one.astroport.atom4love.chat.ChatError], c'est une **valeur** :
  * l'inscription se joue dans une coroutine sans `Context`, et la phrase se
  * choisit à l'affichage, dans la langue du moment.
  *
