@@ -4,7 +4,7 @@
 **Statut :** v0.2.2 publiée et installée par sa propre mécanique ; **miroir en attente de lui**
 **Envoyée deux fois** à `support@qo-op.com` — la seule adresse publique de son écosystème ;
 aucune adresse directe connue, donc le message peut atterrir dans une file de tickets.
-Le 17/08, puis le 17/08 au soir avec la page (`web/apk/index.html`), livrée par un
+Le 17/08, puis le 17/08 au soir avec la page (`www/index.html`), livrée par un
 `curl` vers le fichier brut du dépôt plutôt qu'en pièce jointe : elle doit atterrir
 dans `earth/apk/index.html`, une commande l'y met. Les deux envois portent une copie
 adaptée — sans ces trois lignes de statut, qui ne regardent que nous.
@@ -83,7 +83,7 @@ l'application le voit, refuse, et le dit. Les deux fichiers doivent donc être
 présente comme une corruption.
 
 Et un troisième, que tu as demandé depuis : **la page qui propose l'APK**. Elle est
-écrite, sur le modèle de ton `www/index.html` de Coracle — `web/apk/index.html` dans
+écrite, sur le modèle de ton `www/index.html` de Coracle — et sous le même nom dans
 notre dépôt, à déposer en `earth/apk/index.html` chez toi. Trois règles tenues, les
 mêmes que ton `build-web-compatible-ipfs.sh` :
 
