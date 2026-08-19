@@ -46,11 +46,12 @@ google-services.json
 __pycache__/
 *.pyc
 
-# --- Charge utile de www/ : assemblée pour publier, jamais versionnée ---
-# `www/index.html` est le seul fichier suivi du dossier. À côté de lui viennent
-# deux COPIES, faites au moment de publier et remplacées à chaque version :
-# l'APK (déjà couvert par `*.apk` plus haut) et le manifeste, qui n'est que
-# `latest.json` de la racine sous le nom qu'attend la page. Les versionner
-# donnerait deux sources pour la même vérité, et 6,5 Mo de binaire par version
-# dans l'historique ; l'hôte de l'APK est la release GitHub.
-/www/atom4love.json
+# --- www/ EST publié depuis ce dépôt : tout y est suivi ---
+# Le miroir de Fred n'est pas alimenté par nous — il vient chercher. Le dossier
+# doit donc être complet et servable tel quel depuis le dépôt : la page, le
+# manifeste sous le nom qu'elle appelle, et l'APK. L'exception ci-dessous est
+# nécessaire, sinon la règle `*.apk` plus haut avalerait l'APK sans un mot.
+# ⚠ Les trois se remplacent ENSEMBLE à chaque version — une page servie sous
+# une adresse constante avec l'empreinte d'hier fait passer le bon fichier pour
+# un fichier corrompu (cf. tools/release.sh et docs/note-distribution-apk.md).
+!/www/atom4love-latest.apk
