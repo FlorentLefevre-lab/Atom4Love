@@ -447,8 +447,7 @@
     <string name="inc_pseudo_note">C\'est ce que les autres verront à la place de votre clé. Il ne fait pas partie de votre noyau : changez-en quand vous voulez. Deux personnes peuvent choisir le même — la fin de leur clé les sépare alors.</string>
     <string name="inc_section_place">Lieu de naissance</string>
     <string name="inc_section_birth_weight">Poids de naissance</string>
-    <string name="inc_birth_weight_optional">optionnel — 3,5 kg à défaut</string>
-    <string name="inc_weight_is_default">valeur de la station</string>
+    <string name="inc_birth_weight_optional">3,5 kg par défaut (optionnel)</string>
     <string name="inc_weight_default_suffix"> · par défaut</string>
     <string name="inc_section_body">Votre corps aujourd\'hui</string>
     <string name="inc_height_placeholder">taille</string>

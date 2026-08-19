@@ -378,8 +378,7 @@
     <string name="inc_pseudo_note">Es lo que los demás verán en lugar de su clave. No forma parte de su núcleo: cámbielo cuando quiera. Dos personas pueden elegir el mismo — el final de su clave las distingue entonces.</string>
     <string name="inc_section_place">Lugar de nacimiento</string>
     <string name="inc_section_birth_weight">Peso al nacer</string>
-    <string name="inc_birth_weight_optional">opcional — 3,5 kg por defecto</string>
-    <string name="inc_weight_is_default">valor de la estación</string>
+    <string name="inc_birth_weight_optional">3,5 kg por defecto (opcional)</string>
     <string name="inc_weight_default_suffix"> · por defecto</string>
     <string name="inc_section_body">Tu cuerpo de hoy</string>
     <string name="inc_height_placeholder">estatura</string>

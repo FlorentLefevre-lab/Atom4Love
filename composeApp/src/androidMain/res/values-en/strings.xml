@@ -375,8 +375,7 @@
     <string name="inc_pseudo_note">This is what others see instead of your key. It is not part of your nucleus: change it whenever you like. Two people may pick the same one — the tail of their key then tells them apart.</string>
     <string name="inc_section_place">Place of birth</string>
     <string name="inc_section_birth_weight">Birth weight</string>
-    <string name="inc_birth_weight_optional">optional — 3.5 kg by default</string>
-    <string name="inc_weight_is_default">the station\'s value</string>
+    <string name="inc_birth_weight_optional">3.5 kg by default (optional)</string>
     <string name="inc_weight_default_suffix"> · by default</string>
     <string name="inc_section_body">Your body today</string>
     <string name="inc_height_placeholder">height</string>

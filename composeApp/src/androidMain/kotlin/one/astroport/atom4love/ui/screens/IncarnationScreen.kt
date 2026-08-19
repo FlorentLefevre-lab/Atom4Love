@@ -36,6 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Man
 import androidx.compose.material.icons.filled.Woman
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -394,17 +395,20 @@ fun IncarnationScreen(
                                 onChange = onPseudoChange,
                                 onDone = { focusManager.clearFocus() },
                             )
+                            FieldDivider()
                             SexSection(
                                 birth = birth,
                                 editable = true,
                                 onBirthChange = onBirthChange,
                             )
+                            FieldDivider()
                             BirthDateTimeSection(
                                 birth = birth,
                                 editable = true,
                                 onPickDate = { showDatePicker = true },
                                 onPickTime = { showTimePicker = true },
                             )
+                            FieldDivider()
                             BirthPlaceSection(
                                 birth = birth,
                                 editable = true,
@@ -458,11 +462,13 @@ fun IncarnationScreen(
                             // bon moment : la confirmation de forge montre le
                             // sel entier avant de sceller, et le Noyau le garde
                             // sous les yeux ensuite.
+                            FieldDivider()
                             BirthWeightSection(
                                 birth = birth,
                                 editable = true,
                                 onPick = { showBirthWeightPicker = true },
                             )
+                            FieldDivider()
                             BodySection(
                                 body = body,
                                 onPickHeight = { showHeightPicker = true },
@@ -1474,6 +1480,24 @@ private fun PseudoSection(
     }
 }
 
+/**
+ * Un filet entre deux blocs de saisie.
+ *
+ * ⚠ **Il sépare, il ne décore pas.** L'assistant demande six choses de nature
+ * très différente — un mot qu'on choisit, une polarité, une date, un lieu, deux
+ * poids — et elles se suivaient à quinze points d'écart, sans rien pour dire où
+ * l'une finit. Les titres en capitales portaient seuls la structure, et un titre
+ * ne se lit qu'après avoir cherché.
+ *
+ * Assez pâle pour disparaître dès qu'on ne le cherche pas : [A4L.StrokeFaint],
+ * le même filet que la barre de menus. Ce n'est pas un trait de cadre, c'est une
+ * respiration — s'il se voyait, il découperait un formulaire en formulaires.
+ */
+@Composable
+private fun FieldDivider() {
+    HorizontalDivider(color = A4L.StrokeFaint)
+}
+
 @Composable
 private fun SexSection(birth: BirthData, editable: Boolean, onBirthChange: (BirthData) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -1524,33 +1548,31 @@ private fun NoteCard(glyph: String, title: String, body: String, accent: Color) 
 @Composable
 private fun BirthWeightSection(birth: BirthData, editable: Boolean, onPick: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        // ⚠ **Sur la ligne du titre, et non sous elle.** Le défaut occupait une
+        // ligne à lui, et la case en répétait une seconde à côté d'elle
+        // (« valeur de la station ») : trois lignes pour un champ facultatif où
+        // il n'y a rien à faire. À côté du titre, la précision se lit comme ce
+        // qu'elle est — la nature du champ — et la case en dessous ne dit plus
+        // que ce qu'elle vaut. Le fantôme du chiffre suffit à dire qu'il vient
+        // du défaut et non d'une saisie.
+        Row(verticalAlignment = Alignment.CenterVertically) {
             SectionLabel(stringResource(R.string.inc_section_birth_weight))
+            Spacer(Modifier.width(9.dp))
             Text(
                 stringResource(R.string.inc_birth_weight_optional),
                 style = A4LText.Caption,
                 color = A4L.TextGhost,
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            DigitBox(
-                LoveKey.formatWeight(LocalResources.current, birth.saltWeightKg),
-                84.dp,
-                enabled = editable,
-                // Rien n'a été saisi : la valeur affichée est celle de la
-                // station, pas la sienne — elle se montre donc en fantôme.
-                placeholder = birth.weightKg == null,
-                onClick = onPick,
-            )
-            if (birth.weightKg == null) {
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    stringResource(R.string.inc_weight_is_default),
-                    style = A4LText.Caption,
-                    color = A4L.TextGhost,
-                )
-            }
-        }
+        DigitBox(
+            LoveKey.formatWeight(LocalResources.current, birth.saltWeightKg),
+            84.dp,
+            enabled = editable,
+            // Rien n'a été saisi : la valeur affichée est celle de la station,
+            // pas la sienne — elle se montre donc en fantôme.
+            placeholder = birth.weightKg == null,
+            onClick = onPick,
+        )
     }
 }
 
