@@ -78,7 +78,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import android.util.Log
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -121,7 +120,6 @@ import one.astroport.atom4love.trial.TrialStore
 import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.chat.Conversations
-import one.astroport.atom4love.chat.UnreadNotifier
 import one.astroport.atom4love.journal.Journal
 import one.astroport.atom4love.journal.JournalRecorder
 import one.astroport.atom4love.ui.screens.BoardScreen
@@ -478,7 +476,10 @@ private fun Station(
     // thème, langue, fenêtres partagées). C'est [ChatHost] qui le tient
     // désormais, et l'ouverture comme la fermeture y sont des gestes.
     val cabinHost: ChatHost = viewModel()
-    val cabin = cabinHost.chat
+    // ⚠ Un flux, et non un état : le moteur doit rester observable quand
+    // l'écran ne l'est plus (voir [ChatHost.engine]). L'écran, lui, le lit avec
+    // le cycle de vie — il n'a rien à faire d'un moteur qu'il n'affiche pas.
+    val cabin by cabinHost.engine.collectAsStateWithLifecycle()
     val cabinOpen = cabinHost.open
     /**
      * ⚠ **La radio n'a plus de geste d'ouverture, et c'est le changement le
@@ -796,12 +797,15 @@ private fun Station(
     // range en un nombre par correspondant. Ça vit le temps de la station, comme
     // les conversations elles-mêmes : ce qui ne se garde pas n'a pas de non-lus
     // à garder non plus.
-    var readAt by remember { mutableStateOf(emptyMap<String, Long>()) }
+    // ⚠ Elles ne vivent plus ici mais dans [ChatHost] : le compte des non-lus
+    // doit être calculable quand la composition est en pause, sinon la barre
+    // d'état ne dit jamais rien (vu sur le Pixel le 19/08).
+    val readAt by cabinHost.readAt.collectAsStateWithLifecycle()
     // Le fil ouvert se lit en continu — y compris ce qui arrive pendant qu'on
     // le regarde. La clé `cabinMessages` n'est pas décorative : sans elle, un
     // message reçu la conversation ouverte resterait compté comme en attente.
     LaunchedEffect(openPeer, cabinMessages) {
-        openPeer?.let { readAt = readAt + (it to System.currentTimeMillis()) }
+        openPeer?.let { cabinHost.markRead(it) }
     }
     val unreadTotal = remember(conversations, readAt) {
         conversations.sumOf { conversation ->
@@ -850,38 +854,6 @@ private fun Station(
     // chercher autre chose.
     val notifyDue = forged && !walled && !notifyGranted && !notifyAsked &&
         tab == A4LTab.Board && overlay == Overlay.None && !journalShown && openPeer == null
-
-    // ── Ce que dit la barre d'état quand l'application n'est pas là ───────
-    //
-    // ⚠ **Seulement quand elle n'est PAS à l'écran.** Une notification système
-    // par-dessus un bandeau qui dit déjà la même chose ferait sonner le
-    // téléphone qu'on tient en main. Le suivi du premier plan passe par le
-    // cycle de vie plutôt que par un drapeau posé à la main : `repeatOnLifecycle`
-    // le lève à l'entrée et le baisse à la sortie, y compris quand l'activité
-    // meurt sans prévenir.
-    val unreadNotifier = remember(context) { UnreadNotifier(context.applicationContext) }
-    var foreground by remember { mutableStateOf(true) }
-    LaunchedEffect(lifecycleOwner) {
-        unreadNotifier.ensureChannel()
-        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            foreground = true
-            try {
-                awaitCancellation()
-            } finally {
-                foreground = false
-            }
-        }
-    }
-    // ⚠ La notification **suit la pastille**, elle ne la double pas : tant qu'il
-    // reste quelque chose à lire elle tient, et elle tombe à la lecture. Revenir
-    // à l'application sans lire ne l'efface donc pas — le message attend
-    // toujours, et c'est ce qu'elle dit.
-    LaunchedEffect(unreadTotal, foreground) {
-        when {
-            unreadTotal == 0 -> unreadNotifier.clear()
-            !foreground -> unreadNotifier.waiting(unreadTotal)
-        }
-    }
 
     // L'invitation ne se lève qu'au PASSAGE de zéro à un : elle dit « il y a
     // quelque chose », pas « il y en a un de plus ». Un bandeau qui se relève à

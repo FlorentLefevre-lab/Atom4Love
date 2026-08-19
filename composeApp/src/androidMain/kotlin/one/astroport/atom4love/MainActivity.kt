@@ -2,6 +2,7 @@ package one.astroport.atom4love
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -11,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import one.astroport.atom4love.ui.A4LApp
+import one.astroport.atom4love.ui.ChatHost
 import one.astroport.atom4love.ui.AppTheme
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LDark
@@ -18,6 +20,33 @@ import one.astroport.atom4love.ui.theme.A4LLight
 import one.astroport.atom4love.ui.theme.Atom4LoveTheme
 
 class MainActivity : ComponentActivity() {
+
+    /**
+     * ⚠ **C'est l'activité qui dit si l'application est sous les yeux, et non
+     * la composition.**
+     *
+     * L'écran le savait déjà, par `repeatOnLifecycle` — mais ce qu'il en
+     * faisait mourait avec lui : la notification de message se décidait dans la
+     * composition, qui est en pause exactement quand il faudrait prévenir.
+     * `onStart`/`onStop` sont les deux seuls endroits qui parlent encore à ce
+     * moment-là, et [ChatHost] vit assez longtemps pour les entendre.
+     *
+     * ⚠ Même magasin de ViewModels que `viewModel()` côté composition : c'est
+     * bien la même instance des deux côtés, et il ne faut pas en fabriquer une
+     * seconde ici.
+     */
+    private val chatHost: ChatHost by viewModels()
+
+    override fun onStart() {
+        super.onStart()
+        chatHost.foreground(true)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        chatHost.foreground(false)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // La préférence se lit d'un bloc, avant le premier frame : ouvrir dans
