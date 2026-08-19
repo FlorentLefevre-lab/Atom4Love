@@ -472,10 +472,32 @@ class ChatEngine(context: Context) {
          */
         val display: String? get() = name
 
-        override fun equals(other: Any?) =
-            this === other || (other is Peer && nostrKey.contentEquals(other.nostrKey))
+        /**
+         * ⚠ **Le nom compte dans l'égalité, et il l'a payé cher.**
+         *
+         * Cette classe ne se comparait que par sa clé — juste, tant qu'elle ne
+         * portait qu'une identité : deux liens croisés d'une même personne font
+         * une présence, et c'est le npub qui les réunit. Le jour où un **nom**
+         * s'y est ajouté, ce même `equals` est devenu un piège :
+         * `Peer(clé, sans nom)` valait `Peer(clé, « Flower »)`, donc la liste
+         * reconstruite valait l'ancienne, donc `MutableStateFlow` **n'émettait
+         * pas**. Le nom arrivait par la radio, se rangeait sur le lien, et
+         * n'atteignait jamais l'écran : les deux appareils se lisaient « sans
+         * pseudo » en croisé, le 19/08, avec la trame sous les yeux dans le
+         * journal (`type=0x0c`, 8 octets, reçue et acceptée).
+         *
+         * Rien ici ne dédoublonne par égalité — [refreshLinks] regroupe
+         * explicitement par clé — donc l'inclure ne coûte rien et rend le flux
+         * honnête : deux `Peer` sont égaux quand **tout ce qui s'affiche** est
+         * égal.
+         *
+         * La règle, plus large que ce cas : *un champ qui traverse un
+         * `StateFlow` pour aller à l'écran doit entrer dans `equals`.*
+         */
+        override fun equals(other: Any?) = this === other ||
+            (other is Peer && nostrKey.contentEquals(other.nostrKey) && name == other.name)
 
-        override fun hashCode() = nostrKey.contentHashCode()
+        override fun hashCode() = 31 * nostrKey.contentHashCode() + (name?.hashCode() ?: 0)
     }
 
     private val appContext = context.applicationContext

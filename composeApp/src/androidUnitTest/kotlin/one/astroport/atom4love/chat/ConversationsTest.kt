@@ -179,4 +179,30 @@ class ConversationsTest {
         val conversations = Conversations.of(listOf(peer(1, "Marie")), emptyList())
         assertEquals("Marie", conversations.single().name)
     }
+
+    /**
+     * ⚠ **Le piège qui a coûté un essai croisé le 19/08.**
+     *
+     * `Peer` ne se comparait que par sa clé : `Peer(clé, sans nom)` valait donc
+     * `Peer(clé, « Flower »)`. La liste reconstruite valait l'ancienne, le
+     * `StateFlow` n'émettait pas, et le nom — arrivé par la radio, rangé sur le
+     * lien, visible dans le journal — n'atteignait jamais l'écran. Les deux
+     * appareils se lisaient « sans pseudo » avec la trame sous les yeux.
+     *
+     * La règle qu'on épingle ici est plus large que ce cas : **un champ qui
+     * traverse un `StateFlow` pour aller à l'écran doit entrer dans `equals`.**
+     */
+    @Test
+    fun `deux pairs de même clé mais de noms différents ne sont pas égaux`() {
+        assertNotEquals(peer(1, null), peer(1, "Flower"))
+        assertNotEquals(peer(1, "Flower"), peer(1, "Flow_tab"))
+        assertEquals(peer(1, "Flower"), peer(1, "Flower"))
+        // Et la liste entière suit — c'est elle que le StateFlow compare.
+        assertNotEquals(listOf(peer(1, null)), listOf(peer(1, "Flower")))
+    }
+
+    @Test
+    fun `la clé reste ce qui identifie, à nom égal`() {
+        assertNotEquals(peer(1, "Flower"), peer(2, "Flower"))
+    }
 }
