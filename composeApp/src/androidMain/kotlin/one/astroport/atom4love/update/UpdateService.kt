@@ -22,7 +22,7 @@ import one.astroport.atom4love.BuildConfig
  * Deux adresses, le même fichier :
  *
  *  - **GitHub**, qui fait foi — un tag, une release, un APK et son empreinte ;
- *  - **le site de Fred** (`u.copylaradio.com/earth/apk/`), qui en est le
+ *  - **le site de Fred** (`u.copylaradio.com/www/`), qui en est le
  *    miroir. Il servait déjà un APK à cette adresse-là, avec le bon type MIME,
  *    avant qu'on s'y mette : on suit son chemin, on n'en trace pas un autre.
  *

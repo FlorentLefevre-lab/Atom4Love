@@ -393,7 +393,7 @@ D3 has not been tackled.
 - **[UPassport](https://github.com/papiche/UPassport)** — terminal API (FastAPI) for identity
   and uDRIVE storage, NOSTR NIP-42 authentication.
 - **[UPlanet](https://github.com/papiche/UPlanet)** — the geographic grid and its
-  visualisation; it is also where the APK mirror lives, under `earth/apk/`.
+  visualisation; the APK mirror itself lives under his `www/`.
 - **[cabine-33](https://github.com/papiche/cabine-33)** — a Godot implementation of the same
   algorithms (personal phase, opaque hexagonal addressing, orchestra). A useful reference for
   comparing expected behaviours.

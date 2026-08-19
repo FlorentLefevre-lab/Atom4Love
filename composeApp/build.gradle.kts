@@ -173,7 +173,7 @@ android {
         buildConfigField(
             "String",
             "UPDATE_MANIFEST_MIRROR",
-            "\"https://u.copylaradio.com/earth/apk/atom4love.json\"",
+            "\"https://u.copylaradio.com/www/atom4love.json\"",
         )
         // La page humaine des versions : le repli quand le manifeste ne répond
         // pas, et le seul chemin pour qui préfère faire à la main.

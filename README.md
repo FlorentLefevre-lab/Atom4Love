@@ -396,7 +396,7 @@ Atom4Love implémente **D1, D2 et D4**. D5 a été retiré du dépôt le 15 aoû
 - **[UPassport](https://github.com/papiche/UPassport)** — API terminal (FastAPI) pour
   l'identité et le stockage uDRIVE, authentification NOSTR NIP-42.
 - **[UPlanet](https://github.com/papiche/UPlanet)** — la grille géographique et sa
-  visualisation ; c'est aussi là que vit le miroir de l'APK, dans `earth/apk/`.
+  visualisation ; le miroir de l'APK, lui, vit dans son `www/`.
 - **[cabine-33](https://github.com/papiche/cabine-33)** — implémentation Godot des mêmes
   algorithmes (phase personnelle, adressage hexagonal opaque, orchestre). Référence utile
   pour comparer les comportements attendus.

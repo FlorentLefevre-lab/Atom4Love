@@ -98,7 +98,7 @@ DATE=$(date -u +%Y-%m-%d)
 (cd "$OUT" && sha256sum "$APK_NAME" > SHA256SUMS)
 
 GH_BASE="https://github.com/FlorentLefevre-lab/Atom4Love/releases/latest/download"
-MIRROR="https://u.copylaradio.com/earth/apk/$APK_NAME"
+MIRROR="https://u.copylaradio.com/www/$APK_NAME"
 
 cat > latest.json <<JSON
 {
@@ -146,7 +146,7 @@ $PUBLISH_HINT
 
   3. Le miroir chez Fred (son dépôt, son geste — voir
      docs/note-distribution-apk.md) : $APK_NAME et atom4love.json
-     dans earth/apk/ (les DEUX écrasés), puis ./microledger.me.sh
+     dans www/ (les TROIS écrasés, index.html compris), puis ./microledger.me.sh
 
   4. Vérifier que la mécanique tourne, depuis un appareil :
        curl -sS https://raw.githubusercontent.com/FlorentLefevre-lab/Atom4Love/main/latest.json

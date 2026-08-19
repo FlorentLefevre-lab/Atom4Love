@@ -5,7 +5,7 @@
 **Envoyée une fois**, le 17/08 à 22h42, à `support@qo-op.com` — la seule adresse publique
 de son écosystème, et une file de tickets faute d'adresse directe connue. Elle portait la
 page (`www/index.html`), livrée par un `curl` vers le fichier brut du dépôt plutôt qu'en
-pièce jointe : elle doit atterrir dans `earth/apk/index.html`, une commande l'y met. La
+pièce jointe : elle doit atterrir dans `www/index.html` chez lui, une commande l'y met. La
 copie envoyée est adaptée — sans ces lignes de statut, qui ne regardent que nous.
 
 ⚠ **Aucune réponse, et le courriel n'est pas le canal.** Boîte vérifiée le 19/08 : pas de
@@ -47,7 +47,7 @@ L'application lit `latest.json`, dans cet ordre :
 
 1. `https://raw.githubusercontent.com/FlorentLefevre-lab/Atom4Love/main/latest.json` — le
    dépôt du projet, qui **fait foi** ;
-2. `https://u.copylaradio.com/earth/apk/atom4love.json` — **ton miroir**.
+2. `https://u.copylaradio.com/www/atom4love.json` — **ton miroir**.
 
 C'est le même fichier aux deux endroits. Peu importe lequel répond : l'empreinte SHA-256
 qu'il porte dit quels octets sont les bons, et l'app refuse tout le reste.
@@ -61,7 +61,7 @@ qu'il porte dit quels octets sont les bons, et l'app refuse tout le reste.
   "sha256": "354afa20c4843d4bb6ad3dd62c2ce367c2d0bf39019c0f3d272c9b1f01d3fb8b",
   "sizeBytes": 6772892,
   "url": "https://github.com/FlorentLefevre-lab/Atom4Love/releases/latest/download/atom4love-latest.apk",
-  "mirrors": ["https://u.copylaradio.com/earth/apk/atom4love-latest.apk"],
+  "mirrors": ["https://u.copylaradio.com/www/atom4love-latest.apk"],
   "notes": "une phrase sur ce qui change"
 }
 ```
@@ -74,7 +74,7 @@ toujours savoir lire le manifeste du jour**, sinon il ne saura jamais qu'il est 
 
 Deux gestes, dans ton dépôt, à chaque version que je publie :
 
-1. **écraser** `atom4love-latest.apk` **et** `atom4love.json` dans `earth/apk/` ;
+1. **écraser** `atom4love-latest.apk`, `atom4love.json` **et** `index.html` dans `www/` ;
 2. lancer `./microledger.me.sh` comme d'habitude.
 
 Le nom ne change jamais, volontairement : le lien se donne une fois — sur une page,
@@ -90,7 +90,7 @@ présente comme une corruption.
 
 Et un troisième, que tu as demandé depuis : **la page qui propose l'APK**. Elle est
 écrite, sur le modèle de ton `www/index.html` de Coracle — et sous le même nom dans
-notre dépôt, à déposer en `earth/apk/index.html` chez toi. Trois règles tenues, les
+notre dépôt, à déposer en `www/index.html` chez toi. Trois règles tenues, les
 mêmes que ton `build-web-compatible-ipfs.sh` :
 
 - **aucune requête sortante** — ni police, ni CDN, ni image distante ; l'icône est en

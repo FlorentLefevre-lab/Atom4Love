@@ -6,6 +6,6 @@
   "sha256": "354afa20c4843d4bb6ad3dd62c2ce367c2d0bf39019c0f3d272c9b1f01d3fb8b",
   "sizeBytes": 6772892,
   "url": "https://github.com/FlorentLefevre-lab/Atom4Love/releases/latest/download/atom4love-latest.apk",
-  "mirrors": ["https://u.copylaradio.com/earth/apk/atom4love-latest.apk"],
+  "mirrors": ["https://u.copylaradio.com/www/atom4love-latest.apk"],
   "notes": "Les coordonnées de naissance s'affichent et se saisissent en entier : notées telles quelles, elles rouvrent vraiment votre clé."
 }
