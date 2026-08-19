@@ -11,23 +11,31 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import one.astroport.atom4love.MainActivity
 import one.astroport.atom4love.R
+import one.astroport.atom4love.ui.ChatHost
 
 /**
  * 💬 « Un message vous attend » — la notification système des conversations.
  *
- * ## Ce qu'elle ne dit pas, et pourquoi c'est le point important
+ * ## Ce qu'elle dit, et ce qu'elle continue de cacher
  *
- * ⚠ **Ni le nom de qui a écrit, ni un mot de ce qui est écrit.** C'est la règle
- * du bandeau intérieur, portée là où elle compte vraiment : une notification se
- * lit sur un **écran verrouillé**, par-dessus l'épaule, dans une salle de
- * réunion, sur un téléphone posé sur une table. Tout ce que cette application
- * chiffre de bout en bout dans une cabine Noise, une ligne d'aperçu le
- * redonnerait en clair à qui passe.
+ * ⚠ **Elle nomme et elle cite — c'est une décision, prise le 19/08.** Elle ne
+ * disait qu'un compte : la règle était qu'une notification se lit sur un écran
+ * verrouillé, par-dessus l'épaule, sur un téléphone posé sur une table, et
+ * qu'une ligne d'aperçu redonnerait en clair ce qu'une cabine Noise chiffre de
+ * bout en bout. La contrepartie était lourde : il fallait ouvrir l'application
+ * pour savoir s'il fallait l'ouvrir. Florent a tranché pour le nom et l'extrait.
  *
- * Ce qui reste — un compte — suffit à faire prendre le téléphone, et c'est tout
- * ce qu'on lui demande. La contrepartie assumée : on ne peut pas trier depuis la
- * barre d'état. Dans une application où les conversations ne survivent pas à la
- * session, ce tri n'a de toute façon pas de sens.
+ * ⚠ **Ce qui tient encore : `VISIBILITY_PRIVATE`.** Sur un écran **verrouillé**,
+ * le système masque tout seul le contenu et ne laisse que le titre. L'aperçu ne
+ * se lit donc que sur un téléphone déjà déverrouillé — celui qu'on tient. C'est
+ * la moitié de la prudence d'origine, et c'est la moitié qui protège vraiment.
+ *
+ * ⚠ **Le canal est en `IMPORTANCE_HIGH`, et c'est ce qui fait le bandeau.** Un
+ * bandeau qui tombe du haut et se retire seul au bout de quelques secondes n'a
+ * pas à être écrit : c'est le comportement du système pour ce niveau-là. Il
+ * fallait un canal NEUF pour l'obtenir — l'importance d'un canal existant est
+ * réglée par la personne, pas par l'application, et la relever dans le code
+ * n'aurait rien changé sur les appareils où l'ancien canal existait déjà.
  *
  * ## Une seule notification, qui compte
  *
@@ -49,7 +57,16 @@ import one.astroport.atom4love.R
 class UnreadNotifier(private val context: Context) {
 
     companion object {
-        const val CHANNEL_ID = "chat"
+        /**
+         * ⚠ **« message » et non « chat ».** L'ancien canal était en
+         * `IMPORTANCE_DEFAULT` : pas de bandeau. Le relever ne suffit pas —
+         * une fois un canal créé, son importance appartient à la personne, et
+         * le système ignore toute élévation venue du code. Un identifiant neuf
+         * est le seul chemin ; l'ancien est supprimé pour ne pas laisser un
+         * réglage orphelin dans les paramètres.
+         */
+        const val CHANNEL_ID = "message"
+        private const val OLD_CHANNEL_ID = "chat"
 
         /**
          * Un identifiant **fixe et isolé** : la balise tient le 1, les
@@ -64,19 +81,22 @@ class UnreadNotifier(private val context: Context) {
         val channel = NotificationChannel(
             CHANNEL_ID,
             context.getString(R.string.chat_channel_name),
-            NotificationManager.IMPORTANCE_DEFAULT,
+            NotificationManager.IMPORTANCE_HIGH,
         ).apply {
             description = context.getString(R.string.chat_channel_description)
         }
-        context.getSystemService(NotificationManager::class.java)
-            .createNotificationChannel(channel)
+        context.getSystemService(NotificationManager::class.java).apply {
+            createNotificationChannel(channel)
+            runCatching { deleteNotificationChannel(OLD_CHANNEL_ID) }
+        }
     }
 
     /**
      * Dit qu'il y a [count] messages en attente. Silencieux si la permission
      * manque : refuser les notifications est une réponse, pas une panne.
      */
-    fun waiting(count: Int) {
+    fun waiting(unread: ChatHost.Unread) {
+        val count = unread.count
         if (count <= 0 || !granted()) return
         val open = PendingIntent.getActivity(
             context,
@@ -84,19 +104,39 @@ class UnreadNotifier(private val context: Context) {
             Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val body = context.resources.getQuantityString(R.plurals.unread_banner, count, count)
+        val who = unread.from ?: context.getString(R.string.chat_from_unnamed)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_beacon)
-            .setContentTitle(context.getString(R.string.chat_notification_title))
-            .setContentText(body)
+            .setContentTitle(who)
+            .setContentText(unread.extract)
+            // Le compte reste, mais en second : ce qui fait prendre le
+            // téléphone est un nom, pas un nombre.
+            .apply {
+                if (count > 1) {
+                    setSubText(
+                        context.resources.getQuantityString(
+                            R.plurals.unread_banner,
+                            count,
+                            count,
+                        ),
+                    )
+                }
+            }
+            .setStyle(NotificationCompat.BigTextStyle().bigText(unread.extract))
             .setContentIntent(open)
             .setAutoCancel(true)
-            .setOnlyAlertOnce(true)
+            // ⚠ **Pas `setOnlyAlertOnce`.** Il était là quand la notification ne
+            // portait qu'un compte : la faire sonner à chaque incrément aurait
+            // été du harcèlement pour une information qui ne changeait pas de
+            // nature. Maintenant qu'elle nomme et qu'elle cite, chaque message
+            // est une nouvelle — et un deuxième message qui ne ferait rien
+            // apparaître serait un message perdu.
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            // ⚠ Sur l'écran verrouillé, le titre seul. `SECRET` la ferait
-            // disparaître — or il faut bien que quelque chose fasse prendre le
-            // téléphone ; `PRIVATE` montre qu'il y a une notification et cache
-            // ce qu'elle porte, ce qui est exactement le partage voulu.
+            // ⚠ Sur l'écran verrouillé, le titre seul — c'est ce qui reste de
+            // la prudence d'origine, et c'est la part qui compte. `SECRET` la
+            // ferait disparaître ; `PRIVATE` montre qu'il y a une notification
+            // et cache ce qu'elle porte tant que l'écran est verrouillé.
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .build()
         runCatching {

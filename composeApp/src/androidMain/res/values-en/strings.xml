@@ -642,7 +642,7 @@
         <item quantity="other">%1$d messages are waiting for you.</item>
     </plurals>
     <string name="chat_channel_name">Messages</string>
-    <string name="chat_channel_description">When a message is waiting in a conversation. Neither who wrote it nor what it says: the status bar is read over your shoulder.</string>
+    <string name="chat_channel_description">When someone writes to you and the application is closed. The preview stays hidden while the screen is locked.</string>
     <string name="chat_notification_title">Atom4Love</string>
     <string name="notify_allow">Allow</string>
     <string name="notify_settings">Settings</string>
@@ -650,4 +650,6 @@
     <string name="notify_body">When someone writes and the application is closed, a notification will say so. It will say only that: neither who wrote nor what was written.</string>
     <string name="notify_body_settings">Notifications are turned off for Atom4Love. They can be turned back on in the phone\'s settings.</string>
     <string name="notify_later">Later</string>
+    <string name="notify_image">sent an image</string>
+    <string name="notify_file">sent a file</string>
 </resources>

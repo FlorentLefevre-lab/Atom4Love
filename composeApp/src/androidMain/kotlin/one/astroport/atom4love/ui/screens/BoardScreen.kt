@@ -120,6 +120,27 @@ fun BoardScreen(
      * regarde pas. Nul en aperçu, où le Plateau doit pouvoir s'afficher seul.
      */
     radio: (@Composable (title: @Composable () -> Unit) -> Unit)? = null,
+    /**
+     * Les pseudos de ceux à qui l'on parle déjà, par **jeton de présence**.
+     *
+     * ⚠ Une annonce de proximité ne nomme personne, et ne le fera jamais : le
+     * nom vient du lien attesté de la cabine. Reste à savoir quelle carte est
+     * quelle personne, et c'est le **jeton** qui le dit —
+     * `SHA-256(clé NOSTR ‖ cellule)`, que l'on sait recalculer pour un pair
+     * dont on connaît déjà la clé ([ProximityPayload.token], dont le KDoc
+     * nomme précisément cette propriété).
+     *
+     * ⚠ **Ce n'est pas l'adresse radio.** Premier essai, et il ne marche pas :
+     * la balise annonce sous une adresse tirée au sort par le jeu d'annonce,
+     * qui n'est pas celle du lien GATT. Aucun nom n'apparaissait, en silence.
+     * Vu sur le Pixel le 19/08.
+     *
+     * Une carte sans lien attesté reste anonyme, ce qui est exactement le jeu :
+     * on cherche d'abord un sceau dans la salle, on apprend un nom en se
+     * parlant. Et sans localisation il n'y a pas de jeton du tout, donc pas de
+     * nom non plus — même règle que partout ailleurs.
+     */
+    names: Map<Int, String> = emptyMap(),
 ) {
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
     val own by ProximityService.signature.collectAsStateWithLifecycle()
@@ -325,6 +346,7 @@ fun BoardScreen(
                             // le dit. Toucher la sienne suffit alors — les deux
                             // écrans battront.
                             seeksUs = neighbor.token != null && neighbor.token in seekers,
+                            pseudo = neighbor.token?.let { names[it] },
                             onSeek = { seekingId = neighbor.identity },
                         )
                     }
@@ -511,6 +533,8 @@ private fun DealtCard(
      * Ce qui ne change pas : rien ne bat tant qu'on n'a pas touché à son tour.
      */
     seeksUs: Boolean = false,
+    /** Son pseudo, quand un lien attesté nous l'a appris. */
+    pseudo: String? = null,
 ) {
     val theirs = neighbor.signature
     val classification = own.phase?.let { mine ->
@@ -570,6 +594,16 @@ private fun DealtCard(
                     color = A4L.TextHigh,
                     fontWeight = FontWeight.SemiBold,
                 )
+                // Le sceau d'abord, le pseudo ensuite : c'est le sceau qu'on
+                // cherche dans la salle, le nom n'est que ce qu'on en a appris.
+                pseudo?.let {
+                    Text(
+                        it,
+                        style = A4LText.Body.copy(fontSize = 12.5.sp),
+                        color = A4L.TextBody,
+                        maxLines = 1,
+                    )
+                }
                 if (seeksUs) {
                     Text(
                         stringResource(R.string.board_seeks_you),

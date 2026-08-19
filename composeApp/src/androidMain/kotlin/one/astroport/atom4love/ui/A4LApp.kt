@@ -652,6 +652,23 @@ private fun Station(
     // l'écran se referme de lui-même, ce qui est le comportement voulu quand on
     // vient d'effacer.
     val openConversation = conversations.firstOrNull { it.peerHex == openPeer }
+    // ── Mettre un nom sur une carte du Plateau ────────────────────────────
+    //
+    // ⚠ Le nom ne vient PAS de l'annonce de proximité, qui ne nomme jamais
+    // personne : il vient du lien attesté, rapproché par le **jeton de
+    // présence** — le seul pont honnête entre la balise et la cabine (voir
+    // [BoardScreen]). Et il passe par les fils, pour que **la règle des
+    // homonymes soit la même partout** — deux « Marie » à portée portent ici
+    // aussi la queue de leur clé.
+    val advertisedCell by ProximityService.advertisedCell4d.collectAsStateWithLifecycle()
+    val plateauNames = remember(cabinPeers, conversations, advertisedCell) {
+        val byNpub = conversations.associateBy { it.npub }
+        cabinPeers.mapNotNull { peer ->
+            val token = ProximityPayload.token(peer.nostrKey, advertisedCell)
+            val name = byNpub[peer.npub]?.name
+            if (token == null || name == null) null else token to name
+        }.toMap()
+    }
 
     /** Le journal ouvert en plein écran, à la place qu'occupait la cabine. */
     var journalShown by rememberSaveable { mutableStateOf(false) }
@@ -797,21 +814,17 @@ private fun Station(
     // range en un nombre par correspondant. Ça vit le temps de la station, comme
     // les conversations elles-mêmes : ce qui ne se garde pas n'a pas de non-lus
     // à garder non plus.
-    // ⚠ Elles ne vivent plus ici mais dans [ChatHost] : le compte des non-lus
-    // doit être calculable quand la composition est en pause, sinon la barre
-    // d'état ne dit jamais rien (vu sur le Pixel le 19/08).
-    val readAt by cabinHost.readAt.collectAsStateWithLifecycle()
+    // ⚠ Ni les marques ni le compte ne vivent plus ici, mais dans [ChatHost] :
+    // le compte doit être calculable quand la composition est en pause, sinon
+    // la barre d'état ne dit jamais rien (vu sur le Pixel le 19/08). L'écran
+    // n'en garde que la lecture, pour sa pastille.
+    val unread by cabinHost.unread.collectAsStateWithLifecycle()
+    val unreadTotal = unread.count
     // Le fil ouvert se lit en continu — y compris ce qui arrive pendant qu'on
     // le regarde. La clé `cabinMessages` n'est pas décorative : sans elle, un
     // message reçu la conversation ouverte resterait compté comme en attente.
     LaunchedEffect(openPeer, cabinMessages) {
         openPeer?.let { cabinHost.markRead(it) }
-    }
-    val unreadTotal = remember(conversations, readAt) {
-        conversations.sumOf { conversation ->
-            val since = readAt[conversation.peerHex] ?: 0L
-            conversation.messages.count { !it.mine && it.atMs > since }
-        }
     }
     // ── Demander à pouvoir prévenir ───────────────────────────────────────
     //
@@ -855,18 +868,37 @@ private fun Station(
     val notifyDue = forged && !walled && !notifyGranted && !notifyAsked &&
         tab == A4LTab.Board && overlay == Overlay.None && !journalShown && openPeer == null
 
-    // L'invitation ne se lève qu'au PASSAGE de zéro à un : elle dit « il y a
-    // quelque chose », pas « il y en a un de plus ». Un bandeau qui se relève à
-    // chaque message ferait de la conversation un harcèlement.
-    var unreadBanner by remember { mutableStateOf(false) }
-    var unreadBefore by remember { mutableIntStateOf(0) }
-    LaunchedEffect(unreadTotal) {
-        if (unreadTotal > 0 && unreadBefore == 0 && tab != A4LTab.Chats) {
+    // ── Le bandeau d'arrivée ──────────────────────────────────────────────
+    //
+    // ⚠ **Il nomme, il cite, il tombe du haut et il s'en va tout seul.** Il
+    // disait « n messages vous attendent », en bas, jusqu'à ce qu'on le
+    // referme. Deux défauts : on ne savait pas de qui, donc il fallait ouvrir
+    // pour savoir s'il fallait ouvrir ; et il se levait au seul passage de zéro
+    // à un, donc un deuxième correspondant qui écrivait pendant qu'on lisait le
+    // premier n'apparaissait nulle part. Tranché par Florent le 19/08.
+    //
+    // ⚠ **Il écoute un flux d'évènements, pas un compte.** C'est ce qui règle
+    // le second défaut : chaque arrivée est une nouvelle, même si le compte,
+    // lui, ne bouge pas.
+    var arrival by remember { mutableStateOf<ChatHost.Unread?>(null) }
+    LaunchedEffect(cabinHost) {
+        cabinHost.arrivals.collect { fresh ->
+            // Le fil ouvert ne s'annonce pas : ce qui arrive s'y écrit déjà
+            // sous les yeux. `openPeer` se lit ICI, à l'instant du message —
+            // le capturer plus haut le figerait à la valeur d'une composition
+            // passée (même piège que le cadrage de la carte, le 19/08).
+            if (fresh.peerHex == openPeer) return@collect
             vibrator?.vibrate(VibrationEffect.createOneShot(35L, 160))
-            unreadBanner = true
+            arrival = fresh
         }
-        if (unreadTotal == 0) unreadBanner = false
-        unreadBefore = unreadTotal
+    }
+    // Cinq secondes, demandées telles quelles. La clé est l'arrivée elle-même :
+    // un second message pendant l'attente relance le compte à zéro au lieu de
+    // hériter du reste du premier.
+    LaunchedEffect(arrival) {
+        if (arrival == null) return@LaunchedEffect
+        delay(ARRIVAL_BANNER_MS)
+        arrival = null
     }
 
 
@@ -1083,6 +1115,7 @@ private fun Station(
                             A4LTab.Board -> BoardScreen(
                                 npub = keys?.npubShort,
                                 birth = birth,
+                                names = plateauNames,
                                 radio = { title ->
                                     RadioSection(
                                         relay = relayStatus,
@@ -1286,20 +1319,19 @@ private fun Station(
         )
     }
 
-    UnreadBanner(
-        visible = unreadBanner,
-        count = unreadTotal,
+    ArrivalBanner(
+        arrival = arrival,
         onOpen = {
-            unreadBanner = false
-            openPeer = null
+            val peer = arrival?.peerHex
+            arrival = null
             journalShown = false
             tab = A4LTab.Chats
+            openPeer = peer
         },
-        onDismiss = { unreadBanner = false },
-        modifier = Modifier.align(Alignment.BottomCenter),
+        modifier = Modifier.align(Alignment.TopCenter),
     )
     PresenceBanner(
-        visible = presenceBanner && !unreadBanner,
+        visible = presenceBanner && arrival == null,
         count = cardsInRange,
         onOpen = {
             presenceBanner = false
@@ -1320,6 +1352,9 @@ private fun Station(
  * conversation, dans le journal —, la bannière flotte simplement un peu plus
  * haut : mieux vaut ça qu'un calcul qui dépendrait de l'écran affiché derrière.
  */
+/** Cinq secondes — le temps demandé pour lire un nom et trois mots. */
+private const val ARRIVAL_BANNER_MS = 5_000L
+
 private val PRESENCE_BANNER_LIFT = 76.dp
 
 /**
@@ -1349,58 +1384,67 @@ private val PRESENCE_BANNER_LIFT = 76.dp
  * nouvelle qui s'efface toute seule n'a pas été donnée.
  */
 @Composable
-private fun UnreadBanner(
-    visible: Boolean,
-    count: Int,
+private fun ArrivalBanner(
+    arrival: ChatHost.Unread?,
     onOpen: () -> Unit,
-    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val closeLabel = stringResource(R.string.presence_banner_close)
+    val unnamed = stringResource(R.string.chat_from_unnamed)
     AnimatedVisibility(
-        visible = visible,
-        enter = slideInVertically { it } + fadeIn(),
-        exit = slideOutVertically { it } + fadeOut(),
+        visible = arrival != null,
+        enter = slideInVertically { -it } + fadeIn(),
+        exit = slideOutVertically { -it } + fadeOut(),
         modifier = modifier,
     ) {
+        // ⚠ Le dernier connu survit à la sortie : sans lui, le bandeau se vide
+        // de son texte pendant qu'il remonte, et l'on voit une bande blanche
+        // partir vers le haut.
+        val shown = arrival ?: remember { ChatHost.Unread() }
         Row(
             Modifier
-                .navigationBarsPadding()
-                .padding(start = 12.dp, end = 12.dp, bottom = PRESENCE_BANNER_LIFT)
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
+                // ⚠ **Deux fonds, et le premier est opaque.** Le bandeau du bas
+                // pouvait se permettre une teinte translucide : il flotte
+                // au-dessus d'une zone vide. Celui-ci tombe sur l'en-tête, et
+                // l'on a lu « radio allumée » **à travers** le nom de qui
+                // écrit — vu sur le Pixel le 19/08. Le fond profond coupe
+                // d'abord, la teinte colore ensuite.
+                .background(A4L.Deep)
                 .background(A4L.Mint.tint(0.22f))
                 .border(1.dp, A4L.Mint.tint(0.45f), RoundedCornerShape(14.dp))
                 .clickable(onClick = onOpen)
-                .padding(start = 14.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
+                .padding(start = 14.dp, end = 14.dp, top = 11.dp, bottom = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("💬", fontSize = 17.sp)
             Spacer(Modifier.width(11.dp))
-            Text(
-                pluralStringResource(R.plurals.unread_banner, count.coerceAtLeast(1), count),
-                style = A4LText.Body.copy(fontSize = 13.sp),
-                color = A4L.TextHigh,
-                modifier = Modifier.weight(1f),
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    shown.from ?: unnamed,
+                    style = A4LText.Body.copy(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    color = A4L.TextHigh,
+                    maxLines = 1,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    shown.extract.ifEmpty { " " },
+                    style = A4LText.Body.copy(fontSize = 12.5.sp),
+                    color = A4L.TextStrong,
+                    maxLines = 1,
+                )
+            }
             Spacer(Modifier.width(10.dp))
             Text(
                 stringResource(R.string.unread_banner_open),
                 style = A4LText.Body.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.Mint,
             )
-            Spacer(Modifier.width(6.dp))
-            Box(
-                Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(A4L.Mint.tint(0.30f))
-                    .clickable(onClick = onDismiss)
-                    .semantics { contentDescription = closeLabel },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("✕", fontSize = 14.sp, color = A4L.TextHigh)
-            }
         }
     }
 }

@@ -8,18 +8,25 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import one.astroport.atom4love.chat.Attachments
 import one.astroport.atom4love.chat.ChatEngine
+import one.astroport.atom4love.chat.ChatKind
 import one.astroport.atom4love.chat.ChatMessage
+import one.astroport.atom4love.chat.Conversations
 import one.astroport.atom4love.chat.UnreadNotifier
 import one.astroport.atom4love.chat.net.P2pGroup
+import one.astroport.atom4love.R
 import one.astroport.atom4love.nostr.NostrKeys
 
 /**
@@ -80,11 +87,51 @@ class ChatHost(application: Application) : AndroidViewModel(application) {
      * qui ne survit pas n'a pas de non-lus à survivre.
      */
     private val _readAt = MutableStateFlow(emptyMap<String, Long>())
-    val readAt: StateFlow<Map<String, Long>> = _readAt.asStateFlow()
 
     /** L'application est-elle sous les yeux ? Posée par l'activité, pas par la
      *  composition — voir [one.astroport.atom4love.MainActivity]. */
     private val _foreground = MutableStateFlow(true)
+
+    /**
+     * Ce qui attend d'être lu, **et de qui**.
+     *
+     * ⚠ Le compte seul ne suffit plus. La barre d'état disait « n messages vous
+     * attendent » et rien d'autre : c'était une position de prudence — une
+     * notification se lit par-dessus une épaule — et Florent l'a tranchée
+     * autrement le 19/08. Un bandeau qui ne nomme personne oblige à ouvrir
+     * l'application pour savoir s'il faut ouvrir l'application.
+     *
+     * Le nom est celui de [Conversations], donc **la règle des homonymes est
+     * déjà appliquée** : deux « Marie » à portée reparaissent chacune avec la
+     * queue de sa clé, ici comme dans la liste.
+     */
+    private val _unread = MutableStateFlow(Unread())
+    val unread: StateFlow<Unread> = _unread.asStateFlow()
+
+    /**
+     * **Les arrivées, une par une.**
+     *
+     * Un état ne suffit pas pour ça : deux messages du même correspondant
+     * portent le même compte une fois le premier lu, et un bandeau qui écoute
+     * un état ne saurait pas qu'il s'est passé quelque chose une deuxième fois.
+     * Un flux d'évènements dit « il vient d'arriver ceci », ce qui est
+     * exactement ce qu'un bandeau montre.
+     */
+    private val _arrivals = MutableSharedFlow<Unread>(extraBufferCapacity = 8)
+    val arrivals: SharedFlow<Unread> = _arrivals
+
+    /**
+     * Ce qu'un bandeau a besoin de savoir : combien, de qui, quoi, et où aller.
+     *
+     * [from] est null quand la personne ne s'est pas nommée — c'est à l'écran
+     * de choisir le mot, dans sa langue.
+     */
+    data class Unread(
+        val count: Int = 0,
+        val from: String? = null,
+        val extract: String = "",
+        val peerHex: String? = null,
+    )
 
     var open by mutableStateOf(false)
         private set
@@ -126,31 +173,98 @@ class ChatHost(application: Application) : AndroidViewModel(application) {
     private fun watchUnread() = viewModelScope.launch {
         // `flatMapLatest` et non un simple `chat.messages` : fermer installe un
         // moteur NEUF, et un collecteur accroché à l'ancien ne verrait plus rien.
-        engine.flatMapLatest { it.messages }
-            .combine(_readAt) { messages, reads -> unread(messages, reads) }
-            .combine(_foreground) { count, visible -> count to visible }
+        // Les pairs viennent avec, parce que c'est d'eux que sortent les pseudos.
+        engine.flatMapLatest { engine ->
+            combine(engine.peers, engine.messages) { peers, messages -> peers to messages }
+        }
+            .combine(_readAt) { (peers, messages), reads -> summarise(peers, messages, reads) }
             .distinctUntilChanged()
-            .collect { (count, visible) ->
+            .combine(_foreground) { unread, visible -> unread to visible }
+            .collect { (unread, visible) ->
+                announce(unread)
+                _unread.value = unread
                 when {
-                    count == 0 -> notifier.clear()
-                    !visible -> notifier.waiting(count)
+                    unread.count == 0 -> notifier.clear()
+                    !visible -> notifier.waiting(unread)
                 }
             }
     }
 
     /**
-     * Ce qui attend d'être lu, tous fils confondus.
+     * L'identifiant du dernier message entrant déjà annoncé.
+     *
+     * ⚠ Sans cette mémoire, revenir de l'arrière-plan ou marquer un fil comme
+     * lu ferait resurgir un bandeau pour un message vieux de dix minutes : le
+     * flux réémet à chaque changement, et seul un identifiant dit ce qui est
+     * vraiment neuf. `-1` et non `0` : le moteur numérote à partir de zéro.
+     */
+    private var announced = -1
+
+    /**
+     * ⚠ **L'ensemencement se fait à la première ÉMISSION, pas au premier
+     * message.** Écrit d'abord comme « le premier identifiant vu ne crie pas »,
+     * il avalait la première arrivée réelle : au démarrage il n'y a aucun
+     * message entrant, donc rien à ensemencer, et c'est le message suivant —
+     * le premier vrai — qui héritait du silence. Vu sur le Pixel le 19/08.
+     */
+    private var seeded = false
+
+    private fun announce(unread: Unread) {
+        val id = lastIncomingId
+        // Le premier passage porte l'état trouvé au démarrage : des messages
+        // déjà là, arrivés avant que quiconque regarde. Même règle que le
+        // journal de bord — la première observation ensemence en silence.
+        if (!seeded) {
+            seeded = true
+            announced = id
+            return
+        }
+        if (id <= announced) return
+        // ⚠ **Un message entrant naît vide.** Il est rangé dès l'entête, puis
+        // complété quand son texte a fini d'arriver : le flux émet donc DEUX
+        // fois, et la première n'a rien à montrer. Le bandeau affichait un nom
+        // suivi d'une ligne blanche — vu sur le Pixel le 19/08. On laisse
+        // passer l'émission creuse sans marquer l'identifiant : la suivante,
+        // qui porte le texte, sera bien la première annoncée.
+        if (unread.extract.isEmpty()) return
+        announced = id
+        if (unread.count > 0) _arrivals.tryEmit(unread)
+    }
+
+    private var lastIncomingId = -1
+
+    /**
+     * Ce qui attend d'être lu, tous fils confondus, **et de qui vient le plus
+     * récent**.
      *
      * ⚠ Les messages **sans correspondant** ne comptent pas : ils viennent d'un
      * lien que personne n'a signé, donc d'un appareil qu'on ne sait pas nommer,
-     * et [one.astroport.atom4love.chat.Conversations] ne leur donne aucun fil.
-     * Les compter ferait une pastille qu'aucun écran ne peut faire retomber.
+     * et [Conversations] ne leur donne aucun fil. Les compter ferait une
+     * pastille qu'aucun écran ne peut faire retomber.
      */
-    private fun unread(messages: List<ChatMessage>, reads: Map<String, Long>): Int =
-        messages.count { message ->
+    private fun summarise(
+        peers: List<ChatEngine.Peer>,
+        messages: List<ChatMessage>,
+        reads: Map<String, Long>,
+    ): Unread {
+        val waiting = messages.filter { message ->
             val peer = message.peer
             !message.mine && peer != null && message.atMs > (reads[peer] ?: 0L)
         }
+        lastIncomingId = messages.lastOrNull { !it.mine && it.peer != null }?.id ?: -1
+        val last = waiting.lastOrNull() ?: return Unread()
+        // Le nom passe par les fils : c'est là que vit la règle des homonymes.
+        val name = Conversations.of(peers, messages)
+            .firstOrNull { it.peerHex == last.peer }?.name
+        return Unread(waiting.size, name, extract(last), last.peer)
+    }
+
+    /** Ce qu'on montre d'un message dans un bandeau — jamais une pièce jointe. */
+    private fun extract(message: ChatMessage): String = when (message.kind) {
+        ChatKind.TEXT -> message.text
+        ChatKind.IMAGE -> context.getString(R.string.notify_image)
+        ChatKind.FILE -> message.name.ifEmpty { context.getString(R.string.notify_file) }
+    }
 
     fun open(keys: NostrKeys?) {
         if (open) return
