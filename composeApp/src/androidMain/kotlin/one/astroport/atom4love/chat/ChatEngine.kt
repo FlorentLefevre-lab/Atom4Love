@@ -1038,11 +1038,38 @@ class ChatEngine(context: Context) {
      * tout moment — un pair déjà en ligne recevra simplement le nouveau nom au
      * prochain lien.
      */
+    @Volatile
     private var pseudo: String = ""
 
-    /** Le nom sous lequel paraître. Voir [one.astroport.atom4love.data.PseudoStore]. */
+    /**
+     * Le nom sous lequel paraître. Voir [one.astroport.atom4love.data.PseudoStore].
+     *
+     * ⚠ **`@Volatile`, et ce n'est pas de la prudence rituelle.** Ce champ
+     * s'écrit depuis la composition et se lit depuis le fil protocole, qui est
+     * un exécuteur à un seul thread. Sans la barrière, la valeur écrite au
+     * démarrage pouvait rester invisible du fil qui la lit — et
+     * [announceName] partait sur une chaîne vide. C'est exactement ce qu'on a
+     * vu en croisé le 19/08 : le Pixel avait « Flower » au coffre, la tablette
+     * le lisait « sans pseudo ». Même règle que `myTraits`, deux champs plus
+     * bas, qui la portait déjà.
+     *
+     * ⚠ **Et le nom se RE-ANNONCE.** Il ne partait qu'une fois, au handshake.
+     * Deux conséquences, toutes deux vues : un nom chargé du disque après que
+     * le lien s'est noué n'arrivait jamais, et changer de nom en cours de
+     * soirée ne changeait rien chez ceux qui étaient déjà là. Un pseudo n'est
+     * pas un artefact de poignée de main, c'est une propriété qui vit — on la
+     * rejoue à tous les pairs attestés dès qu'elle bouge.
+     */
     fun bindPseudo(name: String) {
-        pseudo = name.trim()
+        val clean = name.trim()
+        if (pseudo == clean) return
+        pseudo = clean
+        scope.launch {
+            links.values.forEach { link ->
+                link.nameAnnounced = false
+                announceName(link)
+            }
+        }
     }
 
     fun bindIdentity(keys: NostrKeys) {
