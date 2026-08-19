@@ -8,6 +8,18 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.res.pluralStringResource
+import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -797,6 +809,48 @@ private fun Station(
             conversation.messages.count { !it.mine && it.atMs > since }
         }
     }
+    // ── Demander à pouvoir prévenir ───────────────────────────────────────
+    //
+    // ⚠ **La permission n'avait plus aucune porte.** Celle des notifications
+    // voyage avec celles de la radio ([RADIO_PERMISSIONS]), demandées d'un seul
+    // geste par la rangée de la balise — mais cette rangée n'est touchable que
+    // **balise éteinte**, puisqu'une fois allumée il n'y a plus rien à réclamer.
+    // Quelqu'un qui a refusé les notifications le premier jour ne pouvait donc
+    // plus jamais les accorder depuis l'application, et la notification de
+    // message restait inatteignable sans que rien ne le dise. Constaté sur le
+    // Pixel le 19/08.
+    //
+    // ⚠ **Une fois par lancement, sur l'accueil, et refusable.** Pas une rangée
+    // permanente qui deviendrait du décor, pas une relance à chaque écran : la
+    // question se pose une fois là où l'on arrive, « plus tard » la referme
+    // jusqu'au prochain démarrage, et elle disparaît pour de bon dès qu'elle est
+    // accordée.
+    var notifyAsked by remember { mutableStateOf(false) }
+    var notifyGranted by remember { mutableStateOf(notificationsGranted(context)) }
+    var notifyDeadEnd by remember { mutableStateOf(false) }
+    val notifyLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { ok ->
+        notifyGranted = ok
+        // ⚠ Un refus définitif ne montre AUCUN dialogue : le lanceur revient sur
+        // le champ, refusé, et sans cette reprise l'écran n'aurait rien fait du
+        // tout — on aurait touché « Autoriser » pour voir la question
+        // disparaître. La même question revient alors, mais elle envoie
+        // désormais aux réglages, seul endroit où la porte se rouvre.
+        if (!ok && !context.canStillAskForNotifications()) {
+            notifyDeadEnd = true
+            notifyAsked = false
+        }
+    }
+    val notifySettings = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { notifyGranted = notificationsGranted(context) }
+    // Elle attend le Plateau : posée pendant la forge elle tomberait au milieu
+    // d'une saisie, posée sur un autre onglet elle surprendrait quelqu'un venu
+    // chercher autre chose.
+    val notifyDue = forged && !walled && !notifyGranted && !notifyAsked &&
+        tab == A4LTab.Board && overlay == Overlay.None && !journalShown && openPeer == null
+
     // ── Ce que dit la barre d'état quand l'application n'est pas là ───────
     //
     // ⚠ **Seulement quand elle n'est PAS à l'écran.** Une notification système
@@ -1205,6 +1259,61 @@ private fun Station(
     // quelqu'un qui a parlé. Les empiler ferait deux rangées au-dessus de la
     // barre ; les laisser se disputer la place ferait clignoter l'écran. Le
     // message gagne, et la présence attend qu'il soit lu ou refermé.
+    if (notifyDue) {
+        AlertDialog(
+            onDismissRequest = { notifyAsked = true },
+            containerColor = A4L.Deep,
+            icon = { Text("🔔", fontSize = 26.sp) },
+            title = {
+                Text(
+                    stringResource(R.string.notify_title),
+                    style = A4LText.H2,
+                    color = A4L.TextHigh,
+                )
+            },
+            text = {
+                Text(
+                    stringResource(
+                        if (notifyDeadEnd) R.string.notify_body_settings else R.string.notify_body,
+                    ),
+                    style = A4LText.Body,
+                    color = A4L.TextBody,
+                )
+            },
+            confirmButton = {
+                Text(
+                    stringResource(
+                        if (notifyDeadEnd) R.string.notify_settings else R.string.notify_allow,
+                    ),
+                    style = A4LText.Body.copy(fontWeight = FontWeight.SemiBold),
+                    color = A4L.Mint,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            notifyAsked = true
+                            if (notifyDeadEnd) {
+                                notifySettings.launch(notificationSettingsIntent(context))
+                            } else {
+                                notifyLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+            },
+            dismissButton = {
+                Text(
+                    stringResource(R.string.notify_later),
+                    style = A4LText.Body,
+                    color = A4L.TextMuted,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { notifyAsked = true }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+            },
+        )
+    }
+
     UnreadBanner(
         visible = unreadBanner,
         count = unreadTotal,
@@ -1658,3 +1767,37 @@ private fun A4LNavBar(
         }
     }
 }
+
+/** La permission de prévenir est-elle accordée ? Toujours vraie avant Android 13. */
+private fun notificationsGranted(context: Context): Boolean =
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+
+/**
+ * Une nouvelle demande montrerait-elle encore un dialogue ?
+ *
+ * ⚠ À n'appeler qu'**après** un refus revenu du lanceur : avant toute demande la
+ * réponse est fausse sans qu'aucune impasse n'existe. Même piège, et même parade,
+ * que la localisation dans [one.astroport.atom4love.ui.screens.RadioSection].
+ */
+private fun Context.canStillAskForNotifications(): Boolean {
+    var current: Context = this
+    while (current is ContextWrapper) {
+        if (current is Activity) {
+            return ActivityCompat.shouldShowRequestPermissionRationale(
+                current,
+                Manifest.permission.POST_NOTIFICATIONS,
+            )
+        }
+        current = current.baseContext
+    }
+    return true
+}
+
+/** La page des notifications de l'application, dans les réglages du système. */
+private fun notificationSettingsIntent(context: Context): Intent =
+    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)

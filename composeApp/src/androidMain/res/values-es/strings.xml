@@ -649,4 +649,10 @@
     <string name="chat_channel_name">Mensajes</string>
     <string name="chat_channel_description">Cuando un mensaje le espera en una conversación. Ni quién escribe ni lo que escribe: la barra de estado se lee por encima del hombro.</string>
     <string name="chat_notification_title">Atom4Love</string>
+    <string name="notify_allow">Permitir</string>
+    <string name="notify_settings">Ajustes</string>
+    <string name="notify_title">¿Le avisamos?</string>
+    <string name="notify_body">Cuando alguien le escriba y la aplicación esté cerrada, una notificación se lo dirá. Solo dirá eso: ni quién escribe ni lo que escribe.</string>
+    <string name="notify_body_settings">Las notificaciones están desactivadas para Atom4Love. Se reactivan en los ajustes del teléfono.</string>
+    <string name="notify_later">Más tarde</string>
 </resources>
