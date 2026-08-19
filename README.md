@@ -432,9 +432,9 @@ réalisables sans connaître l'ensemble du système.
      caractérisation de la portée RSSI, tests unitaires sur l'encodeur H3, relecture des
      traductions es/en, accessibilité du Plateau. -->
 
-     https://opencollective.com/atom4love/tiers/mode-lover/badge.svg?label=En%20mode%20%22FRIEND%22&color=brightgreen
-     https://opencollective.com/atom4love/tiers/atom4love-extension-zen/badge.svg?label=En%20mode%20%22LOVER%22&color=brightgreen
-     https://opencollective.com/atom4love/tiers/en-mode-super-lover/badge.svg?label=En%20mode%20%22SUPER%20LOVER%22&color=brightgreen
+     <img alt="open collective badge" src="https://opencollective.com/atom4love/tiers/mode-lover/badge.svg?label=En%20mode%20%22FRIEND%22&color=brightgreen" />
+     <img alt="open collective badge" src="https://opencollective.com/atom4love/tiers/atom4love-extension-zen/badge.svg?label=En%20mode%20%22LOVER%22&color=brightgreen" />
+     <img alt="open collective badge" src="https://opencollective.com/atom4love/tiers/en-mode-super-lover/badge.svg?label=En%20mode%20%22SUPER%20LOVER%22&color=brightgreen" />
 
 **Discussion.** Salons dédiés sur WhatsApp et Telegram…
 
