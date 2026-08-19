@@ -172,7 +172,6 @@
     <!-- ─── Le monde, fermé tant que la station n'a pas rendu la clé ──── -->
     <string name="world_locked_title">Le monde attend votre clé</string>
     <string name="world_locked_body">La constellation est faite des certificats que scelle une station Astroport. Tant que la vôtre n\'est pas activée, vous restez ici : le Plateau, les conversations, ce qui est à portée d\'antenne. Rien n\'est lu sur le relais public.</string>
-    <string name="world_locked_open">Ouvrir un MULTIPASS</string>
 
     <!-- ─── 03 · Constellation : la carte des clés LOVE activées ──────── -->
     <string name="map_title">Constellation</string>
@@ -745,4 +744,5 @@
     <string name="trial_over_kept">Rien n\'est perdu. Votre noyau reste scellé, votre nom et votre clé sont là : ouvrir votre MULTIPASS sur le relais reprend exactement ici.</string>
     <string name="trial_over_open">Ouvrir mon MULTIPASS</string>
     <string name="map_open_chat">Ouvrir une conversation</string>
+    <string name="presence_banner_close">Fermer</string>
 </resources>

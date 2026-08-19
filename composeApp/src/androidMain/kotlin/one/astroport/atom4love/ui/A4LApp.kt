@@ -736,8 +736,17 @@ private fun Station(
         // réclamer — quelqu'un est peut-être au milieu d'une phrase.
         vibrator?.vibrate(VibrationEffect.createOneShot(35L, 160))
         presenceBanner = true
-        delay(PRESENCE_BANNER_MS)
-        presenceBanner = false
+    }
+    // ⚠ **Plus de minuterie : le bandeau reste jusqu'à ce qu'on le referme.**
+    // Il durait six secondes, « de quoi le lire deux fois ». C'était vrai pour
+    // qui regardait l'écran, et faux pour tous les autres : une nouvelle qui
+    // s'efface toute seule pendant qu'on parle à quelqu'un n'a pas été donnée.
+    //
+    // La seule chose qui le retire sans geste est **qu'il devienne faux** :
+    // plus personne à portée, plus rien à annoncer. Ça n'est pas une minuterie
+    // déguisée — c'est la salle qui s'est vidée.
+    LaunchedEffect(cardsInRange) {
+        if (cardsInRange == 0) presenceBanner = false
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -980,9 +989,7 @@ private fun Station(
                                         },
                                     )
                                 } else {
-                                    WorldLocked(
-                                        onOpenMultipass = { overlay = Overlay.Multipass },
-                                    )
+                                    WorldLocked()
                                 }
                             A4LTab.Nucleus -> IncarnationScreen(
                                 birth = birth,
@@ -995,7 +1002,23 @@ private fun Station(
                                 onPseudoChange = ::updatePseudo,
                                 npub = keys?.npub,
                                 relay = relayStatus,
-                                onMultipass = { overlay = Overlay.Multipass },
+                                // ⚠ **La porte du compte n'existe que lorsqu'elle
+                                // a été méritée.** Elle était en bas du Noyau en
+                                // permanence : il suffisait d'y descendre, le
+                                // premier jour, pour se voir demander une adresse
+                                // e-mail avant d'avoir croisé personne. Elle
+                                // paraît maintenant dans trois cas seulement —
+                                // la proposition est due (le GPS dit que la
+                                // première expérience a eu lieu), elle a été
+                                // refusée et le mur est posé, ou le compte existe
+                                // déjà et la ligne dit qu'il est actif. C'est la
+                                // même règle que le cadenas du Monde : on ne
+                                // court-circuite pas la fin du jeu.
+                                onMultipass = if (trialDue || account != null) {
+                                    { overlay = Overlay.Multipass }
+                                } else {
+                                    null
+                                },
                                 multipassActive = account?.loveActivated == true,
                                 // ⚠ Le bouton vers le Plateau a vécu ici tant que
                                 // le Plateau n'avait pas de place à lui. Il en a
@@ -1069,9 +1092,14 @@ private fun Station(
         }
     }
 
-    // La bannière se pose **par-dessus** tout, ligne d'en-tête comprise : elle
-    // dure quelques secondes et doit se voir, y compris quand la cabine occupe
-    // l'écran entier. Elle n'attrape pas les gestes qui ne la visent pas.
+    // ⚠ **En BAS, pas en haut.** Elle se posait sous l'encoche, à l'autre bout
+    // de l'écran des deux pouces — il fallait remonter la main pour la refermer
+    // ou l'ouvrir, sur un téléphone qu'on tient d'une main dans un bar. En bas,
+    // au-dessus de la barre de menus, elle tombe là où le pouce est déjà.
+    //
+    // Elle reste **par-dessus tout** : elle doit se voir y compris quand une
+    // conversation occupe l'écran entier, barre comprise. Elle n'attrape pas les
+    // gestes qui ne la visent pas.
     PresenceBanner(
         visible = presenceBanner,
         count = cardsInRange,
@@ -1082,13 +1110,19 @@ private fun Station(
             tab = A4LTab.Board
         },
         onDismiss = { presenceBanner = false },
-        modifier = Modifier.align(Alignment.TopCenter),
+        modifier = Modifier.align(Alignment.BottomCenter),
     )
     }
 }
 
-/** Le temps que la bannière reste : de quoi la lire deux fois, pas de quoi gêner. */
-private const val PRESENCE_BANNER_MS = 6_000L
+/**
+ * De quoi laisser passer la barre de menus sous la bannière.
+ *
+ * Ses 64 dp, plus une respiration. Quand la barre n'est pas là — dans une
+ * conversation, dans le journal —, la bannière flotte simplement un peu plus
+ * haut : mieux vaut ça qu'un calcul qui dépendrait de l'écran affiché derrière.
+ */
+private val PRESENCE_BANNER_LIFT = 76.dp
 
 /**
  * « Une carte se montre » — la seule chose que l'application s'autorise à dire
@@ -1110,22 +1144,27 @@ private fun PresenceBanner(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Lu dans la composition et non dans le rappel : une ressource lue depuis un
+    // lambda ne serait pas réévaluée si la langue change sous l'application.
+    val closeLabel = stringResource(R.string.presence_banner_close)
     AnimatedVisibility(
         visible = visible,
-        enter = slideInVertically { -it } + fadeIn(),
-        exit = slideOutVertically { -it } + fadeOut(),
+        // Elle vient du bas maintenant, et y repart : une bannière qui entre par
+        // le haut alors qu'elle s'affiche en bas se lit comme une chute.
+        enter = slideInVertically { it } + fadeIn(),
+        exit = slideOutVertically { it } + fadeOut(),
         modifier = modifier,
     ) {
         Row(
             Modifier
-                .statusBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .navigationBarsPadding()
+                .padding(start = 12.dp, end = 12.dp, bottom = PRESENCE_BANNER_LIFT)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
                 .background(A4L.Violet.tint(0.22f))
                 .border(1.dp, A4L.Violet.tint(0.45f), RoundedCornerShape(14.dp))
                 .clickable(onClick = onOpen)
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(start = 14.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("🎴", fontSize = 17.sp)
@@ -1142,15 +1181,24 @@ private fun PresenceBanner(
                 style = A4LText.Body.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.Violet,
             )
-            Spacer(Modifier.width(10.dp))
-            Text(
-                "✕",
-                fontSize = 13.sp,
-                color = A4L.TextMuted,
-                modifier = Modifier
+            Spacer(Modifier.width(6.dp))
+            // ⚠ **Une vraie cible, pas une ponctuation.** La croix faisait 13 sp
+            // dans 4 dp de marge : un glyphe posé au bout d'une phrase, qu'on
+            // touchait de travers et qui ouvrait le Plateau au lieu de fermer.
+            // Maintenant qu'aucune minuterie ne referme la bannière à sa place,
+            // c'est le SEUL geste qui la retire — il lui faut la taille d'un
+            // bouton, et son propre fond pour se détacher du lavis violet.
+            Box(
+                Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(A4L.Violet.tint(0.30f))
                     .clickable(onClick = onDismiss)
-                    .padding(4.dp),
-            )
+                    .semantics { contentDescription = closeLabel },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("✕", fontSize = 14.sp, color = A4L.TextHigh)
+            }
         }
     }
 }

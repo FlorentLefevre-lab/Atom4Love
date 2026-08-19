@@ -126,7 +126,6 @@
     <!-- ─── The world, closed until the station hands the key over ────── -->
     <string name="world_locked_title">The world is waiting for your key</string>
     <string name="world_locked_body">The constellation is made of certificates sealed by an Astroport station. Until yours is activated you stay here: the Board, the conversations, whatever is within antenna range. Nothing is read from the public relay.</string>
-    <string name="world_locked_open">Open a MULTIPASS</string>
 
     <!-- ─── 03 · Constellation: the map of activated LOVE keys ────────── -->
     <string name="map_title">Constellation</string>
@@ -637,4 +636,5 @@
     <string name="trial_over_kept">Nothing is lost. Your nucleus stays sealed, your name and your key are here: opening your MULTIPASS on the relay picks up exactly where you are.</string>
     <string name="trial_over_open">Open my MULTIPASS</string>
     <string name="map_open_chat">Open a conversation</string>
+    <string name="presence_banner_close">Dismiss</string>
 </resources>

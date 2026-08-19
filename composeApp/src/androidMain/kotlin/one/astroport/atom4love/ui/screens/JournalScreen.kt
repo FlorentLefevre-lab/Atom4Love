@@ -64,10 +64,18 @@ import java.util.Date
 @Composable
 fun JournalScreen(modifier: Modifier = Modifier) {
     val entries by Journal.entries.collectAsStateWithLifecycle()
-    // Le format court du système, dans la langue et la convention du téléphone :
-    // 14:32 ici, 2:32 PM ailleurs. Retenu hors de la boucle — le construire par
-    // ligne coûterait un objet par événement à chaque défilement.
-    val clock = remember { DateFormat.getTimeInstance(DateFormat.SHORT) }
+    // ⚠ **Le format MOYEN, pas le court : il porte les secondes.**
+    //
+    // Le court donnait 19:09, et deux lignes de la même minute devenaient
+    // indiscernables — or c'est précisément ce que ce journal montre. Un
+    // balayage BLE fait paraître trois cartes en deux secondes ; sans les
+    // secondes, l'ordre des lignes était la seule chose qui disait laquelle est
+    // arrivée d'abord, et un ordre ne se lit pas, il se déduit.
+    //
+    // Toujours celui du système : 19:09:23 ici, 7:09:23 PM ailleurs. Retenu hors
+    // de la boucle — le construire par ligne coûterait un objet par évènement à
+    // chaque défilement.
+    val clock = remember { DateFormat.getTimeInstance(DateFormat.MEDIUM) }
 
     Column(
         modifier
@@ -146,11 +154,21 @@ private fun JournalRow(entry: Journal.Entry, time: String) {
             .padding(vertical = 5.dp),
         verticalAlignment = Alignment.Top,
     ) {
+        // ⚠ **Pas de largeur imposée.** La colonne faisait 46 dp, taillée pour
+        // « 19:13 » ; avec les secondes, « 19:13:50 » passait à la ligne et
+        // chaque évènement occupait deux lignes. Une largeur en dur ne survit ni
+        // à un format qui s'allonge, ni à une langue qui écrit « 7:13:50 PM ».
+        //
+        // La police est à chasse fixe : toutes les heures d'une même langue font
+        // donc la même largeur, et la colonne s'aligne d'elle-même sans qu'on
+        // ait à la mesurer.
         Text(
             time,
             style = A4LText.Data.copy(fontSize = 11.sp),
             color = A4L.TextDim,
-            modifier = Modifier.width(46.dp),
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.padding(end = 12.dp),
         )
         Box(
             Modifier

@@ -336,9 +336,10 @@ fun RadioSection(
             // balise : elles nomment des noyaux attestés, un par personne, là où
             // la balise ne sait dire que « une radio est là ».
             RadioStat(
-                if (reachable > 0) reachable.toString() else "—",
-                stringResource(R.string.radar_stat_here_no_relay),
-                Modifier.weight(1f),
+                glyph = "👥",
+                value = if (reachable > 0) reachable.toString() else "—",
+                label = stringResource(R.string.radar_stat_here_no_relay),
+                modifier = Modifier.weight(1f),
                 accent = if (reachable > 0) A4L.Mint else null,
             )
             // Approximation en attendant la logique de portail D2 : les noyaux
@@ -347,18 +348,20 @@ fun RadioSection(
             // l'ancienne survit à son TTL faisait compter deux fois le même
             // appareil.
             RadioStat(
-                if (beaconRunning && ownCell4d != null) {
+                glyph = "🚪",
+                value = if (beaconRunning && ownCell4d != null) {
                     NeighborRegistry.countIn(neighbors, ownCell4d).toString()
                 } else {
                     "—"
                 },
-                stringResource(R.string.radar_stat_in_portal),
-                Modifier.weight(1f),
+                label = stringResource(R.string.radar_stat_in_portal),
+                modifier = Modifier.weight(1f),
             )
             RadioStat(
-                if (salonActive) pensees.size.toString() else "—",
-                stringResource(R.string.radar_stat_in_hexagon),
-                Modifier
+                glyph = "💭",
+                value = if (salonActive) pensees.size.toString() else "—",
+                label = stringResource(R.string.radar_stat_in_hexagon),
+                modifier = Modifier
                     .weight(1f)
                     .clickable { salonOpen = !salonOpen },
                 accent = if (salonOpen) A4L.Green else null,
@@ -398,9 +401,22 @@ fun RadioSection(
     }
 }
 
-/** Un compteur : un grand nombre, un libellé. */
+/**
+ * Un compteur : un pictogramme, un grand nombre, un libellé.
+ *
+ * ⚠ **Le pictogramme est dedans, en haut à gauche — pas à côté du nombre.**
+ * Posé sur la ligne du chiffre, il se serait lu comme une unité (« 3 🚪 ») ;
+ * au-dessus, il coiffe la bulle et dit de quelle fenêtre on parle avant même
+ * qu'on lise le libellé. Les trois se comparent alors d'un coup d'œil, du plus
+ * proche au plus lointain.
+ *
+ * Il ne prend **jamais l'accent** : la couleur dit si la fenêtre est vivante,
+ * le pictogramme dit laquelle. Deux informations dans un seul signe, et l'on ne
+ * saurait plus laquelle on lit.
+ */
 @Composable
 private fun RadioStat(
+    glyph: String,
     value: String,
     label: String,
     modifier: Modifier = Modifier,
@@ -416,6 +432,7 @@ private fun RadioStat(
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
+        Text(glyph, fontSize = 15.sp)
         Text(value, style = A4LText.Metric, color = accent ?: A4L.TextHigh.copy(alpha = 0.88f))
         Text(
             label,

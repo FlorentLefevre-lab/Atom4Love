@@ -42,9 +42,23 @@ import one.astroport.atom4love.ui.theme.A4LText
  * ⚠ Ce n'est pas une punition, et le texte doit continuer de le dire : la
  * constellation est faite de certificats qu'une station scelle, et la regarder
  * sans en avoir un revient à lire le registre d'un village où l'on n'habite pas.
+ *
+ * ## ⚠ Il n'y a PAS de bouton ici, et c'est la règle du jeu
+ *
+ * Cet écran portait « Ouvrir mon MULTIPASS ». Il tombait juste avant la refonte,
+ * quand la porte du compte était ouverte en permanence ; il ne tombe plus. Le
+ * MULTIPASS ne se propose **qu'une fois la première expérience vécue** — c'est
+ * le GPS qui le dit, quand on a quitté le lieu et qu'on revient
+ * ([one.astroport.atom4love.trial.Trial]). Un bouton posé là court-circuiterait
+ * exactement ça : on n'aurait qu'à toucher le cadenas, le premier jour, pour se
+ * voir demander une adresse e-mail avant d'avoir croisé qui que ce soit.
+ *
+ * La porte fermée doit donc rester **fermée et muette sur le moyen de l'ouvrir**.
+ * Ce qu'elle dit — ce qu'il y a derrière et pourquoi c'est fermé — suffit à
+ * donner envie ; c'est même tout ce qu'on lui demande.
  */
 @Composable
-fun WorldLocked(onOpenMultipass: (() -> Unit)?, modifier: Modifier = Modifier) {
+fun WorldLocked(modifier: Modifier = Modifier) {
     Column(
         modifier
             .fillMaxSize()
@@ -68,22 +82,5 @@ fun WorldLocked(onOpenMultipass: (() -> Unit)?, modifier: Modifier = Modifier) {
             color = A4L.TextBody,
             textAlign = TextAlign.Center,
         )
-        if (onOpenMultipass != null) {
-            Spacer(Modifier.height(22.dp))
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(46.dp)
-                    .glass(12.dp, A4L.Indigo.tint(0.10f), A4L.Indigo.tint(0.34f))
-                    .clickable(onClick = onOpenMultipass),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    stringResource(R.string.world_locked_open),
-                    style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
-                    color = A4L.Indigo,
-                )
-            }
-        }
     }
 }
