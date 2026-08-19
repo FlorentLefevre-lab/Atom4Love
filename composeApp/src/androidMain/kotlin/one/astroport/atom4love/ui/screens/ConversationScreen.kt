@@ -86,8 +86,6 @@ fun ConversationScreen(
 ) {
     val context = LocalContext.current
     val sounds = remember { ChatSounds() }
-    val exchanges by chat.exchanges.collectAsStateWithLifecycle()
-    val answerable by chat.answerable.collectAsStateWithLifecycle()
     val follows by (contacts?.state ?: remember { MutableStateFlow(emptyMap()) })
         .collectAsStateWithLifecycle()
     val savedLabel = stringResource(R.string.chat_saved_to_downloads)
@@ -266,16 +264,16 @@ fun ConversationScreen(
             )
         }
 
-        // ── Le jeu des questions, avec cette personne ─────────────────────
-        val history = exchanges[conversation.npub].orEmpty()
-        QuestionsPanel(
-            history = history.sortedBy { it.trait.ordinal },
-            offerable = Questions.offerable(answerable, history),
-            onAsk = { trait -> chat.ask(conversation.npub, trait) },
-            onAnswer = { trait -> chat.answer(conversation.npub, trait) },
-            onDecline = { trait -> chat.decline(conversation.npub, trait) },
-            modifier = Modifier.padding(horizontal = 20.dp),
-        )
+        // ⚠ **Le jeu des questions ne paraît plus ici.** Il y avait sa place
+        // logique — troisième coup du « Qui est-ce ? », le premier qui ait
+        // besoin d'un canal — et pourtant il encombrait : un pli refermé en
+        // travers du haut de chaque conversation, au-dessus des messages, alors
+        // qu'on vient là pour écrire. Retiré sur décision de Florent le 19/08.
+        //
+        // ⚠ **Rien n'est supprimé du code** : `Questions`, `QuestionsPanel`, et
+        // les trois coups du moteur (`ask` / `answer` / `decline`, trame 0x0B)
+        // sont intacts et testés. Ce qui manque est un écran d'où les jouer —
+        // c'est une place à retrouver, pas une fonction à réécrire.
 
         ChatPanel(
             messages = conversation.messages,
@@ -319,6 +317,12 @@ fun ConversationScreen(
  * Un seul geste, jamais automatique : la rencontre atteste le npub, elle ne
  * décide pas de le garder. Rien à scanner — la clé a été vérifiée par
  * [one.astroport.atom4love.noise.NoiseVouch] avant que ce bouton n'existe.
+ *
+ * ⚠ **Il a grossi, et c'est mérité.** À 10 sp dans quatre points de marge, il
+ * avait la taille d'une étiquette d'état posée à côté d'un nom — or c'est le
+ * seul geste de cet écran qui sorte du téléphone et qui **dure** : le fil
+ * s'efface, le carnet reste. Un geste irréversible ne se touche pas du coin de
+ * l'ongle.
  */
 @Composable
 private fun FollowChip(state: Contacts.State?, onClick: () -> Unit) {
@@ -333,15 +337,15 @@ private fun FollowChip(state: Contacts.State?, onClick: () -> Unit) {
     }
     Text(
         label,
-        style = A4LText.Data.copy(fontSize = 10.sp),
+        style = A4LText.Data.copy(fontSize = 13.sp),
         color = color,
         modifier = Modifier
             .background(
-                color.copy(alpha = 0.14f),
-                androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                color.copy(alpha = 0.16f),
+                androidx.compose.foundation.shape.RoundedCornerShape(11.dp),
             )
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 9.dp, vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 9.dp),
     )
 }
 

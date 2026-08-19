@@ -119,7 +119,7 @@ fun BoardScreen(
      * de paramètres aurait fait du Plateau le porteur d'un état qui ne le
      * regarde pas. Nul en aperçu, où le Plateau doit pouvoir s'afficher seul.
      */
-    radio: (@Composable () -> Unit)? = null,
+    radio: (@Composable (title: @Composable () -> Unit) -> Unit)? = null,
 ) {
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
     val own by ProximityService.signature.collectAsStateWithLifecycle()
@@ -210,30 +210,40 @@ fun BoardScreen(
     ) {
 
         // ── En-tête ───────────────────────────────────────────────────────
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🎴", fontSize = 13.sp)
-                Spacer(Modifier.width(7.dp))
-                Text(
-                    stringResource(R.string.board_title),
-                    style = A4LText.Title,
-                    color = A4L.TextHigh,
-                )
-            }
-            if (onClose != null) {
-                Box(
-                    Modifier
-                        .size(30.dp)
-                        .background(A4L.Glass, CircleShape)
-                        .clickable(onClick = onClose),
-                    contentAlignment = Alignment.Center,
-                ) { Text("✕", fontSize = 13.sp, color = A4L.TextStrong) }
+        //
+        // ⚠ **Le titre n'est plus en tête de l'écran : il est en tête du JEU.**
+        // La balise passe au-dessus de lui — sans elle il n'y a pas de voisin,
+        // donc pas de carte, donc pas de « Qui est-ce ? » du tout. La ligne qui
+        // dit « il manque le Bluetooth » se lit donc avant le nom de ce qu'elle
+        // empêche. Ce titre est confié à [RadioSection], qui le rend entre sa
+        // balise et ses compteurs : voir son KDoc pour la raison — le lanceur de
+        // permissions est unique et ne peut pas se couper en deux.
+        val title: @Composable () -> Unit = {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp, bottom = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🎴", fontSize = 13.sp)
+                    Spacer(Modifier.width(7.dp))
+                    Text(
+                        stringResource(R.string.board_title),
+                        style = A4LText.Title,
+                        color = A4L.TextHigh,
+                    )
+                }
+                if (onClose != null) {
+                    Box(
+                        Modifier
+                            .size(30.dp)
+                            .background(A4L.Glass, CircleShape)
+                            .clickable(onClick = onClose),
+                        contentAlignment = Alignment.Center,
+                    ) { Text("✕", fontSize = 13.sp, color = A4L.TextStrong) }
+                }
             }
         }
 
@@ -244,15 +254,10 @@ fun BoardScreen(
                 .padding(horizontal = 20.dp)
                 .then(if (onClose != null) Modifier.navigationBarsPadding() else Modifier),
         ) {
-            // ⚠ **Avant tout le reste, et ce n'est pas décoratif.** Sans
-            // balise il n'y a pas de voisin, donc pas de carte, donc rien de ce
-            // qui suit. La ligne qui dit « il manque le Bluetooth » se lit donc
-            // avant ce qu'elle empêche — c'était l'argument qui l'avait déjà
-            // fait remonter en tête de l'écran Radar, il vaut encore ici.
-            radio?.let {
-                Spacer(Modifier.height(12.dp))
-                it()
-            }
+            Spacer(Modifier.height(12.dp))
+            // En aperçu il n'y a pas de radio : le titre reprend alors sa place
+            // ordinaire, en haut, plutôt que de disparaître avec elle.
+            if (radio != null) radio(title) else title()
 
             // ── Notre carte ───────────────────────────────────────────────
             SectionLabel(

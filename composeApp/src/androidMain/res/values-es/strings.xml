@@ -27,7 +27,6 @@
     <string name="radar_beacon_needs_bluetooth">Baliza de proximidad — se requiere Bluetooth</string>
 
     <!-- ─── 💬 Los chats: una conversación por persona al alcance ─────── -->
-    <string name="chat_peers_here" tools:ignore="PluralsCandidate">%1$d aquí</string>
     <string name="chat_follow">Seguir</string>
     <string name="chat_follow_publishing">…</string>
     <string name="chat_following">Siguiendo ✓</string>
@@ -125,8 +124,8 @@
     <!-- ─── El Mapa: sus dos escalas ─────────────────────────────────── -->
 
     <!-- ─── El mundo, cerrado hasta que la estación entregue la clave ─── -->
-    <string name="world_locked_title">El mundo espera tu clave</string>
-    <string name="world_locked_body">La constelación está hecha de certificados que sella una estación Astroport. Mientras la tuya no esté activada, te quedas aquí: el Tablero, las conversaciones, lo que está al alcance de la antena. Nada se lee del relé público.</string>
+    <string name="world_locked_title">El mundo espera su clave</string>
+    <string name="world_locked_body">Todavía no tiene la clave que abre este espacio. La creación de una cuenta MULTIPASS en Astroport.ONE se le propondrá más adelante, tras el periodo de prueba.</string>
 
     <!-- ─── 03 · Constelación: el mapa de las claves LOVE activadas ───── -->
     <string name="map_title">Constelación</string>
@@ -187,8 +186,7 @@
 
     <!-- ─── El indicador de enlace, arriba del todo ───────────────────── -->
     <string name="header_radio_off">radio apagada</string>
-    <string name="header_radio_alone">radio encendida — nadie al alcance</string>
-    <string name="header_radio_linked">radio encendida — hay alguien</string>
+    <string name="header_radio_on">radio encendida</string>
 
 
     <!-- ─── 06 · MULTIPASS: la entrada a Astroport.ONE ────────────────── -->
@@ -601,7 +599,6 @@
 
     <!-- ─── 📡 El diario ──────────────────────────────────────────────── -->
     <string name="journal_title">Cuaderno de bitácora</string>
-    <string name="journal_intro">Lo que hace la radio, mientras lo hace. Aquí no se guarda nada.</string>
     <string name="journal_empty">La baliza acaba de encenderse. Lo que oiga se escribirá aquí.</string>
     <string name="journal_beacon_on">Baliza encendida: anuncia y escucha.</string>
     <string name="journal_beacon_off">Baliza apagada.</string>
@@ -642,4 +639,10 @@
     <string name="trial_over_open">Abrir mi MULTIPASS</string>
     <string name="map_open_chat">Abrir una conversación</string>
     <string name="presence_banner_close">Cerrar</string>
+    <string name="journal_close">Cerrar</string>
+    <string name="unread_banner_open">Abrir</string>
+    <plurals name="unread_banner">
+        <item quantity="one">Un mensaje le espera.</item>
+        <item quantity="other">%1$d mensajes le esperan.</item>
+    </plurals>
 </resources>

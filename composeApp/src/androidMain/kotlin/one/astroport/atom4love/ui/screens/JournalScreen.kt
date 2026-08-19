@@ -1,6 +1,7 @@
 package one.astroport.atom4love.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import one.astroport.atom4love.R
 import one.astroport.atom4love.domain.KinMaya
 import one.astroport.atom4love.journal.Journal
+import one.astroport.atom4love.ui.components.glass
 import one.astroport.atom4love.ui.components.dashedGlass
 import one.astroport.atom4love.ui.components.screenBackground
 import one.astroport.atom4love.ui.theme.A4L
@@ -62,8 +67,11 @@ import java.util.Date
  * chose, ce serait le signe qu'il en dit trop.
  */
 @Composable
-fun JournalScreen(modifier: Modifier = Modifier) {
+fun JournalScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
     val entries by Journal.entries.collectAsStateWithLifecycle()
+    // Lu dans la composition et non dans le rappel : une ressource lue depuis un
+    // lambda ne serait pas réévaluée si la langue change sous l'application.
+    val backLabel = stringResource(R.string.journal_close)
     // ⚠ **Le format MOYEN, pas le court : il porte les secondes.**
     //
     // Le court donnait 19:09, et deux lignes de la même minute devenaient
@@ -90,20 +98,51 @@ fun JournalScreen(modifier: Modifier = Modifier) {
                 .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("📡", fontSize = 13.sp)
-            Spacer(Modifier.width(7.dp))
-            Text(
-                stringResource(R.string.journal_title),
-                style = A4LText.Title,
-                color = A4L.TextHigh,
-            )
+            // ⚠ **Une porte de sortie visible.** Le journal se refermait par le
+            // seul geste système, ce qui suffit à qui le connaît et laisse les
+            // autres devant une page dont ils ne voient pas comment sortir. Le
+            // chevron est celui de la conversation, au même endroit et de la
+            // même taille : deux plein-écrans, un seul geste pour en revenir.
+            // ⚠ Le chevron est **hors du flux** (largeur nulle, dessiné
+            // par-dessus) pour que le titre tombe au milieu de l'ÉCRAN et non au
+            // milieu de la place qui reste. Sans ça, « Journal de bord » se
+            // décalait vers la droite de la moitié du chevron — ce qui se voit
+            // dès qu'on le compare aux autres titres de l'application.
+            Box(Modifier.width(0.dp), contentAlignment = Alignment.CenterStart) {
+                Text(
+                    "‹",
+                    style = A4LText.Title.copy(fontSize = 26.sp),
+                    color = A4L.TextStrong,
+                    modifier = Modifier
+                        .clickable(onClick = onClose)
+                        .semantics { contentDescription = backLabel }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+            Row(
+                Modifier.weight(1f),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // 🧾 : une bande imprimée, ligne après ligne — le signe le plus
+                // proche de ce qu'est un journal d'évènements. Le même que la
+                // rangée qui ouvre cet écran, sinon la porte et la pièce ne
+                // porteraient pas le même nom.
+                Text("🧾", fontSize = 13.sp)
+                Spacer(Modifier.width(7.dp))
+                Text(
+                    stringResource(R.string.journal_title),
+                    style = A4LText.Title,
+                    color = A4L.TextHigh,
+                )
+            }
         }
-        Text(
-            stringResource(R.string.journal_intro),
-            style = A4LText.Caption,
-            color = A4L.TextMuted,
-            modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
-        )
+        // ⚠ **La phrase d'introduction est partie.** « Ce que la radio fait,
+        // pendant qu'elle le fait. Rien ne s'y garde. » — c'était juste, et
+        // c'était une notice : elle expliquait au-dessus de lignes qui se
+        // suffisent, et poussait le premier évènement d'un cran vers le bas à
+        // chaque ouverture. Ce que le journal est se lit en le lisant.
+        Spacer(Modifier.height(8.dp))
 
         if (entries.isEmpty()) {
             Box(
@@ -125,14 +164,46 @@ fun JournalScreen(modifier: Modifier = Modifier) {
         }
 
         LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+            Modifier.weight(1f),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             items(entries, key = { it.seq }) { entry ->
                 JournalRow(entry = entry, time = clock.format(Date(entry.atMs)))
             }
         }
+        CloseRow(onClose)
+    }
+}
+
+/**
+ * **Fermer**, en toutes lettres et en bas de page.
+ *
+ * ⚠ Le chevron du haut ne suffisait pas. Il est juste — c'est le même geste que
+ * dans une conversation — mais il se lit comme une décoration tant qu'on ne l'a
+ * pas essayé, et il est à l'autre bout de l'écran du pouce qui vient de faire
+ * défiler une liste. Un mot, à l'endroit où la lecture s'arrête, ne demande rien
+ * à personne.
+ *
+ * Les deux coexistent sans se contredire : le chevron sert à qui revient tout de
+ * suite, le bouton à qui a lu jusqu'au bout.
+ */
+@Composable
+private fun CloseRow(onClose: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 20.dp, bottom = 14.dp)
+            .height(46.dp)
+            .glass(12.dp, A4L.GlassSoft, A4L.StrokeSoft)
+            .clickable(onClick = onClose),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            stringResource(R.string.journal_close),
+            style = A4LText.Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+            color = A4L.TextStrong,
+        )
     }
 }
 

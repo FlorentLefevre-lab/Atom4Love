@@ -57,7 +57,6 @@
     <!-- ─── 💬 Les chats : une conversation par personne à portée ─────── -->
     <!-- Pas un pluriel : « 1 ici » et « 2 ici » s'écrivent pareil dans les
          trois langues. -->
-    <string name="chat_peers_here" tools:ignore="PluralsCandidate">%1$d ici</string>
     <string name="chat_follow">Suivre</string>
     <string name="chat_follow_publishing">…</string>
     <string name="chat_following">Suivi ✓</string>
@@ -171,7 +170,7 @@
 
     <!-- ─── Le monde, fermé tant que la station n'a pas rendu la clé ──── -->
     <string name="world_locked_title">Le monde attend votre clé</string>
-    <string name="world_locked_body">La constellation est faite des certificats que scelle une station Astroport. Tant que la vôtre n\'est pas activée, vous restez ici : le Plateau, les conversations, ce qui est à portée d\'antenne. Rien n\'est lu sur le relais public.</string>
+    <string name="world_locked_body">Vous n\'avez pas encore la clé qui ouvre cet espace. La création d\'un compte MULTIPASS sur Astroport.ONE vous sera proposée plus tard, après la période d\'essai.</string>
 
     <!-- ─── 03 · Constellation : la carte des clés LOVE activées ──────── -->
     <string name="map_title">Constellation</string>
@@ -234,8 +233,7 @@
 
     <!-- ─── L'indicateur de liaison, tout en haut ─────────────────────── -->
     <string name="header_radio_off">radio éteinte</string>
-    <string name="header_radio_alone">radio allumée — personne à portée</string>
-    <string name="header_radio_linked">radio allumée — quelqu\'un est là</string>
+    <string name="header_radio_on">radio allumée</string>
 
     <!-- Le glyphe ☀/☾ ne se lit pas à voix haute : ces deux lignes disent le geste. -->
 
@@ -704,7 +702,6 @@
          normal : partir chercher quelqu'un et ouvrir une conversation ne s'y
          inscrivent jamais. Voir journal/Journal.kt. -->
     <string name="journal_title">Journal de bord</string>
-    <string name="journal_intro">Ce que la radio fait, pendant qu\'elle le fait. Rien ne s\'y garde.</string>
     <string name="journal_empty">La balise vient de s\'allumer. Ce qu\'elle entend s\'écrira ici.</string>
     <string name="journal_beacon_on">Balise allumée — elle annonce et elle écoute.</string>
     <string name="journal_beacon_off">Balise éteinte.</string>
@@ -745,4 +742,10 @@
     <string name="trial_over_open">Ouvrir mon MULTIPASS</string>
     <string name="map_open_chat">Ouvrir une conversation</string>
     <string name="presence_banner_close">Fermer</string>
+    <string name="journal_close">Fermer</string>
+    <string name="unread_banner_open">Ouvrir</string>
+    <plurals name="unread_banner">
+        <item quantity="one">Un message vous attend.</item>
+        <item quantity="other">%1$d messages vous attendent.</item>
+    </plurals>
 </resources>

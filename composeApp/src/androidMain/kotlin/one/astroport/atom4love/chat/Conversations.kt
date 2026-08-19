@@ -95,6 +95,18 @@ object Conversations {
          * En clés publiques hexadécimales, comme partout ailleurs ici.
          */
         pinned: Set<String> = emptySet(),
+        /**
+         * Les pseudos déjà entendus, par npub — **ce qu'on sait d'eux ne
+         * s'oublie pas quand ils sortent de portée.**
+         *
+         * ⚠ Sans cette mémoire, quelqu'un avec qui l'on parlait sous le nom de
+         * « Tablette » redevenait « sans pseudo » à la seconde où il franchissait
+         * une porte : le nom vit sur le lien, et le lien meurt avec la portée.
+         * Vu à l'écran le 19/08. Le pseudo n'est pourtant pas une propriété de
+         * la radio, c'est une propriété de la personne — le perdre parce que la
+         * radio l'a perdue confond les deux.
+         */
+        remembered: Map<String, String> = emptyMap(),
     ): List<Conversation> {
         val byPeer = messages.filter { it.peer != null }.groupBy { it.peer!! }
         val present = peers.associateBy { Hex.encode(it.nostrKey) }
@@ -110,8 +122,11 @@ object Conversations {
         // c'est exactement cet endroit-là.
         val labels = Pseudo.labels(
             keys.associate { hex ->
-                npubs.getValue(hex) to
-                    (present[hex]?.display ?: byPeer[hex]?.lastOrNull { it.fromAttested }?.from)
+                npubs.getValue(hex) to (
+                    present[hex]?.display
+                        ?: byPeer[hex]?.lastOrNull { it.fromAttested }?.from
+                        ?: remembered[npubs.getValue(hex)]
+                    )
             },
         )
         return keys

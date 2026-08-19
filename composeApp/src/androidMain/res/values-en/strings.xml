@@ -26,7 +26,6 @@
     <string name="radar_beacon_needs_bluetooth">Proximity beacon — Bluetooth required</string>
 
     <!-- ─── 💬 Chats: one conversation per person in range ─────────────── -->
-    <string name="chat_peers_here" tools:ignore="PluralsCandidate">%1$d here</string>
     <string name="chat_follow">Follow</string>
     <string name="chat_follow_publishing">…</string>
     <string name="chat_following">Following ✓</string>
@@ -125,7 +124,7 @@
 
     <!-- ─── The world, closed until the station hands the key over ────── -->
     <string name="world_locked_title">The world is waiting for your key</string>
-    <string name="world_locked_body">The constellation is made of certificates sealed by an Astroport station. Until yours is activated you stay here: the Board, the conversations, whatever is within antenna range. Nothing is read from the public relay.</string>
+    <string name="world_locked_body">You do not yet have the key that opens this space. Creating a MULTIPASS account on Astroport.ONE will be offered later, once the trial period is over.</string>
 
     <!-- ─── 03 · Constellation: the map of activated LOVE keys ────────── -->
     <string name="map_title">Constellation</string>
@@ -184,8 +183,7 @@
 
     <!-- ─── The link indicator, at the very top ───────────────────────── -->
     <string name="header_radio_off">radio off</string>
-    <string name="header_radio_alone">radio on — nobody in range</string>
-    <string name="header_radio_linked">radio on — someone is here</string>
+    <string name="header_radio_on">radio on</string>
 
 
     <!-- ─── 06 · MULTIPASS: the door onto Astroport.ONE ───────────────── -->
@@ -596,7 +594,6 @@
 
     <!-- ─── 📡 The journal ────────────────────────────────────────────── -->
     <string name="journal_title">Logbook</string>
-    <string name="journal_intro">What the radio does, as it does it. Nothing is kept here.</string>
     <string name="journal_empty">The beacon has just come on. What it hears will be written here.</string>
     <string name="journal_beacon_on">Beacon on — advertising and listening.</string>
     <string name="journal_beacon_off">Beacon off.</string>
@@ -637,4 +634,10 @@
     <string name="trial_over_open">Open my MULTIPASS</string>
     <string name="map_open_chat">Open a conversation</string>
     <string name="presence_banner_close">Dismiss</string>
+    <string name="journal_close">Close</string>
+    <string name="unread_banner_open">Open</string>
+    <plurals name="unread_banner">
+        <item quantity="one">A message is waiting for you.</item>
+        <item quantity="other">%1$d messages are waiting for you.</item>
+    </plurals>
 </resources>

@@ -602,8 +602,33 @@ private fun Station(
      * kind 3 signé sur le relais et qu'on décide ligne par ligne.
      */
     var pinnedPeers by rememberSaveable { mutableStateOf(emptySet<String>()) }
-    val conversations = remember(cabinPeers, cabinMessages, pinnedPeers) {
-        Conversations.of(cabinPeers, cabinMessages, pinnedPeers)
+
+    /**
+     * Les pseudos déjà entendus — voir [Conversations.of].
+     *
+     * ⚠ Il ne se vide jamais de lui-même : un nom appris reste su tant que la
+     * station vit. C'est peu de mémoire (un mot par personne croisée) et ça
+     * évite le contresens d'oublier quelqu'un parce qu'il a franchi une porte.
+     */
+    var knownNames by remember { mutableStateOf(emptyMap<String, String>()) }
+    LaunchedEffect(cabinPeers) {
+        val fresh = cabinPeers.mapNotNull { peer -> peer.display?.let { peer.npub to it } }
+        if (fresh.isNotEmpty()) knownNames = knownNames + fresh
+    }
+
+    val conversations = remember(cabinPeers, cabinMessages, pinnedPeers, openPeer, knownNames) {
+        Conversations.of(
+            peers = cabinPeers,
+            messages = cabinMessages,
+            // ⚠ **Le fil qu'on est en train de LIRE est épinglé tant qu'il est
+            // ouvert.** Sans ça, un pair qui s'éloigne pendant qu'on regarde sa
+            // conversation vide la faisait disparaître de la liste — donc
+            // l'écran se refermait tout seul, sans un mot, et le geste de retour
+            // suivant sortait de l'application. Vu à l'écran le 19/08. Une porte
+            // franchie par quelqu'un d'autre ne referme pas l'écran qu'on lit.
+            pinned = pinnedPeers + setOfNotNull(openPeer),
+            remembered = knownNames,
+        )
     }
     // ⚠ On retrouve le fil par sa CLÉ à chaque recomposition, on ne le garde
     // pas. Un `Conversation` est un instantané : le retenir figerait la conversation
@@ -749,6 +774,42 @@ private fun Station(
         if (cardsInRange == 0) presenceBanner = false
     }
 
+    // ── Ce qui attend d'être lu ───────────────────────────────────────────
+    //
+    // ⚠ **Une date de lecture par personne, en mémoire, et rien de plus.**
+    // Marquer chaque message « lu » demanderait de retoucher la liste du moteur
+    // à chaque coup d'œil ; retenir *quand* on a regardé un fil suffit, et se
+    // range en un nombre par correspondant. Ça vit le temps de la station, comme
+    // les conversations elles-mêmes : ce qui ne se garde pas n'a pas de non-lus
+    // à garder non plus.
+    var readAt by remember { mutableStateOf(emptyMap<String, Long>()) }
+    // Le fil ouvert se lit en continu — y compris ce qui arrive pendant qu'on
+    // le regarde. La clé `cabinMessages` n'est pas décorative : sans elle, un
+    // message reçu la conversation ouverte resterait compté comme en attente.
+    LaunchedEffect(openPeer, cabinMessages) {
+        openPeer?.let { readAt = readAt + (it to System.currentTimeMillis()) }
+    }
+    val unreadTotal = remember(conversations, readAt) {
+        conversations.sumOf { conversation ->
+            val since = readAt[conversation.peerHex] ?: 0L
+            conversation.messages.count { !it.mine && it.atMs > since }
+        }
+    }
+    // L'invitation ne se lève qu'au PASSAGE de zéro à un : elle dit « il y a
+    // quelque chose », pas « il y en a un de plus ». Un bandeau qui se relève à
+    // chaque message ferait de la conversation un harcèlement.
+    var unreadBanner by remember { mutableStateOf(false) }
+    var unreadBefore by remember { mutableIntStateOf(0) }
+    LaunchedEffect(unreadTotal) {
+        if (unreadTotal > 0 && unreadBefore == 0 && tab != A4LTab.Chats) {
+            vibrator?.vibrate(VibrationEffect.createOneShot(35L, 160))
+            unreadBanner = true
+        }
+        if (unreadTotal == 0) unreadBanner = false
+        unreadBefore = unreadTotal
+    }
+
+
     Box(Modifier.fillMaxSize()) {
 
     Crossfade(
@@ -845,7 +906,10 @@ private fun Station(
                     },
                 )
                 BackHandler { journalShown = false }
-                JournalScreen(modifier = Modifier.weight(1f))
+                JournalScreen(
+                    onClose = { journalShown = false },
+                    modifier = Modifier.weight(1f),
+                )
             }
         } else if (overlay != Overlay.None) {
             // Plein écran, comme l'aide avant la forge : ce qui s'ouvre ici est
@@ -959,12 +1023,13 @@ private fun Station(
                             A4LTab.Board -> BoardScreen(
                                 npub = keys?.npubShort,
                                 birth = birth,
-                                radio = {
+                                radio = { title ->
                                     RadioSection(
                                         relay = relayStatus,
                                         salon = salon,
                                         reachable = conversations.count { it.inRange },
                                         onOpenJournal = { journalShown = true },
+                                        title = title,
                                     )
                                 },
                             )
@@ -1087,6 +1152,7 @@ private fun Station(
                     // lit « en panne », un cadenas se lit « pas encore ». C'est
                     // le mot exact qui décidait déjà de l'ancien segment.
                     locked = { it == A4LTab.World && !worldUnlocked },
+                    badge = { if (it == A4LTab.Chats) unreadTotal else 0 },
                 )
             }
         }
@@ -1100,8 +1166,25 @@ private fun Station(
     // Elle reste **par-dessus tout** : elle doit se voir y compris quand une
     // conversation occupe l'écran entier, barre comprise. Elle n'attrape pas les
     // gestes qui ne la visent pas.
+    // ⚠ **Deux bandeaux, un seul à la fois, et le message passe devant.**
+    // Une carte qui se montre est une occasion ; un message qui attend est
+    // quelqu'un qui a parlé. Les empiler ferait deux rangées au-dessus de la
+    // barre ; les laisser se disputer la place ferait clignoter l'écran. Le
+    // message gagne, et la présence attend qu'il soit lu ou refermé.
+    UnreadBanner(
+        visible = unreadBanner,
+        count = unreadTotal,
+        onOpen = {
+            unreadBanner = false
+            openPeer = null
+            journalShown = false
+            tab = A4LTab.Chats
+        },
+        onDismiss = { unreadBanner = false },
+        modifier = Modifier.align(Alignment.BottomCenter),
+    )
     PresenceBanner(
-        visible = presenceBanner,
+        visible = presenceBanner && !unreadBanner,
         count = cardsInRange,
         onOpen = {
             presenceBanner = false
@@ -1136,6 +1219,77 @@ private val PRESENCE_BANNER_LIFT = 76.dp
  * Elle s'efface d'elle-même : rien à balayer, rien à refuser. Quelqu'un au
  * milieu d'une phrase ne doit pas avoir à s'occuper d'elle.
  */
+/**
+ * 💬 « Un message vous attend » — la seule chose que l'application dise à
+ * quelqu'un qui regarde ailleurs, en dehors d'une carte qui se montre.
+ *
+ * ⚠ **Elle annonce une attente, jamais un contenu.** Ni le nom de qui a écrit,
+ * ni le début du message : ce bandeau se pose par-dessus tout, y compris sur un
+ * téléphone posé sur une table, et rien de ce qui s'est dit en privé n'a à s'y
+ * lire. Le compte suffit à faire lever les yeux — c'est tout ce qu'on lui
+ * demande.
+ *
+ * Elle ne se lève qu'au **passage de zéro à un** et ne se referme que d'un
+ * geste, ou quand il n'y a plus rien à lire. Même règle que la présence : une
+ * nouvelle qui s'efface toute seule n'a pas été donnée.
+ */
+@Composable
+private fun UnreadBanner(
+    visible: Boolean,
+    count: Int,
+    onOpen: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val closeLabel = stringResource(R.string.presence_banner_close)
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically { it } + fadeIn(),
+        exit = slideOutVertically { it } + fadeOut(),
+        modifier = modifier,
+    ) {
+        Row(
+            Modifier
+                .navigationBarsPadding()
+                .padding(start = 12.dp, end = 12.dp, bottom = PRESENCE_BANNER_LIFT)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(A4L.Mint.tint(0.22f))
+                .border(1.dp, A4L.Mint.tint(0.45f), RoundedCornerShape(14.dp))
+                .clickable(onClick = onOpen)
+                .padding(start = 14.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("💬", fontSize = 17.sp)
+            Spacer(Modifier.width(11.dp))
+            Text(
+                pluralStringResource(R.plurals.unread_banner, count.coerceAtLeast(1), count),
+                style = A4LText.Body.copy(fontSize = 13.sp),
+                color = A4L.TextHigh,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                stringResource(R.string.unread_banner_open),
+                style = A4LText.Body.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                color = A4L.Mint,
+            )
+            Spacer(Modifier.width(6.dp))
+            Box(
+                Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(A4L.Mint.tint(0.30f))
+                    .clickable(onClick = onDismiss)
+                    .semantics { contentDescription = closeLabel },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("✕", fontSize = 14.sp, color = A4L.TextHigh)
+            }
+        }
+    }
+}
+
 @Composable
 private fun PresenceBanner(
     visible: Boolean,
@@ -1264,28 +1418,20 @@ private fun RadioLine(
             },
         )
         Spacer(Modifier.width(8.dp))
+        // ⚠ **Deux états, et rien de plus : allumée, éteinte.**
+        //
+        // Cette ligne a porté successivement le médium en service, « personne à
+        // portée », « quelqu'un est là » et le compte des pairs. Chacun était
+        // exact, et l'ensemble disait sur TOUS les écrans ce qui a désormais sa
+        // place ailleurs : qui est là se lit au compteur 📍 du Plateau, ce qui
+        // attend se lit à la pastille des Chats. Une ligne présente partout doit
+        // dire ce qu'aucun écran ne dit — l'état de la machine — et se taire sur
+        // le reste, sinon elle double tout sans rien ajouter.
         Text(
-            when {
-                !open -> stringResource(R.string.header_radio_off)
-                // le médium ne se lit qu'une fois quelqu'un joint : dire « BT »
-                // dans le vide ferait passer une antenne allumée pour un lien
-                medium == null -> stringResource(R.string.header_radio_alone)
-                // Quelqu'un est joint. Le nom de la voie ne se dit plus : il
-                // n'y en a qu'une, et l'écrire reviendrait à répéter « BT » sur
-                // tous les écrans de l'application sans jamais rien apprendre.
-                else -> stringResource(R.string.header_radio_linked)
-            },
+            stringResource(if (open) R.string.header_radio_on else R.string.header_radio_off),
             style = A4LText.Data.copy(fontSize = 10.sp),
             color = if (open && medium != null) A4L.Mint else A4L.TextMuted,
         )
-        if (open && peers.isNotEmpty()) {
-            Spacer(Modifier.width(10.dp))
-            Text(
-                stringResource(R.string.chat_peers_here, peers.size),
-                style = A4LText.Data.copy(fontSize = 10.sp),
-                color = A4L.TextDim,
-            )
-        }
         Spacer(Modifier.weight(1f))
         if (cardsInRange > 0 && onOpenBoard != null) {
             Row(
@@ -1381,6 +1527,16 @@ private fun A4LNavBar(
      * un mot.
      */
     locked: (A4LTab) -> Boolean = { false },
+    /**
+     * Ce qui attend d'être lu sur cet onglet. Zéro : rien ne se dessine.
+     *
+     * ⚠ **En haut à GAUCHE du pictogramme**, et non à droite comme le veut
+     * l'habitude des systèmes. La barre porte quatre entrées de largeur égale ;
+     * une pastille à droite du 💬 tomberait dans la gouttière qui le sépare du
+     * 🌍 et se lirait comme appartenant aux deux. À gauche elle est adossée au
+     * signe qu'elle qualifie, et rien d'autre n'occupe ce coin.
+     */
+    badge: (A4LTab) -> Int = { 0 },
 ) {
     // le filet du haut se dessine hors composition : sa couleur se prend ici
     val hairline = A4L.StrokeFaint
@@ -1399,38 +1555,70 @@ private fun A4LNavBar(
         A4LTab.entries.forEach { entry ->
             val selected = entry == current
             val lit = awake(entry)
+            // ⚠ **Le voile ne couvre plus la pastille.** Il était posé sur la
+            // colonne entière : un onglet non choisi passe à 40 %, et le compteur
+            // de messages en attente s'effaçait avec lui — or c'est précisément
+            // sur un onglet où l'on n'est PAS qu'il doit se voir. Le voile
+            // s'applique donc au pictogramme et au mot, un par un ; la pastille
+            // garde son rouge plein.
+            val veil = when {
+                // Là où l'on est, on est : un onglet endormi qu'on a choisi
+                // reste pleinement lisible.
+                selected -> 1f
+                !lit -> 0.16f
+                else -> 0.4f
+            }
             Column(
                 Modifier
                     .weight(1f)
                     .height(64.dp)
                     .clickable { onSelect(entry) }
-                    .alpha(
-                        when {
-                            // Là où l'on est, on est : un onglet endormi qu'on
-                            // a choisi reste pleinement lisible.
-                            selected -> 1f
-                            !lit -> 0.16f
-                            else -> 0.4f
-                        },
-                    )
                     .padding(4.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    if (locked(entry)) "🔒" else entry.icon,
-                    fontSize = 16.sp,
-                    // ⚛ est un glyphe monochrome : sans teinte explicite il se
-                    // perdrait, là où 🎴 💬 🌍 portent leurs propres couleurs.
-                    color = if (selected) entry.accent else A4L.TextStrong,
-                )
+                Box(contentAlignment = Alignment.TopStart) {
+                    Text(
+                        if (locked(entry)) "🔒" else entry.icon,
+                        fontSize = 16.sp,
+                        // ⚛ est un glyphe monochrome : sans teinte explicite il
+                        // se perdrait, là où 🎴 💬 🌍 portent leurs propres
+                        // couleurs.
+                        color = if (selected) entry.accent else A4L.TextStrong,
+                        modifier = Modifier
+                            .alpha(veil)
+                            .padding(start = 9.dp, top = 5.dp),
+                    )
+                    val waiting = badge(entry)
+                    if (waiting > 0) {
+                        Box(
+                            Modifier
+                                .clip(CircleShape)
+                                .background(A4L.Red)
+                                .padding(horizontal = 5.dp, vertical = 1.dp),
+                        ) {
+                            Text(
+                                // Au-delà, le nombre exact n'apprend plus rien
+                                // et la pastille cesse d'être une pastille.
+                                if (waiting > 9) "9+" else waiting.toString(),
+                                style = A4LText.Data.copy(
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                ),
+                                color = A4L.Deep,
+                            )
+                        }
+                    }
+                }
                 Text(
                     stringResource(entry.labelRes),
                     style = A4LText.Tab.copy(
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     ),
                     color = if (selected) entry.accent else A4L.TextStrong,
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier
+                        .alpha(veil)
+                        .padding(top = 4.dp),
                 )
             }
         }

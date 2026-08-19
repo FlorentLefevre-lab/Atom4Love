@@ -158,13 +158,16 @@ private fun appSettingsIntent(context: Context): Intent =
  * ## L'ordre des trois blocs, et il n'est pas libre
  *
  * 1. **La balise**, parce qu'elle conditionne tout le reste ;
- * 2. **les compteurs**, qui disent l'étendue de ce qu'on touche — ici, le
+ * 2. **le journal**, la porte vers ce que la radio fait — juste sous l'état de
+ *    la machine, avec lequel il fait un bloc : *voilà où j'en suis, et voilà ce
+ *    que j'ai fait* ;
+ * 3. **le titre du jeu**, qui ouvre ce qui suit ;
+ * 4. **les compteurs**, qui disent l'étendue de ce qu'on touche — ici, le
  *    portail, l'hexagone, du plus proche au plus lointain, dans le sens de la
- *    lecture ;
- * 3. **le journal**, la porte vers ce que la radio fait.
+ *    lecture.
  *
  * Les cartes suivent, en dessous, dans le Plateau. On lit donc : est-ce que ça
- * marche, jusqu'où ça porte, et enfin qui est là.
+ * marche, ce que ça a fait, puis jusqu'où ça porte et qui est là.
  */
 @Composable
 fun RadioSection(
@@ -174,6 +177,22 @@ fun RadioSection(
     reachable: Int,
     onOpenJournal: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Le titre de l'écran, rendu **entre la balise et les compteurs**.
+     *
+     * ⚠ Ce n'est pas une coquetterie d'API : la balise doit passer au-dessus du
+     * titre, et pourtant elle ne peut pas quitter cette section. Le lanceur de
+     * permissions est **unique et partagé** entre la balise et la localisation —
+     * deux `rememberLauncherForActivityResult` du même contrat dans un même
+     * composable se sont disputé le résultat au banc, et le retour d'une demande
+     * de localisation a démarré la balise. Couper la section en deux
+     * recréerait exactement ce défaut.
+     *
+     * Le titre traverse donc la section au lieu que la section se coupe autour
+     * de lui. La balise se lit avant le nom de l'écran, ce qui est l'ordre juste
+     * : ce qui conditionne tout se lit avant ce qu'il conditionne.
+     */
+    title: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
     val beaconRunning by ProximityService.running.collectAsStateWithLifecycle()
@@ -288,6 +307,35 @@ fun RadioSection(
             }
         }
 
+        // ── Le journal ────────────────────────────────────────────────────
+        //
+        // ⚠ **C'est la rangée qui ouvrait la cabine**, à la même place et avec
+        // le même geste. Elle battait en orange tant que la cabine était fermée,
+        // parce qu'ouvrir était le seul appel de la page et qu'il ne se voyait
+        // pas. Elle ne bat plus : il n'y a plus rien à ouvrir pour parler — les
+        // conversations existent d'elles-mêmes, dans leur onglet. Ce qui reste
+        // ici est une fenêtre qu'on consulte, et une fenêtre n'appelle pas.
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .dashedGlass(12.dp, A4L.GlassFaint, A4L.Cyan.copy(alpha = 0.22f))
+                .clickable(onClick = onOpenJournal)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("🧾", fontSize = 12.sp)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                stringResource(R.string.radar_journal_row),
+                style = A4LText.Caption,
+                color = A4L.Cyan,
+                modifier = Modifier.weight(1f),
+            )
+            Text("›", fontSize = 15.sp, color = A4L.TextFaint)
+        }
+
+        title()
+
         // ── Sans position : dire pourquoi, et où le corriger ───────────────
         if (fix == null) {
             Text(
@@ -336,7 +384,7 @@ fun RadioSection(
             // balise : elles nomment des noyaux attestés, un par personne, là où
             // la balise ne sait dire que « une radio est là ».
             RadioStat(
-                glyph = "👥",
+                glyph = "📍",
                 value = if (reachable > 0) reachable.toString() else "—",
                 label = stringResource(R.string.radar_stat_here_no_relay),
                 modifier = Modifier.weight(1f),
@@ -348,7 +396,7 @@ fun RadioSection(
             // l'ancienne survit à son TTL faisait compter deux fois le même
             // appareil.
             RadioStat(
-                glyph = "🚪",
+                glyph = "⛩️",
                 value = if (beaconRunning && ownCell4d != null) {
                     NeighborRegistry.countIn(neighbors, ownCell4d).toString()
                 } else {
@@ -358,7 +406,7 @@ fun RadioSection(
                 modifier = Modifier.weight(1f),
             )
             RadioStat(
-                glyph = "💭",
+                glyph = "🕸️",
                 value = if (salonActive) pensees.size.toString() else "—",
                 label = stringResource(R.string.radar_stat_in_hexagon),
                 modifier = Modifier
@@ -372,32 +420,6 @@ fun RadioSection(
             SalonPanel(salon = salon, pensees = pensees, active = salonActive)
         }
 
-        // ── Le journal ────────────────────────────────────────────────────
-        //
-        // ⚠ **C'est la rangée qui ouvrait la cabine**, à la même place et avec
-        // le même geste. Elle battait en orange tant que la cabine était fermée,
-        // parce qu'ouvrir était le seul appel de la page et qu'il ne se voyait
-        // pas. Elle ne bat plus : il n'y a plus rien à ouvrir pour parler — les
-        // conversations existent d'elles-mêmes, dans leur onglet. Ce qui reste
-        // ici est une fenêtre qu'on consulte, et une fenêtre n'appelle pas.
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .dashedGlass(12.dp, A4L.GlassFaint, A4L.Cyan.copy(alpha = 0.22f))
-                .clickable(onClick = onOpenJournal)
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("📡", fontSize = 12.sp)
-            Spacer(Modifier.width(10.dp))
-            Text(
-                stringResource(R.string.radar_journal_row),
-                style = A4LText.Caption,
-                color = A4L.Cyan,
-                modifier = Modifier.weight(1f),
-            )
-            Text("›", fontSize = 15.sp, color = A4L.TextFaint)
-        }
     }
 }
 
@@ -413,6 +435,28 @@ fun RadioSection(
  * Il ne prend **jamais l'accent** : la couleur dit si la fenêtre est vivante,
  * le pictogramme dit laquelle. Deux informations dans un seul signe, et l'on ne
  * saurait plus laquelle on lit.
+ *
+ * ## Les trois signes, et pourquoi ceux-là
+ *
+ * ⚠ Le premier jeu — 👥 🚪 💭 — nommait des **choses** et pas des **portées** :
+ * des gens, une porte, des pensées. Or ces trois bulles ne comptent pas des
+ * natures différentes, elles comptent la même chose à trois distances. Le signe
+ * doit donc dire la distance.
+ *
+ *  - **📍 ici** — la punaise d'un point sur une carte : ce qui est à portée
+ *    d'antenne, sans rien entre nous ;
+ *  - **⛩️ le portail** — un seuil, une arche : ce que compte cette bulle est ce
+ *    qui annonce **la même adresse 4D** que nous, donc ce qui se tient du même
+ *    côté d'un passage. Ni une porte (🚪, un objet domestique, essayé et
+ *    écarté), ni un vortex (🌪️, essayé aussi : ça dit l'énergie, pas le
+ *    seuil) — une arche ne s'ouvre ni ne se ferme, elle marque un lieu ;
+ *  - **🕸️ l'hexagone** — un maillage : ce qui n'arrive que par un relais, donc
+ *    par un réseau et non par une portée.
+ *
+ * ⚠ Le 🌀 — le vrai vortex — était le premier candidat pour le portail : il est
+ * déjà l'**Alternance** de l'Oracle, quinze centimètres plus bas sur le même
+ * écran. Un même glyphe qui dit deux choses sur une seule page est exactement
+ * l'incohérence qu'on chasse ici.
  */
 @Composable
 private fun RadioStat(
@@ -432,7 +476,14 @@ private fun RadioStat(
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        Text(glyph, fontSize = 15.sp)
+        // ⚠ **En haut à DROITE.** À gauche, le pictogramme s'alignait sur le
+        // chiffre et sur le libellé : trois choses dans la même colonne, dont
+        // deux se lisent et une se regarde. À droite il quitte la colonne de
+        // lecture et devient ce qu'il est — l'étiquette de la bulle, posée dans
+        // son coin, que l'œil prend d'un balayage sans traverser le texte.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Text(glyph, fontSize = 19.sp)
+        }
         Text(value, style = A4LText.Metric, color = accent ?: A4L.TextHigh.copy(alpha = 0.88f))
         Text(
             label,
