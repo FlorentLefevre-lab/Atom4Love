@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import one.astroport.atom4love.chat.ChatEngine
+import one.astroport.atom4love.data.Pseudo
 import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.nostr.Hex
 import one.astroport.atom4love.proximity.NeighborRegistry
@@ -96,8 +97,13 @@ fun JournalRecorder(chat: ChatEngine?, relayOnline: Boolean) {
     }
 
     // ── Les liens attestés ────────────────────────────────────────────────
+    // ⚠ Les homonymes se séparent ici aussi, et par la même règle : deux
+    // « Marie » qui rejoignent la radio à une minute d'intervalle produiraient
+    // deux lignes identiques, et le journal deviendrait faux — il dirait que la
+    // même personne est entrée deux fois.
     val present = remember(peers) {
-        peers.associate { Hex.encode(it.nostrKey) to it.display }
+        val labels = Pseudo.labels(peers.associate { it.npub to it.display })
+        peers.associate { Hex.encode(it.nostrKey) to labels[it.npub] }
     }
     LaunchedEffect(present) { Journal.notePeers(present) }
 }

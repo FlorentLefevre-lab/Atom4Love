@@ -110,7 +110,6 @@
 
     <!-- ─── 03 · Plateau « Qui est-ce ? » ─────────────────────────────── -->
     <string name="board_title">Qui est-ce ?</string>
-    <string name="board_deal_intro">Le sceau de chacun est déjà dans l\'air : l\'annonce de proximité le porte, sans compte et sans réseau. Vingt sceaux pour une salle — « cherche le Dragon » y réduit déjà la pièce à deux personnes.</string>
     <string name="board_your_card">Votre carte</string>
     <string name="board_in_range">À portée (%1$d)</string>
     <string name="board_nobody">Personne ne montre sa carte pour l\'instant. La partie se joue à deux téléphones dans la même salle.</string>
@@ -124,12 +123,8 @@
     <string name="board_oracle_analogue">Alternance</string>
     <string name="board_oracle_occult">Occulte</string>
     <string name="board_oracle_kin">KIN %1$d</string>
-    <string name="board_oracle_note">Le défi et l\'alternance portent le même sceau — seul le ton les sépare. Le guide, lui, reste dans votre famille de sceaux. Aucun des quatre n\'est un contraire : ce sont les quatre façons de vous compléter.</string>
-    <string name="board_oracle_resonant">Votre ton 7 est son propre complément : votre défi et votre alternance sont un seul KIN.</string>
-    <string name="board_oracle_guide_self">Vous êtes votre propre guide — un KIN sur cinq l\'est.</string>
     <string name="board_match">MATCH</string>
     <string name="board_super_match">SUPER MATCH</string>
-    <string name="board_match_rule">Un match, c\'est un plan qui s\'aligne : votre résonance au-delà de 0,90, ou un sceau de votre Oracle — une personne croisée sur six. Un super match demande les deux à la fois, la résonance passant alors 0,95 : trois rencontres sur mille. Ce n\'est pas une note, et personne n\'est prévenu.</string>
     <string name="board_bond_challenge">le sceau de votre défi</string>
     <string name="board_bond_hidden">le sceau de votre occulte</string>
     <string name="board_warmth_touching">à bout de bras</string>
@@ -142,10 +137,7 @@
     <string name="board_warmth_warm">vous chauffez</string>
     <string name="board_warmth_cool">encore loin</string>
     <string name="board_warmth_cold">aux limites de la portée</string>
-    <string name="board_rule">Le jeu ne dit jamais qui est qui. Il permet de devenir trouvable — un signe, puis une question, puis un regard. Rien ne se retourne sans l\'accord des deux.</string>
     <!-- 🔦 La reconnaissance : le dernier mètre, franchi par les yeux. -->
-    <string name="board_hint_seek">Touchez une carte pour partir la chercher.</string>
-    <string name="board_symmetry">La résonance se lit pareil des deux côtés : votre première carte vous a elle aussi en tête de sa main deux fois sur trois, et presque toujours en première ou deuxième. Commencez par elle — c\'est le coup qui a le plus de chances d\'être joué en face au même moment.</string>
     <string name="board_seek_many">Chercher les %1$d premières en même temps</string>
     <string name="board_seeks_you">vous cherche</string>
     <string name="board_first_card">votre plus forte</string>
@@ -162,7 +154,7 @@
     <!-- ─── La causerie : bulles, pièces jointes, états d'envoi ───────── -->
     <string name="chat_send">Envoyer</string>
     <string name="chat_from_me">moi</string>
-    <string name="chat_from_unnamed">sans nom</string>
+    <string name="chat_from_unnamed">sans pseudo</string>
     <string name="chat_save_attachment">⬇ enregistrer</string>
     <string name="chat_image_sending">image en envoi…</string>
     <string name="chat_image_receiving">image en réception…</string>
@@ -450,9 +442,9 @@
 
 
     <string name="inc_section_datetime">Date et heure de naissance</string>
-    <string name="inc_section_pseudo">Votre nom</string>
-    <string name="inc_pseudo_placeholder">le nom qu\'on lira de vous…</string>
-    <string name="inc_pseudo_note">C\'est ce que les autres verront à la place de votre clé. Il ne fait pas partie de votre noyau : changez-en quand vous voulez.</string>
+    <string name="inc_section_pseudo">Votre pseudo</string>
+    <string name="inc_pseudo_placeholder">le pseudo qu\'on lira de vous…</string>
+    <string name="inc_pseudo_note">C\'est ce que les autres verront à la place de votre clé. Il ne fait pas partie de votre noyau : changez-en quand vous voulez. Deux personnes peuvent choisir le même — la fin de leur clé les sépare alors.</string>
     <string name="inc_section_place">Lieu de naissance</string>
     <string name="inc_section_birth_weight">Poids de naissance</string>
     <string name="inc_birth_weight_optional">optionnel — 3,5 kg à défaut</string>
@@ -688,7 +680,7 @@
     <string name="forge_step_shape_sub">ce que disent votre taille et votre poids</string>
     <string name="inc_section_sex">Votre sexe</string>
     <string name="inc_row_sex">Sexe</string>
-    <string name="inc_missing_pseudo">votre nom</string>
+    <string name="inc_missing_pseudo">votre pseudo</string>
     <string name="inc_missing_sex">votre sexe</string>
     <string name="inc_language_auto_title">La langue suit votre téléphone</string>
     <string name="inc_language_auto_body">Celle d\'Android. Pour en changer, ou passer du jour à la nuit : le rouage ⚙️ en haut.</string>

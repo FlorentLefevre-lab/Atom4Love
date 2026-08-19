@@ -93,6 +93,58 @@ object Pseudo {
             .trim()
             .take(MAX_LENGTH)
 
-    /** Un nom qu'on a le droit de sceller. */
+    /** Un pseudo qu'on a le droit de garder. */
     fun isValid(raw: String): Boolean = clean(raw).length >= MIN_LENGTH
+
+    /**
+     * **Deux personnes peuvent choisir le même pseudo. Voici ce qui se passe.**
+     *
+     * Rien ne l'empêche, et rien ne doit l'empêcher : un pseudo se déclare, il
+     * ne s'attribue pas. Il n'y a pas de registre, pas de première arrivée, pas
+     * d'autorité qui distribue les mots — et il n'en faut pas. Quelqu'un qui
+     * s'appelle comme un autre n'usurpe rien, parce que **le pseudo n'a jamais
+     * été l'identité** : celle-ci est la clé NOSTR, prouvée au handshake par
+     * [one.astroport.atom4love.noise.NoiseVouch], et deux homonymes ont deux
+     * clés différentes. La sécurité de la rencontre ne bouge pas d'un pouce.
+     *
+     * Ce qui bouge, c'est l'écran : deux lignes « Marie » dans une liste ne se
+     * distinguent plus, et c'est un vrai défaut — on écrirait à la mauvaise
+     * personne.
+     *
+     * ⚠ **La règle : quand le pseudo ne suffit plus, l'identité reparaît — pour
+     * ceux-là seulement, et juste assez.** Les quatre derniers caractères du
+     * npub séparent les homonymes ; tous les autres gardent leur pseudo nu. On
+     * ne remet pas la clé sur tous les écrans pour un cas qui n'arrive presque
+     * jamais, et on ne laisse pas non plus deux inconnus porter le même mot.
+     *
+     * Quatre caractères de base32 font un million de combinaisons — largement
+     * de quoi séparer les quelques homonymes d'une salle, et trop peu pour
+     * qu'on prétende lire une clé dedans.
+     *
+     * [who] associe un npub (`npub1…`) au pseudo déclaré, null quand il n'y en
+     * a pas. Le résultat associe le même npub à **ce que l'écran doit écrire**,
+     * null quand la personne ne s'est pas nommée — c'est alors à l'écran de
+     * choisir le mot, dans sa langue.
+     */
+    fun labels(who: Map<String, String?>): Map<String, String?> {
+        val shared = who.values
+            .filterNotNull()
+            .groupingBy { it }
+            .eachCount()
+            .filterValues { it > 1 }
+            .keys
+        return who.mapValues { (npub, name) ->
+            when {
+                name == null -> null
+                name !in shared -> name
+                // `npub1…eqx2` : la queue, jamais la tête — les premiers
+                // caractères sont le préfixe bech32 et le même pour tout le
+                // monde, ils ne sépareraient rien.
+                else -> "$name · ${npub.takeLast(DISAMBIGUATION)}"
+            }
+        }
+    }
+
+    /** Combien de caractères de clé il faut pour séparer deux homonymes. */
+    const val DISAMBIGUATION = 4
 }

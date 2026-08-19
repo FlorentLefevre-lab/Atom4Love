@@ -66,7 +66,6 @@
 
     <!-- ─── 03 · The "Who is it?" board ───────────────────────────────── -->
     <string name="board_title">Who is it?</string>
-    <string name="board_deal_intro">Everyone\'s seal is already in the air: the proximity beacon carries it, with no account and no network. Twenty seals for a room — "look for the Dragon" already narrows it to two people.</string>
     <string name="board_your_card">Your card</string>
     <string name="board_in_range">In range (%1$d)</string>
     <string name="board_nobody">Nobody is showing a card yet. The game is played by two phones in the same room.</string>
@@ -80,12 +79,8 @@
     <string name="board_oracle_analogue">Alternation</string>
     <string name="board_oracle_occult">Occult</string>
     <string name="board_oracle_kin">KIN %1$d</string>
-    <string name="board_oracle_note">The challenge and the alternation carry the same seal — only the tone separates them. The guide stays within your own seal family. None of the four is an opposite: they are the four ways of completing you.</string>
-    <string name="board_oracle_resonant">Your tone 7 is its own complement: your challenge and your alternation are a single KIN.</string>
-    <string name="board_oracle_guide_self">You are your own guide — one KIN in five is.</string>
     <string name="board_match">MATCH</string>
     <string name="board_super_match">SUPER MATCH</string>
-    <string name="board_match_rule">A match is one plane falling into line: your resonance past 0.90, or a seal from your Oracle — one person in six. A super match takes both at once, with the resonance then past 0.95: three encounters in a thousand. It is not a score, and nobody is told.</string>
     <string name="board_bond_challenge">the seal of your challenge</string>
     <string name="board_bond_hidden">the seal of your occult</string>
     <string name="board_warmth_touching">within arm’s reach</string>
@@ -98,10 +93,7 @@
     <string name="board_warmth_warm">getting warmer</string>
     <string name="board_warmth_cool">still far</string>
     <string name="board_warmth_cold">at the edge of range</string>
-    <string name="board_rule">The game never says who is who. It lets you become findable — a sign, then a question, then a glance. Nothing turns over without both agreeing.</string>
     <!-- 🔦 Recognition: the last metre, crossed by eye. -->
-    <string name="board_hint_seek">Tap a card to go and find them.</string>
-    <string name="board_symmetry">Resonance reads the same from both sides: your first card has you at the top of its own hand two times out of three, and almost always first or second. Start with it — that is the move most likely to be played opposite you at the same moment.</string>
     <string name="board_seek_many">Look for the top %1$d at once</string>
     <string name="board_seeks_you">is looking for you</string>
     <string name="board_first_card">your strongest</string>
@@ -116,7 +108,7 @@
     <!-- ─── The chat: bubbles, attachments, send states ───────────────── -->
     <string name="chat_send">Send</string>
     <string name="chat_from_me">me</string>
-    <string name="chat_from_unnamed">unnamed</string>
+    <string name="chat_from_unnamed">no handle</string>
     <string name="chat_save_attachment">⬇ save</string>
     <string name="chat_image_sending">image going out…</string>
     <string name="chat_image_receiving">image coming in…</string>
@@ -378,9 +370,9 @@
 
 
     <string name="inc_section_datetime">Date and time of birth</string>
-    <string name="inc_section_pseudo">Your name</string>
-    <string name="inc_pseudo_placeholder">the name people will read…</string>
-    <string name="inc_pseudo_note">This is what others see instead of your key. It is not part of your nucleus: change it whenever you like.</string>
+    <string name="inc_section_pseudo">Your handle</string>
+    <string name="inc_pseudo_placeholder">the handle people will read…</string>
+    <string name="inc_pseudo_note">This is what others see instead of your key. It is not part of your nucleus: change it whenever you like. Two people may pick the same one — the tail of their key then tells them apart.</string>
     <string name="inc_section_place">Place of birth</string>
     <string name="inc_section_birth_weight">Birth weight</string>
     <string name="inc_birth_weight_optional">optional — 3.5 kg by default</string>
@@ -583,7 +575,7 @@
     <string name="forge_step_shape_sub">what your height and weight say</string>
     <string name="inc_section_sex">Your sex</string>
     <string name="inc_row_sex">Sex</string>
-    <string name="inc_missing_pseudo">your name</string>
+    <string name="inc_missing_pseudo">your handle</string>
     <string name="inc_missing_sex">your sex</string>
     <string name="inc_language_auto_title">The language follows your phone</string>
     <string name="inc_language_auto_body">Android\'s. To change it, or switch day to night: the ⚙️ gear above.</string>

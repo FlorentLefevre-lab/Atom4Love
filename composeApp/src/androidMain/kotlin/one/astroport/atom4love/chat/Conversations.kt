@@ -1,5 +1,6 @@
 package one.astroport.atom4love.chat
 
+import one.astroport.atom4love.data.Pseudo
 import one.astroport.atom4love.nostr.Bech32
 import one.astroport.atom4love.nostr.Hex
 
@@ -31,6 +32,12 @@ data class Conversation(
     /** La même, en `npub1…` : c'est sous cette forme que le jeu des questions la range. */
     val npub: String,
     /** Le nom qu'il s'est donné, null s'il n'en a pas envoyé. */
+    /**
+     * Ce que l'écran écrit de cette personne — son pseudo, **suivi de la queue
+     * de sa clé si quelqu'un d'autre porte le même** ([Pseudo.labels]). null
+     * quand elle ne s'est pas nommée : c'est alors à l'écran de choisir le mot,
+     * dans sa langue.
+     */
     val name: String?,
     /**
      * Il est joignable en ce moment.
@@ -92,16 +99,29 @@ object Conversations {
         val byPeer = messages.filter { it.peer != null }.groupBy { it.peer!! }
         val present = peers.associateBy { Hex.encode(it.nostrKey) }
         val keys = byPeer.keys + present.keys + pinned
+        val npubs = keys.associateWith { hex ->
+            present[hex]?.npub ?: runCatching {
+                Bech32.encode("npub", Hex.decode(hex))
+            }.getOrDefault(hex)
+        }
+        // ⚠ **Les homonymes se séparent ici, sur la liste entière.** Un pseudo ne
+        // peut pas savoir tout seul qu'un autre lui ressemble : la question ne se
+        // pose qu'au moment où l'on range plusieurs personnes côte à côte, et
+        // c'est exactement cet endroit-là.
+        val labels = Pseudo.labels(
+            keys.associate { hex ->
+                npubs.getValue(hex) to
+                    (present[hex]?.display ?: byPeer[hex]?.lastOrNull { it.fromAttested }?.from)
+            },
+        )
         return keys
             .map { hex ->
-                val peer = present[hex]
+                val npub = npubs.getValue(hex)
                 Conversation(
                     peerHex = hex,
-                    npub = peer?.npub ?: runCatching {
-                        Bech32.encode("npub", Hex.decode(hex))
-                    }.getOrDefault(hex),
-                    name = peer?.display ?: byPeer[hex]?.lastOrNull { it.fromAttested }?.from,
-                    inRange = peer != null,
+                    npub = npub,
+                    name = labels[npub],
+                    inRange = present[hex] != null,
                     messages = byPeer[hex].orEmpty().sortedBy { it.atMs },
                 )
             }

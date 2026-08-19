@@ -3,6 +3,7 @@ package one.astroport.atom4love.chat
 import one.astroport.atom4love.nostr.Bech32
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -141,5 +142,41 @@ class ConversationsTest {
         // La clé reste disponible pour le journal technique, mais elle n'est
         // jamais ce que l'écran affiche à sa place.
         assertEquals(npub(1), conversation.npub)
+    }
+
+    /**
+     * ⚠ **Deux personnes peuvent choisir le même pseudo, et rien ne l'empêche.**
+     * Un pseudo se déclare, il ne s'attribue pas : pas de registre, pas de
+     * première arrivée. Ce qui doit tenir, c'est l'écran — deux lignes « Marie »
+     * dans une liste, et l'on écrit à la mauvaise personne.
+     *
+     * La règle : quand le pseudo ne suffit plus, l'identité reparaît **pour
+     * ceux-là seulement**, et juste assez pour les séparer.
+     */
+    @Test
+    fun `deux homonymes se séparent par la queue de leur clé, les autres non`() {
+        val conversations = Conversations.of(
+            peers = listOf(peer(1, "Marie"), peer(2, "Marie"), peer(3, "Bob")),
+            messages = emptyList(),
+        )
+        val marie1 = conversations.first { it.peerHex == hex(1) }
+        val marie2 = conversations.first { it.peerHex == hex(2) }
+        val bob = conversations.first { it.peerHex == hex(3) }
+
+        // Bob est seul de son espèce : son pseudo reste nu.
+        assertEquals("Bob", bob.name)
+
+        // Les deux Marie portent chacune la fin de sa propre clé…
+        assertTrue(marie1.name!!.startsWith("Marie · "))
+        assertTrue(marie2.name!!.startsWith("Marie · "))
+        // …et ces deux fins diffèrent, sinon on n'aurait rien séparé.
+        assertNotEquals(marie1.name, marie2.name)
+        assertTrue(marie1.name!!.endsWith(marie1.npub.takeLast(4)))
+    }
+
+    @Test
+    fun `une seule Marie garde son pseudo nu`() {
+        val conversations = Conversations.of(listOf(peer(1, "Marie")), emptyList())
+        assertEquals("Marie", conversations.single().name)
     }
 }

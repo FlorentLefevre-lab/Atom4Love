@@ -67,7 +67,6 @@
 
     <!-- ─── 03 · El tablero «¿Quién es?» ──────────────────────────────── -->
     <string name="board_title">¿Quién es?</string>
-    <string name="board_deal_intro">El sello de cada cual ya está en el aire: la baliza de proximidad lo lleva, sin cuenta y sin red. Veinte sellos para una sala — «busca el Dragón» ya reduce la pieza a dos personas.</string>
     <string name="board_your_card">Tu carta</string>
     <string name="board_in_range">Al alcance (%1$d)</string>
     <string name="board_nobody">Nadie muestra su carta por ahora. La partida se juega con dos teléfonos en la misma sala.</string>
@@ -81,12 +80,8 @@
     <string name="board_oracle_analogue">Alternancia</string>
     <string name="board_oracle_occult">Oculto</string>
     <string name="board_oracle_kin">KIN %1$d</string>
-    <string name="board_oracle_note">El desafío y la alternancia llevan el mismo sello — solo el tono los separa. La guía, en cambio, permanece en tu familia de sellos. Ninguno de los cuatro es un contrario: son las cuatro maneras de completarte.</string>
-    <string name="board_oracle_resonant">Tu tono 7 es su propio complemento: tu desafío y tu alternancia son un solo KIN.</string>
-    <string name="board_oracle_guide_self">Eres tu propia guía — uno de cada cinco KIN lo es.</string>
     <string name="board_match">MATCH</string>
     <string name="board_super_match">SÚPER MATCH</string>
-    <string name="board_match_rule">Un match es un plano que se alinea: tu resonancia más allá de 0,90, o un sello de tu Oráculo — una persona de cada seis. Un súper match exige las dos a la vez, con la resonancia pasando entonces 0,95: tres encuentros de cada mil. No es una nota, y nadie es avisado.</string>
     <string name="board_bond_challenge">el sello de tu desafío</string>
     <string name="board_bond_hidden">el sello de tu oculto</string>
     <string name="board_warmth_touching">al alcance del brazo</string>
@@ -99,10 +94,7 @@
     <string name="board_warmth_warm">te acercas</string>
     <string name="board_warmth_cool">aún lejos</string>
     <string name="board_warmth_cold">al límite del alcance</string>
-    <string name="board_rule">El juego nunca dice quién es quién. Permite volverse encontrable — un signo, luego una pregunta, luego una mirada. Nada se voltea sin el acuerdo de ambos.</string>
     <!-- 🔦 El reconocimiento: el último metro, cruzado con la mirada. -->
-    <string name="board_hint_seek">Toca una carta para ir a buscarla.</string>
-    <string name="board_symmetry">La resonancia se lee igual desde ambos lados: tu primera carta te tiene también en cabeza de su mano dos de cada tres veces, y casi siempre primera o segunda. Empieza por ella — es la jugada que más probablemente se juegue enfrente en el mismo momento.</string>
     <string name="board_seek_many">Buscar las %1$d primeras a la vez</string>
     <string name="board_seeks_you">te busca</string>
     <string name="board_first_card">tu más fuerte</string>
@@ -117,7 +109,7 @@
     <!-- ─── La conversación: burbujas, adjuntos, estados de envío ─────── -->
     <string name="chat_send">Enviar</string>
     <string name="chat_from_me">yo</string>
-    <string name="chat_from_unnamed">sin nombre</string>
+    <string name="chat_from_unnamed">sin seudónimo</string>
     <string name="chat_save_attachment">⬇ guardar</string>
     <string name="chat_image_sending">imagen saliendo…</string>
     <string name="chat_image_receiving">imagen entrando…</string>
@@ -381,9 +373,9 @@
 
 
     <string name="inc_section_datetime">Fecha y hora de nacimiento</string>
-    <string name="inc_section_pseudo">Su nombre</string>
-    <string name="inc_pseudo_placeholder">el nombre que leerán de usted…</string>
-    <string name="inc_pseudo_note">Es lo que los demás verán en lugar de su clave. No forma parte de su núcleo: cámbielo cuando quiera.</string>
+    <string name="inc_section_pseudo">Su seudónimo</string>
+    <string name="inc_pseudo_placeholder">el seudónimo que leerán de usted…</string>
+    <string name="inc_pseudo_note">Es lo que los demás verán en lugar de su clave. No forma parte de su núcleo: cámbielo cuando quiera. Dos personas pueden elegir el mismo — el final de su clave las distingue entonces.</string>
     <string name="inc_section_place">Lugar de nacimiento</string>
     <string name="inc_section_birth_weight">Peso al nacer</string>
     <string name="inc_birth_weight_optional">opcional — 3,5 kg por defecto</string>
@@ -588,7 +580,7 @@
     <string name="forge_step_shape_sub">lo que dicen su altura y su peso</string>
     <string name="inc_section_sex">Su sexo</string>
     <string name="inc_row_sex">Sexo</string>
-    <string name="inc_missing_pseudo">su nombre</string>
+    <string name="inc_missing_pseudo">su seudónimo</string>
     <string name="inc_missing_sex">su sexo</string>
     <string name="inc_language_auto_title">El idioma sigue a su teléfono</string>
     <string name="inc_language_auto_body">El de Android. Para cambiarlo, o pasar del día a la noche: la rueda ⚙️ arriba.</string>

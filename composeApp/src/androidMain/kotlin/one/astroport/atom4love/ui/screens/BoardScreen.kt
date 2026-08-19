@@ -254,13 +254,6 @@ fun BoardScreen(
                 it()
             }
 
-            Text(
-                stringResource(R.string.board_deal_intro),
-                style = A4LText.Caption,
-                color = A4L.TextMuted,
-                modifier = Modifier.padding(top = 18.dp),
-            )
-
             // ── Notre carte ───────────────────────────────────────────────
             SectionLabel(
                 stringResource(R.string.board_your_card),
@@ -291,36 +284,6 @@ fun BoardScreen(
                     )
                 }
             } else {
-                Text(
-                    stringResource(R.string.board_hint_seek),
-                    style = A4LText.Caption,
-                    color = A4L.TextMuted,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                )
-                // La règle du match tient sous la main et pas dans l'Aide : un
-                // mot en capitales sur une carte appelle son explication tout
-                // de suite, sinon il se lit comme une note.
-                Text(
-                    stringResource(R.string.board_match_rule),
-                    style = A4LText.Caption,
-                    color = A4L.TextMuted,
-                    modifier = Modifier.padding(bottom = 10.dp),
-                )
-                // ⚠ La stratégie du jeu, et elle n'est pas devinable.
-                // `resonanceK` est **symétrique** : mesuré sur 400 salles
-                // simulées, la première carte d'une main a son porteur en tête
-                // de la sienne **deux fois sur trois**, et à un rang moyen de
-                // 0,5 sinon — donc presque toujours première ou deuxième.
-                //
-                // Sans le dire, le double choix ressemble à un tirage au sort à
-                // l'aveugle et ne converge jamais ; dit, il devient le coup
-                // évident, et les deux le jouent en même temps.
-                Text(
-                    stringResource(R.string.board_symmetry),
-                    style = A4LText.Caption,
-                    color = A4L.TextMuted,
-                    modifier = Modifier.padding(bottom = 12.dp),
-                )
                 if (hand.size > 1) {
                     Box(
                         Modifier
@@ -363,12 +326,7 @@ fun BoardScreen(
                 }
             }
 
-            Text(
-                stringResource(R.string.board_rule),
-                style = A4LText.Caption,
-                color = A4L.TextMuted,
-                modifier = Modifier.padding(top = 22.dp, bottom = 20.dp),
-            )
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -481,27 +439,6 @@ private fun OracleBlock(kin: KinMaya.Kin) {
                     if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
-        }
-        Text(
-            stringResource(R.string.board_oracle_note),
-            style = A4LText.Caption,
-            color = A4L.TextMuted,
-        )
-        if (kin.tone == 6) {
-            Text(
-                stringResource(R.string.board_oracle_resonant),
-                style = A4LText.Caption,
-                color = A4L.TextBody,
-            )
-        }
-        // Un KIN sur cinq est son propre guide — le dire, sinon la case a l'air
-        // d'une erreur de calcul.
-        if (reading.guide?.kin == kin.kin) {
-            Text(
-                stringResource(R.string.board_oracle_guide_self),
-                style = A4LText.Caption,
-                color = A4L.TextBody,
-            )
         }
     }
 }
