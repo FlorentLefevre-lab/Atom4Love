@@ -485,9 +485,26 @@ private fun Station(
      * promesse, elle, ne bouge pas : elle est devenue un geste au bas des
      * conversations, là où l'on voit ce qu'on efface.
      */
-    val beaconRunning by ProximityService.running.collectAsStateWithLifecycle()
-    LaunchedEffect(keys, beaconRunning) {
-        if (keys != null && ChatEngine.permissionsGranted(context)) cabinHost.open(keys)
+    // ⚠ **À chaque reprise, et non à chaque changement d'état.**
+    //
+    // La première écriture veillait sur `keys` et sur l'état de la balise, en
+    // pariant que l'un des deux basculerait au bon moment. Vu sur la tablette le
+    // 19/08 : après un passage en arrière-plan et une mise à mort par le
+    // gestionnaire de ZUI, l'application revenait avec « radio éteinte » et rien
+    // pour la rallumer — les deux valeurs surveillées étaient déjà dans leur
+    // état final quand la composition est revenue, donc plus aucun basculement à
+    // attendre. Et aucun geste ne rattrapait ça : la radio n'en a plus.
+    //
+    // `repeatOnLifecycle(STARTED)` retourne la question dans le bon sens. Ce
+    // n'est pas « quand quelque chose change », c'est **« tant que l'application
+    // est à l'écran, la radio doit être allumée »** — une invariante, vérifiée à
+    // chaque retour au premier plan. Rouvrir ne coûte rien quand c'est déjà
+    // ouvert : `open()` sort à sa première ligne.
+    LaunchedEffect(keys, lifecycleOwner) {
+        if (keys == null) return@LaunchedEffect
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            if (ChatEngine.permissionsGranted(context)) cabinHost.open(keys)
+        }
     }
 
     /**
@@ -624,8 +641,9 @@ private fun Station(
      * effaçait une conversation en croyant refermer un écran. C'est maintenant
      * une décision qu'on prend en regardant la liste de ce qu'elle emporte.
      *
-     * La radio se rallume aussitôt derrière ([beaconRunning] rejoue l'effet
-     * d'ouverture) : on efface ce qui s'est dit, on ne se coupe pas du monde.
+     * La radio se rallume aussitôt derrière — l'effet d'ouverture veille sur le
+     * cycle de vie, pas sur un basculement : on efface ce qui s'est dit, on ne
+     * se coupe pas du monde.
      */
     val eraseConversations: () -> Unit = {
         cabinHost.close()

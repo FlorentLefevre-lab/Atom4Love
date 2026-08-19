@@ -461,7 +461,6 @@
     <string name="inc_hh">HH</string>
     <string name="inc_mn">MN</string>
     <string name="inc_place_placeholder">Ville, pays…</string>
-    <string name="inc_coords_warning">À noter en entier, chiffre pour chiffre : eux seuls rouvrent votre clé si vous perdez l\'appareil. Touchez-les pour les corriger.</string>
     <string name="inc_body_note">Hors clé. Modifiables à tout moment dans les Réglages.</string>
     <string name="inc_body_dialog_body">Votre corps d\'aujourd\'hui, pas celui de votre naissance. Rien de ceci n\'entre dans votre clé : vous pourrez le corriger après la forge, autant de fois que le corps change.</string>
     <string name="inc_height_title">Votre taille</string>
@@ -682,8 +681,6 @@
     <string name="inc_row_sex">Sexe</string>
     <string name="inc_missing_pseudo">votre pseudo</string>
     <string name="inc_missing_sex">votre sexe</string>
-    <string name="inc_language_auto_title">La langue suit votre téléphone</string>
-    <string name="inc_language_auto_body">Celle d\'Android. Pour en changer, ou passer du jour à la nuit : le rouage ⚙️ en haut.</string>
     <string name="inc_bmi_value">IMC %1$s</string>
     <string name="bmi_band_thin">corpulence mince</string>
     <string name="bmi_band_normal">corpulence normale</string>
@@ -708,7 +705,7 @@
     <!-- ⚠ Ce que le journal N'ÉCRIT PAS n'a pas de chaîne ici, et c'est
          normal : partir chercher quelqu'un et ouvrir une conversation ne s'y
          inscrivent jamais. Voir journal/Journal.kt. -->
-    <string name="journal_title">Journal</string>
+    <string name="journal_title">Journal de bord</string>
     <string name="journal_intro">Ce que la radio fait, pendant qu\'elle le fait. Rien ne s\'y garde.</string>
     <string name="journal_empty">La balise vient de s\'allumer. Ce qu\'elle entend s\'écrira ici.</string>
     <string name="journal_beacon_on">Balise allumée — elle annonce et elle écoute.</string>
@@ -741,7 +738,7 @@
     <string name="tab_chats">Chats</string>
     <string name="tab_world">Monde</string>
     <string name="chats_erase">Fermer et effacer toutes les conversations</string>
-    <string name="radar_journal_row">Journal — ce que la radio fait en ce moment</string>
+    <string name="radar_journal_row">Journal de bord (events)</string>
 
     <!-- ─── 🔑 La fin de la période d\'essai ───────────────────────────── -->
     <string name="trial_over_title">La période d\'essai est finie</string>

@@ -392,7 +392,6 @@
     <string name="inc_hh">HH</string>
     <string name="inc_mn">MI</string>
     <string name="inc_place_placeholder">Ciudad, país…</string>
-    <string name="inc_coords_warning">Anótelos enteros, cifra por cifra: solo ellos reabren su clave si pierde el aparato. Tóquelos para corregirlos.</string>
     <string name="inc_body_note">Fuera de la clave. Editables en cualquier momento en Ajustes.</string>
     <string name="inc_body_dialog_body">Tu cuerpo de hoy, no el de tu nacimiento. Nada de esto entra en tu clave: podrás corregirlo después de forjar, tantas veces como cambie el cuerpo.</string>
     <string name="inc_height_title">Tu estatura</string>
@@ -582,8 +581,6 @@
     <string name="inc_row_sex">Sexo</string>
     <string name="inc_missing_pseudo">su seudónimo</string>
     <string name="inc_missing_sex">su sexo</string>
-    <string name="inc_language_auto_title">El idioma sigue a su teléfono</string>
-    <string name="inc_language_auto_body">El de Android. Para cambiarlo, o pasar del día a la noche: la rueda ⚙️ arriba.</string>
     <string name="inc_bmi_value">IMC %1$s</string>
     <string name="bmi_band_thin">complexión delgada</string>
     <string name="bmi_band_normal">complexión normal</string>
@@ -605,7 +602,7 @@
     <string name="chat_empty">Nada sale por un relé. Todo se borra cuando tú lo decides.</string>
 
     <!-- ─── 📡 El diario ──────────────────────────────────────────────── -->
-    <string name="journal_title">Diario</string>
+    <string name="journal_title">Cuaderno de bitácora</string>
     <string name="journal_intro">Lo que hace la radio, mientras lo hace. Aquí no se guarda nada.</string>
     <string name="journal_empty">La baliza acaba de encenderse. Lo que oiga se escribirá aquí.</string>
     <string name="journal_beacon_on">Baliza encendida: anuncia y escucha.</string>
@@ -638,7 +635,7 @@
     <string name="tab_chats">Chats</string>
     <string name="tab_world">Mundo</string>
     <string name="chats_erase">Cerrar y borrar todas las conversaciones</string>
-    <string name="radar_journal_row">Diario: lo que hace la radio en este momento</string>
+    <string name="radar_journal_row">Cuaderno de bitácora (events)</string>
 
     <!-- ─── 🔑 El fin del periodo de prueba ───────────────────────────── -->
     <string name="trial_over_title">El periodo de prueba ha terminado</string>

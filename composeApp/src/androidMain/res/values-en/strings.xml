@@ -389,7 +389,6 @@
     <string name="inc_hh">HH</string>
     <string name="inc_mn">MI</string>
     <string name="inc_place_placeholder">Town, country…</string>
-    <string name="inc_coords_warning">Write these down in full, digit for digit: they alone reopen your key if you lose this device. Tap to correct them.</string>
     <string name="inc_body_note">Outside the key. Editable any time in Settings.</string>
     <string name="inc_body_dialog_body">Your body today, not the one you were born with. None of this enters your key: you can correct it after forging, as often as the body changes.</string>
     <string name="inc_height_title">Your height</string>
@@ -577,8 +576,6 @@
     <string name="inc_row_sex">Sex</string>
     <string name="inc_missing_pseudo">your handle</string>
     <string name="inc_missing_sex">your sex</string>
-    <string name="inc_language_auto_title">The language follows your phone</string>
-    <string name="inc_language_auto_body">Android\'s. To change it, or switch day to night: the ⚙️ gear above.</string>
     <string name="inc_bmi_value">BMI %1$s</string>
     <string name="bmi_band_thin">slim build</string>
     <string name="bmi_band_normal">normal build</string>
@@ -600,7 +597,7 @@
     <string name="chat_empty">Nothing leaves through a relay. Everything is wiped when you decide.</string>
 
     <!-- ─── 📡 The journal ────────────────────────────────────────────── -->
-    <string name="journal_title">Journal</string>
+    <string name="journal_title">Logbook</string>
     <string name="journal_intro">What the radio does, as it does it. Nothing is kept here.</string>
     <string name="journal_empty">The beacon has just come on. What it hears will be written here.</string>
     <string name="journal_beacon_on">Beacon on — advertising and listening.</string>
@@ -633,7 +630,7 @@
     <string name="tab_chats">Chats</string>
     <string name="tab_world">World</string>
     <string name="chats_erase">Close and erase every conversation</string>
-    <string name="radar_journal_row">Journal — what the radio is doing right now</string>
+    <string name="radar_journal_row">Logbook (events)</string>
 
     <!-- ─── 🔑 End of the trial ───────────────────────────────────────── -->
     <string name="trial_over_title">The trial period is over</string>

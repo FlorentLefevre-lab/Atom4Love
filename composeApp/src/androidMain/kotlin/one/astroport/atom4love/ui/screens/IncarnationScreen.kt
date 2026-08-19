@@ -449,11 +449,15 @@ fun IncarnationScreen(
                                     )
                                 }
                             }
-                            Text(
-                                stringResource(R.string.inc_coords_warning),
-                                style = A4LText.Caption,
-                                color = A4L.Amber.copy(alpha = 0.75f),
-                            )
+                            // ⚠ **L'avertissement sur les coordonnées est parti**
+                            // (« à noter en entier, chiffre pour chiffre… »).
+                            // Il était vrai — ces deux nombres rouvrent la clé —
+                            // mais il demandait un geste de sauvegarde en plein
+                            // milieu d'une saisie, à quelqu'un qui n'a pas encore
+                            // de clé à sauvegarder. Ce qu'il disait se redit au
+                            // bon moment : la confirmation de forge montre le
+                            // sel entier avant de sceller, et le Noyau le garde
+                            // sous les yeux ensuite.
                             BirthWeightSection(
                                 birth = birth,
                                 editable = true,
@@ -464,16 +468,13 @@ fun IncarnationScreen(
                                 onPickHeight = { showHeightPicker = true },
                                 onPickWeight = { showWeightPicker = true },
                             )
-                            // La langue ne se demande plus : Android l'a déjà
-                            // choisie. L'encart le dit, et dit où en changer —
-                            // sans quoi « on suit le téléphone » ressemblerait
-                            // à « vous n'avez pas le choix ».
-                            NoteCard(
-                                glyph = "🗣",
-                                title = stringResource(R.string.inc_language_auto_title),
-                                body = stringResource(R.string.inc_language_auto_body),
-                                accent = A4L.Indigo,
-                            )
+                            // ⚠ **L'encart de langue est parti aussi.** Il
+                            // expliquait qu'Android a déjà choisi la langue et
+                            // où en changer. C'était une réponse à une question
+                            // que personne ne pose : l'écran est déjà dans la
+                            // bonne langue quand on le lit, et qui veut en
+                            // changer va dans les Réglages — dont le rouage est
+                            // en haut de cet écran même.
                         }
 
                         // ── 2. Le récapitulatif : ce qui se scelle ─────────
