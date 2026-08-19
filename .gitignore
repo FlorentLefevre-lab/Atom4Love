@@ -29,7 +29,7 @@ google-services.json
 *.aab
 *.aar
 # Exception : dépendances embarquées volontairement (AAR h3 patché libm)
-!app/libs/*.aar
+!composeApp/libs/*.aar
 *.ap_
 *.dex
 /release/
@@ -45,3 +45,12 @@ google-services.json
 # Outils Python de tools/
 __pycache__/
 *.pyc
+
+# --- Charge utile de www/ : assemblée pour publier, jamais versionnée ---
+# `www/index.html` est le seul fichier suivi du dossier. À côté de lui viennent
+# deux COPIES, faites au moment de publier et remplacées à chaque version :
+# l'APK (déjà couvert par `*.apk` plus haut) et le manifeste, qui n'est que
+# `latest.json` de la racine sous le nom qu'attend la page. Les versionner
+# donnerait deux sources pour la même vérité, et 6,5 Mo de binaire par version
+# dans l'historique ; l'hôte de l'APK est la release GitHub.
+/www/atom4love.json
