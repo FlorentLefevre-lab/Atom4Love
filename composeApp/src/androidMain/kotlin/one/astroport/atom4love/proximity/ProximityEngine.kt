@@ -368,6 +368,8 @@ class ProximityEngine(
 
     @SuppressLint("MissingPermission")
     private fun startScan(scanner: android.bluetooth.le.BluetoothLeScanner): ScanCallback {
+        // Le BLE 5 n'est pas un détail de confort ici : voir les réglages plus bas.
+        val extended = adapter?.isLeExtendedAdvertisingSupported == true
         val callback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) = onPeer(result)
 
@@ -385,18 +387,29 @@ class ProximityEngine(
                 ScanFilter.Builder().setServiceUuid(SERVICE_UUID).build(),
                 ScanFilter.Builder().setServiceUuid(SEEK_UUID).build(),
             ),
-            // ⚠ `setLegacy(false)` est **indispensable** : par défaut un scan
-            // Android ne remonte QUE les annonces legacy, et les déclarations
-            // de recherche voyagent en annonce étendue — elles seraient
-            // invisibles sans qu'aucune erreur ne le dise. Ce mode remonte les
-            // deux, la présence continue donc d'arriver comme avant.
+            // ⚠ `setLegacy(false)` remonte les annonces étendues EN PLUS des
+            // legacy : sans lui, les déclarations de recherche — qui voyagent
+            // en annonce étendue — seraient invisibles sans qu'aucune erreur ne
+            // le dise.
+            //
+            // ⚠⚠ **Mais il rend AVEUGLE une puce qui ne connaît pas le BLE 5.**
+            // Sur l'A5 de 2016 (contrôleur 4.x), ce réglage fait démarrer le
+            // scan sans la moindre erreur et ne remonte **plus rien du tout**,
+            // legacy comprises. Vu le 19/08 : l'A5 était vu de tous — il annonce
+            // en legacy — et ne voyait personne ; « à portée (0) », balise
+            // active, même hexagone que les autres, et pas une ligne au journal.
+            //
+            // On ne le demande donc que là où il existe. Ce qu'on y perd sur les
+            // vieux appareils : les déclarations de recherche, qu'ils ne savent
+            // de toute façon pas émettre ([seekingSupported] les leur refuse
+            // déjà). Ce qu'on y gagne : la présence, c'est-à-dire tout le jeu.
             ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
-                .setLegacy(false)
+                .apply { if (extended) setLegacy(false) }
                 .build(),
             callback,
         )
-        Log.d(TAG, "scan démarré (filtre $SERVICE_UUID)")
+        Log.d(TAG, "scan démarré (filtre $SERVICE_UUID, étendu=$extended)")
         _state.update { it.copy(scanning = true) }
         return callback
     }
