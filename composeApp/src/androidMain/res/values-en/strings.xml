@@ -101,8 +101,7 @@
     <string name="board_seek_many">Look for the top %1$d at once</string>
     <string name="board_seeks_you">is looking for you</string>
     <string name="rendezvous_title">Recognise each other</string>
-    <string name="rendezvous_instruction">Hold up your screen.\nLook for the one in the room beating like yours.</string>
-    <string name="rendezvous_mutual">Both phones work this rhythm out on their own, from the two phases. Nothing is sent, nobody is told — it only beats on the other side if they chose you too.</string>
+    <string name="rendezvous_mutual">Go and find your resonance by moving, physically.</string>
     <string name="rendezvous_out_of_range">out of range right now</string>
     <string name="rendezvous_searching">You have been searching for %1$d seconds.</string>
     <string name="rendezvous_patience">The station cannot know whether the other screen is beating: nothing travels. Its silence is not a refusal — the Board may simply not be open on the other side.</string>

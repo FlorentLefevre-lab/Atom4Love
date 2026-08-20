@@ -146,8 +146,11 @@
     <string name="board_seek_many">Chercher les %1$d premières en même temps</string>
     <string name="board_seeks_you">vous cherche</string>
     <string name="rendezvous_title">Se reconnaître</string>
-    <string name="rendezvous_instruction">Levez votre écran.\nCherchez dans la salle celui qui bat comme le vôtre.</string>
-    <string name="rendezvous_mutual">Les deux téléphones calculent ce rythme tout seuls, à partir des deux phases. Rien n\'est envoyé, personne n\'est prévenu — il ne bat de l\'autre côté que si l\'autre vous a choisi aussi.</string>
+    <!-- ⚠ Remplace, le 20/08 sur demande de Florent, l\'explication du mécanisme
+         (« les deux téléphones calculent ce rythme tout seuls… »). Ce qui manquait
+         n\'était pas de comprendre : c\'était de savoir quoi FAIRE de ses jambes.
+         La chaleur au-dessus se lit en marchant, pas en lisant. -->
+    <string name="rendezvous_mutual">Allez chercher votre résonance en vous déplaçant physiquement.</string>
     <string name="rendezvous_out_of_range">hors de portée à l\'instant</string>
     <string name="rendezvous_searching">Vous cherchez depuis %1$d secondes.</string>
     <string name="rendezvous_patience">La station ne peut pas savoir si l\'autre écran bat : rien ne circule. Son silence n\'est pas un refus — il se peut simplement que le Plateau ne soit pas ouvert en face.</string>

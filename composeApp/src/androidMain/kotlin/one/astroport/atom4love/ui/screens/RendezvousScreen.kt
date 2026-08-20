@@ -8,6 +8,8 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.WindowManager
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,6 +49,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -113,6 +116,13 @@ fun RendezvousScreen(
     /** Vrai tant que le pair est effectivement entendu à l'instant. */
     inRange: Boolean,
     onClose: () -> Unit,
+    /**
+     * Son pseudo, quand un lien attesté nous l'a appris — la même règle qu'au
+     * Plateau et au journal : **le pseudo en gras, le sceau entre parenthèses**.
+     * Des deux noms, celui qui désigne quelqu'un est le pseudo ; le sceau, on
+     * l'a déjà sous les yeux, en grand, et il bat.
+     */
+    pseudo: String? = null,
 ) {
     CompositionLocalProvider(LocalA4L provides A4LDark) {
         Lantern(
@@ -121,6 +131,7 @@ fun RendezvousScreen(
             own = own,
             inRange = inRange,
             onClose = onClose,
+            pseudo = pseudo,
         )
     }
 }
@@ -132,6 +143,7 @@ private fun Lantern(
     own: ProximityPayload.Signature,
     inRange: Boolean,
     onClose: () -> Unit,
+    pseudo: String?,
 ) {
     // L'horloge murale, relue à chaque image — c'est elle qui décide de la
     // fenêtre en cours autant que du pas du motif.
@@ -226,10 +238,18 @@ private fun Lantern(
             ) { Text("✕", fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f)) }
         }
 
+        // ⚠ **La colonne défile.** Vu sur l'A5 le 20/08 : la note « les deux
+        // téléphones calculent ce rythme tout seuls… » était coupée net par la
+        // barre du bas, et l'horloge de recherche qui la suit ne s'affichait
+        // pas du tout. Un écran de 1920 px de haut suffit à faire déborder ce
+        // qui tient sur un Pixel — et cet écran-là est justement celui qu'on
+        // tient à bout de bras dans une salle, sans pouvoir deviner qu'il
+        // manque quelque chose. Centrée tant que ça tient, défilante sinon.
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(horizontal = 28.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 28.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -247,11 +267,28 @@ private fun Lantern(
             }
 
             Spacer(Modifier.height(10.dp))
-            Text(
-                KinMaya.glyphName(theirs.glyph) ?: stringResource(R.string.board_no_seal),
-                style = A4LText.H2,
-                color = Color.White.copy(alpha = 0.92f),
-            )
+            val seal = "(${KinMaya.glyphName(theirs.glyph) ?: stringResource(R.string.board_no_seal)})"
+            if (pseudo != null) {
+                Text(
+                    pseudo,
+                    style = A4LText.H2,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White.copy(alpha = 0.92f),
+                )
+                Text(
+                    seal,
+                    style = A4LText.Body,
+                    color = Color.White.copy(alpha = 0.55f),
+                )
+            } else {
+                // Personne ne nous l'a nommée : le sceau tient la place du nom,
+                // et garde ses parenthèses pour rester le même mot partout.
+                Text(
+                    seal,
+                    style = A4LText.H2,
+                    color = Color.White.copy(alpha = 0.92f),
+                )
+            }
 
             // ── La chaleur, toujours vivante ──────────────────────────────
             Spacer(Modifier.height(8.dp))
@@ -320,18 +357,18 @@ private fun Lantern(
             Spacer(Modifier.height(30.dp))
             if (beat != null) {
                 RhythmStrip(beat = beat, slot = slot, accent = accent)
+                // ⚠ « Levez votre écran. Cherchez dans la salle celui qui bat
+                // comme le vôtre. » retirée le 20/08 à la demande de Florent.
+                // Elle disait à voix haute ce que l'écran fait déjà voir : un
+                // glyphe qui bat, une figure à comparer. Le geste est celui
+                // qu'on invente en tenant l'appareil, pas celui qu'on lit.
                 Spacer(Modifier.height(26.dp))
-                Text(
-                    stringResource(R.string.rendezvous_instruction),
-                    style = A4LText.Body,
-                    color = Color.White.copy(alpha = 0.86f),
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(14.dp))
+                // Ce n'est plus une note en bas de page mais la consigne : elle
+                // reprend la place, et le poids, de la phrase retirée au-dessus.
                 Text(
                     stringResource(R.string.rendezvous_mutual),
-                    style = A4LText.Caption,
-                    color = Color.White.copy(alpha = 0.40f),
+                    style = A4LText.Body,
+                    color = Color.White.copy(alpha = 0.86f),
                     textAlign = TextAlign.Center,
                 )
                 SearchClock(startedAt = startedAt, now = now)

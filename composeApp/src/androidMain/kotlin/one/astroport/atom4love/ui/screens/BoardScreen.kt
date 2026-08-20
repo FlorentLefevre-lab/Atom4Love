@@ -229,6 +229,7 @@ fun BoardScreen(
             own = own,
             inRange = live != null,
             onClose = { seekingId = null; seekingMany = false },
+            pseudo = card.token?.let { names[it] },
         )
         return
     }

@@ -102,8 +102,7 @@
     <string name="board_seek_many">Buscar las %1$d primeras a la vez</string>
     <string name="board_seeks_you">te busca</string>
     <string name="rendezvous_title">Reconocerse</string>
-    <string name="rendezvous_instruction">Levanta tu pantalla.\nBusca en la sala la que late como la tuya.</string>
-    <string name="rendezvous_mutual">Ambos teléfonos calculan este ritmo por su cuenta, a partir de las dos fases. Nada se envía, nadie es avisado — solo late del otro lado si esa persona también te eligió.</string>
+    <string name="rendezvous_mutual">Vaya a buscar su resonancia desplazándose físicamente.</string>
     <string name="rendezvous_out_of_range">fuera de alcance ahora mismo</string>
     <string name="rendezvous_searching">Llevas %1$d segundos buscando.</string>
     <string name="rendezvous_patience">La estación no puede saber si la otra pantalla late: nada circula. Su silencio no es un rechazo — puede que el Tablero simplemente no esté abierto del otro lado.</string>
