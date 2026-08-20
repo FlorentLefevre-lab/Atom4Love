@@ -101,7 +101,6 @@
     <!-- 🔦 El reconocimiento: el último metro, cruzado con la mirada. -->
     <string name="board_seek_many">Buscar las %1$d primeras a la vez</string>
     <string name="board_seeks_you">te busca</string>
-    <string name="board_first_card">tu más fuerte</string>
     <string name="rendezvous_title">Reconocerse</string>
     <string name="rendezvous_instruction">Levanta tu pantalla.\nBusca en la sala la que late como la tuya.</string>
     <string name="rendezvous_mutual">Ambos teléfonos calculan este ritmo por su cuenta, a partir de las dos fases. Nada se envía, nadie es avisado — solo late del otro lado si esa persona también te eligió.</string>

@@ -361,7 +361,6 @@ fun BoardScreen(
                         DealtCard(
                             neighbor = neighbor,
                             own = own,
-                            first = index == 0 && hand.size > 1,
                             // Elle s'est déclarée : elle nous cherche, et elle
                             // le dit. Toucher la sienne suffit alors — les deux
                             // écrans battront.
@@ -542,8 +541,6 @@ private fun DealtCard(
     neighbor: NeighborRegistry.Neighbor,
     own: ProximityPayload.Signature,
     onSeek: () -> Unit,
-    /** La tête de main — celle par laquelle il faut commencer, cf. `board_symmetry`. */
-    first: Boolean = false,
     /**
      * Cette carte a déclaré nous chercher.
      *
@@ -640,13 +637,6 @@ private fun DealtCard(
                         stringResource(R.string.board_seeks_you),
                         style = A4LText.Caption.copy(fontWeight = FontWeight.Bold),
                         color = A4L.Gold,
-                    )
-                }
-                if (first && !seeksUs) {
-                    Text(
-                        stringResource(R.string.board_first_card),
-                        style = A4LText.Caption,
-                        color = A4L.TextBody,
                     )
                 }
                 if (match.level != Match.Level.None) {

@@ -145,7 +145,6 @@
     <!-- 🔦 La reconnaissance : le dernier mètre, franchi par les yeux. -->
     <string name="board_seek_many">Chercher les %1$d premières en même temps</string>
     <string name="board_seeks_you">vous cherche</string>
-    <string name="board_first_card">votre plus forte</string>
     <string name="rendezvous_title">Se reconnaître</string>
     <string name="rendezvous_instruction">Levez votre écran.\nCherchez dans la salle celui qui bat comme le vôtre.</string>
     <string name="rendezvous_mutual">Les deux téléphones calculent ce rythme tout seuls, à partir des deux phases. Rien n\'est envoyé, personne n\'est prévenu — il ne bat de l\'autre côté que si l\'autre vous a choisi aussi.</string>
