@@ -205,4 +205,74 @@ class ConversationsTest {
     fun `la clé reste ce qui identifie, à nom égal`() {
         assertNotEquals(peer(1, "Flower"), peer(2, "Flower"))
     }
+
+    // ── Ce qui attend d'être lu, fil par fil ─────────────────────────────
+
+    /**
+     * La pastille de l'onglet disait « 3 » et aucune ligne ne disait
+     * lesquelles. Ce qui est épinglé ici est l'invariant qui rend les deux
+     * lisibles ensemble : **la somme des lignes est le nombre de l'onglet.**
+     */
+    @Test
+    fun `le compte par fil se répartit et sa somme fait le total`() {
+        val messages = listOf(
+            message(hex(1), "coucou", mine = false, atMs = 10),
+            message(hex(1), "tu es là ?", mine = false, atMs = 20),
+            message(hex(2), "salut", mine = false, atMs = 30),
+        )
+        val byPeer = Conversations.unreadByPeer(messages, emptyMap())
+        assertEquals(mapOf(hex(1) to 2, hex(2) to 1), byPeer)
+        assertEquals(Conversations.unread(messages, emptyMap()).size, byPeer.values.sum())
+    }
+
+    @Test
+    fun `ce que j'ai écrit ne m'attend pas`() {
+        val messages = listOf(
+            message(hex(1), "salut", mine = true, atMs = 10),
+            message(hex(1), "coucou", mine = false, atMs = 20),
+        )
+        assertEquals(mapOf(hex(1) to 1), Conversations.unreadByPeer(messages, emptyMap()))
+    }
+
+    /**
+     * Le fil regardé retombe **entièrement**, et lui seul : une marque de
+     * lecture vaut pour une personne, jamais pour la liste.
+     */
+    @Test
+    fun `regarder un fil ne fait retomber que celui-là`() {
+        val messages = listOf(
+            message(hex(1), "coucou", mine = false, atMs = 10),
+            message(hex(2), "salut", mine = false, atMs = 20),
+        )
+        val byPeer = Conversations.unreadByPeer(messages, mapOf(hex(1) to 15L))
+        assertEquals(mapOf(hex(2) to 1), byPeer)
+        // Un fil lu n'apparaît pas à zéro : il n'apparaît pas du tout.
+        assertNull(byPeer[hex(1)])
+    }
+
+    /**
+     * ⚠ Un message arrivé **après** le dernier coup d'œil compte de nouveau —
+     * c'est tout le sens d'une date plutôt que d'un drapeau.
+     */
+    @Test
+    fun `ce qui arrive après le dernier coup d'œil compte de nouveau`() {
+        val messages = listOf(
+            message(hex(1), "coucou", mine = false, atMs = 10),
+            message(hex(1), "tu es là ?", mine = false, atMs = 30),
+        )
+        assertEquals(mapOf(hex(1) to 1), Conversations.unreadByPeer(messages, mapOf(hex(1) to 20L)))
+    }
+
+    /**
+     * ⚠ **Une pastille qu'aucun écran ne peut faire retomber.** Un message
+     * venu d'un lien que personne n'a signé n'a pas de fil ([Conversations.of]
+     * ne lui en donne aucun) : le compter ferait un compte qu'on ne peut pas
+     * aller lire.
+     */
+    @Test
+    fun `un message sans correspondant ne compte nulle part`() {
+        val messages = listOf(message(null, "d'où ça vient ?", mine = false, atMs = 10))
+        assertTrue(Conversations.unread(messages, emptyMap()).isEmpty())
+        assertTrue(Conversations.unreadByPeer(messages, emptyMap()).isEmpty())
+    }
 }

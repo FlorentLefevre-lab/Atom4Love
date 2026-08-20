@@ -31,6 +31,7 @@ import one.astroport.atom4love.chat.ChatKind
 import one.astroport.atom4love.chat.Conversation
 import one.astroport.atom4love.ui.components.SectionLabel
 import one.astroport.atom4love.ui.components.StatusDot
+import one.astroport.atom4love.ui.components.UnreadPill
 import one.astroport.atom4love.ui.components.dashedGlass
 import one.astroport.atom4love.ui.components.glass
 import one.astroport.atom4love.ui.components.screenBackground
@@ -60,17 +61,36 @@ import one.astroport.atom4love.ui.theme.tint
  * deux fois. Ce qui manque quand la liste est vide n'est pas un bouton, c'est
  * quelqu'un — et l'écran le dit.
  *
- * ## Ce qui n'y est pas, et n'y sera pas
+ * ## Le compteur de non-lus, fil par fil
  *
- * Un compteur de non-lus par fil. Il demanderait de retenir ce qui a été vu,
- * donc d'écrire quelque part, donc de garder — et ces conversations ne se
- * gardent pas. La pastille dit ce qui est vrai et suffit : qui est joignable
- * maintenant.
+ * Il était écarté ici même, au motif qu'il faudrait retenir ce qui a été vu,
+ * donc écrire, donc garder — ce que ces conversations promettent de ne pas
+ * faire. L'objection est tombée sans qu'on y touche : **les marques de lecture
+ * existent déjà** ([one.astroport.atom4love.ui.ChatHost]), une date par
+ * personne, en mémoire, du même âge exactement que les fils. Rien de plus n'est
+ * écrit ni gardé.
+ *
+ * Ce qui restait était donc un manque, pas une abstention : la pastille de
+ * l'onglet disait « 3 » et pas une ligne ne disait lesquelles — il fallait
+ * ouvrir les conversations une à une pour retrouver les trois messages. Chaque
+ * ligne porte maintenant son compte, dans **la même pastille** que l'onglet
+ * ([UnreadPill]), et la somme des lignes est ce que l'onglet annonce.
+ *
+ * ⚠ Ce qui n'a pas changé : **l'ordre de la liste**. Il suit le dernier mot dit
+ * ([one.astroport.atom4love.chat.Conversations]), et un message non lu est par
+ * construction récent — remonter les non-lus par-dessus ferait sauter un fil
+ * sous le pouce au moment même où l'on va le toucher.
  */
 @Composable
 fun ChatsScreen(
     conversations: List<Conversation>,
     onOpen: (Conversation) -> Unit,
+    /**
+     * Ce qui attend d'être lu, par clé publique hexadécimale — voir
+     * [one.astroport.atom4love.ui.ChatHost.unreadByPeer]. Un fil absent de la
+     * carte n'a rien en attente.
+     */
+    unread: Map<String, Int> = emptyMap(),
     /**
      * **Fermer et effacer** — la promesse que la cabine tenait par sa sortie.
      *
@@ -144,7 +164,11 @@ fun ChatsScreen(
             verticalArrangement = Arrangement.spacedBy(9.dp),
         ) {
             items(conversations, key = { it.peerHex }) { conversation ->
-                ThreadRow(conversation = conversation, onClick = { onOpen(conversation) })
+                ThreadRow(
+                    conversation = conversation,
+                    unread = unread[conversation.peerHex] ?: 0,
+                    onClick = { onOpen(conversation) },
+                )
             }
             // ⚠ **En bas, et seulement s'il y a quelque chose à effacer.** Un
             // geste destructeur ne se met pas sous le pouce en tête de liste, et
@@ -168,7 +192,7 @@ fun ChatsScreen(
  * franchie pour un incident.
  */
 @Composable
-private fun ThreadRow(conversation: Conversation, onClick: () -> Unit) {
+private fun ThreadRow(conversation: Conversation, unread: Int, onClick: () -> Unit) {
     val accent = if (conversation.inRange) A4L.Mint else A4L.TextDim
     Row(
         Modifier
@@ -194,12 +218,22 @@ private fun ThreadRow(conversation: Conversation, onClick: () -> Unit) {
             Text(
                 conversation.preview(),
                 style = A4LText.Caption,
-                color = A4L.TextMuted,
+                // Ce qui n'est pas lu se lit en encre pleine : la pastille dit
+                // combien, la ligne dit quoi, et une ligne grisée sous une
+                // pastille rouge se contredirait elle-même.
+                color = if (unread > 0) A4L.TextBody else A4L.TextMuted,
+                fontWeight = if (unread > 0) FontWeight.SemiBold else FontWeight.Normal,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
         Spacer(Modifier.width(10.dp))
+        // ⚠ **Avant le chevron, jamais à sa place.** Le chevron dit qu'on peut
+        // entrer et ne dépend de rien ; la pastille dit ce qu'on y trouvera et
+        // disparaît dès que c'est lu. Les échanger ferait bouger la porte au
+        // rythme des messages.
+        UnreadPill(unread, fontSize = 10.sp)
+        if (unread > 0) Spacer(Modifier.width(10.dp))
         Text("›", fontSize = 17.sp, color = A4L.TextFaint)
     }
 }

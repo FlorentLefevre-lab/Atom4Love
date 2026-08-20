@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -29,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import one.astroport.atom4love.ui.theme.A4L
@@ -223,6 +226,37 @@ fun ComputedRow(
             style = A4LText.Data.copy(fontSize = 11.5.sp),
             color = valueColor,
             maxLines = 1,
+        )
+    }
+}
+
+/**
+ * La pastille rouge de ce qui attend d'être lu.
+ *
+ * ⚠ **Une seule et même pastille pour l'onglet et pour la ligne du fil.** Elles
+ * disent la même chose à deux échelles — la somme des lignes EST le nombre de
+ * l'onglet — et deux dessins différents auraient donné deux objets à
+ * apprendre là où il n'y a qu'une notion. Le jour où l'une change de forme,
+ * l'autre suit.
+ *
+ * Rien ne se dessine à zéro : une pastille vide est un objet qui dit « rien »,
+ * et l'absence le dit mieux.
+ */
+@Composable
+fun UnreadPill(count: Int, modifier: Modifier = Modifier, fontSize: TextUnit = 9.sp) {
+    if (count <= 0) return
+    Box(
+        modifier
+            .clip(CircleShape)
+            .background(A4L.Red)
+            .padding(horizontal = 5.dp, vertical = 1.dp),
+    ) {
+        Text(
+            // Au-delà, le nombre exact n'apprend plus rien et la pastille
+            // cesse d'être une pastille.
+            if (count > 9) "9+" else count.toString(),
+            style = A4LText.Data.copy(fontSize = fontSize, fontWeight = FontWeight.Bold),
+            color = A4L.Deep,
         )
     }
 }

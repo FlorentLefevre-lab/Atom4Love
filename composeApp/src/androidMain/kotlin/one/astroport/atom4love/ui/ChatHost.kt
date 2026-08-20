@@ -108,6 +108,23 @@ class ChatHost(application: Application) : AndroidViewModel(application) {
     private val _unread = MutableStateFlow(Unread())
     val unread: StateFlow<Unread> = _unread.asStateFlow()
 
+    private val _unreadByPeer = MutableStateFlow(emptyMap<String, Int>())
+
+    /**
+     * Le même compte, **fil par fil** — par clé publique hexadécimale.
+     *
+     * ⚠ La pastille de l'onglet disait « 3 » et aucune ligne de la liste ne
+     * disait lesquelles : il fallait ouvrir les conversations une à une pour
+     * retrouver les trois messages. Il vient de la **même** lecture que
+     * [unread], à la même émission ([Conversations.unreadByPeer]) : deux
+     * comptes calculés séparément finiraient par se contredire, et c'est
+     * toujours la pastille qu'on croirait.
+     *
+     * Il vit ici pour la raison qui a fait descendre tout le reste :
+     * l'écran ne recompose pas quand il n'est pas à l'écran.
+     */
+    val unreadByPeer: StateFlow<Map<String, Int>> = _unreadByPeer.asStateFlow()
+
     /**
      * **Les arrivées, une par une.**
      *
@@ -179,16 +196,25 @@ class ChatHost(application: Application) : AndroidViewModel(application) {
         }
             .combine(_readAt) { (peers, messages), reads -> summarise(peers, messages, reads) }
             .distinctUntilChanged()
-            .combine(_foreground) { unread, visible -> unread to visible }
-            .collect { (unread, visible) ->
+            .combine(_foreground) { tally, visible -> tally to visible }
+            .collect { (tally, visible) ->
+                val unread = tally.unread
                 announce(unread)
                 _unread.value = unread
+                _unreadByPeer.value = tally.byPeer
                 when {
                     unread.count == 0 -> notifier.clear()
                     !visible -> notifier.waiting(unread)
                 }
             }
     }
+
+    /**
+     * Une lecture des messages en attente, sous les deux formes dont l'écran a
+     * besoin : ce qu'un bandeau montre, et ce que chaque ligne de la liste
+     * porte. Une seule lecture, donc jamais deux comptes qui divergent.
+     */
+    private data class Tally(val unread: Unread, val byPeer: Map<String, Int>)
 
     /**
      * L'identifiant du dernier message entrant déjà annoncé.
@@ -234,29 +260,29 @@ class ChatHost(application: Application) : AndroidViewModel(application) {
     private var lastIncomingId = -1
 
     /**
-     * Ce qui attend d'être lu, tous fils confondus, **et de qui vient le plus
-     * récent**.
+     * Ce qui attend d'être lu — le total et **de qui vient le plus récent** pour
+     * le bandeau, le détail **fil par fil** pour la liste.
      *
-     * ⚠ Les messages **sans correspondant** ne comptent pas : ils viennent d'un
-     * lien que personne n'a signé, donc d'un appareil qu'on ne sait pas nommer,
-     * et [Conversations] ne leur donne aucun fil. Les compter ferait une
-     * pastille qu'aucun écran ne peut faire retomber.
+     * La règle de ce qui compte (et surtout de ce qui ne compte pas : les
+     * messages sans correspondant) vit dans [Conversations.unread], avec les
+     * fils eux-mêmes, et s'éprouve donc sans appareil.
      */
     private fun summarise(
         peers: List<ChatEngine.Peer>,
         messages: List<ChatMessage>,
         reads: Map<String, Long>,
-    ): Unread {
-        val waiting = messages.filter { message ->
-            val peer = message.peer
-            !message.mine && peer != null && message.atMs > (reads[peer] ?: 0L)
-        }
+    ): Tally {
+        val waiting = Conversations.unread(messages, reads)
         lastIncomingId = messages.lastOrNull { !it.mine && it.peer != null }?.id ?: -1
-        val last = waiting.lastOrNull() ?: return Unread()
+        // Le détail vient de la même définition que le total, et non d'un
+        // regroupement refait ici : c'est ce qui garantit que la somme des
+        // lignes est exactement ce que dit la pastille.
+        val byPeer = Conversations.unreadByPeer(messages, reads)
+        val last = waiting.lastOrNull() ?: return Tally(Unread(), emptyMap())
         // Le nom passe par les fils : c'est là que vit la règle des homonymes.
         val name = Conversations.of(peers, messages)
             .firstOrNull { it.peerHex == last.peer }?.name
-        return Unread(waiting.size, name, extract(last), last.peer)
+        return Tally(Unread(waiting.size, name, extract(last), last.peer), byPeer)
     }
 
     /** Ce qu'on montre d'un message dans un bandeau — jamais une pièce jointe. */
@@ -284,6 +310,7 @@ class ChatHost(application: Application) : AndroidViewModel(application) {
         // ferait vieillir des dates sans objet, et le prochain qui parle
         // arriverait « déjà lu » s'il tombait dans la même milliseconde.
         _readAt.value = emptyMap()
+        _unreadByPeer.value = emptyMap()
     }
 
     /** L'activité s'en va pour de bon (et non pour se recréer). */

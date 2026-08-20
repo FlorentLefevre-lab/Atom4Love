@@ -119,6 +119,7 @@ import one.astroport.atom4love.trial.Trial
 import one.astroport.atom4love.trial.TrialStore
 import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.components.StatusDot
+import one.astroport.atom4love.ui.components.UnreadPill
 import one.astroport.atom4love.chat.Conversations
 import one.astroport.atom4love.journal.Journal
 import one.astroport.atom4love.journal.JournalRecorder
@@ -820,6 +821,11 @@ private fun Station(
     // n'en garde que la lecture, pour sa pastille.
     val unread by cabinHost.unread.collectAsStateWithLifecycle()
     val unreadTotal = unread.count
+    // ⚠ **La pastille de l'onglet ne disait pas lesquelles.** « 3 » en haut de
+    // l'écran, et trois fils à ouvrir un par un pour les retrouver. Le détail
+    // vient du même endroit et de la même lecture que le total : la somme des
+    // lignes est ce que la barre annonce, toujours.
+    val unreadByPeer by cabinHost.unreadByPeer.collectAsStateWithLifecycle()
     // Le fil ouvert se lit en continu — y compris ce qui arrive pendant qu'on
     // le regarde. La clé `cabinMessages` n'est pas décorative : sans elle, un
     // message reçu la conversation ouverte resterait compté comme en attente.
@@ -1129,6 +1135,7 @@ private fun Station(
                             A4LTab.Chats -> ChatsScreen(
                                 conversations = conversations,
                                 onOpen = { openPeer = it.peerHex },
+                                unread = unreadByPeer,
                                 onErase = eraseConversations,
                             )
                             A4LTab.World ->
@@ -1748,26 +1755,9 @@ private fun A4LNavBar(
                             .alpha(veil)
                             .padding(start = 9.dp, top = 5.dp),
                     )
-                    val waiting = badge(entry)
-                    if (waiting > 0) {
-                        Box(
-                            Modifier
-                                .clip(CircleShape)
-                                .background(A4L.Red)
-                                .padding(horizontal = 5.dp, vertical = 1.dp),
-                        ) {
-                            Text(
-                                // Au-delà, le nombre exact n'apprend plus rien
-                                // et la pastille cesse d'être une pastille.
-                                if (waiting > 9) "9+" else waiting.toString(),
-                                style = A4LText.Data.copy(
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                ),
-                                color = A4L.Deep,
-                            )
-                        }
-                    }
+                    // La même pastille que les lignes de la liste des Chats —
+                    // c'est le même nombre, à deux échelles.
+                    UnreadPill(badge(entry))
                 }
                 Text(
                     stringResource(entry.labelRes),

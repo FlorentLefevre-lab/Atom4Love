@@ -145,4 +145,39 @@ object Conversations {
                     .thenByDescending { it.inRange },
             )
     }
+
+    /**
+     * Ce qui attend d'être lu, message par message.
+     *
+     * ⚠ **Une date de lecture par personne, et rien de plus.** Marquer chaque
+     * message « lu » demanderait de retoucher la liste du moteur à chaque coup
+     * d'œil ; retenir *quand* un fil a été regardé suffit, et se range en un
+     * nombre par correspondant. Ces marques vivent le temps de la station,
+     * exactement comme les fils eux-mêmes — ce qui ne se garde pas n'a pas de
+     * non-lus à garder.
+     *
+     * ⚠ Les messages **sans correspondant** ([ChatMessage.peer] à null) ne
+     * comptent pas : ils viennent d'un lien que personne n'a signé, [of] ne
+     * leur donne aucun fil, et les compter ferait une pastille qu'aucun écran
+     * ne peut faire retomber.
+     *
+     * @param readAt la dernière fois que chaque fil a été regardé, par clé
+     *   publique hexadécimale ; un fil absent n'a jamais été ouvert.
+     */
+    fun unread(messages: List<ChatMessage>, readAt: Map<String, Long>): List<ChatMessage> =
+        messages.filter { message ->
+            val peer = message.peer
+            !message.mine && peer != null && message.atMs > (readAt[peer] ?: 0L)
+        }
+
+    /**
+     * Le même compte, **fil par fil**.
+     *
+     * La pastille de l'onglet disait « 3 » et aucune ligne ne disait lesquelles :
+     * il fallait ouvrir les conversations une à une pour retrouver les trois
+     * messages. C'est la somme de cette carte qui fait la pastille — une seule
+     * lecture des mêmes messages, donc jamais deux comptes qui divergent.
+     */
+    fun unreadByPeer(messages: List<ChatMessage>, readAt: Map<String, Long>): Map<String, Int> =
+        unread(messages, readAt).groupingBy { it.peer!! }.eachCount()
 }
