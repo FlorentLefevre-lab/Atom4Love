@@ -686,6 +686,15 @@ fun IncarnationScreen(
                         style = A4LText.Body,
                         color = A4L.TextBody,
                     )
+                    // Le compte ne se nomme que s'il existe : la phrase
+                    // n'apparaît pas à qui n'a pas de MULTIPASS.
+                    if (multipassActive) {
+                        Text(
+                            stringResource(R.string.inc_dissolve_multipass),
+                            style = A4LText.Body,
+                            color = A4L.TextBody,
+                        )
+                    }
                     Text(
                         stringResource(R.string.inc_dissolve_warning),
                         style = A4LText.Caption,

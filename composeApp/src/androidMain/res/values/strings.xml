@@ -493,6 +493,11 @@
 
     <string name="inc_dissolve_title">Dissoudre le noyau ?</string>
     <string name="inc_dissolve_body">Votre fiche d\'incarnation et la clé qui en dérive seront effacées de cette station. Rien ne part sur le réseau : en ressaisissant exactement les mêmes données, la même clé renaîtra.</string>
+    <!-- ⚠ Ne s\'affiche que si un MULTIPASS est actif sur cet appareil. Il n\'est
+         PAS effacé — son nsec ouvre les portefeuilles ẐEN et ne se redérive pas
+         —, mais il cesse d\'ouvrir le Monde, parce qu\'il appartient à la clé
+         LOVE de la fiche qu\'on efface. À dire AVANT, pas à découvrir après. -->
+    <string name="inc_dissolve_multipass">Votre MULTIPASS reste au coffre — rien de ce qui ouvre vos portefeuilles n\'est effacé —, mais le Monde se refermera : ce compte appartient à la clé LOVE de cette fiche-là. Ressaisissez les mêmes données et il se rouvre de lui-même.</string>
     <string name="inc_dissolve_warning">⚠ Une seule donnée différente produira une clé entièrement différente.</string>
     <string name="inc_dissolve_last_title">Dernière confirmation</string>
     <string name="inc_dissolve_last_body">La station va oublier votre noyau, immédiatement et sans retour en arrière. Vous reviendrez à l\'écran de forge, fiche vierge.</string>

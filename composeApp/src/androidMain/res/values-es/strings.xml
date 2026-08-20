@@ -419,6 +419,7 @@
 
     <string name="inc_dissolve_title">¿Disolver el núcleo?</string>
     <string name="inc_dissolve_body">Tu ficha de encarnación y la clave que se deriva de ella se borrarán de esta estación. Nada sale a la red: si vuelves a escribir exactamente los mismos datos, renacerá la misma clave.</string>
+    <string name="inc_dissolve_multipass">Su MULTIPASS permanece en la caja fuerte — nada de lo que abre sus carteras se borra —, pero el Mundo volverá a cerrarse: esta cuenta pertenece a la clave LOVE de esta ficha. Vuelva a escribir los mismos datos y se reabre solo.</string>
     <string name="inc_dissolve_warning">⚠ Un solo dato distinto producirá una clave completamente distinta.</string>
     <string name="inc_dissolve_last_title">Última confirmación</string>
     <string name="inc_dissolve_last_body">La estación va a olvidar tu núcleo, de inmediato y sin vuelta atrás. Volverás a la pantalla de forja, con la ficha en blanco.</string>

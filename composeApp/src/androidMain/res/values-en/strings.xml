@@ -416,6 +416,7 @@
 
     <string name="inc_dissolve_title">Dissolve the nucleus?</string>
     <string name="inc_dissolve_body">Your incarnation form and the key derived from it will be erased from this station. Nothing goes onto the network: entering exactly the same data will bring the same key back.</string>
+    <string name="inc_dissolve_multipass">Your MULTIPASS stays in the vault — nothing that opens your wallets is erased — but the World will close again: this account belongs to the LOVE key of this very record. Enter the same data again and it reopens by itself.</string>
     <string name="inc_dissolve_warning">⚠ A single different value produces an entirely different key.</string>
     <string name="inc_dissolve_last_title">Last confirmation</string>
     <string name="inc_dissolve_last_body">The station is about to forget your nucleus, at once and with no way back. You will return to the forge screen, with an empty form.</string>

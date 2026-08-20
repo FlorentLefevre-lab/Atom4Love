@@ -400,7 +400,32 @@ private fun Station(
     val welcomeStore = remember(context) { WelcomeStore(context.applicationContext) }
     val welcomeNotifier = remember(context) { WelcomeNotifier(context.applicationContext) }
     val lifecycleOwner = LocalLifecycleOwner.current
-    val worldUnlocked = account?.loveActivated == true
+    /**
+     * ⚠⚠ **Le compte appartient-il à CE noyau ?**
+     *
+     * Signalé par Florent le 20/08 sur l'A5 : noyau dissous, assistant et forge
+     * refaits — et le Monde toujours ouvert. La dissolution n'a jamais touché
+     * au MULTIPASS (et ne doit pas : son `nsec` ouvre les portefeuilles ẐEN et
+     * ne se redérive pas), si bien qu'un noyau neuf héritait de l'identité du
+     * précédent.
+     *
+     * La clé LOVE que la station rend est dérivée des cinq données de la fiche,
+     * et notre dérivation locale la reproduit à l'octet (vérifié le 15/08). Un
+     * `loveHex` qui ne tombe pas sur la clé du noyau courant désigne donc la
+     * fiche d'avant : le compte est étranger à ce noyau, et le Monde reste clos.
+     *
+     * ⚠ On ne referme que sur une divergence **constatée** : tant que la clé du
+     * noyau n'est pas dérivée (elle part en arrière-plan, quelques secondes la
+     * première fois), rien ne bouge — sans quoi le cadenas clignoterait à chaque
+     * démarrage.
+     *
+     * Rien n'est détruit : ressaisir les mêmes cinq données redonne la même clé,
+     * et le Monde se rouvre de lui-même.
+     */
+    val foreignAccount = derivedKeys != null &&
+        account?.loveHex?.isNotEmpty() == true &&
+        !account!!.loveHex.equals(derivedKeys!!.publicKeyHex, ignoreCase = true)
+    val worldUnlocked = account?.loveActivated == true && !foreignAccount
 
     // ⚠ Deux conditions, et aucune n'est décorative. `worldUnlocked` : le relais
     // public ne se lit pas sans clé LOVE activée — pas de MULTIPASS, pas de
@@ -1263,6 +1288,15 @@ private fun Station(
                                     // hériter de ça.
                                     pseudo = ""
                                     forged = false
+                                    // ⚠ **Le MULTIPASS n'est PAS effacé** — le
+                                    // KDoc de MultipassStore l'interdit, et il
+                                    // a raison : son `nsec` ouvre les
+                                    // portefeuilles ẐEN et ne se redérive pas.
+                                    // Il reste au coffre ; c'est le Monde qui
+                                    // se referme, parce que le compte
+                                    // appartient à la clé LOVE de la fiche
+                                    // qu'on vient d'effacer. Voir
+                                    // [foreignAccount].
                                     tab = A4LTab.Board
                                     scope.launch {
                                         store.clear()
