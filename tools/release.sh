@@ -114,6 +114,21 @@ cat > latest.json <<JSON
 }
 JSON
 
+# ── 4bis. Le miroir de la station, dans www/ ──────────────────────────────
+#
+# ⚠ **Il était fait à la main, donc oublié.** `www/` est ce que la station de
+# Fred sert et ce que la page de téléchargement décrit : un APK d'hier avec une
+# empreinte d'aujourd'hui, et l'application refuse d'installer en disant que le
+# fichier est corrompu. Les deux fichiers sortent donc du même geste que
+# l'APK — ils ne peuvent plus diverger.
+#
+# `atom4love.json` porte le MÊME contenu que `latest.json` : deux adresses, un
+# seul manifeste, et l'empreinte tranche si l'une des deux prend du retard.
+mkdir -p "$ROOT/www"
+cp "$OUT/$APK_NAME" "$ROOT/www/$APK_NAME"
+cp latest.json "$ROOT/www/atom4love.json"
+say "miroir   : www/$APK_NAME + www/atom4love.json"
+
 say "APK      : $OUT/$APK_NAME ($((SIZE / 1048576)) Mo)"
 say "empreinte: $SHA"
 say "manifeste: latest.json"
