@@ -24,8 +24,45 @@ class CellLocator(private val context: Context) {
     companion object {
         private const val TAG = "Proximity"
 
-        /** Les azimuts échantillonnés autour d'une position — voir [certain]. */
+        /** Les azimuts échantillonnés autour d'une position — voir [fitsInCell]. */
         private const val BEARINGS = 8
+
+        /**
+         * Au-delà, une position ne désigne plus aucun hexagone : le rayon
+         * intérieur d'une cellule de résolution 8 vaut ~400 m, et
+         * l'« approximative » d'Android floute au kilomètre. Un fix GNSS
+         * (5-50 m) comme un fix Wi-Fi (20-100 m) passent largement.
+         */
+        private const val MAX_ACCURACY_M = 150f
+
+        /**
+         * ⚠ **Mémoire de PROCESSUS.** Le portail courant est un fait de
+         * l'appareil, pas de l'objet : la balise et l'écran ont chacun leur
+         * [CellLocator], et rien ne serait pire que d'annoncer un portail et
+         * d'en afficher un autre.
+         */
+        @Volatile
+        private var sticky: Long? = null
+
+        /**
+         * Quel portail garder quand le point tombe dans un autre.
+         *
+         * Se tenir à trente mètres d'un bord est ordinaire — l'A5 y était le
+         * 20/08 —, et le bruit GPS fait alors sauter la cellule d'un relevé à
+         * l'autre. Chaque saut change l'adresse annoncée et le jeton qui en
+         * dérive : le portail clignoterait à l'écran pour quelqu'un
+         * d'immobile.
+         *
+         * On ne déménage donc que sur une preuve : le cercle d'incertitude tout
+         * entier dans la nouvelle cellule. Marcher vraiment jusqu'au voisin la
+         * fournit en quelques pas ; osciller sur le bord ne la fournit jamais.
+         */
+        fun settle(previous: Long?, seen: Long, seenFitsEntirely: Boolean): Long = when {
+            previous == null -> seen
+            previous == seen -> seen
+            seenFitsEntirely -> seen
+            else -> previous
+        }
 
         private const val EARTH_RADIUS_M = 6_371_000.0
 
@@ -102,8 +139,8 @@ class CellLocator(private val context: Context) {
         SERVICE_OFF,
 
         /**
-         * Tout est accordé et allumé, mais la position reçue est **trop
-         * imprécise pour désigner un hexagone sans risque** — voir [certain].
+         * Tout est accordé et allumé, mais la position reçue est **trop floue
+         * pour désigner un hexagone** — voir [precise].
          * ⚠ Ce cas-là ne rend pas le scan aveugle : la radio voit très bien,
          * c'est le lieu qu'on ne sait pas nommer.
          */
@@ -148,15 +185,30 @@ class CellLocator(private val context: Context) {
      * ⚠ Sans précision annoncée, on refuse : une position dont on ne sait rien
      * ne peut pas prouver qu'elle est dans l'hexagone.
      */
-    private fun certain(location: Location, cell: Long): Boolean {
+    /**
+     * Assez précise pour qu'un hexagone veuille dire quelque chose ?
+     *
+     * ⚠ **Ce n'est PAS « le cercle tient dans l'hexagone ».** C'était la règle
+     * du 20/08 au matin, et l'A5 l'a démentie le jour même : posé à 410 m du
+     * centre de sa cellule — donc à quelques dizaines de mètres d'un bord —, un
+     * fix GNSS honnête à ± 32 m était refusé, et l'appareil n'a plus jamais eu
+     * de portail. Trois téléphones sur la même table, deux nommés, un muet, à
+     * la seule loterie du bruit GPS. Un lieu où l'on se tient près d'un bord
+     * n'est pas un lieu où l'on ne se tient pas.
+     *
+     * Ce qu'on refuse, c'est ce qui ne peut désigner AUCUN hexagone : le rayon
+     * intérieur d'une cellule de résolution 8 vaut ~400 m, et l'approximative
+     * d'Android floute au kilomètre. [MAX_ACCURACY_M] laisse passer tout fix
+     * GNSS ou Wi-Fi et arrête ceux-là.
+     *
+     * La stabilité au bord, elle, est traitée ailleurs — par [settle].
+     */
+    private fun precise(location: Location): Boolean {
         if (!location.hasAccuracy()) {
             Log.i(TAG, "position sans précision annoncée : aucun portail nommé")
             return false
         }
-        return fitsInCell(
-            h3, location.latitude, location.longitude,
-            location.accuracy.toDouble(), BuildConfig.H3_RESOLUTION, cell,
-        )
+        return location.accuracy <= MAX_ACCURACY_M
     }
 
     /** null si la permission de localisation manque ou qu'aucune position n'arrive. */
@@ -169,17 +221,34 @@ class CellLocator(private val context: Context) {
         Log.d(TAG, "position obtenue (précision ${location.accuracy} m)")
         return runCatching {
             val cell = h3.latLngToCell(location.latitude, location.longitude, BuildConfig.H3_RESOLUTION)
-            if (!certain(location, cell)) {
+            if (!precise(location)) {
                 lastImpreciseM = location.accuracy
                 Log.i(
                     TAG,
-                    "position à ± ${location.accuracy.toInt()} m : le cercle déborde de " +
-                        "l'hexagone, aucun portail nommé",
+                    "position à ± ${location.accuracy.toInt()} m : trop floue pour " +
+                        "désigner un hexagone, aucun portail nommé",
                 )
                 return@runCatching null
             }
             lastImpreciseM = null
-            val center = h3.cellToLatLng(cell)
+            // ⚠ Le portail ne change qu'à bon escient — voir [settle].
+            val settled = settle(
+                previous = sticky,
+                seen = cell,
+                seenFitsEntirely = fitsInCell(
+                    h3, location.latitude, location.longitude,
+                    location.accuracy.toDouble(), BuildConfig.H3_RESOLUTION, cell,
+                ),
+            )
+            if (settled != cell) {
+                Log.i(
+                    TAG,
+                    "à cheval sur un bord (± ${location.accuracy.toInt()} m) : on garde " +
+                        "${settled.toString(16)} plutôt que ${cell.toString(16)}",
+                )
+            }
+            sticky = settled
+            val center = h3.cellToLatLng(settled)
             val distance = FloatArray(1)
             Location.distanceBetween(
                 location.latitude, location.longitude,
@@ -188,7 +257,7 @@ class CellLocator(private val context: Context) {
             Fix(
                 lat = location.latitude,
                 lon = location.longitude,
-                cell = cell,
+                cell = settled,
                 centerLat = center.lat,
                 centerLon = center.lng,
                 distanceToCenterM = distance[0].toDouble(),

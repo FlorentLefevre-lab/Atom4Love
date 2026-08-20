@@ -422,9 +422,21 @@ private fun Station(
      * Rien n'est détruit : ressaisir les mêmes cinq données redonne la même clé,
      * et le Monde se rouvre de lui-même.
      */
-    val foreignAccount = derivedKeys != null &&
-        account?.loveHex?.isNotEmpty() == true &&
-        !account!!.loveHex.equals(derivedKeys!!.publicKeyHex, ignoreCase = true)
+    val foreignAccount = derivedKeys != null && loveKeys != null &&
+        !loveKeys.publicKeyHex.equals(derivedKeys!!.publicKeyHex, ignoreCase = true)
+    // ⚠ La comparaison porte sur la clé tirée du `nsec` LOVE, pas sur le champ
+    // `loveHex` du compte : c'est cette clé-là qui sert d'identité partout
+    // ailleurs, et le champ, lui, peut très bien être resté vide selon ce que
+    // la station a renvoyé le jour de l'activation.
+    LaunchedEffect(foreignAccount) {
+        if (foreignAccount) {
+            Log.i(
+                "Multipass",
+                "compte étranger à ce noyau : LOVE ${loveKeys?.publicKeyHex?.take(8)} " +
+                    "≠ noyau ${derivedKeys?.publicKeyHex?.take(8)} — le Monde reste clos",
+            )
+        }
+    }
     val worldUnlocked = account?.loveActivated == true && !foreignAccount
 
     // ⚠ Deux conditions, et aucune n'est décorative. `worldUnlocked` : le relais
@@ -701,13 +713,34 @@ private fun Station(
     // homonymes soit la même partout** — deux « Marie » à portée portent ici
     // aussi la queue de leur clé.
     val advertisedCell by ProximityService.advertisedCell4d.collectAsStateWithLifecycle()
-    val plateauNames = remember(cabinPeers, conversations, advertisedCell) {
+    val neighborCells by ProximityService.neighbors.collectAsStateWithLifecycle()
+    /**
+     * ⚠⚠ **Le jeton se recalcule avec la cellule de L'AUTRE, pas la nôtre.**
+     *
+     * Il vaut `SHA-256(clé ‖ cellule)`, et la cellule qui y entre est celle que
+     * le pair a résolue chez lui. Le rapprochement se faisait avec la nôtre :
+     * il ne tombait juste que si les deux appareils nommaient le même hexagone.
+     * Or deux téléphones de la même salle peuvent être de part et d'autre d'un
+     * bord — l'A5 était à trente mètres du sien le 20/08 —, et le pseudo
+     * disparaissait alors de la carte sans un mot.
+     *
+     * L'annonce porte la cellule (`Neighbor.cell4d`) : on essaie donc toutes
+     * celles qui passent, la nôtre comprise. Quelques hachages pour une poignée
+     * de pairs, et le rapprochement cesse de dépendre d'un accord sur le lieu.
+     */
+    val plateauNames = remember(cabinPeers, conversations, advertisedCell, neighborCells) {
         val byNpub = conversations.associateBy { it.npub }
-        cabinPeers.mapNotNull { peer ->
-            val token = ProximityPayload.token(peer.nostrKey, advertisedCell)
-            val name = byNpub[peer.npub]?.name
-            if (token == null || name == null) null else token to name
-        }.toMap()
+        val cells = (neighborCells.mapNotNull { it.cell4d } + listOfNotNull(advertisedCell))
+            .distinct()
+        buildMap {
+            for (peer in cabinPeers) {
+                val name = byNpub[peer.npub]?.name ?: continue
+                for (cell in cells) {
+                    val token = ProximityPayload.token(peer.nostrKey, cell) ?: continue
+                    put(token, name)
+                }
+            }
+        }
     }
 
     /** Le journal ouvert en plein écran, à la place qu'occupait la cabine. */
@@ -1062,6 +1095,9 @@ private fun Station(
                 JournalScreen(
                     onClose = { journalShown = false },
                     modifier = Modifier.weight(1f),
+                    // Le journal nomme ce qu'il peut : les cartes dont un lien
+                    // attesté a appris le pseudo, par jeton de présence.
+                    names = plateauNames,
                 )
             }
         } else if (overlay != Overlay.None) {

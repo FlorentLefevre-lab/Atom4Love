@@ -6,13 +6,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * La règle tranchée par Florent le 20/08 : **on ne nomme un portail que si le
- * cercle d'incertitude de la position tient tout entier dedans**. Se tromper
- * d'hexagone est pire que ne pas en avoir — le jeton de présence en est dérivé,
- * et deux voisins qui n'ont pas la même cellule ne se reconnaissent plus.
+ * La géométrie de [CellLocator.fitsInCell] contre la vraie grille H3, sans
+ * Android autour — et la règle de déménagement qu'elle sert, [CellLocator.settle].
  *
- * Ces cas-là tiennent la géométrie de [CellLocator.fitsInCell] contre la vraie
- * grille H3, sans Android autour.
+ * ⚠ `fitsInCell` **ne décide plus si un portail se nomme** : elle décide s'il
+ * CHANGE. La première version en faisait un droit d'entrée, et l'A5 l'a
+ * démentie le jour même — posé à trente mètres d'un bord, un fix GNSS honnête à
+ * ± 32 m n'obtenait plus aucun portail.
  */
 class CellCertaintyTest {
 
@@ -58,6 +58,26 @@ class CellCertaintyTest {
         assertFalse(
             "à quelques mètres du bord, ± 50 m peut désigner le voisin",
             CellLocator.fitsInCell(h3, nearEdgeLat, nearEdgeLon, 50.0, resolution),
+        )
+    }
+
+    @Test
+    fun `on ne déménage que sur une preuve`() {
+        val ici = h3.latLngToCell(lat, lon, resolution)
+        val voisin = h3.gridDisk(ici, 1).first { it != ici }
+        // Rien de retenu : on prend ce qu'on voit.
+        assertTrue(CellLocator.settle(null, ici, false) == ici)
+        // Le même hexagone : rien à décider.
+        assertTrue(CellLocator.settle(ici, ici, false) == ici)
+        // À cheval sur le bord : on garde le portail courant, pas de clignotement.
+        assertTrue(
+            "un cercle qui déborde ne suffit pas à déménager",
+            CellLocator.settle(ici, voisin, false) == ici,
+        )
+        // Franchement dans le voisin : on y va.
+        assertTrue(
+            "un cercle entièrement dans le voisin fait déménager",
+            CellLocator.settle(ici, voisin, true) == voisin,
         )
     }
 
