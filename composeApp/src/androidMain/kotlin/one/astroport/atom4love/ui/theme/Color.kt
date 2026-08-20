@@ -41,6 +41,16 @@ data class A4LPalette(
 
     // --- Couleurs d'état ---
     val cyan: Color,
+    /**
+     * Le turquoise du nom, et lui seul.
+     *
+     * ⚠ [cyan] ne pouvait pas le porter : en lumière du JOUR il vaut
+     * `#00A383`, un teal qui se lit **vert** — « Atom et Love sont en vert »,
+     * Florent, 20/08. Le nom d'une maison ne change pas de famille de couleur
+     * d'une lumière à l'autre ; il lui fallait donc sa propre entrée, réglée
+     * pour être turquoise dans les deux.
+     */
+    val turquoise: Color,
     val mint: Color,
     val green: Color,
     val amber: Color,
@@ -99,6 +109,7 @@ val A4LDark = A4LPalette(
     glowBond = Color(0xFF101A18),         // 04 Résonance
 
     cyan = Color(0xFF00FFCC),             // ATOM4LOVE
+    turquoise = Color(0xFF2DE2E6),        // le nom, en pleine nuit
     mint = Color(0xFF86EFAC),             // Onde Φ, lien covalent, actif
     green = Color(0xFF4ADE80),            // connecté (point d'état)
     amber = Color(0xFFFBBF24),            // ẐEN, alerte
@@ -159,6 +170,7 @@ val A4LLight = A4LPalette(
     glowBond = Color(0xFFE5F1EC),
 
     cyan = Color(0xFF00A383),
+    turquoise = Color(0xFF0AA3B8),        // le nom, en plein jour
     mint = Color(0xFF3E9C63),
     green = Color(0xFF2E9E56),
     amber = Color(0xFFA87A06),
@@ -235,6 +247,7 @@ object A4L {
     val GlowBond: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.glowBond
 
     val Cyan: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.cyan
+    val Turquoise: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.turquoise
     val Mint: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.mint
     val Green: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.green
     val Amber: Color @Composable @ReadOnlyComposable get() = LocalA4L.current.amber

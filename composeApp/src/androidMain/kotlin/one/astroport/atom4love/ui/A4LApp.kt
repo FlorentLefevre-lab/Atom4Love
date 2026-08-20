@@ -75,6 +75,9 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -691,6 +694,10 @@ private fun Station(
      */
     /** L'adaptateur Bluetooth, lu et ÉCOUTÉ — voir [bluetoothEnabled]. */
     val bluetoothOn = bluetoothEnabled()
+    /** La balise tourne-t-elle ? Le feu de l'en-tête en dépend autant que la
+     *  rangée ⛩️ : allumée ne veut rien dire si la puce est morte, et
+     *  inversement. */
+    val beaconRunning by ProximityService.running.collectAsStateWithLifecycle()
     var mapGoTo by remember { mutableStateOf<LatLon?>(null) }
     var mapGoToTicket by remember { mutableIntStateOf(0) }
     // Ce que la fiche saura répondre au jeu des questions. Rien ne part de
@@ -1014,6 +1021,8 @@ private fun Station(
             Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
                 RadioLine(
                     onOpenJournal = { journalShown = true },
+                    radioOn = bluetoothOn && beaconRunning,
+                    linked = cabinStatus.medium != null,
                     cabin = cabin,
                     open = cabinOpen,
                     onHelp = { overlay = Overlay.Help },
@@ -1101,6 +1110,8 @@ private fun Station(
             Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
                 RadioLine(
                     onOpenJournal = { journalShown = true },
+                    radioOn = bluetoothOn && beaconRunning,
+                    linked = cabinStatus.medium != null,
                     cabin = cabin,
                     open = cabinOpen,
                     onHelp = { overlay = Overlay.Help },
@@ -1615,6 +1626,21 @@ private fun RadioLine(
     onOpenBoard: (() -> Unit)? = null,
     /** La porte du journal de bord, depuis n'importe quel écran. */
     onOpenJournal: () -> Unit = {},
+    /**
+     * La radio peut-elle parler — puce allumée **et** balise en droit de s'en
+     * servir ? Et quelque chose porte-t-il vraiment du trafic ?
+     *
+     * ⚠ **Le feu est ici parce que cette ligne est le seul endroit qui existe
+     * sur TOUS les écrans.** Il était descendu tout entier dans la rangée ⛩️
+     * du Plateau avec les mots qu'il accompagnait, et l'état de la radio a
+     * disparu des trois autres onglets — signalé par Florent dans la minute.
+     * Les mots restent en bas, où il y a la place de dire pourquoi ; le feu
+     * remonte, parce qu'un état qu'on ne voit que sur un onglet n'est pas un
+     * état de la station. Même partage que la pastille des non-lus : le même
+     * fait à deux échelles.
+     */
+    radioOn: Boolean = false,
+    linked: Boolean = false,
 ) {
     val peers by cabin.peers.collectAsState()
 
@@ -1640,6 +1666,16 @@ private fun RadioLine(
         // Ce qui reste ici est ce qu'aucun autre écran ne dit : **le nom de la
         // maison**, au milieu, dans le turquoise dont la palette porte déjà le
         // commentaire « ATOM4LOVE ».
+        // Rouge éteinte, orange allumée sans personne au bout, vert dès qu'un
+        // lien porte — les trois mêmes feux que la rangée ⛩️, à la lettre.
+        StatusDot(
+            when {
+                !radioOn -> A4L.Red
+                linked -> A4L.Green
+                else -> A4L.Amber
+            },
+        )
+        Spacer(Modifier.width(8.dp))
         HeaderButton("🧾", R.string.journal_title, A4L.Cyan, onOpenJournal)
         // ⚠ Le titre est centré sur l'ÉCRAN, pas sur la place qui reste : il
         // est posé dans une boîte de largeur nulle par-dessus la ligne, comme
@@ -1648,10 +1684,20 @@ private fun RadioLine(
         // bougerait quand la pastille des cartes paraît.
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // ⚠ **Le 4 est rouge, le reste turquoise** — demandé par
+                // Florent le 20/08. Le chiffre est découpé sur la chaîne, pas
+                // écrit en dur : `app_title` est intraduisible et fixe, mais un
+                // nom se relit, et un index en dur se décalerait en silence.
+                val titre = stringResource(R.string.app_title)
                 Text(
-                    stringResource(R.string.app_title),
+                    buildAnnotatedString {
+                        titre.forEach { c ->
+                            withStyle(SpanStyle(color = if (c == '4') A4L.Red else A4L.Turquoise)) {
+                                append(c)
+                            }
+                        }
+                    },
                     style = A4LText.Title.copy(fontSize = 15.sp),
-                    color = A4L.Cyan,
                 )
                 Spacer(Modifier.width(6.dp))
                 AtomLogo(Modifier.size(20.dp))
