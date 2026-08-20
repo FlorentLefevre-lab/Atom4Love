@@ -1,11 +1,11 @@
 {
-  "versionCode": 4,
-  "versionName": "0.2.2",
-  "minSdk": 26,
-  "publishedAt": "2026-08-17",
-  "sha256": "354afa20c4843d4bb6ad3dd62c2ce367c2d0bf39019c0f3d272c9b1f01d3fb8b",
-  "sizeBytes": 6772892,
+  "versionCode": 5,
+  "versionName": "0.2.3",
+  "minSdk": 29,
+  "publishedAt": "2026-08-20",
+  "sha256": "d77c39747b879c3ad4b4541429dce68a1aff75469cdd1b3ab904ec3d3684aaf3",
+  "sizeBytes": 9777392,
   "url": "https://github.com/FlorentLefevre-lab/Atom4Love/releases/latest/download/atom4love-latest.apk",
   "mirrors": ["https://u.copylaradio.com/www/atom4love-latest.apk"],
-  "notes": "Les coordonnées de naissance s'affichent et se saisissent en entier : notées telles quelles, elles rouvrent vraiment votre clé."
+  "notes": "Le plancher passe à Android 10, et la lanterne apprend à montrer un visage : selfie de reconnaissance en Bluetooth, cadre de visée, et le bouton « J'ai trouvé la personne ! » qui le dit à toute la salle."
 }
