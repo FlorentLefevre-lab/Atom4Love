@@ -401,9 +401,19 @@ fun RadioSection(
             // « Ici » se compte par les conversations joignables, pas par la
             // balise : elles nomment des noyaux attestés, un par personne, là où
             // la balise ne sait dire que « une radio est là ».
+            //
+            // ⚠ **On se compte.** Ces trois cases nomment des LIEUX — ici, le
+            // portail, l'hexagone — et l'on est dans le lieu qu'on regarde.
+            // Trois téléphones sur une table affichaient « 2 », chacun comptant
+            // les deux autres : trois personnes présentes, trois écrans qui
+            // disent deux. Tranché par Florent le 20/08, sur le banc à trois.
+            //
+            // La couleur, elle, ne suit pas le nombre mais la rencontre : elle
+            // s'allume quand quelqu'un d'AUTRE est là, sinon « 1 · ici » aurait
+            // la teinte de ce qui vient d'arriver alors qu'on est seul.
             RadioStat(
                 glyph = "📍",
-                value = if (reachable > 0) reachable.toString() else "—",
+                value = if (beaconRunning) (reachable + 1).toString() else "—",
                 label = stringResource(R.string.radar_stat_here_no_relay),
                 modifier = Modifier.weight(1f),
                 accent = if (reachable > 0) A4L.Mint else null,
@@ -413,10 +423,14 @@ fun RadioSection(
             // présence et non par adresse — une adresse qui tourne pendant que
             // l'ancienne survit à son TTL faisait compter deux fois le même
             // appareil.
+            // ⚠ Même règle : on est dans son propre portail. Le tiret reste
+            // quand la cellule est inconnue — on y est, mais on ne sait pas
+            // duquel il s'agit, et « 1 » y serait une réponse à une autre
+            // question.
             RadioStat(
                 glyph = "⛩️",
                 value = if (beaconRunning && ownCell4d != null) {
-                    NeighborRegistry.countIn(neighbors, ownCell4d).toString()
+                    (NeighborRegistry.countIn(neighbors, ownCell4d) + 1).toString()
                 } else {
                     "—"
                 },
