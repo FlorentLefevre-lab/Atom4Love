@@ -153,6 +153,17 @@ fun MapScreen(
      * pièce, et elle est nommée : voir le mot à Fred.
      */
     onOpenChat: ((String) -> Unit)? = null,
+    /**
+     * Une position sur laquelle se porter à l'ouverture — celle d'où l'on
+     * regarde, envoyée par le code de portail du Plateau.
+     *
+     * ⚠ **Avec un numéro d'ordre, pas seulement une valeur.** Deux demandes de
+     * suite vers le même point doivent toutes les deux partir : sans ticket, un
+     * retour sur la carte après avoir traîné ailleurs ne recentrerait rien,
+     * puisque la position, elle, n'a pas changé.
+     */
+    goTo: LatLon? = null,
+    goToTicket: Int = 0,
 ) {
     val scope = rememberCoroutineScope()
     val constellation = shared ?: remember(scope) { Constellation(scope) }
@@ -178,6 +189,10 @@ fun MapScreen(
     // demandes de suite vers le même point doivent toutes les deux partir.
     var focus by remember { mutableStateOf<MapFocus?>(null) }
     var ticket by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(goToTicket) {
+        if (goToTicket > 0) goTo?.let { focus = MapFocus(it, RECENTRE_SCALE, ++ticket) }
+    }
 
     // ── La sélection va dans les deux sens ────────────────────────────────
     // Toucher un point ouvre la liste et y fait défiler jusqu'à la ligne ;

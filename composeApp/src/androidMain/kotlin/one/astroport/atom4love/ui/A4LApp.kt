@@ -118,6 +118,7 @@ import one.astroport.atom4love.proximity.ProximityService
 import one.astroport.atom4love.trial.Trial
 import one.astroport.atom4love.trial.TrialStore
 import one.astroport.atom4love.ui.components.ElectronSweep
+import one.astroport.atom4love.ui.components.LatLon
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.components.UnreadPill
 import one.astroport.atom4love.chat.Conversations
@@ -126,6 +127,7 @@ import one.astroport.atom4love.journal.JournalRecorder
 import one.astroport.atom4love.ui.screens.BoardScreen
 import one.astroport.atom4love.ui.screens.ChatsScreen
 import one.astroport.atom4love.ui.screens.ConversationScreen
+import one.astroport.atom4love.ui.screens.HereEntry
 import one.astroport.atom4love.ui.screens.JournalScreen
 import one.astroport.atom4love.ui.screens.MapScreen
 import one.astroport.atom4love.ui.screens.RadioSection
@@ -675,6 +677,13 @@ private fun Station(
 
     /** Le journal ouvert en plein écran, à la place qu'occupait la cabine. */
     var journalShown by rememberSaveable { mutableStateOf(false) }
+    /**
+     * Où porter la carte quand on y arrive par le code de portail du Plateau.
+     * Le compteur va avec : deux demandes vers le même point doivent partir
+     * toutes les deux (voir [MapScreen]).
+     */
+    var mapGoTo by remember { mutableStateOf<LatLon?>(null) }
+    var mapGoToTicket by remember { mutableIntStateOf(0) }
     // Ce que la fiche saura répondre au jeu des questions. Rien ne part de
     // là — c'est un geste par question, et il coûte la même réponse.
     //
@@ -1132,7 +1141,29 @@ private fun Station(
                                         relays = relayList,
                                         salon = salon,
                                         reachable = conversations.count { it.inRange },
-                                        here = conversations.filter { it.inRange }.map { it.name },
+                                        here = conversations
+                                            .filter { it.inRange }
+                                            .map { HereEntry(it.peerHex, it.name) },
+                                        // Le carreau « Ici » ouvre la
+                                        // conversation là où elle vit : on
+                                        // change d'onglet en même temps, sinon
+                                        // le fil s'ouvrirait par-dessus le
+                                        // Plateau et le retour ramènerait à un
+                                        // écran qu'on n'a pas quitté.
+                                        onOpenPeer = { hex ->
+                                            tab = A4LTab.Chats
+                                            openPeer = hex
+                                        },
+                                        // ⚠ L'onglet cadenassé reste touchable,
+                                        // ici comme dans la barre : l'écran
+                                        // derrière explique lui-même comment
+                                        // l'ouvrir, ce qui vaut mieux qu'un
+                                        // code mort sous le doigt.
+                                        onOpenPosition = { lat, lon ->
+                                            mapGoTo = LatLon(lat, lon)
+                                            mapGoToTicket++
+                                            tab = A4LTab.World
+                                        },
                                         title = title,
                                     )
                                 },
@@ -1152,6 +1183,8 @@ private fun Station(
                                         birth = birth,
                                         keys = keys,
                                         shared = constellation,
+                                        goTo = mapGoTo,
+                                        goToTicket = mapGoToTicket,
                                         onOpenChat = { pubkey ->
                                             pinnedPeers = pinnedPeers + pubkey
                                             openPeer = pubkey

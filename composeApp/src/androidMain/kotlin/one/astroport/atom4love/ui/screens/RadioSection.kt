@@ -196,6 +196,16 @@ private fun appSettingsIntent(context: Context): Intent =
  * Les cartes suivent, en dessous, dans le Plateau. On lit donc : est-ce que ça
  * marche, ce que ça a fait, puis jusqu'où ça porte et qui est là.
  */
+/**
+ * Quelqu'un de joignable, tel que le carreau « Ici » le déroule : de quoi
+ * l'écrire, et de quoi ouvrir sa conversation.
+ *
+ * Le nom est déjà passé par la règle des homonymes — c'est celui de
+ * [one.astroport.atom4love.chat.Conversations] — et il est null quand la
+ * personne ne s'est pas nommée : à l'écran de choisir le mot, dans sa langue.
+ */
+data class HereEntry(val peerHex: String, val name: String?)
+
 @Composable
 fun RadioSection(
     relay: RelayStation.Status?,
@@ -216,7 +226,24 @@ fun RadioSection(
      * pour que sa longueur soit exactement le nombre affiché. Un compteur qui
      * se compte et une liste qui s'oublie diraient deux choses.
      */
-    here: List<String?> = emptyList(),
+    here: List<HereEntry> = emptyList(),
+    /**
+     * Ouvrir la conversation de quelqu'un, par sa clé publique hexadécimale.
+     *
+     * ⚠ **Le compteur devient une porte.** Voir un pseudo dans la liste et ne
+     * pas pouvoir le toucher serait un cul-de-sac : on saurait qui est là, et
+     * il faudrait repartir de l'onglet d'à côté pour lui parler. Demandé par
+     * Florent le 20/08.
+     */
+    onOpenPeer: (String) -> Unit = {},
+    /**
+     * Aller voir où l'on est, sur la carte — latitude, longitude.
+     *
+     * ⚠ **La position ne quitte pas l'appareil pour autant.** Elle passe d'un
+     * écran à l'autre dans la même composition ; ce qui part dans l'air reste
+     * la cellule, et elle seule ([CellLocator]).
+     */
+    onOpenPosition: (Double, Double) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     /**
      * Le titre de l'écran, rendu **entre la balise et les compteurs**.
@@ -352,13 +379,24 @@ fun RadioSection(
                 if (beaconRunning) {
                     StatLabel(stringResource(R.string.radar_stat_in_portal), A4L.TextMuted)
                     Spacer(Modifier.width(6.dp))
+                    // Le code EST la porte : le toucher porte la carte sur la
+                    // position d'où il a été calculé. Sans fix, il n'y a rien
+                    // à montrer et rien ne se touche.
                     Text(
                         ownCell4d?.let { portalLabel(it) } ?: "—",
                         style = A4LText.Metric.copy(fontSize = 14.sp),
                         color = if (ownCell4d != null) A4L.Mint else A4L.TextMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .then(
+                                fix?.let { f ->
+                                    Modifier.clickable { onOpenPosition(f.lat, f.lon) }
+                                } ?: Modifier,
+                            )
+                            .padding(vertical = 2.dp),
                     )
                 } else {
                     Text(
@@ -479,17 +517,18 @@ fun RadioSection(
                     leadingIcon = { StatusDot(A4L.Mint, size = 5.dp) },
                     onClick = { hereOpen = false },
                 )
-                here.forEach { name ->
+                here.forEach { entry ->
                     DropdownMenuItem(
                         text = {
                             Text(
-                                name ?: stringResource(R.string.chat_from_unnamed),
+                                entry.name ?: stringResource(R.string.chat_from_unnamed),
                                 style = A4LText.Caption,
-                                color = if (name != null) A4L.Mint else A4L.TextMuted,
+                                color = if (entry.name != null) A4L.Mint else A4L.TextMuted,
                             )
                         },
                         leadingIcon = { StatusDot(A4L.Mint, size = 5.dp) },
-                        onClick = { hereOpen = false },
+                        trailingIcon = { Text("💬", fontSize = 12.sp) },
+                        onClick = { hereOpen = false; onOpenPeer(entry.peerHex) },
                     )
                 }
                 if (here.isEmpty()) {
