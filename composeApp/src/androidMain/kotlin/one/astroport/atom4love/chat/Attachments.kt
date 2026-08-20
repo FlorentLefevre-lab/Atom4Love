@@ -267,7 +267,13 @@ object Attachments {
      * mégaoctets, et ce qui doit traverser la radio en tient trente fois moins.
      */
     fun prepareSelfie(context: Context, uri: Uri): Read {
-        val bitmap = decodeScaled(context, uri, SELFIE_MAX_DIM) ?: return Read.Unreadable
+        val decoded = decodeScaled(context, uri, SELFIE_MAX_DIM) ?: return Read.Unreadable
+        // ⚠ **Carré, et centré** : le cercle de visée de l'appareil photo est
+        // inscrit dans ce carré-là, et la lanterne d'en face rogne exactement
+        // pareil. Envoyer l'image entière ferait voyager des bords que personne
+        // ne verra jamais — quelques kilooctets d'antenne pour rien, sur un lien
+        // qui en porte cinq par seconde.
+        val bitmap = squared(decoded)
         val out = ByteArrayOutputStream()
         val ok = bitmap.compress(Bitmap.CompressFormat.JPEG, SELFIE_QUALITY, out)
         bitmap.recycle()
@@ -278,6 +284,17 @@ object Attachments {
             ?: return Read.Unreadable
         Log.i(TAG, "visage préparé : ${bytes.size} o (${SELFIE_MAX_DIM} px, q$SELFIE_QUALITY)")
         return Read.Ok(name, "image/jpeg", file, file.length().toInt())
+    }
+
+    /** Le carré central d'une image, ou l'image telle quelle si elle est déjà carrée. */
+    private fun squared(source: Bitmap): Bitmap {
+        val side = minOf(source.width, source.height)
+        if (source.width == side && source.height == side) return source
+        val x = (source.width - side) / 2
+        val y = (source.height - side) / 2
+        return Bitmap.createBitmap(source, x, y, side, side).also {
+            if (it !== source) source.recycle()
+        }
     }
 
     private fun decodeScaled(

@@ -1,5 +1,6 @@
 package one.astroport.atom4love.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.LinearProgressIndicator
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -150,7 +151,12 @@ fun RendezvousScreen(
     /** Remettre le même visage sur le fil après un échec. */
     onRetry: () -> Unit = {},
 ) {
+    // ⚠ L'appareil photo se pose PAR-DESSUS la lanterne, dans la même
+    // composition : il n'a pas d'écran à lui, et le geste de retour ramène donc
+    // à la lanterne plutôt qu'au Plateau.
+    var cameraOpen by remember(card.identity) { mutableStateOf(false) }
     CompositionLocalProvider(LocalA4L provides A4LDark) {
+        Box(Modifier.fillMaxSize()) {
         Lantern(
             card = card,
             alsoSeeking = alsoSeeking,
@@ -162,7 +168,19 @@ fun RendezvousScreen(
             onSelfie = onSelfie,
             sending = sending,
             onRetry = onRetry,
+            onAskCamera = { cameraOpen = true },
         )
+        if (cameraOpen) {
+            BackHandler { cameraOpen = false }
+            SelfieCamera(
+                onCancel = { cameraOpen = false },
+                onTaken = { uri ->
+                    cameraOpen = false
+                    onSelfie(uri)
+                },
+            )
+        }
+        }
     }
 }
 
@@ -178,6 +196,7 @@ private fun Lantern(
     onSelfie: (Uri) -> Unit,
     sending: SelfieSend?,
     onRetry: () -> Unit,
+    onAskCamera: () -> Unit,
 ) {
     // L'horloge murale, relue à chaque image — c'est elle qui décide de la
     // fenêtre en cours autant que du pas du motif.
@@ -275,14 +294,6 @@ private fun Lantern(
              * demi-cercle. Une photo traverse ça d'un coup d'œil.
              */
             var asking by remember { mutableStateOf(false) }
-            var pending by remember { mutableStateOf<Uri?>(null) }
-            val camera = rememberLauncherForActivityResult(
-                ActivityResultContracts.TakePicture(),
-            ) { taken ->
-                val uri = pending
-                pending = null
-                if (taken && uri != null) onSelfie(uri)
-            }
             Text(
                 stringResource(R.string.rendezvous_title),
                 style = A4LText.SectionLabel,
@@ -314,9 +325,7 @@ private fun Lantern(
                     confirmButton = {
                         TextButton(onClick = {
                             asking = false
-                            val (_, uri) = Attachments.newPhoto(context)
-                            pending = uri
-                            camera.launch(uri)
+                            onAskCamera()
                         }) {
                             Text(stringResource(R.string.selfie_take), color = accent)
                         }

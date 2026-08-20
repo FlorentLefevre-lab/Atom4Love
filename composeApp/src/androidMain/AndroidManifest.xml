@@ -64,6 +64,17 @@
          Le rythme de reconnaissance dans la main : quand l'écran est tourné vers
          la salle, on ne voit pas son propre signal, on le sent.
     -->
+    <!-- 🤳 Le selfie de reconnaissance, et rien d'autre.
+         ⚠ Elle n'est demandée qu'au moment où l'on touche « Prendre la photo » :
+         une application de rencontre qui réclame l'appareil photo au démarrage
+         a déjà perdu. La photo ne quitte l'appareil que vers UNE personne, par
+         le lien scellé, et ne s'écrit nulle part ailleurs (chat/ChatKind.SELFIE).
+         `android:required="false"` : un appareil sans caméra reste parfaitement
+         utilisable, il n'aura simplement pas ce raccourci-là. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.front" android:required="false" />
+
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- Mise à jour par APK : ni Play Store ni F-Droid, la version se prend au

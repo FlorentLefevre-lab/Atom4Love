@@ -315,6 +315,16 @@ dependencies {
     // --- Compose ---
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.compose)
+
+    // ── L'appareil photo, pris en main ────────────────────────────────────
+    // ⚠ Uniquement pour le selfie de reconnaissance. `ACTION_IMAGE_CAPTURE`
+    // délègue à une autre application, sur l'écran de laquelle on ne peut rien
+    // dessiner — or le cadre de visée doit être exactement le cercle que
+    // l'autre verra. Voir ui/screens/SelfieCamera.kt.
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
     // Deux volets côte à côte sur grand écran (tablette du banc, pliables).
     implementation(libs.bundles.adaptive)
     debugImplementation(libs.androidx.compose.ui.tooling)

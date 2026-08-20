@@ -111,6 +111,7 @@
     <string name="selfie_sent">Su cara ha llegado.</string>
     <string name="selfie_failed">Su cara no ha salido — el enlace se cortó por el camino.</string>
     <string name="selfie_retry">Reintentar</string>
+    <string name="selfie_aim">Ponga su cara en el círculo</string>
     <string name="selfie_take">Tomar la foto</string>
     <string name="selfie_no">Ahora no</string>
     <string name="rendezvous_out_of_range">fuera de alcance ahora mismo</string>
