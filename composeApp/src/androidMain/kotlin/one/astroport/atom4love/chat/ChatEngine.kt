@@ -96,6 +96,7 @@ import one.astroport.atom4love.nostr.Bech32
 import one.astroport.atom4love.nostr.HexagonSalon
 import one.astroport.atom4love.nostr.Hex
 import one.astroport.atom4love.nostr.NostrKeys
+import one.astroport.atom4love.proximity.Found
 import one.astroport.atom4love.proximity.RadioSilence
 
 /**
@@ -2715,6 +2716,15 @@ class ChatEngine(context: Context) {
             // Rien à faire : l'avoir reçue EST tout le message, et l'horloge du
             // lien a déjà été remise à l'heure en entrant.
             is ChatFrame.Ping -> Unit
+            // ⚠ **Elle se propage.** Une rencontre est un fait de la salle : on
+            // la range, et si elle est neuve on la repasse à nos autres liens.
+            // Sans ce relais, seuls les voisins directs de celui qui a touché le
+            // bouton l'apprendraient — or la maille n'est pas complète, et la
+            // salle est plus grande que deux liens.
+            is ChatFrame.Found -> if (Found.record(frame.finder, frame.found)) {
+                Log.i(TAG, "rencontre : ${frame.finder} a trouvé ${frame.found}")
+                relayFound(frame, exceptFrom = from)
+            }
             // Le pair ferme sa cabine. On le retire tout de suite plutôt que
             // d'attendre que la radio s'en aperçoive.
             is ChatFrame.Bye -> {
@@ -2904,6 +2914,28 @@ class ChatEngine(context: Context) {
     }
 
     /** Diffuse une trame de contrôle sur un lien par personne. */
+    /**
+     * Dire à la salle que deux personnes se sont trouvées.
+     *
+     * ⚠ Neuf octets sur le canal de contrôle, comme un acquittement : ça part
+     * sur **tous** les liens, y compris celui de la personne trouvée — c'est
+     * ainsi qu'elle apprend que l'autre l'a déclaré.
+     */
+    fun declareFound(mine: Int, theirs: Int) {
+        if (!Found.record(mine, theirs)) return
+        Log.i(TAG, "rencontre déclarée : $mine a trouvé $theirs")
+        scope.launch(dispatcher) {
+            broadcastControl(ChatFrames.encodeFound(mine, theirs))
+        }
+    }
+
+    private fun relayFound(frame: ChatFrame.Found, exceptFrom: String) {
+        scope.launch(dispatcher) {
+            val bytes = ChatFrames.encodeFound(frame.finder, frame.found)
+            routes().filter { it.address != exceptFrom }.forEach { it.control.trySend(bytes) }
+        }
+    }
+
     private fun broadcastControl(frame: ByteArray) {
         routes().forEach { it.control.trySend(frame) }
     }

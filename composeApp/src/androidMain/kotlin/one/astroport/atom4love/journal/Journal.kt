@@ -236,6 +236,11 @@ object Journal {
 
     private var lastPeerNames: Map<String, String?> = emptyMap()
 
+    /** Une rencontre aboutie, telle qu'elle traverse la maille. */
+    fun noteFound(finderToken: Int?, foundToken: Int?, finderGlyph: Int?, foundGlyph: Int?) {
+        record(Entry.Found(finderToken, foundToken, finderGlyph, foundGlyph))
+    }
+
     fun record(entry: Entry) {
         _entries.update { current -> (listOf(entry) + current).take(CAPACITY) }
     }
@@ -308,6 +313,23 @@ object Journal {
             val glyph: Int?,
             val percent: Int?,
             val token: Int? = null,
+            override val atMs: Long = now(),
+            override val seq: Long = next(),
+        ) : Entry
+
+        /**
+         * **Deux personnes se sont trouvées.** La seule bonne nouvelle que ce
+         * jeu produise, et la seule ligne qui parle de deux autres que soi.
+         *
+         * ⚠ Elle n'est écrite que sur une déclaration explicite — le bouton
+         * « J'ai trouvé la personne ! » —, jamais déduite d'une proximité ou
+         * d'un silence. Voir [one.astroport.atom4love.proximity.Found].
+         */
+        data class Found(
+            val finderToken: Int?,
+            val foundToken: Int?,
+            val finderGlyph: Int?,
+            val foundGlyph: Int?,
             override val atMs: Long = now(),
             override val seq: Long = next(),
         ) : Entry

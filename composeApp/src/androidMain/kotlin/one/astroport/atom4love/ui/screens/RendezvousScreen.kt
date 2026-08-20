@@ -151,6 +151,13 @@ fun RendezvousScreen(
     sending: SelfieSend? = null,
     /** Remettre le même visage sur le fil après un échec. */
     onRetry: () -> Unit = {},
+    /**
+     * **« J'ai trouvé la personne ! »** — le geste qui clôt la recherche.
+     *
+     * Il dit la rencontre à toute la salle (journal et cartes de chacun) et
+     * referme la lanterne : le jeu est fini, on se parle en vrai maintenant.
+     */
+    onFound: () -> Unit = {},
 ) {
     // ⚠ L'appareil photo se pose PAR-DESSUS la lanterne, dans la même
     // composition : il n'a pas d'écran à lui, et le geste de retour ramène donc
@@ -170,6 +177,7 @@ fun RendezvousScreen(
             sending = sending,
             onRetry = onRetry,
             onAskCamera = { cameraOpen = true },
+            onFound = onFound,
         )
         if (cameraOpen) {
             BackHandler { cameraOpen = false }
@@ -198,6 +206,7 @@ private fun Lantern(
     sending: SelfieSend?,
     onRetry: () -> Unit,
     onAskCamera: () -> Unit,
+    onFound: () -> Unit,
 ) {
     // L'horloge murale, relue à chaque image — c'est elle qui décide de la
     // fenêtre en cours autant que du pas du motif.
@@ -530,6 +539,22 @@ private fun Lantern(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             SelfieProgress(sending = sending, accent = accent, onRetry = onRetry)
+            // ⚠ **Le geste qui clôt.** Il est au-dessus de la proposition de
+            // selfie parce qu'il vient après elle dans le temps : on montre son
+            // visage pour être trouvé, puis on dit qu'on s'est trouvés. Et il
+            // referme la lanterne — le jeu est fini, la suite se passe en vrai.
+            Spacer(Modifier.height(12.dp))
+            Text(
+                stringResource(R.string.found_button),
+                style = A4LText.Body.copy(fontWeight = FontWeight.SemiBold),
+                color = A4L.Gold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(13.dp))
+                    .border(1.dp, A4L.Gold.copy(alpha = 0.55f), RoundedCornerShape(13.dp))
+                    .clickable(onClick = onFound)
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+            )
             if (beat != null) {
                 Spacer(Modifier.height(14.dp))
                 Text(

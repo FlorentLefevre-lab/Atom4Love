@@ -78,6 +78,8 @@ fun JournalScreen(
     modifier: Modifier = Modifier,
     /** Les pseudos appris par les liens attestés, par jeton de présence. */
     names: Map<Int, String> = emptyMap(),
+    /** Notre propre jeton : une rencontre qui NOUS concerne ne se dit pas pareil. */
+    myToken: Int? = null,
 ) {
     val entries by Journal.entries.collectAsStateWithLifecycle()
     // Lu dans la composition et non dans le rappel : une ressource lue depuis un
@@ -153,7 +155,7 @@ fun JournalScreen(
         // chaque ouverture. Ce que le journal est se lit en le lisant.
         Spacer(Modifier.height(8.dp))
 
-        JournalList(Modifier.weight(1f), names)
+        JournalList(Modifier.weight(1f), names, myToken)
         if (entries.isNotEmpty()) CloseRow(onClose)
     }
 }
@@ -209,7 +211,11 @@ private fun CloseRow(onClose: () -> Unit) {
  * traverser à qui l'affiche.
  */
 @Composable
-fun JournalList(modifier: Modifier = Modifier, names: Map<Int, String> = emptyMap()) {
+fun JournalList(
+    modifier: Modifier = Modifier,
+    names: Map<Int, String> = emptyMap(),
+    myToken: Int? = null,
+) {
     val entries by Journal.entries.collectAsStateWithLifecycle()
     // ⚠ **Le format MOYEN, pas le court : il porte les secondes.** Le court
     // donnait 19:09, et deux lignes de la même minute devenaient
@@ -255,14 +261,24 @@ fun JournalList(modifier: Modifier = Modifier, names: Map<Int, String> = emptyMa
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         items(entries, key = { it.seq }) { entry ->
-            JournalRow(entry = entry, time = clock.format(Date(entry.atMs)), names = names)
+            JournalRow(
+                entry = entry,
+                time = clock.format(Date(entry.atMs)),
+                names = names,
+                myToken = myToken,
+            )
         }
     }
 }
 
 @Composable
-private fun JournalRow(entry: Journal.Entry, time: String, names: Map<Int, String>) {
-    val (color, label) = entry.render(names)
+private fun JournalRow(
+    entry: Journal.Entry,
+    time: String,
+    names: Map<Int, String>,
+    myToken: Int?,
+) {
+    val (color, label) = entry.render(names, myToken)
     // ⚠ **L'heure au-dessus, l'évènement en dessous** (Florent, 20/08).
     // L'heure et la pastille occupaient une colonne à gauche, et la phrase se
     // pliait dans ce qui restait : « Balise allumée — elle annonce et elle
@@ -304,6 +320,7 @@ private fun JournalRow(entry: Journal.Entry, time: String, names: Map<Int, Strin
 @Composable
 private fun Journal.Entry.render(
     names: Map<Int, String>,
+    myToken: Int?,
 ): Pair<androidx.compose.ui.graphics.Color, AnnotatedString> = when (this) {
     is Journal.Entry.Beacon -> if (on) {
         A4L.Mint to plain(R.string.journal_beacon_on)
@@ -341,6 +358,37 @@ private fun Journal.Entry.render(
             ),
             who.orEmpty(),
         )
+    }
+
+    // ⚠ **La ligne qui parle de deux autres que soi.** Chacun est nommé comme
+    // partout : le pseudo en gras s'il est connu, le sceau entre parenthèses.
+    is Journal.Entry.Found -> {
+        // ⚠ **Un appareil n'a pas sa propre carte dans ses voisins.** Vu à
+        // l'écran le 20/08 : la tablette lisait « Droid_10 (Muluc) et (Sceau
+        // inconnu) se sont trouvés » — le sceau inconnu, c'était elle. Une
+        // rencontre qui nous concerne se dit donc à la deuxième personne, ce
+        // qui est de toute façon la bonne façon de l'annoncer.
+        val one = names[finderToken]
+        val two = names[foundToken]
+        val left = one.orEmpty() + sealLabel(finderGlyph, spaced = one != null)
+        val right = two.orEmpty() + sealLabel(foundGlyph, spaced = two != null)
+        val line = when (myToken) {
+            null -> stringResource(R.string.journal_found, left, right)
+            foundToken -> stringResource(R.string.journal_found_you, left)
+            finderToken -> stringResource(R.string.journal_found_mine, right)
+            else -> stringResource(R.string.journal_found, left, right)
+        }
+        A4L.Gold to buildAnnotatedString {
+            val bolded = emphasise(line, one.orEmpty())
+            append(bolded)
+            // Le second pseudo se met en gras à son tour, sur le texte déjà
+            // annoté : `emphasise` ne sait mettre qu'un mot en valeur.
+            val second = two.orEmpty()
+            val at = if (second.isEmpty()) -1 else line.indexOf(second, line.indexOf(right))
+            if (at >= 0) {
+                addStyle(SpanStyle(fontWeight = FontWeight.Bold), at, at + second.length)
+            }
+        }
     }
 
     is Journal.Entry.Meeting -> {

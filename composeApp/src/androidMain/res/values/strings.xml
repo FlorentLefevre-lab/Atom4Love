@@ -161,6 +161,10 @@
     <string name="face_banner_open">Voir</string>
     <!-- La proposition EST le bouton : « Se reconnaître » ne disait ni ce
          qu\'on allait faire, ni pour qui. -->
+    <!-- 🤝 Le geste qui clôt la recherche : il dit la rencontre à la salle et
+         referme la lanterne. -->
+    <string name="found_button">🤝 J\'ai trouvé la personne !</string>
+    <string name="board_found">trouvés</string>
     <string name="selfie_offer">Prendre un selfie pour aider l\'autre personne à vous trouver ?</string>
     <!-- Le dialogue qui suit n\'a plus à reposer la question : il dit où la
          photo va, et c\'est la seule chose qui engage. -->
@@ -748,6 +752,10 @@
     <string name="journal_card_seen">Une carte paraît : %1$s</string>
     <string name="journal_card_seen_pct">Une carte paraît : %1$s · %2$d %%</string>
     <string name="journal_card_gone">%1$s s\'éloigne.</string>
+    <!-- 🤝 La rencontre aboutie, déclarée par l\'un des deux et dite à la salle. -->
+    <string name="journal_found">%1$s et %2$s se sont trouvés.</string>
+    <string name="journal_found_you">%1$s vous a trouvé.</string>
+    <string name="journal_found_mine">Vous avez trouvé %1$s.</string>
     <string name="journal_meeting">Rencontre : %1$s vous cherche, et vous aussi.</string>
     <string name="journal_peer_joined">%1$s rejoint la radio — canal chiffré.</string>
     <string name="journal_peer_left">%1$s quitte la radio.</string>

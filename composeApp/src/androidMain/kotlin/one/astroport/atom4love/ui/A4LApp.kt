@@ -723,6 +723,8 @@ private fun Station(
     // homonymes soit la même partout** — deux « Marie » à portée portent ici
     // aussi la queue de leur clé.
     val advertisedCell by ProximityService.advertisedCell4d.collectAsStateWithLifecycle()
+    /** Notre jeton de présence, celui que la salle voit passer. */
+    val myToken by ProximityService.advertisedToken.collectAsStateWithLifecycle()
     val neighborCells by ProximityService.neighbors.collectAsStateWithLifecycle()
     /**
      * ⚠⚠ **Le jeton se recalcule avec la cellule de L'AUTRE, pas la nôtre.**
@@ -1210,6 +1212,7 @@ private fun Station(
                     // Le journal nomme ce qu'il peut : les cartes dont un lien
                     // attesté a appris le pseudo, par jeton de présence.
                     names = plateauNames,
+                    myToken = myToken,
                 )
             }
         } else if (overlay != Overlay.None) {
@@ -1360,6 +1363,12 @@ private fun Station(
                                 // presque toujours d'un lien tombé, pas de la
                                 // photo. Redemander de la reprendre ferait payer
                                 // un défaut de radio à la personne.
+                                // ⚠ Les deux jetons : le nôtre, tel qu'il part
+                                // dans l'annonce, et le sien. La trame TROUVÉ
+                                // ne porte rien d'autre.
+                                onFound = { theirs ->
+                                    myToken?.let { cabin.declareFound(it, theirs) }
+                                },
                                 openToken = openFaceToken,
                                 onOpened = { openFaceToken = null },
                                 onRetrySelfie = { token ->

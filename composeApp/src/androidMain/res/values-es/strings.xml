@@ -105,6 +105,8 @@
     <string name="rendezvous_mutual">Vaya a buscar su resonancia desplazándose físicamente.</string>
     <string name="face_banner">le muestra su cara para que la encuentre</string>
     <string name="face_banner_open">Ver</string>
+    <string name="found_button">🤝 ¡He encontrado a la persona!</string>
+    <string name="board_found">encontrados</string>
     <string name="selfie_offer">¿Tomar un selfi para ayudar a la otra persona a encontrarle?</string>
     <string name="selfie_title">Adónde va su foto</string>
     <string name="selfie_body">Buscar por señal funciona a unos metros y se pierde en una sala llena. Su foto aparecerá en la linterna de esta persona, y en ningún otro sitio: ni en su conversación, ni en su galería, ni en ningún servidor. Se borra al cerrar.</string>
@@ -621,6 +623,9 @@
     <string name="journal_card_seen">Aparece una carta: %1$s</string>
     <string name="journal_card_seen_pct">Aparece una carta: %1$s · %2$d %%</string>
     <string name="journal_card_gone">%1$s se aleja.</string>
+    <string name="journal_found">%1$s y %2$s se han encontrado.</string>
+    <string name="journal_found_you">%1$s le ha encontrado.</string>
+    <string name="journal_found_mine">Ha encontrado a %1$s.</string>
     <string name="journal_meeting">Encuentro: %1$s le busca, y usted también.</string>
     <string name="journal_peer_joined">%1$s se une a la radio: canal cifrado.</string>
     <string name="journal_peer_left">%1$s abandona la radio.</string>

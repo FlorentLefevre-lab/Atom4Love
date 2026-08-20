@@ -117,6 +117,20 @@ sealed interface ChatFrame {
     object Ping : ChatFrame
 
     /**
+     * **Deux personnes se sont trouvées.**
+     *
+     * Elle traverse la maille : celui qui touche « J'ai trouvé la personne ! »
+     * la dit à TOUS ses liens, et chacun la relit pour son journal et pour
+     * l'état des cartes. Les deux jetons sont ceux de la présence — voir
+     * `ChatFrames.TYPE_FOUND`.
+     *
+     * ⚠ Elle ne porte aucun nom : qui sait déjà rapprocher un jeton d'une carte
+     * nomme la personne lui-même, les autres voient passer une rencontre sans
+     * savoir qui. C'est exactement ce que la salle verrait.
+     */
+    data class Found(val finder: Int, val found: Int) : ChatFrame
+
+    /**
      * Un des trois messages du handshake Noise XX. [step] vaut 1, 2 ou 3 : il
      * ne sert qu'à repérer une trame hors séquence, la machine de Noise étant
      * seule juge de ce qui est acceptable.
@@ -199,6 +213,19 @@ object ChatFrames {
      * le prochain numéro libre ; c'est écrit ici pour qu'il ne le reprenne pas.
      */
     private const val TYPE_PING = 0x0D
+
+    /**
+     * **TROUVÉ** — deux personnes se sont reconnues, et ça se dit à la salle.
+     *
+     * `[0x0E][jeton de qui trouve 4][jeton de qui est trouvé 4]`
+     *
+     * ⚠ Les **jetons de présence**, pas les clés : c'est ce que portent les
+     * annonces et les cartes du Plateau, donc la seule chose que tout le monde
+     * sache rapprocher. Un npub ne dirait rien à qui n'a pas de lien attesté
+     * avec ces deux-là.
+     */
+    private const val TYPE_FOUND = 0x0E
+    private const val FOUND_LEN = 9
     private const val QUESTION_LEN = 5
 
     /** [type][longueur du nom] — le nom suit, en UTF-8. */
@@ -355,6 +382,14 @@ object ChatFrames {
      */
     fun encodePing(): ByteArray = byteArrayOf(TYPE_PING.toByte())
 
+    /** Voir [TYPE_FOUND]. */
+    fun encodeFound(finder: Int, found: Int): ByteArray =
+        ByteBuffer.allocate(FOUND_LEN).apply {
+            put(TYPE_FOUND.toByte())
+            putInt(finder)
+            putInt(found)
+        }.array()
+
     fun encodeSealed(ciphertext: ByteArray): ByteArray =
         ByteArray(1 + ciphertext.size).also {
             it[0] = TYPE_SEALED.toByte()
@@ -493,6 +528,11 @@ object ChatFrames {
         }
         if (bytes.size == 1 && bytes[0].toInt() == TYPE_BYE) return ChatFrame.Bye
         if (bytes.size == 1 && bytes[0].toInt() == TYPE_PING) return ChatFrame.Ping
+        if (bytes.size == FOUND_LEN && bytes[0].toInt() == TYPE_FOUND) {
+            val buffer = ByteBuffer.wrap(bytes)
+            buffer.get()
+            return ChatFrame.Found(finder = buffer.int, found = buffer.int)
+        }
         // La taille d'abord : `decode` reçoit aussi des trames vides, et lire
         // l'octet de tête avant de l'avoir vérifié coûte une exception.
         if (bytes.size >= QUESTION_LEN && bytes[0].toInt() == TYPE_QUESTION) {

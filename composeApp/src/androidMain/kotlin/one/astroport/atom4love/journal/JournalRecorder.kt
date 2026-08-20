@@ -10,6 +10,7 @@ import one.astroport.atom4love.chat.ChatEngine
 import one.astroport.atom4love.data.Pseudo
 import one.astroport.atom4love.domain.Phi2X
 import one.astroport.atom4love.nostr.Hex
+import one.astroport.atom4love.proximity.Found
 import one.astroport.atom4love.proximity.NeighborRegistry
 import one.astroport.atom4love.proximity.ProximityPayload
 import one.astroport.atom4love.proximity.ProximityService
@@ -107,6 +108,24 @@ fun JournalRecorder(chat: ChatEngine?, relayOnline: Boolean) {
         peers.associate { Hex.encode(it.nostrKey) to labels[it.npub] }
     }
     LaunchedEffect(present) { Journal.notePeers(present) }
+
+    // ── Les rencontres abouties ───────────────────────────────────────────
+    //
+    // ⚠ Elles viennent de la maille, pas d'une observation : quelqu'un a touché
+    // « J'ai trouvé la personne ! », et la trame a traversé les liens. On les
+    // écrit à l'arrivée, avec les sceaux qu'on connaît des deux jetons — le
+    // pseudo, lui, se met à la lecture, comme partout ailleurs.
+    LaunchedEffect(Unit) {
+        Found.arrivals.collect { meeting ->
+            fun glyphOf(token: Int) = neighbors.firstOrNull { it.token == token }?.signature?.glyph
+            Journal.noteFound(
+                finderToken = meeting.finder,
+                foundToken = meeting.found,
+                finderGlyph = glyphOf(meeting.finder),
+                foundGlyph = glyphOf(meeting.found),
+            )
+        }
+    }
 }
 
 /**

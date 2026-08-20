@@ -65,6 +65,9 @@ class Reassembler(
         is ChatFrame.Cancel -> streams[frame.msgId]?.let {
             abandon(frame.msgId, "envoi annulé par l'expéditeur")
         }
+        // Une rencontre est un fait de la salle, pas un flux d'octets : le
+        // moteur la traite en amont, ici il n'y a rien à réassembler.
+        is ChatFrame.Found -> null
         is ChatFrame.Handshake -> null // le handshake appartient au lien, pas aux flux
         is ChatFrame.Sealed -> null // déjà ouvert par le lien avant d'arriver ici
         is ChatFrame.Address -> null // affaire de médium, pas de flux

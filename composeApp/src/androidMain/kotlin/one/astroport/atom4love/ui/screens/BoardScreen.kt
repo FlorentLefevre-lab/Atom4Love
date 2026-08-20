@@ -52,6 +52,7 @@ import one.astroport.atom4love.domain.KinMaya
 import one.astroport.atom4love.domain.Match
 import one.astroport.atom4love.domain.Oracle
 import one.astroport.atom4love.domain.Phi2X
+import one.astroport.atom4love.proximity.Found
 import one.astroport.atom4love.proximity.NeighborRegistry
 import one.astroport.atom4love.proximity.ProximityPayload
 import one.astroport.atom4love.proximity.SeekingBeacon
@@ -157,6 +158,11 @@ fun BoardScreen(
     sendings: Map<Int, SelfieSend> = emptyMap(),
     /** Remettre le même visage sur le fil après un échec. */
     onRetrySelfie: (Int) -> Unit = {},
+    /**
+     * **La rencontre est déclarée** : à l'appelant de la dire à la salle.
+     * Le jeton est celui de la personne trouvée ; le nôtre s'ajoute plus haut.
+     */
+    onFound: (Int) -> Unit = {},
     /**
      * Ouvrir la lanterne sur ce jeton, demandé de l'extérieur.
      *
@@ -265,6 +271,14 @@ fun BoardScreen(
             onSelfie = { uri -> card.token?.let { onSelfie(it, uri) } },
             sending = card.token?.let { sendings[it] },
             onRetry = { card.token?.let { onRetrySelfie(it) } },
+            // ⚠ Le geste **referme la lanterne** : le jeu est fini, la suite se
+            // passe en vrai. Rester devant un écran qui bat après s'être trouvé
+            // serait le contraire de ce qu'on vient de faire.
+            onFound = {
+                card.token?.let { onFound(it) }
+                seekingId = null
+                seekingMany = false
+            },
         )
         return
     }
@@ -401,6 +415,7 @@ fun BoardScreen(
                             // le dit. Toucher la sienne suffit alors — les deux
                             // écrans battront.
                             seeksUs = neighbor.token != null && neighbor.token in seekers,
+                            found = Found.involves(neighbor.token),
                             pseudo = neighbor.token?.let { names[it] },
                             face = neighbor.token?.let { selfies[it] },
                             onSeek = { seekingId = neighbor.identity },
@@ -590,6 +605,12 @@ private fun DealtCard(
     /** Son pseudo, quand un lien attesté nous l'a appris. */
     pseudo: String? = null,
     /**
+     * **Cette personne s'est trouvée** — quelqu'un l'a déclaré, et la maille
+     * l'a dit à tout le monde. La carte cesse d'être une piste : c'est une
+     * rencontre qui a eu lieu.
+     */
+    found: Boolean = false,
+    /**
      * Le visage qu'elle a envoyé pour se faire reconnaître.
      *
      * ⚠ **Il se montre ICI, sans qu'on ait à ouvrir sa lanterne** (Florent,
@@ -694,7 +715,14 @@ private fun DealtCard(
                     color = if (pseudo == null) A4L.TextHigh else A4L.TextBody,
                     fontWeight = if (pseudo == null) FontWeight.SemiBold else null,
                 )
-                if (seeksUs) {
+                if (found) {
+                    Text(
+                        "🤝 " + stringResource(R.string.board_found),
+                        style = A4LText.Caption.copy(fontWeight = FontWeight.Bold),
+                        color = A4L.Gold,
+                    )
+                }
+                if (seeksUs && !found) {
                     Text(
                         stringResource(R.string.board_seeks_you),
                         style = A4LText.Caption.copy(fontWeight = FontWeight.Bold),

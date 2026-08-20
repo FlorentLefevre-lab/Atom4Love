@@ -73,6 +73,11 @@ class ProximityService : Service() {
         /** Adresse 4D que la balise annonce (null = cellule non résolue ou balise coupée). */
         val advertisedCell4d: StateFlow<Long?> = _advertisedCell4d.asStateFlow()
 
+        private val _advertisedToken = MutableStateFlow<Int?>(null)
+
+        /** Notre jeton de présence — voir [ProximityEngine.State.advertisedToken]. */
+        val advertisedToken: StateFlow<Int?> = _advertisedToken.asStateFlow()
+
         private val _scanBlind = MutableStateFlow(false)
 
         /**
@@ -287,6 +292,7 @@ class ProximityService : Service() {
             scope.launch {
                 engine.state.collect {
                     _advertisedCell4d.value = it.advertisedCell4d
+                    _advertisedToken.value = it.advertisedToken
                     _scanBlind.value = it.scanBlind
                 }
             }
@@ -316,6 +322,7 @@ class ProximityService : Service() {
         _running.value = false
         _neighbors.value = emptyList()
         _advertisedCell4d.value = null
+        _advertisedToken.value = null
         _scanBlind.value = false
         _seekers.value = emptySet()
         engineStarted = false

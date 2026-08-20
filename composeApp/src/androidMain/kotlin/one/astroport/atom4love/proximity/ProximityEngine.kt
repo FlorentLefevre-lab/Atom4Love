@@ -120,6 +120,15 @@ class ProximityEngine(
         val advertising: Boolean = false,
         /** Adresse 4D actuellement diffusée (null = cellule non résolue ou balise coupée). */
         val advertisedCell4d: Long? = null,
+        /**
+         * Notre propre jeton de présence, tel qu'il part dans l'annonce.
+         *
+         * ⚠ L'écran en a besoin pour **déclarer une rencontre** : la trame
+         * TROUVÉ porte deux jetons, et l'un des deux est le nôtre. Le
+         * recalculer ailleurs voudrait dire redériver la clé et la cellule au
+         * bon moment — deux sources de vérité pour un seul nombre.
+         */
+        val advertisedToken: Int? = null,
         val scanning: Boolean = false,
         /**
          * Le scan tourne, et il ne verra rien : la position manque sur un
@@ -445,7 +454,14 @@ class ProximityEngine(
         val started = callback != null
 
         if (!started) return null
-        _state.update { it.copy(advertising = true, advertisedCell4d = cell4d, lastError = null) }
+        _state.update {
+            it.copy(
+                advertising = true,
+                advertisedCell4d = cell4d,
+                advertisedToken = advertisedToken,
+                lastError = null,
+            )
+        }
         Log.d(TAG, "annonce démarrée, cell4d=${cell4d?.toString(16) ?: "inconnue"}")
         return callback
     }
