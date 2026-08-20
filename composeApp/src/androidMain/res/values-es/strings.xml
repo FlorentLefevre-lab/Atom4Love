@@ -26,9 +26,6 @@
     <string name="radar_stat_here_no_relay">Aquí</string>
     <string name="stat_label_suffix">:</string>
 
-
-
-    <string name="radar_beacon_presence_only">Baliza activa — sin posición</string>
     <string name="radar_bluetooth_off">Bluetooth apagado — la radio ya no habla</string>
     <string name="radar_beacon_needs_bluetooth">Baliza de proximidad — se requiere Bluetooth</string>
 
@@ -68,10 +65,7 @@
     <string name="size_kilobytes">%1$.0f KB</string>
     <string name="size_bytes">%1$d B</string>
 
-    <!-- ─── 04 · Resonancia ───────────────────────────────────────────── -->
-
     <!-- ─── 03 · El tablero «¿Quién es?» ──────────────────────────────── -->
-    <string name="board_title">¿Quién es?</string>
     <string name="board_counters_title">Contadores (local y remoto)</string>
     <string name="board_your_card">Tu carta</string>
     <string name="board_in_range">Al alcance (%1$d)</string>
@@ -191,10 +185,6 @@
     <string name="tab_nucleus">Núcleo</string>
     <string name="tab_help">Ayuda</string>
     <string name="tab_settings">Ajustes</string>
-
-    <!-- ─── El indicador de enlace, arriba del todo ───────────────────── -->
-    <string name="header_radio_off">radio apagada</string>
-    <string name="header_radio_on">radio encendida</string>
 
 
     <!-- ─── 06 · MULTIPASS: la entrada a Astroport.ONE ────────────────── -->
@@ -639,7 +629,6 @@
     <string name="tab_chats">Chats</string>
     <string name="tab_world">Mundo</string>
     <string name="chats_erase">Cerrar y borrar todas las conversaciones</string>
-    <string name="radar_journal_row">Cuaderno de bitácora (events)</string>
 
     <!-- ─── 🔑 El fin del periodo de prueba ───────────────────────────── -->
     <string name="trial_over_title">El periodo de prueba ha terminado</string>
@@ -656,7 +645,6 @@
     </plurals>
     <string name="chat_channel_name">Mensajes</string>
     <string name="chat_channel_description">Cuando alguien le escribe y la aplicación está cerrada. La vista previa permanece oculta mientras la pantalla está bloqueada.</string>
-    <string name="chat_notification_title">Atom4Love</string>
     <string name="notify_allow">Permitir</string>
     <string name="notify_settings">Ajustes</string>
     <string name="notify_title">¿Le avisamos?</string>

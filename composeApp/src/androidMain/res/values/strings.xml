@@ -49,16 +49,6 @@
          le deux-points ne part jamais seul à la ligne. -->
     <string name="stat_label_suffix">&#160;:</string>
 
-    <!-- Les résonances : ce que la balise lit dans l'annonce des voisins.
-         « k » est le nom que Fred lui donne partout — on ne le traduit pas, et
-         le sceau garde son nom maya, qui est un nom propre. -->
-
-
-    <!-- « (localisation) » et non « (GPS) » : la position vient du fournisseur
-         fusionné en PRIORITY_BALANCED_POWER_ACCURACY, qui évite exprès le
-         satellite quand le Wi-Fi et les antennes suffisent — donc presque
-         toujours en intérieur. C\'est aussi le mot de la permission Android. -->
-    <string name="radar_beacon_presence_only">Balise active — sans position</string>
     <string name="radar_bluetooth_off">Bluetooth éteint — la radio ne parle plus</string>
     <string name="radar_beacon_needs_bluetooth">Balise de proximité — Bluetooth requis</string>
     <!-- L'hôte d'un groupe Wi-Fi Direct. Dit en entier : « propriétaire » ne
@@ -114,18 +104,14 @@
     <string name="size_kilobytes">%1$.0f Ko</string>
     <string name="size_bytes">%1$d o</string>
 
-    <!-- ─── 04 · Résonance : valence, liaisons, ionisation ────────────── -->
-    <!-- Liaisons de démonstration : l'écran est encore une maquette, mais ce
-         qu'elle montre s'affiche vraiment et se lit donc dans la langue. -->
-
     <!-- ─── 03 · Plateau « Qui est-ce ? » ─────────────────────────────── -->
-    <string name="board_title">Qui est-ce ?</string>
     <string name="board_counters_title">Compteurs (local et distant)</string>
     <string name="board_your_card">Votre carte</string>
     <string name="board_in_range">À portée (%1$d)</string>
     <string name="board_nobody">Personne ne montre sa carte pour l\'instant. La partie se joue à deux téléphones dans la même salle.</string>
     <string name="board_beacon_off">La balise est éteinte : personne ne vous voit, et vous ne voyez personne. Elle s\'allume dès que le Bluetooth est accordé — la rangée au-dessus le demande.</string>
     <string name="board_blind_no_location">Je ne peux pas regarder : il me manque la position. Sur cet Android, la radio n\'a pas le droit de balayer sans elle — la ligne au-dessus dit comment l\'accorder.</string>
+    <!-- Le sceau garde son nom maya : nom propre, il ne se traduit pas. -->
     <string name="board_no_seal">Sceau inconnu</string>
     <string name="board_no_date">votre fiche n\'a pas encore de date</string>
     <string name="board_kin_tone">KIN %1$d · tonalité %2$d</string>
@@ -243,12 +229,6 @@
     <string name="tab_nucleus">Noyau</string>
     <string name="tab_help">Aide</string>
     <string name="tab_settings">Réglages</string>
-
-    <!-- ─── L'indicateur de liaison, tout en haut ─────────────────────── -->
-    <string name="header_radio_off">radio éteinte</string>
-    <string name="header_radio_on">radio allumée</string>
-
-    <!-- Le glyphe ☀/☾ ne se lit pas à voix haute : ces deux lignes disent le geste. -->
 
     <!-- ─── 06 · MULTIPASS : l'entrée sur Astroport.ONE ───────────────── -->
     <string name="mp_title_done">Compte ouvert</string>
@@ -747,7 +727,6 @@
     <string name="tab_chats">Chats</string>
     <string name="tab_world">Monde</string>
     <string name="chats_erase">Fermer et effacer toutes les conversations</string>
-    <string name="radar_journal_row">Journal de bord (events)</string>
 
     <!-- ─── 🔑 La fin de la période d\'essai ───────────────────────────── -->
     <string name="trial_over_title">La période d\'essai est finie</string>
@@ -764,7 +743,6 @@
     </plurals>
     <string name="chat_channel_name">Messages</string>
     <string name="chat_channel_description">Quand quelqu\'un vous écrit et que l\'application n\'est pas ouverte. L\'aperçu reste caché tant que l\'écran est verrouillé.</string>
-    <string name="chat_notification_title">Atom4Love</string>
     <string name="notify_allow">Autoriser</string>
     <string name="notify_settings">Réglages</string>
     <string name="notify_title">Vous prévenir ?</string>

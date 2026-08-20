@@ -25,9 +25,6 @@
     <string name="radar_stat_here_no_relay">Here</string>
     <string name="stat_label_suffix">:</string>
 
-
-
-    <string name="radar_beacon_presence_only">Beacon on — no position</string>
     <string name="radar_bluetooth_off">Bluetooth off — the radio has gone quiet</string>
     <string name="radar_beacon_needs_bluetooth">Proximity beacon — Bluetooth required</string>
 
@@ -67,10 +64,7 @@
     <string name="size_kilobytes">%1$.0f KB</string>
     <string name="size_bytes">%1$d B</string>
 
-    <!-- ─── 04 · Resonance ────────────────────────────────────────────── -->
-
     <!-- ─── 03 · The "Who is it?" board ───────────────────────────────── -->
-    <string name="board_title">Who is it?</string>
     <string name="board_counters_title">Counters (local and remote)</string>
     <string name="board_your_card">Your card</string>
     <string name="board_in_range">In range (%1$d)</string>
@@ -188,10 +182,6 @@
     <string name="tab_nucleus">Nucleus</string>
     <string name="tab_help">Help</string>
     <string name="tab_settings">Settings</string>
-
-    <!-- ─── The link indicator, at the very top ───────────────────────── -->
-    <string name="header_radio_off">radio off</string>
-    <string name="header_radio_on">radio on</string>
 
 
     <!-- ─── 06 · MULTIPASS: the door onto Astroport.ONE ───────────────── -->
@@ -634,7 +624,6 @@
     <string name="tab_chats">Chats</string>
     <string name="tab_world">World</string>
     <string name="chats_erase">Close and erase every conversation</string>
-    <string name="radar_journal_row">Logbook (events)</string>
 
     <!-- ─── 🔑 End of the trial ───────────────────────────────────────── -->
     <string name="trial_over_title">The trial period is over</string>
@@ -651,7 +640,6 @@
     </plurals>
     <string name="chat_channel_name">Messages</string>
     <string name="chat_channel_description">When someone writes to you and the application is closed. The preview stays hidden while the screen is locked.</string>
-    <string name="chat_notification_title">Atom4Love</string>
     <string name="notify_allow">Allow</string>
     <string name="notify_settings">Settings</string>
     <string name="notify_title">Should we tell you?</string>
