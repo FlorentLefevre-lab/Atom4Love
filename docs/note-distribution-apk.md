@@ -56,7 +56,7 @@ qu'il porte dit quels octets sont les bons, et l'app refuse tout le reste.
 {
   "versionCode": 4,
   "versionName": "0.2.2",
-  "minSdk": 26,
+  "minSdk": 29,
   "publishedAt": "2026-08-17",
   "sha256": "354afa20c4843d4bb6ad3dd62c2ce367c2d0bf39019c0f3d272c9b1f01d3fb8b",
   "sizeBytes": 6772892,

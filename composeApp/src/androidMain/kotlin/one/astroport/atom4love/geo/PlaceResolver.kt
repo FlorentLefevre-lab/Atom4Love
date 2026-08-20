@@ -24,7 +24,7 @@ object PlaceResolver {
         if (query.isBlank() || !Geocoder.isPresent()) return@withContext null
         val address = runCatching {
             // L'API à écouteur n'existe qu'à partir d'API 33 ; l'appel bloquant
-            // reste le seul chemin commun à minSdk 26, d'où l'IO dispatcher.
+            // reste le seul chemin commun à minSdk 29, d'où l'IO dispatcher.
             @Suppress("DEPRECATION")
             Geocoder(context, Locale.getDefault()).getFromLocationName(query, 1)?.firstOrNull()
         }.onFailure { Log.w(TAG, "géocodage impossible pour « $query »", it) }.getOrNull()

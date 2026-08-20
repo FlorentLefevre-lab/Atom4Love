@@ -15,9 +15,9 @@ Noise XX du chat BLE.
 
 ## Pourquoi vendoriser
 
-`minSdk = 26` : Android ne fournit ChaCha20-Poly1305 qu'à partir de l'API 28 et
-X25519 (XDH) qu'à partir de l'API 33. La plateforme ne peut donc pas fournir la
-crypto de Noise sur nos cibles. noise-java est autonome, sans dépendance — il
+`minSdk = 29` : la plateforme fournit bien ChaCha20-Poly1305 (API 28), mais pas
+X25519 (XDH), qu'elle n'expose qu'à partir de l'API 33. Elle ne peut donc pas
+fournir la crypto de Noise sur nos cibles — et n'en fournit aucune sur iOS. noise-java est autonome, sans dépendance — il
 apporte Curve25519, ChaChaPoly, SHA-256 et la machine à états des handshakes.
 
 L'amont n'est pas publié sur Maven Central, d'où la copie dans l'arbre.

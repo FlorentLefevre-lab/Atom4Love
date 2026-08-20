@@ -149,9 +149,10 @@ class NoiseSession private constructor(
          * Suite retenue : XX sur Curve25519, ChaCha20-Poly1305, SHA-256.
          *
          * ChaChaPoly plutôt qu'AES-GCM parce que noise-java l'implémente en
-         * Java pur : pas de dépendance à ce que la plateforme expose, et
-         * `minSdk = 26` ne donne accès ni à ChaCha20-Poly1305 (API 28) ni à
-         * X25519 (API 33).
+         * pur Kotlin : pas de dépendance à ce que la plateforme expose. Le
+         * plancher (API 29) couvre bien ChaCha20-Poly1305, arrivé en API 28,
+         * mais pas X25519 (API 33) — et rien de tout cela n'existe en
+         * Kotlin/Native.
          */
         const val PROTOCOL = "Noise_XX_25519_ChaChaPoly_SHA256"
 

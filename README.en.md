@@ -329,7 +329,7 @@ findable.
 | Proximity | BLE advertising + scanning (17-byte advertisement, continuous service), RFCOMM, Wi-Fi Direct, framed TCP sockets |
 | Media | Media3 (cabin video, never re-encoded), Coil |
 | Typography | [Atkinson Hyperlegible Next](https://fonts.google.com/specimen/Atkinson+Hyperlegible+Next) (text — designed for low vision), [JetBrains Mono](https://fonts.google.com/specimen/JetBrains+Mono) (data, addresses, counters) and [Cinzel Decorative](https://fonts.google.com/specimen/Cinzel+Decorative) (the name, on the splash) — embedded, SIL OFL 1.1, texts in `licenses/` |
-| Build | Gradle KTS 9.5, AGP 9.3.1, single `:composeApp` module — minSdk 26, targetSdk 36, JDK 17. The tree is already named like a multiplatform project (`commonMain`, `androidMain`, `iosMain`), Android alone is compiled — see `docs/note-portage-ios.md` |
+| Build | Gradle KTS 9.5, AGP 9.3.1, single `:composeApp` module — minSdk 29 (Android 10, a firm floor), targetSdk 36, JDK 17. The tree is already named like a multiplatform project (`commonMain`, `androidMain`, `iosMain`), Android alone is compiled — see `docs/note-portage-ios.md` |
 
 > **Implementation note.** H3 provides the reference hexagonal tiling; the temporal rotation
 > layer described in D2 applies on top of it, at encoding and decoding time (the

@@ -112,7 +112,12 @@ android {
 
     defaultConfig {
         applicationId = "one.astroport.atom4love"
-        minSdk = 26
+        // ⚠ Plancher FERME : Android 10 (API 29), on ne descend jamais en
+        // dessous. C'est ce que la page de téléchargement promet, et ce que
+        // l'application tient vraiment : avant Q, rejoindre un groupe Wi-Fi
+        // Direct par identifiants n'existe pas (WifiP2pConfig.Builder) et
+        // une pièce jointe ne peut pas être rangée dans Téléchargements.
+        minSdk = 29
         targetSdk = 36
         // ⚠ Le versionCode est le SEUL nombre qu'Android regarde pour accepter
         // une mise à jour : il doit croître à chaque APK diffusé, et ne jamais
@@ -194,7 +199,7 @@ android {
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
 
-                // v2 suffit à installer (minSdk 26), et c'est tout ce qu'AGP
+                // v2 suffit à installer (minSdk 29), et c'est tout ce qu'AGP
                 // pose par défaut ici. v3 ajoute la ROTATION de clé : le jour
                 // où cette clé-là devrait être remplacée, les appareils
                 // accepteraient la nouvelle sans que personne désinstalle.
@@ -202,7 +207,9 @@ android {
                 //
                 // ⚠ À poser AVANT la première version publiée : un APK déjà
                 // installé ne connaît que les schémas qu'il portait.
-                // Rétrocompatible — Android antérieur à 9 lit le v2.
+                // Rétrocompatible par construction : le v3 est lu depuis
+                // Android 9, soit avant notre plancher, et le v2 reste là
+                // pour tout installeur qui ne le connaîtrait pas.
                 enableV2Signing = true
                 enableV3Signing = true
             }

@@ -19,10 +19,11 @@
     Constaté au banc le 16/08/2026 sur un magasin arrêté à l'été 2019 :
     l'application s'y retrouvait entière à portée d'antenne — forge, balise,
     BLE, rencontre — et muette dès qu'elle sortait par le réseau. Rien n'est
-    propre à ce téléphone-là : la question se pose pour tout appareil qui ne
-    reçoit plus de mises à jour, et Android 8 comme Android 9 en comptent
-    beaucoup. Embarquer les deux racines ISRG les rend connues quel que soit
-    l'âge du magasin.
+    propre à ce téléphone-là, et le plancher Android 10 n'y change rien : X2
+    n'est entrée dans le magasin d'AOSP qu'avec Android 14. Tout ce qui est en
+    deçà ne la connaît que si son constructeur a poussé une mise à jour du
+    magasin — c'est-à-dire presque jamais sur un appareil abandonné. Embarquer
+    les deux racines ISRG les rend connues quel que soit l'âge du magasin.
 
     ⚠ Ce que cela coûte, et il faut le savoir : une racine embarquée ne peut
     plus être retirée par une mise à jour du système. Si ISRG venait à être

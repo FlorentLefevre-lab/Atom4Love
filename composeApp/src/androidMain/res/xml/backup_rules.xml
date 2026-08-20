@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Android 11 et en deçà (minSdk 26). `allowBackup="false"` suffit à ces
-    versions ; ces exclusions sont une ceinture par-dessus les bretelles, pour
+    Android 11 et en deçà — donc 10 et 11, le plancher étant à 29.
+    `allowBackup="false"` suffit à ces versions ; ces exclusions sont une
+    ceinture par-dessus les bretelles, pour
     qu'aucune remise à `true` distraite ne rouvre la porte en silence.
 
     Voir res/xml/data_extraction_rules.xml pour Android 12+, et le commentaire
