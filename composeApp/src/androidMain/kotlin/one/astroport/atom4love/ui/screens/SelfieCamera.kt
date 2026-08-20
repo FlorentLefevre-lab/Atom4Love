@@ -171,8 +171,12 @@ private fun Viewfinder(onCancel: () -> Unit, onTaken: (Uri) -> Unit) {
             .fillMaxSize()
             .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen),
     ) {
-        val radius = size.minDimension * 0.36f
-        val center = Offset(size.width / 2f, size.height * 0.42f)
+        // ⚠ Mesuré sur l'A5 (16:9, 1080×1600 utiles) : à 0,36 de large et
+        // centré à 0,42 de haut, le bas du cercle tombait **sur le
+        // déclencheur** — le bouton mordait le menton. Le cercle remonte et
+        // maigrit un peu ; le déclencheur garde sa marge en bas.
+        val radius = size.minDimension * 0.32f
+        val center = Offset(size.width / 2f, size.height * 0.37f)
         drawRect(Color.Black.copy(alpha = 0.62f))
         drawCircle(Color.Transparent, radius = radius, center = center, blendMode = BlendMode.Clear)
         drawCircle(ring, radius = radius, center = center, style = Stroke(width = 2.dp.toPx()))
@@ -227,7 +231,7 @@ private fun Viewfinder(onCancel: () -> Unit, onTaken: (Uri) -> Unit) {
 
         Box(
             Modifier
-                .padding(bottom = 34.dp)
+                .padding(bottom = 44.dp)
                 .size(74.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = if (taking) 0.35f else 0.92f))

@@ -847,6 +847,14 @@ private fun Station(
      */
     var openFaceToken by remember { mutableStateOf<Int?>(null) }
 
+    /**
+     * Les visages pris mais jamais partis, par jeton — voir `onSelfie`.
+     *
+     * Ils tiennent le temps de la session : la personne repasse à portée, on
+     * touche « Recommencer », et la même photo repart.
+     */
+    var unsentSelfies by remember { mutableStateOf<Map<Int, android.net.Uri>>(emptyMap()) }
+
     /** Le journal ouvert en plein écran, à la place qu'occupait la cabine. */
     var journalShown by rememberSaveable { mutableStateOf(false) }
     /**
@@ -1326,9 +1334,28 @@ private fun Station(
                                 // dans aucune conversation — voir
                                 // [ChatKind.SELFIE].
                                 onSelfie = { token, uri ->
-                                    plateauPeers[token]?.let { cabin.sendSelfie(uri, it) }
+                                    // ⚠⚠ **Un visage ne se perd pas en
+                                    // silence.** Vu sur l'A5 le 20/08 : la
+                                    // personne était passée « hors de portée »
+                                    // pendant qu'on la photographiait, le pair
+                                    // attesté n'existait plus, et la photo
+                                    // partait dans le vide — appareil fermé,
+                                    // aucun message, aucune erreur. Quelqu'un
+                                    // qui vient de montrer son visage mérite au
+                                    // moins qu'on lui dise qu'il ne part pas.
+                                    val hex = plateauPeers[token]
+                                    if (hex == null) {
+                                        unsentSelfies = unsentSelfies + (token to uri)
+                                    } else {
+                                        unsentSelfies = unsentSelfies - token
+                                        cabin.sendSelfie(uri, hex)
+                                    }
                                 },
-                                sendings = plateauSending,
+                                // L'échec « jamais parti » se dit comme les
+                                // autres, avec sa reprise.
+                                sendings = plateauSending + unsentSelfies.mapValues {
+                                    SelfieSend(progress = 0f, done = false, failed = true)
+                                },
                                 // ⚠ On renvoie le MÊME fichier : un échec vient
                                 // presque toujours d'un lien tombé, pas de la
                                 // photo. Redemander de la reprendre ferait payer
@@ -1336,6 +1363,16 @@ private fun Station(
                                 openToken = openFaceToken,
                                 onOpened = { openFaceToken = null },
                                 onRetrySelfie = { token ->
+                                    // La photo qui n'était jamais partie repart
+                                    // par le même chemin, dès que la personne
+                                    // est de nouveau joignable.
+                                    unsentSelfies[token]?.let { uri ->
+                                        plateauPeers[token]?.let { hex ->
+                                            unsentSelfies = unsentSelfies - token
+                                            cabin.sendSelfie(uri, hex)
+                                            return@BoardScreen
+                                        }
+                                    }
                                     val hex = plateauPeers[token] ?: return@BoardScreen
                                     cabinMessages
                                         .filter {
