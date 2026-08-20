@@ -113,6 +113,7 @@
     <string name="selfie_sent">Your face has arrived.</string>
     <string name="selfie_failed">Your face did not make it — the link dropped on the way.</string>
     <string name="selfie_retry">Try again</string>
+    <string name="selfie_shutter">Shutter</string>
     <string name="selfie_aim">Put your face in the circle</string>
     <string name="selfie_take">Take the photo</string>
     <string name="selfie_no">Not now</string>

@@ -10,9 +10,15 @@ import re
 import sys
 
 XML = sys.stdin.read()
-PATTERN = r'text="([^"]*)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"'
+# ⚠ `text` ET `content-desc` : un bouton sans libellé — un déclencheur, une
+# croix — n'existe que par sa description. La chercher rend le pilote capable
+# de viser ce que l'œil voit mais que le texte ne nomme pas.
+PATTERNS = (
+    r'text="([^"]*)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"',
+    r'content-desc="([^"]*)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"',
+)
 
-for match in re.finditer(PATTERN, XML):
+for match in [m for p in PATTERNS for m in re.finditer(p, XML)]:
     label = match.group(1)
     if not label.strip():
         continue

@@ -150,7 +150,15 @@ class Reassembler(
     fun prune(): List<Event.Failed> {
         val now = nowMs()
         val stale = streams.filterValues { now - it.lastSeenMs > staleAfterMs }.keys.toList()
-        return stale.map { msgId -> abandon(msgId, "transfert interrompu") }
+        // ⚠⚠ **On le DIT à l'expéditeur.** Sans acquittement d'abandon, celui
+        // qui envoie reste sur « ça part… » pour toujours : il a écrit tous ses
+        // fragments, la radio les a acceptés, et il ne saura jamais qu'ils se
+        // sont perdus en route. Mesuré le 20/08, quatre fois, sur les envois de
+        // l'A5 dont la puce lâche sous charge — le visage n'arrivait pas et
+        // l'écran d'en face ne proposait même pas de recommencer.
+        return stale.map { msgId ->
+            abandon(msgId, "transfert interrompu", ChatFrames.ACK_ABORT)
+        }
     }
 
     /** La cabine ferme : plus rien n'aboutira, et rien ne doit rester. */

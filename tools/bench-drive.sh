@@ -22,7 +22,28 @@ dump() { adb -s "$S" exec-out uiautomator dump /dev/tty 2>/dev/null; }
 
 texts() { dump | python3 "$(dirname "$0")/ui-texts.py"; }
 
-find_one() { texts | grep -F -m1 -- "$1" | cut -f1; }
+# ⚠ **On réessaie avant de renoncer.** Compose compose à sa main : un dump
+# lancé une seconde trop tôt rend un écran à moitié posé, et le bouton qu'on
+# cherche n'y est pas encore. Trois tentatives à 1,5 s valent mieux qu'un échec
+# qui ferait croire à un défaut d'affichage — ça m'est arrivé quatre fois
+# aujourd'hui.
+find_one() {
+  local i p
+  for i in 1 2 3 4; do
+    p=$(texts | grep -F -m1 -- "$1" | cut -f1)
+    [ -n "$p" ] && { echo "$p"; return 0; }
+    # ⚠⚠ **Le dump ne montre que ce qui est RENDU.** Une carte sous la ligne de
+    # flottaison n'existe pas pour uiautomator, et le pilote concluait
+    # « introuvable » sur un écran qui la portait trois centimètres plus bas —
+    # deux fois aujourd'hui, dont une où j'ai cru la radio morte. On fait donc
+    # défiler entre deux tentatives, puis on remonte pour ne pas laisser
+    # l'écran ailleurs qu'on l'a trouvé.
+    read -r W H < <(adb -s "$S" shell wm size | sed 's/.*: //' | tr 'x' ' ')
+    adb -s "$S" shell input swipe $((W/2)) $((H*70/100)) $((W/2)) $((H*35/100)) 250
+    sleep 1.2
+  done
+  return 1
+}
 
 tap_text() {
   local p; p=$(find_one "$1")
@@ -45,9 +66,11 @@ case "${1:-}" in
     tap_text "$2" || exit 1; sleep 4
     tap_text "Prendre un selfie" || exit 1; sleep 3
     tap_text "Prendre la photo" || exit 1; sleep 7
-    # Le déclencheur n'a pas de texte : il est au centre, sous le cercle.
-    read -r W H < <(adb -s "$S" shell wm size | sed 's/.*: //' | tr 'x' ' ')
-    adb -s "$S" shell input tap $((W/2)) $((H*72/100))
+    # ⚠ Le déclencheur se touche par son NOM depuis qu'il en a un
+    # (`contentDescription`). Il était visé à 72 % de la hauteur physique — un
+    # nombre qui ne veut rien dire dès qu'on change d'appareil, et qui tombait
+    # dans la barre de navigation sur l'A5.
+    tap_text "Déclencher" || exit 1
     sleep 3
     adb -s "$S" logcat -d | grep -iE "visage préparé|message .* par |échec d'émission" | tail -2
     ;;

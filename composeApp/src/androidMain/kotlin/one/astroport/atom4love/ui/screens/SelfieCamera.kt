@@ -37,6 +37,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -229,8 +231,13 @@ private fun Viewfinder(onCancel: () -> Unit, onTaken: (Uri) -> Unit) {
 
         Box(Modifier.weight(1f))
 
+        val shutter = stringResource(R.string.selfie_shutter)
         Box(
             Modifier
+                // ⚠ Un bouton sans texte est invisible à qui ne voit pas
+                // l'écran — un lecteur d'écran comme un pilote de banc. Le nom
+                // le rend atteignable par les deux.
+                .semantics { contentDescription = shutter }
                 .padding(bottom = 44.dp)
                 .size(74.dp)
                 .clip(CircleShape)
