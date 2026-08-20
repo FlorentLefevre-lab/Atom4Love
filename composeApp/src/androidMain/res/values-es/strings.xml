@@ -11,6 +11,7 @@
     <string name="radar_hex_unknown_dead_end">Hexágono desconocido — se denegó la ubicación. Android ya no volverá a pedirla: se reabre desde los ajustes de la app. No enciende ninguna baliza.</string>
     <string name="radar_hex_unknown_permission">Hexágono desconocido — la ubicación resuelve tu celda. No enciende ninguna baliza.</string>
     <string name="radar_hex_unknown_searching">Hexágono desconocido — buscando la posición…</string>
+    <string name="radar_scan_needs_location">En este Android, la radio no escanea sin ubicación: tu baliza habla, pero no ves a nadie.</string>
 
     <string name="radar_open_app_settings">Abrir los ajustes de la app</string>
     <string name="radar_grant_location">Conceder la ubicación</string>
@@ -69,7 +70,8 @@
     <string name="board_your_card">Tu carta</string>
     <string name="board_in_range">Al alcance (%1$d)</string>
     <string name="board_nobody">Nadie muestra su carta por ahora. La partida se juega con dos teléfonos en la misma sala.</string>
-    <string name="board_beacon_off">La baliza está apagada: nadie te ve, y tú no ves a nadie. Se enciende en el Mapa, vista «Aquí».</string>
+    <string name="board_beacon_off">La baliza está apagada: nadie te ve, y tú no ves a nadie. Se enciende en cuanto se concede el Bluetooth: la fila de arriba lo pide.</string>
+    <string name="board_blind_no_location">No puedo mirar: me falta la ubicación. En este Android la radio no puede escanear sin ella; la línea de arriba dice cómo concederla.</string>
     <string name="board_no_seal">Sello desconocido</string>
     <string name="board_no_date">tu ficha aún no tiene fecha</string>
     <string name="board_kin_tone">KIN %1$d · tono %2$d</string>

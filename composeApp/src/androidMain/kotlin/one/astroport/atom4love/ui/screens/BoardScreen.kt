@@ -145,6 +145,16 @@ fun BoardScreen(
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
     val own by ProximityService.signature.collectAsStateWithLifecycle()
     val beaconRunning by ProximityService.running.collectAsStateWithLifecycle()
+    /**
+     * ⚠ **La main vide a trois causes, et une seule veut dire « il n'y a
+     * personne ».** Sans Bluetooth la balise ne tourne pas ; avant Android 12,
+     * sans position, elle tourne et le scan est aveugle
+     * ([ProximityService.scanBlind]). Dans les deux premiers cas, écrire
+     * « Personne ne montre sa carte » est un mensonge — celui qui a coûté une
+     * soirée à l'A5 le 19/08, où l'écran concluait sur une salle qu'il n'avait
+     * pas regardée.
+     */
+    val scanBlind by ProximityService.scanBlind.collectAsStateWithLifecycle()
     /** Les jetons de ceux qui nous cherchent — cf. [SeekingPayload]. */
     val seekers by ProximityService.seekers.collectAsStateWithLifecycle()
 
@@ -302,7 +312,11 @@ fun BoardScreen(
                 ) {
                     Text(
                         stringResource(
-                            if (beaconRunning) R.string.board_nobody else R.string.board_beacon_off,
+                            when {
+                                !beaconRunning -> R.string.board_beacon_off
+                                scanBlind -> R.string.board_blind_no_location
+                                else -> R.string.board_nobody
+                            },
                         ),
                         style = A4LText.Caption,
                         color = A4L.TextMuted,

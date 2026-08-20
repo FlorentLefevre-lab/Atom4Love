@@ -198,6 +198,14 @@ fun RadioSection(
     val beaconRunning by ProximityService.running.collectAsStateWithLifecycle()
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
     val ownCell4d by ProximityService.advertisedCell4d.collectAsStateWithLifecycle()
+    /**
+     * ⚠ **Sur un Android d'avant 12, la position ne fait pas que nommer la
+     * cellule : sans elle, le scan ne remonte rien.** La ligne « la
+     * localisation résout votre cellule » se lisait alors comme un confort
+     * qu'on peut refuser — et l'appareil ne voyait plus personne, sans un mot.
+     * Voir [ProximityService.scanBlind].
+     */
+    val scanBlind by ProximityService.scanBlind.collectAsStateWithLifecycle()
 
     // La localisation se demande pour elle-même : la balise annonce une
     // présence sans elle, et l'exiger pour allumer la radio reviendrait à faire
@@ -352,6 +360,16 @@ fun RadioSection(
                 style = A4LText.Caption,
                 color = A4L.TextMuted,
             )
+            // La conséquence, et elle n'est pas la même partout : ce qui n'est
+            // qu'une cellule manquante sur un téléphone récent est une salle
+            // entière qu'on ne voit pas sur un ancien.
+            if (scanBlind) {
+                Text(
+                    stringResource(R.string.radar_scan_needs_location),
+                    style = A4LText.Caption,
+                    color = A4L.TextMuted,
+                )
+            }
             if (locationBlocker == CellLocator.Blocker.PERMISSION) {
                 Text(
                     stringResource(

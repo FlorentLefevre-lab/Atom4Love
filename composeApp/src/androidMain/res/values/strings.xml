@@ -29,6 +29,7 @@
     <string name="radar_hex_unknown_dead_end">Hexagone inconnu — la localisation a été refusée. Android ne la redemandera plus : elle se rouvre depuis les réglages de l\'app. Elle n\'allume aucune balise.</string>
     <string name="radar_hex_unknown_permission">Hexagone inconnu — la localisation résout votre cellule. Elle n\'allume aucune balise.</string>
     <string name="radar_hex_unknown_searching">Hexagone inconnu — recherche de position en cours…</string>
+    <string name="radar_scan_needs_location">Sur cet Android, la radio ne balaye pas sans position : votre balise parle, mais vous ne voyez personne.</string>
 
     <string name="radar_open_app_settings">Ouvrir les réglages de l\'app</string>
     <string name="radar_grant_location">Accorder la localisation</string>
@@ -112,7 +113,8 @@
     <string name="board_your_card">Votre carte</string>
     <string name="board_in_range">À portée (%1$d)</string>
     <string name="board_nobody">Personne ne montre sa carte pour l\'instant. La partie se joue à deux téléphones dans la même salle.</string>
-    <string name="board_beacon_off">La balise est éteinte : personne ne vous voit, et vous ne voyez personne. Elle s\'allume sur la Carte, vue « Ici ».</string>
+    <string name="board_beacon_off">La balise est éteinte : personne ne vous voit, et vous ne voyez personne. Elle s\'allume dès que le Bluetooth est accordé — la rangée au-dessus le demande.</string>
+    <string name="board_blind_no_location">Je ne peux pas regarder : il me manque la position. Sur cet Android, la radio n\'a pas le droit de balayer sans elle — la ligne au-dessus dit comment l\'accorder.</string>
     <string name="board_no_seal">Sceau inconnu</string>
     <string name="board_no_date">votre fiche n\'a pas encore de date</string>
     <string name="board_kin_tone">KIN %1$d · tonalité %2$d</string>

@@ -72,6 +72,19 @@ class ProximityService : Service() {
         /** Adresse 4D que la balise annonce (null = cellule non résolue ou balise coupée). */
         val advertisedCell4d: StateFlow<Long?> = _advertisedCell4d.asStateFlow()
 
+        private val _scanBlind = MutableStateFlow(false)
+
+        /**
+         * **Le scan tourne et ne verra rien** — voir [ProximityEngine.State.scanBlind].
+         *
+         * ⚠ Il est ici, et non dans l'écran qui l'affiche, parce que c'est un
+         * fait de la radio et non d'une page : deux écrans en ont besoin (le
+         * Plateau, qui n'a aucune carte à montrer, et la ligne de position de
+         * son en-tête), et un troisième l'aurait sinon redécouvert une
+         * troisième fois.
+         */
+        val scanBlind: StateFlow<Boolean> = _scanBlind.asStateFlow()
+
         private val _nostrKey = MutableStateFlow<ByteArray?>(null)
         private val _signature = MutableStateFlow(ProximityPayload.Signature.Unknown)
 
@@ -239,7 +252,10 @@ class ProximityService : Service() {
             )
             scope.launch { engine.run() }
             scope.launch {
-                engine.state.collect { _advertisedCell4d.value = it.advertisedCell4d }
+                engine.state.collect {
+                    _advertisedCell4d.value = it.advertisedCell4d
+                    _scanBlind.value = it.scanBlind
+                }
             }
             scope.launch { registry.seekers.collect { _seekers.value = it } }
             scope.launch {
@@ -262,6 +278,7 @@ class ProximityService : Service() {
         _running.value = false
         _neighbors.value = emptyList()
         _advertisedCell4d.value = null
+        _scanBlind.value = false
         _seekers.value = emptySet()
         engineStarted = false
         super.onDestroy()

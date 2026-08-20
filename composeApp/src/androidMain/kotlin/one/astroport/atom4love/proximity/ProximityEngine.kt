@@ -14,6 +14,7 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.os.Build
 import android.os.ParcelUuid
 import android.util.Log
 import kotlinx.coroutines.currentCoroutineContext
@@ -83,6 +84,26 @@ class ProximityEngine(
 
         private const val TAG = "Proximity"
 
+        /**
+         * **Avant Android 12, un scan BLE est aveugle sans la position.**
+         *
+         * Le système traite une liste de balises vues comme une position
+         * déduite, et la refuse donc à qui n'a pas la localisation — permission
+         * ET interrupteur système. Le scan démarre alors sans la moindre erreur
+         * et ne remonte simplement jamais rien.
+         *
+         * ⚠ Depuis Android 12 nous demandons `BLUETOOTH_SCAN` avec
+         * `neverForLocation` : le scan y tourne sans la position, et la seule
+         * chose qui manque alors est la **cellule** — donc le jeton de présence
+         * et les compteurs de portail, jamais les cartes elles-mêmes. La
+         * différence est exactement ce que cette fonction dit.
+         *
+         * Constaté sur l'A5 (LineageOS 17.1, Android 10) le 19/08 : « à portée
+         * (0) » et « Personne ne montre sa carte », alors que l'appareil ne
+         * pouvait pas regarder. Voir [State.scanBlind].
+         */
+        fun scanNeedsLocation(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+
         /** Re-résolution périodique de la cellule (et de l'annonce si elle change). */
         private const val CELL_REFRESH_MS = 5 * 60_000L
 
@@ -97,6 +118,16 @@ class ProximityEngine(
         /** Adresse 4D actuellement diffusée (null = cellule non résolue ou balise coupée). */
         val advertisedCell4d: Long? = null,
         val scanning: Boolean = false,
+        /**
+         * Le scan tourne, et il ne verra rien : la position manque sur un
+         * Android qui l'exige pour balayer ([scanNeedsLocation]).
+         *
+         * ⚠ Ce n'est pas la même chose que `!scanning`. Un scan refusé se dit
+         * dans [lastError] ; celui-ci a démarré, il est en règle du point de
+         * vue du Bluetooth, et il est muet. Sans ce champ, un écran ne peut
+         * que conclure « il n'y a personne », ce qui est faux.
+         */
+        val scanBlind: Boolean = false,
         val lastError: String? = null,
     )
 
@@ -224,6 +255,35 @@ class ProximityEngine(
                 Log.d(TAG, "cellule H3 résolue : ${h3Cell?.toString(16) ?: "échec (pas de position)"}")
                 val cell4d = h3Cell?.let { rotation.apply(it, System.currentTimeMillis()) }
 
+                // ⚠ **Dire que le scan est aveugle, plutôt que laisser croire
+                // que la salle est vide.** Une cellule résolue prouve à elle
+                // seule que la position est accordée et allumée : on n'interroge
+                // le motif de blocage que dans le cas contraire. La cadence
+                // resserrée de 30 s (CELL_RETRY_MS) vaut alors aussi pour cette
+                // ligne — c'est elle qui court tant que la cellule manque.
+                val blind = h3Cell == null && scanNeedsLocation() && locator.blocker() != null
+                if (blind != _state.value.scanBlind) {
+                    Log.i(TAG, if (blind) "scan aveugle : pas de position" else "scan à nouveau voyant")
+                }
+                // ⚠⚠ **Un scan démarré sans la position reste aveugle POUR
+                // TOUJOURS, même une fois la permission accordée.** Android
+                // fige le droit de voir au moment du `startScan` : le
+                // rappel continue de tourner, sans erreur, et ne remonte plus
+                // jamais rien. Mesuré sur l'A5 le 20/08 — permission rendue,
+                // ligne d'écran repartie, **zéro pair en 80 s** ; le même
+                // appareil, processus relancé, en voyait 14 en 25 s.
+                //
+                // Sans ce redémarrage, le « Accorder la localisation » qu'on
+                // vient d'écrire mènerait à un écran qui continue de ne voir
+                // personne — c'est-à-dire à un mensonge de plus, en pire :
+                // celui qui a l'air d'obéir.
+                if (_state.value.scanBlind && !blind) {
+                    Log.i(TAG, "position revenue : scan relancé (un scan aveugle le reste)")
+                    scanCallback?.let { runCatching { scanner.stopScan(it) } }
+                    scanCallback = startScan(scanner)
+                }
+                _state.update { it.copy(scanBlind = blind) }
+
                 // Le jeton suit la cellule ET le noyau : refaire l'annonce quand
                 // l'un des deux bouge, sinon un noyau forgé après le démarrage
                 // de la balise n'y figurerait jamais.
@@ -267,9 +327,15 @@ class ProximityEngine(
                 // ⚠ L'attente se rompt aussi quand la recherche change, sinon
                 // toucher une carte n'annoncerait rien avant cinq minutes — et
                 // fermer la lanterne continuerait de parler tout ce temps-là.
+                // ⚠ Elle se rompt aussi quand la position revient à un scan
+                // aveugle : attendre les 30 s du tour suivant pour relancer un
+                // scan qu'on sait mort ferait douter du geste qu'on vient de
+                // faire. La sonde ne coûte qu'un test de permission, et ne
+                // tourne que pendant la cécité.
                 while (waited < refreshMs &&
                     !RadioSilence.requested.value &&
-                    SeekingBeacon.targets.value == wanted
+                    SeekingBeacon.targets.value == wanted &&
+                    !(blind && locator.blocker() == null)
                 ) {
                     delay(SWEEP_INTERVAL_MS)
                     waited += SWEEP_INTERVAL_MS
