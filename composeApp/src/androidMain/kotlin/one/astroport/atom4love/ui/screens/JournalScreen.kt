@@ -83,8 +83,6 @@ fun JournalScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
     // Toujours celui du système : 19:09:23 ici, 7:09:23 PM ailleurs. Retenu hors
     // de la boucle — le construire par ligne coûterait un objet par évènement à
     // chaque défilement.
-    val clock = remember { DateFormat.getTimeInstance(DateFormat.MEDIUM) }
-
     Column(
         modifier
             .fillMaxSize()
@@ -144,35 +142,8 @@ fun JournalScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
         // chaque ouverture. Ce que le journal est se lit en le lisant.
         Spacer(Modifier.height(8.dp))
 
-        if (entries.isEmpty()) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .dashedGlass(15.dp)
-                    .padding(horizontal = 16.dp, vertical = 24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    stringResource(R.string.journal_empty),
-                    style = A4LText.Caption,
-                    color = A4L.TextMuted,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            return@Column
-        }
-
-        LazyColumn(
-            Modifier.weight(1f),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            items(entries, key = { it.seq }) { entry ->
-                JournalRow(entry = entry, time = clock.format(Date(entry.atMs)))
-            }
-        }
-        CloseRow(onClose)
+        JournalList(Modifier.weight(1f))
+        if (entries.isNotEmpty()) CloseRow(onClose)
     }
 }
 
@@ -216,6 +187,56 @@ private fun CloseRow(onClose: () -> Unit) {
  * une ligne — et le texte reste en encre ordinaire, jamais dans l'accent, parce
  * qu'une couleur d'accent ne fait pas une encre (règle du Plateau, tenue ici).
  */
+/**
+ * **Les lignes du journal, et rien autour** — ni titre, ni porte de sortie.
+ *
+ * Extrait de [JournalScreen] le 20/08 pour que le **tiroir** du Plateau et le
+ * plein écran montrent exactement la même chose : deux rendus séparés d'un même
+ * journal auraient divergé au premier format de date changé d'un seul côté.
+ *
+ * Il lit [Journal] lui-même — c'est un objet global, il n'y a rien à faire
+ * traverser à qui l'affiche.
+ */
+@Composable
+fun JournalList(modifier: Modifier = Modifier) {
+    val entries by Journal.entries.collectAsStateWithLifecycle()
+    // ⚠ **Le format MOYEN, pas le court : il porte les secondes.** Le court
+    // donnait 19:09, et deux lignes de la même minute devenaient
+    // indiscernables — or c'est précisément ce que ce journal montre. Retenu
+    // hors de la boucle : le construire par ligne coûterait un objet par
+    // évènement à chaque défilement.
+    val clock = remember { DateFormat.getTimeInstance(DateFormat.MEDIUM) }
+
+    if (entries.isEmpty()) {
+        Box(
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .dashedGlass(15.dp)
+                .padding(horizontal = 16.dp, vertical = 24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                stringResource(R.string.journal_empty),
+                style = A4LText.Caption,
+                color = A4L.TextMuted,
+                textAlign = TextAlign.Center,
+            )
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier,
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        items(entries, key = { it.seq }) { entry ->
+            JournalRow(entry = entry, time = clock.format(Date(entry.atMs)))
+        }
+    }
+}
+
 @Composable
 private fun JournalRow(entry: Journal.Entry, time: String) {
     val (color, label) = entry.render()

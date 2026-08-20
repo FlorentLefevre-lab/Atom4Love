@@ -995,6 +995,7 @@ private fun Station(
             // referme. Voir [one.astroport.atom4love.journal.Journal].
             Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
                 RadioLine(
+                    onOpenJournal = { journalShown = true },
                     cabin = cabin,
                     open = cabinOpen,
                     onHelp = { overlay = Overlay.Help },
@@ -1081,6 +1082,7 @@ private fun Station(
             // Plateau dans la barre du bas.
             Column(modifier.fillMaxSize().background(A4L.Deep).statusBarsPadding()) {
                 RadioLine(
+                    onOpenJournal = { journalShown = true },
                     cabin = cabin,
                     open = cabinOpen,
                     onHelp = { overlay = Overlay.Help },
@@ -1130,7 +1132,7 @@ private fun Station(
                                         relays = relayList,
                                         salon = salon,
                                         reachable = conversations.count { it.inRange },
-                                        onOpenJournal = { journalShown = true },
+                                        here = conversations.filter { it.inRange }.map { it.name },
                                         title = title,
                                     )
                                 },
@@ -1567,6 +1569,8 @@ private fun RadioLine(
      */
     cardsInRange: Int = 0,
     onOpenBoard: (() -> Unit)? = null,
+    /** La porte du journal de bord, depuis n'importe quel écran. */
+    onOpenJournal: () -> Unit = {},
 ) {
     val status by cabin.status.collectAsState()
     val peers by cabin.peers.collectAsState()
@@ -1601,6 +1605,15 @@ private fun RadioLine(
             style = A4LText.Data.copy(fontSize = 10.sp),
             color = if (open && medium != null) A4L.Mint else A4L.TextMuted,
         )
+        Spacer(Modifier.width(8.dp))
+        // ⚠ **Le journal a fini par monter ici, et c'est sa place.** Il a été
+        // une rangée du Plateau, puis un tiroir dépliable sous elle ; les deux
+        // le rendaient atteignable depuis un seul onglet. Ce qu'on ouvre quand
+        // on doute — « est-ce que la radio a vraiment vu quelqu'un ? » — se
+        // consulte aussi bien en pleine conversation, et cette ligne est le
+        // seul endroit qui existe sur TOUS les écrans. Décidé par Florent le
+        // 20/08 : l'icône seule, ici, et rien d'autre.
+        HeaderButton("🧾", R.string.journal_title, A4L.Cyan, onOpenJournal)
         Spacer(Modifier.weight(1f))
         if (cardsInRange > 0 && onOpenBoard != null) {
             Row(

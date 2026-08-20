@@ -31,6 +31,8 @@
     <string name="radar_hex_unknown_searching">Hexagone inconnu — recherche de position en cours…</string>
     <string name="radar_scan_needs_location">Sur cet Android, la radio ne balaye pas sans position : votre balise parle, mais vous ne voyez personne.</string>
 
+    <string name="radar_here_you">vous</string>
+    <string name="radar_here_alone">personne d\'autre à portée</string>
     <string name="radar_no_relay">aucun relais configuré</string>
     <string name="radar_open_salon">Salon de l\'hexagone</string>
     <string name="radar_open_app_settings">Ouvrir les réglages de l\'app</string>

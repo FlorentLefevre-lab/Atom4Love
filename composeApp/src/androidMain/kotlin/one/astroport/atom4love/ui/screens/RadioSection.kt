@@ -7,7 +7,6 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.animation.animateContentSize
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -185,14 +183,15 @@ private fun appSettingsIntent(context: Context): Intent =
  *
  * ## L'ordre des trois blocs, et il n'est pas libre
  *
- * 1. **La balise**, parce qu'elle conditionne tout le reste ;
- * 2. **le journal**, la porte vers ce que la radio fait — juste sous l'état de
- *    la machine, avec lequel il fait un bloc : *voilà où j'en suis, et voilà ce
- *    que j'ai fait* ;
- * 3. **le titre du jeu**, qui ouvre ce qui suit ;
- * 4. **les compteurs**, qui disent l'étendue de ce qu'on touche — ici, le
- *    portail, l'hexagone, du plus proche au plus lointain, dans le sens de la
- *    lecture.
+ * 1. **le portail** — où l'on est, et l'état de la balise avec lui ;
+ * 2. **le titre des compteurs** ;
+ * 3. **les compteurs** : ici (la radio) puis les relais (le lointain), du plus
+ *    proche au plus lointain, dans le sens de la lecture.
+ *
+ * ⚠ **Le journal n'est plus ici.** Il a occupé la deuxième place, puis un
+ * tiroir dépliable, avant de monter dans l'en-tête de la station le 20/08 —
+ * la seule ligne qui existe sur TOUS les écrans. Ce qu'on veut relire quand on
+ * doute ne doit pas s'atteindre depuis un seul onglet.
  *
  * Les cartes suivent, en dessous, dans le Plateau. On lit donc : est-ce que ça
  * marche, ce que ça a fait, puis jusqu'où ça porte et qui est là.
@@ -208,7 +207,16 @@ fun RadioSection(
     salon: HexagonSalon?,
     /** Combien de conversations sont joignables — le compteur « ici ». */
     reachable: Int,
-    onOpenJournal: () -> Unit,
+    /**
+     * **Qui** est joignable, dans l'ordre de la liste des Chats — le pseudo de
+     * chacun, null pour qui ne s'est pas nommé (l'écran choisit alors le mot,
+     * dans sa langue).
+     *
+     * ⚠ Ce sont les AUTRES : la liste déroulante y ajoute « vous » en tête,
+     * pour que sa longueur soit exactement le nombre affiché. Un compteur qui
+     * se compte et une liste qui s'oublie diraient deux choses.
+     */
+    here: List<String?> = emptyList(),
     modifier: Modifier = Modifier,
     /**
      * Le titre de l'écran, rendu **entre la balise et les compteurs**.
@@ -302,59 +310,10 @@ fun RadioSection(
     val pensees = salon?.pensees?.collectAsStateWithLifecycle()?.value.orEmpty()
     var salonOpen by remember { mutableStateOf(false) }
     var relaysOpen by remember { mutableStateOf(false) }
-    /** Le tiroir du journal — fermé au départ, cf. son commentaire. */
-    var journalOpen by rememberSaveable { mutableStateOf(false) }
+    var hereOpen by remember { mutableStateOf(false) }
     LaunchedEffect(fix?.cell) { fix?.let { salon?.setCell(cellHex(it.cell)) } }
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-
-        // ── Le journal, en tiroir ─────────────────────────────────────────
-        //
-        // ⚠ **C'est la rangée qui ouvrait la cabine**, à la même place et avec
-        // le même geste. Elle battait en orange tant que la cabine était
-        // fermée, parce qu'ouvrir était le seul appel de la page. Elle ne bat
-        // plus : il n'y a plus rien à ouvrir pour parler.
-        //
-        // ⚠ **Et elle ne prend plus toute la largeur.** Une bande pleine pour
-        // une fenêtre qu'on consulte deux fois par soirée coûtait le haut de
-        // l'écran à ce qui s'y passe vraiment. Repliée, elle n'est qu'un
-        // pictogramme contre le bord gauche ; le doigt sur le pictogramme la
-        // déroule, le texte qu'elle découvre ouvre le journal. Demandé par
-        // Florent le 20/08. Le tiroir part fermé : ce qui se consulte ne
-        // s'impose pas.
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Row(
-                Modifier
-                    .then(if (journalOpen) Modifier.weight(1f) else Modifier)
-                    .dashedGlass(12.dp, A4L.GlassFaint, A4L.Cyan.copy(alpha = 0.22f))
-                    .animateContentSize()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "🧾",
-                    fontSize = 12.sp,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .clickable { journalOpen = !journalOpen }
-                        .padding(2.dp),
-                )
-                if (journalOpen) {
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        stringResource(R.string.radar_journal_row),
-                        style = A4LText.Caption,
-                        color = A4L.Cyan,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable(onClick = onOpenJournal)
-                            .padding(vertical = 2.dp),
-                    )
-                    Text("›", fontSize = 15.sp, color = A4L.TextFaint)
-                }
-            }
-        }
 
         // ── Le portail, et l'état de la balise avec lui ────────────────────
         //
@@ -486,6 +445,7 @@ fun RadioSection(
             // La couleur, elle, ne suit pas le nombre mais la rencontre : elle
             // s'allume quand quelqu'un d'AUTRE est là, sinon « 1 · ici » aurait
             // la teinte de ce qui vient d'arriver alors qu'on est seul.
+            Box(Modifier.weight(1f)) {
             RadioStat(
                 glyph = "📍",
                 value = if (beaconRunning) (reachable + 1).toString() else "—",
@@ -495,9 +455,57 @@ fun RadioSection(
                 // dessous. Un carreau qui range ses parties autrement se lit
                 // comme s'il disait autre chose.
                 labelOnTop = true,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { hereOpen = !hereOpen },
                 accent = if (reachable > 0) A4L.Mint else null,
             )
+            // ⚠ **Le nombre ne dit pas QUI, et c'est la première question.**
+            // Même geste que le carreau des relais, à côté : le compteur
+            // s'ouvre sur ce qu'il compte. Demandé par Florent le 20/08.
+            DropdownMenu(
+                expanded = hereOpen,
+                onDismissRequest = { hereOpen = false },
+                containerColor = A4L.Deep,
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            stringResource(R.string.radar_here_you),
+                            style = A4LText.Caption,
+                            color = A4L.TextMuted,
+                        )
+                    },
+                    leadingIcon = { StatusDot(A4L.Mint, size = 5.dp) },
+                    onClick = { hereOpen = false },
+                )
+                here.forEach { name ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                name ?: stringResource(R.string.chat_from_unnamed),
+                                style = A4LText.Caption,
+                                color = if (name != null) A4L.Mint else A4L.TextMuted,
+                            )
+                        },
+                        leadingIcon = { StatusDot(A4L.Mint, size = 5.dp) },
+                        onClick = { hereOpen = false },
+                    )
+                }
+                if (here.isEmpty()) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.radar_here_alone),
+                                style = A4LText.Caption,
+                                color = A4L.TextMuted,
+                            )
+                        },
+                        onClick = { hereOpen = false },
+                    )
+                }
+            }
+            }
             // ⚠ **Ce carreau comptait des pensées et compte des relais.**
             // Tranché par Florent le 20/08. Son tiret avait deux causes qu'on
             // ne distinguait pas — pas de relais, ou un relais qui ne rapporte

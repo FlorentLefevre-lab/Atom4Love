@@ -12,6 +12,8 @@
     <string name="radar_hex_unknown_searching">Hexagon unknown — looking for a position…</string>
     <string name="radar_scan_needs_location">On this Android, the radio does not scan without a position: your beacon speaks, but you see nobody.</string>
 
+    <string name="radar_here_you">you</string>
+    <string name="radar_here_alone">nobody else in range</string>
     <string name="radar_no_relay">no relay configured</string>
     <string name="radar_open_salon">Hexagon lounge</string>
     <string name="radar_open_app_settings">Open the app settings</string>
