@@ -28,6 +28,7 @@
 
 
     <string name="radar_beacon_presence_only">Beacon on — no position</string>
+    <string name="radar_bluetooth_off">Bluetooth off — the radio has gone quiet</string>
     <string name="radar_beacon_needs_bluetooth">Proximity beacon — Bluetooth required</string>
 
     <!-- ─── 💬 Chats: one conversation per person in range ─────────────── -->

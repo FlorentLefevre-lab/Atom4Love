@@ -244,6 +244,25 @@ fun RadioSection(
      * la cellule, et elle seule ([CellLocator]).
      */
     onOpenPosition: (Double, Double) -> Unit = { _, _ -> },
+    /**
+     * L'adaptateur Bluetooth du téléphone est-il allumé ?
+     *
+     * ⚠ **Ce n'est pas la même question que [ProximityService.running].** Le
+     * service reste vivant quand l'interrupteur système se coupe sous lui : il
+     * a démarré, il tourne, et il ne peut plus rien. Sans ce booléen, la rangée
+     * annoncerait un portail et une balise active pendant que la radio est
+     * morte — c'est exactement ce que l'en-tête faisait jusqu'au 20/08.
+     */
+    bluetoothOn: Boolean = true,
+    /**
+     * Un médium porte réellement du trafic — le troisième état du point.
+     *
+     * Éteint (aucune radio), allumé sans lien, allumé avec un lien vivant : ces
+     * trois-là étaient dans le point de l'en-tête, et ils descendent ensemble.
+     * « Si le point tient au Bluetooth et à la balise, il descend avec eux » —
+     * Florent, 20/08.
+     */
+    linked: Boolean = false,
     modifier: Modifier = Modifier,
     /**
      * Le titre de l'écran, rendu **entre la balise et les compteurs**.
@@ -356,13 +375,16 @@ fun RadioSection(
         // son `clickable` rendrait le Bluetooth inaccordable à qui l'a refusé
         // une fois — exactement la faute corrigée le 19/08 pour les
         // notifications. **Toute permission garde une porte atteignable.**
+        // La radio est allumée quand la puce est allumée ET que le service a
+        // le droit de s'en servir. L'une sans l'autre ne porte rien.
+        val radioOn = bluetoothOn && beaconRunning
         Column(
             Modifier
                 .fillMaxWidth()
                 .dashedGlass(
                     12.dp,
                     A4L.GlassFaint,
-                    (if (beaconRunning) A4L.Mint else A4L.Stroke).copy(alpha = 0.2f),
+                    (if (radioOn) A4L.Mint else A4L.Stroke).copy(alpha = 0.2f),
                 )
                 .clickable(enabled = !beaconRunning) {
                     permissionFor = PermissionIntent.BEACON
@@ -372,11 +394,34 @@ fun RadioSection(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                StatusDot(if (beaconRunning) A4L.Mint else A4L.TextDim)
+                // ⚠ **Trois états, trois couleurs de feu**, demandées par
+                // Florent le 20/08 : rouge la radio éteinte, orange allumée
+                // mais sans personne au bout, vert dès qu'un lien porte
+                // vraiment. L'en-tête les disait en gris sur gris — ce qui
+                // revenait à ne les dire qu'à qui les cherchait.
+                StatusDot(
+                    when {
+                        !radioOn -> A4L.Red
+                        linked -> A4L.Green
+                        else -> A4L.Amber
+                    },
+                )
                 Spacer(Modifier.width(10.dp))
                 Text("⛩️", fontSize = 13.sp)
                 Spacer(Modifier.width(8.dp))
-                if (beaconRunning) {
+                if (!bluetoothOn) {
+                    // ⚠ Une phrase à part, et pas celle des permissions : ici
+                    // rien n'a été refusé, c'est l'interrupteur du téléphone
+                    // qui est retombé. Les deux se corrigent ailleurs et
+                    // autrement, les confondre enverrait chercher au mauvais
+                    // endroit.
+                    Text(
+                        stringResource(R.string.radar_bluetooth_off),
+                        style = A4LText.Caption,
+                        color = A4L.TextMuted,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else if (beaconRunning) {
                     StatLabel(stringResource(R.string.radar_stat_in_portal), A4L.TextMuted)
                     Spacer(Modifier.width(6.dp))
                     // Le code EST la porte : le toucher porte la carte sur la
@@ -414,7 +459,7 @@ fun RadioSection(
             // la raison quinze centimètres plus bas. Déplacé par Florent le
             // 20/08. La balise éteinte les tait : ce qui manque alors n'est pas
             // la position, c'est le Bluetooth, et une question à la fois.
-            if (beaconRunning && fix == null) {
+            if (radioOn && fix == null) {
                 Text(
                     when (locationBlocker) {
                         CellLocator.Blocker.SERVICE_OFF ->

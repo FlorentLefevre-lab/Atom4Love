@@ -121,6 +121,7 @@ import one.astroport.atom4love.data.WelcomeStore
 import one.astroport.atom4love.proximity.ProximityService
 import one.astroport.atom4love.trial.Trial
 import one.astroport.atom4love.trial.TrialStore
+import one.astroport.atom4love.ui.components.AtomLogo
 import one.astroport.atom4love.ui.components.ElectronSweep
 import one.astroport.atom4love.ui.components.LatLon
 import one.astroport.atom4love.ui.components.StatusDot
@@ -490,6 +491,8 @@ private fun Station(
     // le cycle de vie — il n'a rien à faire d'un moteur qu'il n'affiche pas.
     val cabin by cabinHost.engine.collectAsStateWithLifecycle()
     val cabinOpen = cabinHost.open
+    /** Ce qui porte réellement du trafic, pour le point de la rangée ⛩️. */
+    val cabinStatus by cabin.status.collectAsStateWithLifecycle()
     /**
      * ⚠ **La radio n'a plus de geste d'ouverture, et c'est le changement le
      * plus profond de cette refonte.**
@@ -686,6 +689,8 @@ private fun Station(
      * Le compteur va avec : deux demandes vers le même point doivent partir
      * toutes les deux (voir [MapScreen]).
      */
+    /** L'adaptateur Bluetooth, lu et ÉCOUTÉ — voir [bluetoothEnabled]. */
+    val bluetoothOn = bluetoothEnabled()
     var mapGoTo by remember { mutableStateOf<LatLon?>(null) }
     var mapGoToTicket by remember { mutableIntStateOf(0) }
     // Ce que la fiche saura répondre au jeu des questions. Rien ne part de
@@ -1163,6 +1168,8 @@ private fun Station(
                                         // derrière explique lui-même comment
                                         // l'ouvrir, ce qui vaut mieux qu'un
                                         // code mort sous le doigt.
+                                        bluetoothOn = bluetoothOn,
+                                        linked = cabinStatus.medium != null,
                                         onOpenPosition = { lat, lon ->
                                             mapGoTo = LatLon(lat, lon)
                                             mapGoToTicket++
@@ -1609,19 +1616,7 @@ private fun RadioLine(
     /** La porte du journal de bord, depuis n'importe quel écran. */
     onOpenJournal: () -> Unit = {},
 ) {
-    val status by cabin.status.collectAsState()
     val peers by cabin.peers.collectAsState()
-    val medium = status.medium
-    // ⚠⚠ **« Allumée » ne regardait pas la radio.** Le mot ne suivait que
-    // [ChatHost.open] — c'est-à-dire « une clé existe, les permissions sont
-    // accordées, et `start()` a été appelé » —, ce qui est vrai en permanence
-    // depuis que la refonte a retiré le geste d'ouverture. Bluetooth coupé, la
-    // ligne continuait d'annoncer une radio allumée ; seule sa **couleur**
-    // passait au gris, parce que le médium tombe avec les liens. Un état de
-    // machine qui ne change pas quand la machine change n'est pas un état.
-    // Relevé par Florent le 20/08, en lisant le code plutôt que l'écran.
-    val bluetoothOn = bluetoothEnabled()
-    val radioOn = open && bluetoothOn
 
     Row(
         Modifier
@@ -1630,38 +1625,38 @@ private fun RadioLine(
             .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StatusDot(
-            when {
-                !radioOn -> A4L.TextGhost
-                medium != null -> A4L.Mint
-                else -> A4L.TextDim
-            },
-        )
-        Spacer(Modifier.width(8.dp))
-        // ⚠ **Deux états, et rien de plus : allumée, éteinte.**
+        // ⚠⚠ **L'état de la radio n'est plus ici — et il n'y était pas
+        // vraiment.** Cette ligne a porté le médium en service, « personne à
+        // portée », « quelqu'un est là », le compte des pairs, puis « radio
+        // allumée » — un mot qui ne suivait que `ChatHost.open`, donc vrai en
+        // permanence, Bluetooth coupé compris. Le seul signal honnête était la
+        // couleur du point.
         //
-        // Cette ligne a porté successivement le médium en service, « personne à
-        // portée », « quelqu'un est là » et le compte des pairs. Chacun était
-        // exact, et l'ensemble disait sur TOUS les écrans ce qui a désormais sa
-        // place ailleurs : qui est là se lit au compteur 📍 du Plateau, ce qui
-        // attend se lit à la pastille des Chats. Une ligne présente partout doit
-        // dire ce qu'aucun écran ne dit — l'état de la machine — et se taire sur
-        // le reste, sinon elle double tout sans rien ajouter.
-        Text(
-            stringResource(if (radioOn) R.string.header_radio_on else R.string.header_radio_off),
-            style = A4LText.Data.copy(fontSize = 10.sp),
-            color = if (radioOn && medium != null) A4L.Mint else A4L.TextMuted,
-        )
-        Spacer(Modifier.width(8.dp))
-        // ⚠ **Le journal a fini par monter ici, et c'est sa place.** Il a été
-        // une rangée du Plateau, puis un tiroir dépliable sous elle ; les deux
-        // le rendaient atteignable depuis un seul onglet. Ce qu'on ouvre quand
-        // on doute — « est-ce que la radio a vraiment vu quelqu'un ? » — se
-        // consulte aussi bien en pleine conversation, et cette ligne est le
-        // seul endroit qui existe sur TOUS les écrans. Décidé par Florent le
-        // 20/08 : l'icône seule, ici, et rien d'autre.
+        // Tout est descendu **d'un bloc** dans la rangée ⛩️ du Plateau, point
+        // de couleur compris. Florent l'a tranché en une phrase : si le point
+        // tient au Bluetooth et à la balise, il descend avec eux — on ne coupe
+        // pas un état en deux écrans.
+        //
+        // Ce qui reste ici est ce qu'aucun autre écran ne dit : **le nom de la
+        // maison**, au milieu, dans le turquoise dont la palette porte déjà le
+        // commentaire « ATOM4LOVE ».
         HeaderButton("🧾", R.string.journal_title, A4L.Cyan, onOpenJournal)
-        Spacer(Modifier.weight(1f))
+        // ⚠ Le titre est centré sur l'ÉCRAN, pas sur la place qui reste : il
+        // est posé dans une boîte de largeur nulle par-dessus la ligne, comme
+        // le chevron du journal plein écran. Sans ça, il glisserait vers la
+        // gauche ou la droite selon ce que les poignées occupent — et il
+        // bougerait quand la pastille des cartes paraît.
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.app_title),
+                    style = A4LText.Title.copy(fontSize = 15.sp),
+                    color = A4L.Cyan,
+                )
+                Spacer(Modifier.width(6.dp))
+                AtomLogo(Modifier.size(20.dp))
+            }
+        }
         if (cardsInRange > 0 && onOpenBoard != null) {
             Row(
                 Modifier
@@ -1681,7 +1676,6 @@ private fun RadioLine(
             }
             Spacer(Modifier.width(8.dp))
         }
-        Spacer(Modifier.width(8.dp))
         // Les deux poignées descendues de la barre du bas. Elles se rangent
         // AVANT le thème et les langues : celles-là sont toujours au même bout
         // de la ligne, sur tous les écrans, et c'est à ça qu'on les retrouve.

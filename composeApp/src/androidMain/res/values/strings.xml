@@ -22,6 +22,7 @@
          Le nom entier vit toujours en toutes lettres là où il y a la place —
          le splash, la bulle de version, les Réglages. -->
     <string name="app_name" translatable="false">A4L</string>
+    <string name="app_title" translatable="false">Atom4Love</string>
 
     <!-- ─── 🎴 Le Plateau : la radio et les cartes à portée ───────────── -->
 
@@ -58,6 +59,7 @@
          satellite quand le Wi-Fi et les antennes suffisent — donc presque
          toujours en intérieur. C\'est aussi le mot de la permission Android. -->
     <string name="radar_beacon_presence_only">Balise active — sans position</string>
+    <string name="radar_bluetooth_off">Bluetooth éteint — la radio ne parle plus</string>
     <string name="radar_beacon_needs_bluetooth">Balise de proximité — Bluetooth requis</string>
     <!-- L'hôte d'un groupe Wi-Fi Direct. Dit en entier : « propriétaire » ne
          veut rien dire pour qui n'a pas lu la spec Wi-Fi, alors que la

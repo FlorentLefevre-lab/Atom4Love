@@ -29,6 +29,7 @@
 
 
     <string name="radar_beacon_presence_only">Baliza activa — sin posición</string>
+    <string name="radar_bluetooth_off">Bluetooth apagado — la radio ya no habla</string>
     <string name="radar_beacon_needs_bluetooth">Baliza de proximidad — se requiere Bluetooth</string>
 
     <!-- ─── 💬 Los chats: una conversación por persona al alcance ─────── -->
