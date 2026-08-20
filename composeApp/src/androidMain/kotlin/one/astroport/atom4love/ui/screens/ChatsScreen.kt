@@ -1,5 +1,15 @@
 package one.astroport.atom4love.ui.screens
 
+import java.io.File
+import one.astroport.atom4love.chat.Faces
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -91,6 +102,8 @@ fun ChatsScreen(
      * carte n'a rien en attente.
      */
     unread: Map<String, Int> = emptyMap(),
+    /** Les visages qu'on nous a montrés, par clé publique — voir [Faces]. */
+    faces: Map<String, Faces.Face> = emptyMap(),
     /**
      * **Fermer et effacer** — la promesse que la cabine tenait par sa sortie.
      *
@@ -166,6 +179,7 @@ fun ChatsScreen(
             items(conversations, key = { it.peerHex }) { conversation ->
                 ThreadRow(
                     conversation = conversation,
+                    face = faces[conversation.peerHex]?.file,
                     unread = unread[conversation.peerHex] ?: 0,
                     onClick = { onOpen(conversation) },
                 )
@@ -192,7 +206,12 @@ fun ChatsScreen(
  * franchie pour un incident.
  */
 @Composable
-private fun ThreadRow(conversation: Conversation, unread: Int, onClick: () -> Unit) {
+private fun ThreadRow(
+    conversation: Conversation,
+    face: File?,
+    unread: Int,
+    onClick: () -> Unit,
+) {
     val accent = if (conversation.inRange) A4L.Mint else A4L.TextDim
     Row(
         Modifier
@@ -206,7 +225,29 @@ private fun ThreadRow(conversation: Conversation, unread: Int, onClick: () -> Un
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StatusDot(accent)
+        // ⚠ **Le visage prend la place de la pastille** quand il est arrivé
+        // (Florent, 20/08) : « la photo n'est pas reprise dans les
+        // discussions ». Un fil se reconnaît d'abord à qui est en face, et la
+        // couleur de la pastille reste dite par l'anneau autour de la photo —
+        // rien n'est perdu de l'état du lien.
+        val faceBitmap = face?.let { file ->
+            remember(file.path, file.lastModified()) {
+                runCatching { BitmapFactory.decodeFile(file.path)?.asImageBitmap() }.getOrNull()
+            }
+        }
+        if (faceBitmap != null) {
+            Image(
+                bitmap = faceBitmap,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .border(1.5.dp, accent, CircleShape),
+            )
+        } else {
+            StatusDot(accent)
+        }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(

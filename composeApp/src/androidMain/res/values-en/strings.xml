@@ -104,7 +104,8 @@
     <string name="rendezvous_mutual">Go and find your resonance by moving, physically.</string>
     <string name="face_banner">is showing you their face so you can find them</string>
     <string name="face_banner_open">See</string>
-    <string name="selfie_title">Show your face?</string>
+    <string name="selfie_offer">Take a selfie to help the other person find you?</string>
+    <string name="selfie_title">Where your photo goes</string>
     <string name="selfie_body">Searching by signal works over a few metres and gets lost in a crowded room. Your photo will appear in this person\'s lantern, and nowhere else: not in your conversation, not in their gallery, not on any server. It goes when you close.</string>
     <string name="selfie_sending">Your face is on its way… %1$d %%</string>
     <string name="selfie_sent">Your face has arrived.</string>

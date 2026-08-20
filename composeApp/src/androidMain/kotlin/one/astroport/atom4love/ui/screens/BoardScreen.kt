@@ -157,6 +157,16 @@ fun BoardScreen(
     sendings: Map<Int, SelfieSend> = emptyMap(),
     /** Remettre le même visage sur le fil après un échec. */
     onRetrySelfie: (Int) -> Unit = {},
+    /**
+     * Ouvrir la lanterne sur ce jeton, demandé de l'extérieur.
+     *
+     * ⚠ C'est le « Voir » du bandeau du visage. Il menait au Plateau et rien de
+     * plus : quand on y était déjà, le bouton paraissait mort. Ce qu'on veut
+     * voir, c'est la lanterne — là où le visage bat.
+     */
+    openToken: Int? = null,
+    /** La demande est honorée : à l'appelant de l'oublier. */
+    onOpened: () -> Unit = {},
 ) {
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
     val own by ProximityService.signature.collectAsStateWithLifecycle()
@@ -200,6 +210,11 @@ fun BoardScreen(
     // On retient l'identité, pas la carte : une carte est un instantané, et
     // c'est justement quand on marche vers quelqu'un que sa chaleur change.
     var seekingId by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(openToken, hand) {
+        val token = openToken ?: return@LaunchedEffect
+        hand.firstOrNull { it.token == token }?.let { seekingId = it.identity }
+        onOpened()
+    }
     // Chercher plusieurs cartes d'un coup : la première n'est réciproque que
     // deux fois sur trois, mais le rang moyen chez l'autre est de 0,5 — couvrir
     // les trois premières couvre presque tout le monde. Les fenêtres de

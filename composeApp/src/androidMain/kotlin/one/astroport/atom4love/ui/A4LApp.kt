@@ -829,20 +829,23 @@ private fun Station(
      * (un fichier qu'on n'a pas encore annoncé), pas sur un état, et il
      * redescend tout seul.
      */
-    var faceBanner by remember { mutableStateOf<Faces.Face?>(null) }
+    var faceBanner by remember { mutableStateOf<Pair<String, Faces.Face>?>(null) }
     val faceSeen = remember { mutableStateMapOf<String, String>() }
     LaunchedEffect(faces) {
         val fresh = faces.entries.firstOrNull { (hex, face) ->
             faceSeen[hex] != face.file.path
         } ?: return@LaunchedEffect
         faceSeen[fresh.key] = fresh.value.file.path
-        faceBanner = fresh.value
+        faceBanner = fresh.key to fresh.value
     }
-    LaunchedEffect(faceBanner) {
-        if (faceBanner == null) return@LaunchedEffect
-        delay(FACE_BANNER_MS)
-        faceBanner = null
-    }
+    /**
+     * ⚠ **Il ne redescend pas tout seul** (Florent, 20/08 : « à fermer
+     * explicitement »). Les autres bandeaux disent un fait qui se périme — un
+     * message arrivé, quelqu'un à portée. Celui-ci porte un visage qu'on est en
+     * train de chercher dans une salle : le faire disparaître au bout de huit
+     * secondes, c'est le retirer des yeux au moment précis où l'on s'en sert.
+     */
+    var openFaceToken by remember { mutableStateOf<Int?>(null) }
 
     /** Le journal ouvert en plein écran, à la place qu'occupait la cabine. */
     var journalShown by rememberSaveable { mutableStateOf(false) }
@@ -1330,6 +1333,8 @@ private fun Station(
                                 // presque toujours d'un lien tombé, pas de la
                                 // photo. Redemander de la reprendre ferait payer
                                 // un défaut de radio à la personne.
+                                openToken = openFaceToken,
+                                onOpened = { openFaceToken = null },
                                 onRetrySelfie = { token ->
                                     val hex = plateauPeers[token] ?: return@BoardScreen
                                     cabinMessages
@@ -1380,6 +1385,7 @@ private fun Station(
                                 conversations = conversations,
                                 onOpen = { openPeer = it.peerHex },
                                 unread = unreadByPeer,
+                                faces = faces,
                                 onErase = eraseConversations,
                             )
                             A4LTab.World ->
@@ -1585,11 +1591,18 @@ private fun Station(
     }
 
     FaceBanner(
-        face = faceBanner,
+        face = faceBanner?.second,
         onOpen = {
+            // ⚠ « Voir » ouvrait le Plateau et rien d'autre : quand on y était
+            // déjà, le bouton paraissait mort (constaté par Florent). Il ouvre
+            // maintenant la LANTERNE sur cette personne — c'est là que le
+            // visage bat, et c'est ce qu'on venait voir.
+            val hex = faceBanner?.first
             faceBanner = null
             tab = A4LTab.Board
+            openFaceToken = plateauPeers.entries.firstOrNull { it.value == hex }?.key
         },
+        onClose = { faceBanner = null },
         modifier = Modifier.align(Alignment.TopCenter),
     )
     ArrivalBanner(
@@ -1628,11 +1641,6 @@ private fun Station(
 /** Cinq secondes — le temps demandé pour lire un nom et trois mots. */
 private const val ARRIVAL_BANNER_MS = 5_000L
 
-/**
- * Un visage se regarde un peu plus longtemps qu'une ligne de texte : le temps
- * de lever les yeux vers la salle, pas seulement de lire un nom.
- */
-private const val FACE_BANNER_MS = 8_000L
 
 private val PRESENCE_BANNER_LIFT = 76.dp
 
@@ -1678,6 +1686,7 @@ private val PRESENCE_BANNER_LIFT = 76.dp
 private fun FaceBanner(
     face: Faces.Face?,
     onOpen: () -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val unnamed = stringResource(R.string.chat_from_unnamed)
@@ -1743,6 +1752,15 @@ private fun FaceBanner(
                 style = A4LText.Body.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
                 color = A4L.Violet,
             )
+            Spacer(Modifier.width(6.dp))
+            // La croix, parce qu'il ne part plus tout seul.
+            Box(
+                Modifier
+                    .size(26.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center,
+            ) { Text("✕", fontSize = 12.sp, color = A4L.TextMuted) }
         }
     }
 }

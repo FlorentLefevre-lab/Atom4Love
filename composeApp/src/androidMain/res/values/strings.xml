@@ -159,7 +159,12 @@
          personne. Il ne dit pas d\'ouvrir sa lanterne : la photo est déjà là. -->
     <string name="face_banner">vous montre son visage pour que vous la retrouviez</string>
     <string name="face_banner_open">Voir</string>
-    <string name="selfie_title">Montrer votre visage ?</string>
+    <!-- La proposition EST le bouton : « Se reconnaître » ne disait ni ce
+         qu\'on allait faire, ni pour qui. -->
+    <string name="selfie_offer">Prendre un selfie pour aider l\'autre personne à vous trouver ?</string>
+    <!-- Le dialogue qui suit n\'a plus à reposer la question : il dit où la
+         photo va, et c\'est la seule chose qui engage. -->
+    <string name="selfie_title">Où va votre photo</string>
     <string name="selfie_body">Chercher au signal marche à quelques mètres, et se perd dans une salle pleine. Votre photo apparaîtra dans la lanterne de cette personne, et nulle part ailleurs : ni dans votre conversation, ni dans sa galerie, ni sur aucun serveur. Elle s\'efface en fermant.</string>
     <string name="selfie_sending">Votre visage part… %1$d %%</string>
     <string name="selfie_sent">Votre visage est arrivé.</string>

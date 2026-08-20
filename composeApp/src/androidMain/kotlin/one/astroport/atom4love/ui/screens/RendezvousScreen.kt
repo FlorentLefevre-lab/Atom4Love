@@ -1,5 +1,6 @@
 package one.astroport.atom4love.ui.screens
 
+import androidx.compose.foundation.border
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.LinearProgressIndicator
 import android.graphics.BitmapFactory
@@ -251,6 +252,44 @@ private fun Lantern(
     // fermer et rouvrir sur quelqu'un d'autre repart de zéro, un trou de radio
     // sur la même personne ne remet pas le compteur à plat.
 
+    var asking by remember { mutableStateOf(false) }
+    if (asking) {
+        val context = LocalContext.current
+        AlertDialog(
+            onDismissRequest = { asking = false },
+            containerColor = A4L.Deep,
+            title = {
+                Text(
+                    stringResource(R.string.selfie_title),
+                    style = A4LText.Title,
+                    color = Color.White.copy(alpha = 0.92f),
+                )
+            },
+            text = {
+                Text(
+                    stringResource(R.string.selfie_body),
+                    style = A4LText.Body,
+                    color = Color.White.copy(alpha = 0.78f),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    asking = false
+                    onAskCamera()
+                }) {
+                    Text(stringResource(R.string.selfie_take), color = accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { asking = false }) {
+                    Text(
+                        stringResource(R.string.selfie_no),
+                        color = Color.White.copy(alpha = 0.6f),
+                    )
+                }
+            },
+        )
+    }
     ScreenAsLantern()
     beat?.let { PulseInTheHand(it, slot) }
 
@@ -283,63 +322,15 @@ private fun Lantern(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            /**
-             * ⚠ **Le bouton fait quelque chose, enfin.** « Se reconnaître »
-             * était un titre depuis le premier jour : le mot d'un écran, pas
-             * un geste. Il porte maintenant le seul raccourci honnête du
-             * dernier mètre — un visage.
-             *
-             * Chercher à la force du signal marche à sept mètres et échoue
-             * dans une salle pleine : le RSSI dit « chaud » pour tout un
-             * demi-cercle. Une photo traverse ça d'un coup d'œil.
-             */
-            var asking by remember { mutableStateOf(false) }
+            // ⚠ Le titre est redevenu un TITRE. Il a servi de bouton une heure,
+            // le 20/08 — deux mots qui ne disaient ni ce qu'on allait faire ni
+            // pour qui. La proposition est descendue dans le corps, entière et
+            // sous forme de question (`selfie_offer`).
             Text(
                 stringResource(R.string.rendezvous_title),
                 style = A4LText.SectionLabel,
                 color = accent.copy(alpha = 0.75f),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(9.dp))
-                    .clickable { asking = true }
-                    .padding(horizontal = 8.dp, vertical = 5.dp),
             )
-            if (asking) {
-                val context = LocalContext.current
-                AlertDialog(
-                    onDismissRequest = { asking = false },
-                    containerColor = A4L.Deep,
-                    title = {
-                        Text(
-                            stringResource(R.string.selfie_title),
-                            style = A4LText.Title,
-                            color = Color.White.copy(alpha = 0.92f),
-                        )
-                    },
-                    text = {
-                        Text(
-                            stringResource(R.string.selfie_body),
-                            style = A4LText.Body,
-                            color = Color.White.copy(alpha = 0.78f),
-                        )
-                    },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            asking = false
-                            onAskCamera()
-                        }) {
-                            Text(stringResource(R.string.selfie_take), color = accent)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { asking = false }) {
-                            Text(
-                                stringResource(R.string.selfie_no),
-                                color = Color.White.copy(alpha = 0.6f),
-                            )
-                        }
-                    },
-                )
-            }
             Box(
                 Modifier
                     .size(30.dp)
@@ -510,6 +501,24 @@ private fun Lantern(
                     style = A4LText.Body,
                     color = Color.White.copy(alpha = 0.86f),
                     textAlign = TextAlign.Center,
+                )
+                // ⚠ **La proposition est le bouton lui-même** (Florent, 20/08).
+                // « Se reconnaître » était un titre déguisé en geste : deux mots
+                // qui ne disaient ni ce qu'on allait faire ni pourquoi. La
+                // question entière tient sur le bouton, et le dialogue qui suit
+                // ne sert plus qu'à dire où la photo va — c'est-à-dire nulle
+                // part ailleurs que chez cette personne.
+                Spacer(Modifier.height(22.dp))
+                Text(
+                    stringResource(R.string.selfie_offer),
+                    style = A4LText.Body,
+                    color = accent,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(13.dp))
+                        .border(1.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(13.dp))
+                        .clickable { asking = true }
+                        .padding(horizontal = 18.dp, vertical = 12.dp),
                 )
                 SelfieProgress(sending = sending, accent = accent, onRetry = onRetry)
             } else {
