@@ -22,8 +22,34 @@ PKG="one.astroport.atom4love.debug"
 
 [ -f "$APK" ] || { echo "APK introuvable : $APK" >&2; exit 1; }
 
-DEVICES=$(adb devices | awk '/\tdevice$/ {print $1}')
+# ⚠ **Le banc est nommé, pour qu'un absent se voie.** Installer sur ce qui
+# répond et se taire sur le reste, c'est reproduire exactement le décalage que
+# ce script existe pour empêcher : un appareil resté en arrière donne une cabine
+# muette sans la moindre erreur. Un appareil connu qui manque est donc un ÉCHEC,
+# pas un silence.
+BENCH="330022ed2fa5a3c1:A5-LineageOS 59031FDCH0028V:Pixel-10-Pro HVA5XP86:Tablette-TB350XU"
+
+# ⚠ Sur une seule ligne : la comparaison ci-dessous cherche « espace serial
+# espace », et une liste séparée par des retours à la ligne ne matche jamais —
+# le premier essai déclarait les trois appareils manquants alors que deux
+# étaient là.
+DEVICES=$(adb devices | awk '/\tdevice$/ {print $1}' | tr '\n' ' ')
 [ -n "$DEVICES" ] || { echo "aucun appareil branché" >&2; exit 1; }
+
+missing=""
+for entry in $BENCH; do
+  serial=${entry%%:*}
+  name=${entry##*:}
+  case " $DEVICES " in
+    *" $serial "*) : ;;
+    *)
+      state=$(adb devices | awk -v s="$serial" '$1==s {print $2}')
+      state=${state:-absent}
+      echo "⚠ MANQUANT : $name ($serial) — état adb : $state" >&2
+      missing="$missing $name"
+      ;;
+  esac
+done
 
 WANT=$(sha256sum "$APK" | cut -d' ' -f1)
 echo "APK   : $APK"
@@ -70,6 +96,13 @@ if [ "${NO_LAUNCH:-}" != "1" ]; then
   wait
   echo
   echo "relancées — laisser 30 à 60 s aux liens pour se refaire"
+fi
+
+if [ -n "$missing" ]; then
+  echo >&2
+  echo "⚠⚠ Le banc n'est PAS synchronisé :$missing n'a pas reçu ce build." >&2
+  echo "   Vérifier le câble, le mode USB, et le débogage USB sur l'appareil." >&2
+  fail=1
 fi
 
 exit $fail
