@@ -25,15 +25,24 @@ class NeighborRegistry(
          * Combien de **personnes** annoncent cette cellule — pas combien
          * d'adresses. Une adresse qui vient de tourner et l'ancienne, pas
          * encore évincée par le TTL, portent le même jeton et ne comptent
-         * qu'une fois. Faute de jeton (pair d'une version antérieure), on
-         * retombe sur l'adresse : mieux vaut compter quelqu'un deux fois que
-         * de le faire disparaître.
+         * qu'une fois.
+         *
+         * ⚠ **Le regroupement est celui de [Neighbor.identity], et il doit
+         * l'être.** Ce compteur avait le sien — jeton, sinon adresse — écrit la
+         * veille du jour où la signature est devenue le second recours (13/08).
+         * Il n'a pas suivi, et la marche manquante est atteignable : entre le
+         * moment où la fiche a une date et un lieu et celui où le noyau est
+         * forgé, un appareil annonce **une cellule et une signature mais pas de
+         * jeton** — le jeton se dérive de la clé, qui n'existe pas encore. Ses
+         * adresses tournent toutes les 20 à 40 s sous un TTL de 30 : la main du
+         * Plateau le voyait une fois, ce compteur deux. Deux nombres de la même
+         * salle, sur le même écran, qui se contredisent.
          */
         fun countIn(neighbors: List<Neighbor>, cell4d: Long?): Int {
             if (cell4d == null) return 0
             return neighbors
                 .filter { it.cell4d == cell4d }
-                .distinctBy { it.token ?: it.address }
+                .distinctBy { it.identity }
                 .size
         }
     }
