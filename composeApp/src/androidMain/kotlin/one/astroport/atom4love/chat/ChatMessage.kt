@@ -2,7 +2,25 @@ package one.astroport.atom4love.chat
 
 import java.io.File
 
-enum class ChatKind { TEXT, IMAGE, FILE }
+enum class ChatKind {
+    TEXT,
+    IMAGE,
+    FILE,
+
+    /**
+     * **Un visage, pas un message.**
+     *
+     * Une photo prise dans la lanterne pour se faire reconnaître d'une seule
+     * personne, à un seul moment. Elle voyage par le même chemin scellé que
+     * les pièces jointes — c'est le même transfert, les mêmes acquittements —
+     * mais elle n'entre dans aucune conversation : [Conversations] l'écarte,
+     * et elle ne s'affiche que dans la lanterne d'en face.
+     *
+     * ⚠ Elle vit donc exactement le temps de la session, comme tout le reste :
+     * fermer efface. Ce n'est pas un oubli à corriger, c'est la promesse.
+     */
+    SELFIE,
+}
 
 /**
  * CANCELLED n'est pas un FAILED : rien n'a raté, quelqu'un a renoncé. Les deux

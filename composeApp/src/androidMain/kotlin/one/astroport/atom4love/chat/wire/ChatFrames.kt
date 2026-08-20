@@ -168,6 +168,14 @@ object ChatFrames {
     const val KIND_IMAGE = 1
     const val KIND_FILE = 2
 
+    /**
+     * Un selfie de reconnaissance — voir [one.astroport.atom4love.chat.ChatKind.SELFIE].
+     * Un pair plus ancien qui ne connaît pas ce genre le lira comme du texte
+     * (`kindOf` rend TEXT par défaut) : il verra passer une pièce illisible,
+     * jamais un plantage.
+     */
+    const val KIND_SELFIE = 3
+
     const val ACK_OK = 0
     const val ACK_CRC = 1
     const val ACK_ABORT = 2

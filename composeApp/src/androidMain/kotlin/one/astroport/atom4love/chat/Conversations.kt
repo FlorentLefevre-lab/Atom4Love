@@ -108,7 +108,15 @@ object Conversations {
          */
         remembered: Map<String, String> = emptyMap(),
     ): List<Conversation> {
-        val byPeer = messages.filter { it.peer != null }.groupBy { it.peer!! }
+        // ⚠ **Les selfies ne sont pas des messages.** Ils empruntent le même
+        // transport scellé, portent la même identité de pair et arrivent dans
+        // la même liste — mais ils vont dans la lanterne, pas dans le fil. Les
+        // laisser passer ici les afficherait comme des photos reçues, ferait
+        // sonner la pastille des non-lus, et changerait un visage montré une
+        // seconde en une pièce jointe qu'on garde. Voir [ChatKind.SELFIE].
+        val byPeer = messages
+            .filter { it.peer != null && it.kind != ChatKind.SELFIE }
+            .groupBy { it.peer!! }
         val present = peers.associateBy { Hex.encode(it.nostrKey) }
         val keys = byPeer.keys + present.keys + pinned
         val npubs = keys.associateWith { hex ->
@@ -167,7 +175,10 @@ object Conversations {
     fun unread(messages: List<ChatMessage>, readAt: Map<String, Long>): List<ChatMessage> =
         messages.filter { message ->
             val peer = message.peer
-            !message.mine && peer != null && message.atMs > (readAt[peer] ?: 0L)
+            // Un selfie n'est pas à lire : il est à voir, dans la lanterne, et
+            // il n'a aucun fil où retomber. Même raison que dans [of].
+            !message.mine && peer != null && message.kind != ChatKind.SELFIE &&
+                message.atMs > (readAt[peer] ?: 0L)
         }
 
     /**

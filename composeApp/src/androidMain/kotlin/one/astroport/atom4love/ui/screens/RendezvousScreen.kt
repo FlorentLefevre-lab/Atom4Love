@@ -1,5 +1,18 @@
 package one.astroport.atom4love.ui.screens
 
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import one.astroport.atom4love.chat.Attachments
+import java.io.File
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -123,6 +136,14 @@ fun RendezvousScreen(
      * l'a déjà sous les yeux, en grand, et il bat.
      */
     pseudo: String? = null,
+    /**
+     * Le visage que cette personne a envoyé pour se faire reconnaître, s'il est
+     * arrivé. Il ne vit que le temps de la session — voir
+     * [one.astroport.atom4love.chat.ChatKind.SELFIE].
+     */
+    selfie: File? = null,
+    /** La photo qu'on vient de prendre, à lui envoyer. */
+    onSelfie: (Uri) -> Unit = {},
 ) {
     CompositionLocalProvider(LocalA4L provides A4LDark) {
         Lantern(
@@ -132,6 +153,8 @@ fun RendezvousScreen(
             inRange = inRange,
             onClose = onClose,
             pseudo = pseudo,
+            selfie = selfie,
+            onSelfie = onSelfie,
         )
     }
 }
@@ -144,6 +167,8 @@ private fun Lantern(
     inRange: Boolean,
     onClose: () -> Unit,
     pseudo: String?,
+    selfie: File?,
+    onSelfie: (Uri) -> Unit,
 ) {
     // L'horloge murale, relue à chaque image — c'est elle qui décide de la
     // fenêtre en cours autant que du pas du motif.
@@ -201,7 +226,14 @@ private fun Lantern(
     ScreenAsLantern()
     beat?.let { PulseInTheHand(it, slot) }
 
-    Box(
+    // ⚠⚠ **Une colonne, plus une boîte.** C'était un `Box` : l'en-tête et le
+    // corps s'y superposaient, et tant que le corps ne captait rien ça ne se
+    // voyait pas. Le jour où il est devenu défilant (20/08), le geste de
+    // défilement a pris toute la surface — **« Se reconnaître » et la croix de
+    // fermeture ont cessé de répondre**, sans une erreur, sans une trace.
+    // Mesuré à l'écran sur l'A5 : deux taps au bon pixel, aucune réaction.
+    // Un conteneur qui empile n'a rien à faire là où rien ne doit se recouvrir.
+    Column(
         Modifier
             .fillMaxSize()
             .background(A4L.Void)
@@ -223,11 +255,73 @@ private fun Lantern(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            /**
+             * ⚠ **Le bouton fait quelque chose, enfin.** « Se reconnaître »
+             * était un titre depuis le premier jour : le mot d'un écran, pas
+             * un geste. Il porte maintenant le seul raccourci honnête du
+             * dernier mètre — un visage.
+             *
+             * Chercher à la force du signal marche à sept mètres et échoue
+             * dans une salle pleine : le RSSI dit « chaud » pour tout un
+             * demi-cercle. Une photo traverse ça d'un coup d'œil.
+             */
+            var asking by remember { mutableStateOf(false) }
+            var pending by remember { mutableStateOf<Uri?>(null) }
+            val camera = rememberLauncherForActivityResult(
+                ActivityResultContracts.TakePicture(),
+            ) { taken ->
+                val uri = pending
+                pending = null
+                if (taken && uri != null) onSelfie(uri)
+            }
             Text(
                 stringResource(R.string.rendezvous_title),
                 style = A4LText.SectionLabel,
                 color = accent.copy(alpha = 0.75f),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(9.dp))
+                    .clickable { asking = true }
+                    .padding(horizontal = 8.dp, vertical = 5.dp),
             )
+            if (asking) {
+                val context = LocalContext.current
+                AlertDialog(
+                    onDismissRequest = { asking = false },
+                    containerColor = A4L.Deep,
+                    title = {
+                        Text(
+                            stringResource(R.string.selfie_title),
+                            style = A4LText.Title,
+                            color = Color.White.copy(alpha = 0.92f),
+                        )
+                    },
+                    text = {
+                        Text(
+                            stringResource(R.string.selfie_body),
+                            style = A4LText.Body,
+                            color = Color.White.copy(alpha = 0.78f),
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            asking = false
+                            val (_, uri) = Attachments.newPhoto(context)
+                            pending = uri
+                            camera.launch(uri)
+                        }) {
+                            Text(stringResource(R.string.selfie_take), color = accent)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { asking = false }) {
+                            Text(
+                                stringResource(R.string.selfie_no),
+                                color = Color.White.copy(alpha = 0.6f),
+                            )
+                        }
+                    },
+                )
+            }
             Box(
                 Modifier
                     .size(30.dp)
@@ -246,7 +340,8 @@ private fun Lantern(
         // manque quelque chose. Centrée tant que ça tient, défilante sinon.
         Column(
             Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 28.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -256,13 +351,34 @@ private fun Lantern(
             // ── Le signal ─────────────────────────────────────────────────
             Box(Modifier.size(230.dp), contentAlignment = Alignment.Center) {
                 Halo(glow = glow, accent = accent)
-                Text(
-                    KinMaya.glyphEmoji(theirs.glyph),
-                    fontSize = 96.sp,
-                    modifier = Modifier
-                        .alpha(0.30f + 0.70f * glow)
-                        .scale(1f + 0.10f * glow),
-                )
+                // ⚠ **Un visage bat aussi.** Quand il est arrivé, il prend la
+                // place du sceau : c'est lui qu'on cherche dans la salle, et
+                // le battement reste — c'est ce qui distingue son écran des
+                // autres quand deux personnes se ressemblent de loin.
+                if (selfie != null) {
+                    val face = remember(selfie.path, selfie.lastModified()) {
+                        BitmapFactory.decodeFile(selfie.path)?.asImageBitmap()
+                    }
+                    if (face != null) {
+                        Image(
+                            bitmap = face,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(168.dp)
+                                .clip(CircleShape)
+                                .alpha(0.45f + 0.55f * glow),
+                        )
+                    }
+                } else {
+                    Text(
+                        KinMaya.glyphEmoji(theirs.glyph),
+                        fontSize = 96.sp,
+                        modifier = Modifier
+                            .alpha(0.30f + 0.70f * glow)
+                            .scale(1f + 0.10f * glow),
+                    )
+                }
             }
 
             Spacer(Modifier.height(10.dp))

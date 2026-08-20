@@ -290,6 +290,12 @@ class ChatHost(application: Application) : AndroidViewModel(application) {
         ChatKind.TEXT -> message.text
         ChatKind.IMAGE -> context.getString(R.string.notify_image)
         ChatKind.FILE -> message.name.ifEmpty { context.getString(R.string.notify_file) }
+        // ⚠ Injoignable, et c'est le but : un selfie n'entre ni dans un fil ni
+        // dans les non-lus ([Conversations]). La branche existe pour que le
+        // compilateur tienne la promesse à notre place — le jour où quelqu'un
+        // laisserait passer un selfie jusqu'ici, il verrait le mot « photo »
+        // plutôt qu'un extrait vide.
+        ChatKind.SELFIE -> context.getString(R.string.notify_image)
     }
 
     fun open(keys: NostrKeys?) {

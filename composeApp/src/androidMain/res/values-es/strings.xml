@@ -103,6 +103,10 @@
     <string name="board_seeks_you">te busca</string>
     <string name="rendezvous_title">Reconocerse</string>
     <string name="rendezvous_mutual">Vaya a buscar su resonancia desplazándose físicamente.</string>
+    <string name="selfie_title">¿Mostrar su cara?</string>
+    <string name="selfie_body">Buscar por señal funciona a unos metros y se pierde en una sala llena. Su foto aparecerá en la linterna de esta persona, y en ningún otro sitio: ni en su conversación, ni en su galería, ni en ningún servidor. Se borra al cerrar.</string>
+    <string name="selfie_take">Tomar la foto</string>
+    <string name="selfie_no">Ahora no</string>
     <string name="rendezvous_out_of_range">fuera de alcance ahora mismo</string>
     <string name="rendezvous_no_phase">No hay ritmo sin fase. El sello viene de la fecha, la fase pide el lugar de nacimiento — y hace falta en ambos lados.</string>
 

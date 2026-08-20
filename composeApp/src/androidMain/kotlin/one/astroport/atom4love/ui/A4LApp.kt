@@ -92,6 +92,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import one.astroport.atom4love.BuildConfig
+import one.astroport.atom4love.nostr.Hex
+import one.astroport.atom4love.chat.ChatKind
 import one.astroport.atom4love.chat.ChatEngine
 import one.astroport.atom4love.chat.Medium
 import one.astroport.atom4love.data.BodyStore
@@ -728,17 +730,50 @@ private fun Station(
      * celles qui passent, la nôtre comprise. Quelques hachages pour une poignée
      * de pairs, et le rapprochement cesse de dépendre d'un accord sur le lieu.
      */
-    val plateauNames = remember(cabinPeers, conversations, advertisedCell, neighborCells) {
-        val byNpub = conversations.associateBy { it.npub }
+    /**
+     * Le même rapprochement, mais qui garde **la clé** plutôt que le nom : une
+     * carte du Plateau ne porte qu'un jeton, et il faut savoir à qui envoyer
+     * un visage.
+     */
+    val plateauPeers = remember(cabinPeers, advertisedCell, neighborCells) {
         val cells = (neighborCells.mapNotNull { it.cell4d } + listOfNotNull(advertisedCell))
             .distinct()
         buildMap {
             for (peer in cabinPeers) {
-                val name = byNpub[peer.npub]?.name ?: continue
+                val hex = Hex.encode(peer.nostrKey)
                 for (cell in cells) {
                     val token = ProximityPayload.token(peer.nostrKey, cell) ?: continue
-                    put(token, name)
+                    put(token, hex)
                 }
+            }
+        }
+    }
+    val plateauNames = remember(cabinPeers, conversations, plateauPeers) {
+        val byNpub = conversations.associateBy { it.npub }
+        val nameByHex = cabinPeers.associate { Hex.encode(it.nostrKey) to byNpub[it.npub]?.name }
+        buildMap {
+            for ((token, hex) in plateauPeers) {
+                val name = nameByHex[hex] ?: continue
+                put(token, name)
+            }
+        }
+    }
+    /**
+     * Les visages reçus, par jeton de présence — voir [ChatKind.SELFIE].
+     *
+     * Le dernier de chaque personne, et rien d'autre : un selfie n'est pas un
+     * album, c'est le visage de maintenant. Ils vivent dans la liste des
+     * messages, d'où [Conversations] les écarte, et meurent avec elle.
+     */
+    val plateauSelfies = remember(cabinMessages, plateauPeers) {
+        val lastByPeer = cabinMessages
+            .filter { !it.mine && it.kind == ChatKind.SELFIE && it.file != null && it.peer != null }
+            .groupBy { it.peer!! }
+            .mapValues { (_, list) -> list.maxBy { it.atMs }.file!! }
+        buildMap {
+            for ((token, hex) in plateauPeers) {
+                val file = lastByPeer[hex] ?: continue
+                put(token, file)
             }
         }
     }
@@ -1216,6 +1251,14 @@ private fun Station(
                                 npub = keys?.npubShort,
                                 birth = birth,
                                 names = plateauNames,
+                                selfies = plateauSelfies,
+                                // ⚠ La photo part par le chemin scellé des
+                                // pièces jointes, à UNE personne, et n'entre
+                                // dans aucune conversation — voir
+                                // [ChatKind.SELFIE].
+                                onSelfie = { token, uri ->
+                                    plateauPeers[token]?.let { cabin.sendSelfie(uri, it) }
+                                },
                                 radio = { title ->
                                     RadioSection(
                                         relay = relayStatus,

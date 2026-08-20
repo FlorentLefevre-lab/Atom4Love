@@ -1678,6 +1678,30 @@ class ChatEngine(context: Context) {
         }
     }
 
+    /**
+     * **Le selfie de reconnaissance** — le dernier mètre, quand le signal ne
+     * suffit plus.
+     *
+     * Demandé par Florent le 20/08 : chercher quelqu'un à la force du signal
+     * Bluetooth marche à sept mètres et échoue dans une salle pleine. Un visage
+     * traverse la salle d'un coup d'œil.
+     *
+     * ⚠ Même chemin que [sendImage] — recompression comprise, parce qu'une
+     * photo de téléphone fait quatre mégaoctets et que la radio en porte deux
+     * — mais **genre `SELFIE`** : le transfert est le même, la destination ne
+     * l'est pas. Il n'entre dans aucune conversation et ne s'affiche que dans
+     * la lanterne de la personne visée.
+     */
+    fun sendSelfie(uri: Uri, to: String) {
+        scope.launch(Dispatchers.IO) {
+            val read = Attachments.prepareImage(appContext, uri)
+            withContext(dispatcher) {
+                raiseForAttachment()
+                dispatchAttachment(ChatKind.SELFIE, ChatFrames.KIND_SELFIE, read, transferLimit(), to)
+            }
+        }
+    }
+
     /** Envoie un fichier tel quel, plafonné selon le médium ([transferLimit]). */
     fun sendFile(uri: Uri, to: String) {
         scope.launch(Dispatchers.IO) {
@@ -3820,6 +3844,7 @@ class ChatEngine(context: Context) {
     private fun kindOf(wireKind: Int): ChatKind = when (wireKind) {
         ChatFrames.KIND_IMAGE -> ChatKind.IMAGE
         ChatFrames.KIND_FILE -> ChatKind.FILE
+        ChatFrames.KIND_SELFIE -> ChatKind.SELFIE
         else -> ChatKind.TEXT
     }
 

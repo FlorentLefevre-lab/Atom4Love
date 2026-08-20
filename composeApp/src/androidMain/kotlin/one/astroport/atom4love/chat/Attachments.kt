@@ -191,6 +191,25 @@ object Attachments {
         }.getOrDefault(false)
     }
 
+    /**
+     * Un fichier vide pour l'appareil photo, et l'URI qui le lui ouvre.
+     *
+     * ⚠ **On ne passe pas par `ACTION_IMAGE_CAPTURE` sans destination** : sans
+     * `EXTRA_OUTPUT`, l'appareil photo ne rend qu'une vignette de quelques
+     * dizaines de kilopixels, bonne pour un aperçu et pour rien d'autre. Avec,
+     * il écrit la photo pleine dans notre dossier, d'où [prepareImage] la
+     * reprend et la recompresse pour la radio.
+     *
+     * Le nom porte l'instant : deux selfies pris dans la même seconde ne
+     * s'écrasent pas, et le dossier reste lisible quand on l'inspecte au banc.
+     */
+    fun newPhoto(context: Context): Pair<File, Uri> {
+        val dir = File(context.filesDir, DIR).apply { mkdirs() }
+        val file = File(dir, "selfie-${System.currentTimeMillis()}.jpg")
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        return file to uri
+    }
+
     /** Ouverture par la visionneuse système, via FileProvider. */
     fun viewIntent(context: Context, file: File, mime: String): Intent {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)

@@ -151,6 +151,13 @@
          n\'était pas de comprendre : c\'était de savoir quoi FAIRE de ses jambes.
          La chaleur au-dessus se lit en marchant, pas en lisant. -->
     <string name="rendezvous_mutual">Allez chercher votre résonance en vous déplaçant physiquement.</string>
+    <!-- 🤳 Le selfie de reconnaissance. ⚠ Le texte doit dire OÙ va la photo,
+         parce que c'est la seule question qui compte au moment de la prendre :
+         nulle part ailleurs que dans la lanterne de cette personne-là. -->
+    <string name="selfie_title">Montrer votre visage ?</string>
+    <string name="selfie_body">Chercher au signal marche à quelques mètres, et se perd dans une salle pleine. Votre photo apparaîtra dans la lanterne de cette personne, et nulle part ailleurs : ni dans votre conversation, ni dans sa galerie, ni sur aucun serveur. Elle s\'efface en fermant.</string>
+    <string name="selfie_take">Prendre la photo</string>
+    <string name="selfie_no">Pas maintenant</string>
     <string name="rendezvous_out_of_range">hors de portée à l\'instant</string>
     <string name="rendezvous_no_phase">Pas de rythme sans phase. Le sceau vient de la date, la phase demande le lieu de naissance — et il en faut un des deux côtés.</string>
     <!-- « 18 % » en français, « 18% » en anglais : l'espace est une règle de

@@ -1,5 +1,8 @@
 package one.astroport.atom4love.ui.screens
 
+import one.astroport.atom4love.chat.ChatKind
+import android.net.Uri
+import java.io.File
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -141,6 +144,10 @@ fun BoardScreen(
      * nom non plus — même règle que partout ailleurs.
      */
     names: Map<Int, String> = emptyMap(),
+    /** Les visages reçus, par jeton de présence — voir [ChatKind.SELFIE]. */
+    selfies: Map<Int, File> = emptyMap(),
+    /** Un visage à envoyer à la carte qu'on regarde dans la lanterne. */
+    onSelfie: (Int, Uri) -> Unit = { _, _ -> },
 ) {
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
     val own by ProximityService.signature.collectAsStateWithLifecycle()
@@ -230,6 +237,8 @@ fun BoardScreen(
             inRange = live != null,
             onClose = { seekingId = null; seekingMany = false },
             pseudo = card.token?.let { names[it] },
+            selfie = card.token?.let { selfies[it] },
+            onSelfie = { uri -> card.token?.let { onSelfie(it, uri) } },
         )
         return
     }
