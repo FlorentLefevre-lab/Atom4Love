@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -780,10 +781,11 @@ private fun SightingRow(
                 color = A4L.TextHigh,
                 fontWeight = if (selected) FontWeight.SemiBold else null,
             )
+            val locale = LocalLocale.current.platformLocale
             Text(
                 text = buildString {
                     append(atom.shortKey)
-                    atom.phase?.let { append(" · φ ").append(format(it, 3)) }
+                    atom.phase?.let { append(" · φ ").append(format(locale, it, 3)) }
                     // ⚠ L'onde biologique s'écrivait ici, « · ω 304,53 Hz ».
                     // Partie le 15/08 avec toute la formule de Watson : on ne
                     // la calcule plus, on ne la publie plus, et on ne la lit
@@ -816,7 +818,7 @@ private fun SightingRow(
             }
             sighting.distanceKm?.let {
                 Text(
-                    text = String.format(Locale.getDefault(), "%,.0f km", it),
+                    text = String.format(LocalLocale.current.platformLocale, "%,.0f km", it),
                     style = A4LText.Data.copy(fontSize = 9.5.sp),
                     color = A4L.TextFaint,
                 )
@@ -853,8 +855,13 @@ private val REVEAL_FROM_TOP = 300.dp
 /** Au-delà, la ligne ne viendra pas : inutile de retenir le défilement. */
 private const val REVEAL_TIMEOUT_MS = 1_500L
 
-private fun format(value: Double, decimals: Int): String =
-    String.format(Locale.getDefault(), "%.${decimals}f", value)
+/**
+ * ⚠ La langue vient de l'appelant, jamais de `Locale.getDefault()` : lue ici,
+ * elle échapperait à la composition et le séparateur décimal resterait celui
+ * d'avant un changement de langue.
+ */
+private fun format(locale: Locale, value: Double, decimals: Int): String =
+    String.format(locale, "%.${decimals}f", value)
 
 /** Ce que l'écran nomme : l'hôte du relais, sans le `wss://`. */
 private val RELAY_LABEL: String = BuildConfig.NOSTR_DEFAULT_RELAY

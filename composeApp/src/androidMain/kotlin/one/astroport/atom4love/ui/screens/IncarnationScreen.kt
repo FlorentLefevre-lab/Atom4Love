@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
@@ -1674,7 +1675,7 @@ private fun ShapeStep(
                 Text(
                     stringResource(
                         R.string.inc_bmi_value,
-                        String.format(Locale.getDefault(), "%.1f", bmi),
+                        String.format(LocalLocale.current.platformLocale, "%.1f", bmi),
                     ),
                     style = A4LText.Data.copy(fontSize = 19.sp),
                     color = accent,
@@ -1767,7 +1768,7 @@ private fun SingularityCard(birth: BirthData) {
             Phi2X.personalPhase(birth)?.let {
                 stringResource(
                     R.string.inc_phase_value,
-                    String.format(Locale.getDefault(), "%.3f", it),
+                    String.format(LocalLocale.current.platformLocale, "%.3f", it),
                 )
             } ?: "—",
         )
@@ -1974,7 +1975,7 @@ private fun SealedBodyCard(body: BodyMetrics, wave: Wave?) {
                 Text(
                     stringResource(
                         R.string.inc_bmi_value,
-                        String.format(Locale.getDefault(), "%.1f", it),
+                        String.format(LocalLocale.current.platformLocale, "%.1f", it),
                     ) + " · " + stringResource(Bmi.Band.of(it).labelRes),
                     style = A4LText.Caption,
                     color = accent.copy(alpha = 0.85f),

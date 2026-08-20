@@ -548,7 +548,11 @@
     <!-- ─── La balise, dans la zone de notification ───────────────────── -->
     <string name="beacon_channel_name">Balise de proximité</string>
     <string name="beacon_channel_description">Présence de la balise ATOM4LOVE et noyaux à portée</string>
-    <plurals name="presence_banner">
+    <!-- ⚠ `tools:ignore` assumé : en français, « one » couvre aussi le zéro, et
+         lint réclame donc un %1$d jusque dans cette ligne. Le zéro n'y arrive
+         jamais — le bandeau se compose avec `count.coerceAtLeast(1)` et ne
+         s'affiche pas sans personne. « Une carte » se lit mieux que « 1 carte ». -->
+    <plurals name="presence_banner" tools:ignore="ImpliedQuantity">
         <item quantity="one">Une carte se montre à portée.</item>
         <item quantity="many">%1$d cartes se montrent à portée.</item>
         <item quantity="other">%1$d cartes se montrent à portée.</item>
@@ -737,7 +741,9 @@
     <string name="presence_banner_close">Fermer</string>
     <string name="journal_close">Fermer</string>
     <string name="unread_banner_open">Ouvrir</string>
-    <plurals name="unread_banner">
+    <!-- ⚠ Même chose ici, et plus franc encore : cette ligne ne sert que sous
+         `if (count > 1)` (UnreadNotifier) — ni zéro ni un ne l'atteignent. -->
+    <plurals name="unread_banner" tools:ignore="ImpliedQuantity">
         <item quantity="one">Un message vous attend.</item>
         <item quantity="other">%1$d messages vous attendent.</item>
     </plurals>

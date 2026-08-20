@@ -22,6 +22,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -170,7 +171,9 @@ fun BirthDateWheels(
     yearRange: IntRange,
     onChange: (year: Int, month: Int, day: Int) -> Unit,
     modifier: Modifier = Modifier,
-    locale: Locale = Locale.getDefault(),
+    // ⚠ Lu dans la composition, pas par `Locale.getDefault()` : les noms de
+    // mois suivent alors un changement de langue sans attendre autre chose.
+    locale: Locale = LocalLocale.current.platformLocale,
 ) {
     val years = remember(yearRange) { yearRange.toList() }
     val months = remember(locale) {
