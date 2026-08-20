@@ -50,9 +50,6 @@ class P2pGroup(context: Context) {
         /** Le propriétaire d'un groupe Wi-Fi Direct est toujours à cette adresse. */
         const val OWNER_ADDRESS = "192.168.49.1"
 
-        /** Rejoindre par identifiants demande l'API 29 (`WifiP2pConfig.Builder`). */
-        private val JOIN_SUPPORTED = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-
         /** Formation d'un groupe : quelques secondes en pratique, jamais instantané. */
         private const val FORM_TIMEOUT_MS = 20_000L
 
@@ -226,8 +223,12 @@ class P2pGroup(context: Context) {
         trace.edit().remove(TRACE_KEY).apply()
     }
 
-    /** Vrai quand cet appareil peut ouvrir ou rejoindre un groupe. */
-    fun usable(): Boolean = manager != null && JOIN_SUPPORTED
+    /**
+     * Vrai quand cet appareil peut ouvrir ou rejoindre un groupe : il suffit
+     * que la pile Wi-Fi Direct existe. Rejoindre par identifiants demandait
+     * l'API 29 (`WifiP2pConfig.Builder`) — le plancher la porte désormais.
+     */
+    fun usable(): Boolean = manager != null
 
     private fun channel(): WifiP2pManager.Channel? {
         val manager = this.manager ?: return null
@@ -309,19 +310,11 @@ class P2pGroup(context: Context) {
     /**
      * La bande obtenue, dite en clair pour le journal.
      *
-     * ⚠ `WifiP2pGroup.getFrequency()` date d'Android 10. Avant, le groupe ne
-     * dit pas sur quel canal il tourne — et comme c'est aussi avant l'API qui
-     * permet de *demander* une bande, l'information ne manque pas vraiment :
-     * un groupe ouvert là-bas est forcément celui que le système a composé
-     * seul, donc en 2,4 GHz par compatibilité. On ne l'affirme pas pour
-     * autant ; on dit qu'on ne sait pas.
+     * `WifiP2pGroup.getFrequency()` date d'Android 10, soit le plancher : le
+     * groupe dit toujours sur quel canal il tourne.
      */
     private fun bandOf(group: WifiP2pGroup): String =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            "${group.frequency} MHz (${if (group.frequency > 3000) "5 GHz" else "2,4 GHz"})"
-        } else {
-            "bande inconnue (Android ${Build.VERSION.RELEASE} ne la dit pas)"
-        }
+        "${group.frequency} MHz (${if (group.frequency > 3000) "5 GHz" else "2,4 GHz"})"
 
     /**
      * Un nom de réseau et une passe tirés au sort. Le nom doit commencer par
@@ -338,16 +331,14 @@ class P2pGroup(context: Context) {
      * Ouvre un groupe sur la bande demandée. `createGroup` sans configuration
      * laisse le système choisir — et il choisit la 2,4 GHz par compatibilité.
      *
-     * ⚠ Choisir sa bande et ses identifiants demande Android 10 : c'est là
-     * qu'apparaissent `WifiP2pConfig.Builder` et la surcharge de `createGroup`
-     * qui l'accepte. Sous cette version on rend `false` sans rien tenter, et
-     * l'appelant tombe sur [createSystemGroup] — le groupe que le système
-     * compose seul, en 2,4 GHz. C'est exactement le repli déjà prévu pour une
-     * bande refusée par la réglementation ; il n'y en a pas besoin d'un autre.
+     * Choisir sa bande et ses identifiants demande Android 10 —
+     * `WifiP2pConfig.Builder` et la surcharge de `createGroup` qui l'accepte —
+     * et c'est le plancher : plus rien à garder de ce côté. Rendre `false`
+     * fait tomber l'appelant sur [createSystemGroup], le groupe que le système
+     * compose seul en 2,4 GHz ; c'est le repli d'une bande refusée par la
+     * réglementation, et il n'y en a pas besoin d'un autre.
      *
-     * Le `runCatching` reste, mais il ne couvre plus cette version-là : il est
-     * là pour ce que la pile Wi-Fi refuse à l'exécution, pas pour ce que la
-     * version d'Android ne connaît pas.
+     * Le `runCatching` est là pour ce que la pile Wi-Fi refuse à l'exécution.
      */
     @SuppressLint("MissingPermission")
     private suspend fun createGroup(
@@ -356,10 +347,6 @@ class P2pGroup(context: Context) {
         credentials: Credentials,
         band: Int,
     ): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            Log.i(TAG, "bande et identifiants non choisissables avant Android 10 — repli système")
-            return false
-        }
         val config = runCatching {
             WifiP2pConfig.Builder()
                 .setNetworkName(credentials.networkName)
@@ -409,10 +396,6 @@ class P2pGroup(context: Context) {
      * on sait déjà tout.
      */
     suspend fun join(credentials: Credentials): Boolean {
-        if (!JOIN_SUPPORTED) {
-            Log.w(TAG, "Wi-Fi Direct : rejoindre par identifiants demande Android 10")
-            return false
-        }
         val connectivity = appContext.getSystemService(ConnectivityManager::class.java)
             ?: return false
         // Même règle qu'à l'ouverture : on n'entre pas chez un autre tant qu'on
@@ -582,9 +565,7 @@ class P2pGroup(context: Context) {
         beginRelease()
         val done = { removed: Boolean ->
             if (removed) forget()
-            runCatching {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) channel.close()
-            }
+            runCatching { channel.close() }
             endRelease()
         }
         // La cabine se ferme sans attendre : les tentatives vivent sur le
@@ -716,9 +697,7 @@ class P2pGroup(context: Context) {
     }
 
     private fun closeChannel() {
-        runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) channel?.close()
-        }
+        runCatching { channel?.close() }
         this.channel = null
     }
 

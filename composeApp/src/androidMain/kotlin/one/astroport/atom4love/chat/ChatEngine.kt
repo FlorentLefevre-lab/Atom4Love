@@ -2873,14 +2873,10 @@ class ChatEngine(context: Context) {
     private fun acquireWifiLock() {
         if (wifiLock != null) return
         val manager = appContext.getSystemService(WifiManager::class.java) ?: return
-        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            WifiManager.WIFI_MODE_FULL_LOW_LATENCY
-        } else {
-            @Suppress("DEPRECATION")
-            WifiManager.WIFI_MODE_FULL_HIGH_PERF
-        }
+        // WIFI_MODE_FULL_LOW_LATENCY date de l'API 29, soit le plancher.
         wifiLock = runCatching {
-            manager.createWifiLock(mode, "atom4love:cabine").apply { acquire() }
+            manager.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "atom4love:cabine")
+                .apply { acquire() }
         }.onFailure { Log.w(TAG, "verrou Wi-Fi refusé — $it") }.getOrNull()
         if (wifiLock != null) Log.i(TAG, "verrou Wi-Fi basse latence tenu")
     }

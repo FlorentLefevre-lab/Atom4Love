@@ -5,10 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
-import android.os.Build
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
@@ -174,11 +172,10 @@ object Attachments {
     }
 
     /**
-     * Copie une pièce reçue vers Téléchargements (MediaStore, API 29+) pour
-     * la sortir du stockage privé de l'appli. false si échec ou API < 29.
+     * Copie une pièce reçue vers Téléchargements (MediaStore, API 29 — le
+     * plancher) pour la sortir du stockage privé de l'appli. false si échec.
      */
     fun saveToDownloads(context: Context, file: File, name: String, mime: String): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
         return runCatching {
             val resolver = context.contentResolver
             val values = ContentValues().apply {
@@ -223,33 +220,23 @@ object Attachments {
             ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
     }.getOrNull()
 
+    /**
+     * ImageDecoder date de l'API 28, sous le plancher : c'est le seul chemin.
+     * Il porte l'orientation EXIF, que `BitmapFactory` ignorait.
+     */
     private fun decodeScaled(context: Context, uri: Uri): Bitmap? = runCatching {
         val resolver = context.contentResolver
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri)) { decoder, info, _ ->
-                // compress() lit les pixels : pas de bitmap matériel
-                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-                val largest = maxOf(info.size.width, info.size.height)
-                if (largest > IMAGE_MAX_DIM) {
-                    val scale = IMAGE_MAX_DIM.toFloat() / largest
-                    decoder.setTargetSize(
-                        (info.size.width * scale).toInt().coerceAtLeast(1),
-                        (info.size.height * scale).toInt().coerceAtLeast(1),
-                    )
-                }
+        ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri)) { decoder, info, _ ->
+            // compress() lit les pixels : pas de bitmap matériel
+            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            val largest = maxOf(info.size.width, info.size.height)
+            if (largest > IMAGE_MAX_DIM) {
+                val scale = IMAGE_MAX_DIM.toFloat() / largest
+                decoder.setTargetSize(
+                    (info.size.width * scale).toInt().coerceAtLeast(1),
+                    (info.size.height * scale).toInt().coerceAtLeast(1),
+                )
             }
-        } else {
-            // Pas d'orientation EXIF avant API 28 — assumé pour ces appareils.
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-            if (bounds.outWidth <= 0) return@runCatching null
-            val options = BitmapFactory.Options().apply {
-                inSampleSize = 1
-                while (maxOf(bounds.outWidth, bounds.outHeight) / (inSampleSize * 2) >= IMAGE_MAX_DIM) {
-                    inSampleSize *= 2
-                }
-            }
-            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
         }
     }.getOrNull()
 

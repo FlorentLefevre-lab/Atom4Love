@@ -230,16 +230,11 @@ class ProximityService : Service() {
         // l'app passe en arrière-plan — la cellule deviendrait irrésoluble. On ne
         // l'ajoute que si la permission est là : le déclarer sans elle jette une
         // SecurityException à partir d'API 34.
-        val fgsType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            var type = ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-            val locationGranted = ContextCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_FINE_LOCATION,
-            ) == PackageManager.PERMISSION_GRANTED
-            if (locationGranted) type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
-            type
-        } else {
-            0
-        }
+        var fgsType = ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+        val locationGranted = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (locationGranted) fgsType = fgsType or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
         ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(neighborCount = 0), fgsType)
 
         if (!engineStarted) {

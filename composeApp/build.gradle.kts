@@ -272,6 +272,12 @@ android {
         }
     }
 
+    // ⚠ Un avertissement `ObsoleteSdkInt` reste, et il faut le LAISSER :
+    // lint demande de fondre `res/mipmap-anydpi-v26` dans `mipmap-anydpi`,
+    // le plancher étant à 29. Essayé et mesuré le 20/08 : renommé sans le
+    // `-v26`, le dossier n'est plus empaqueté du tout — l'icône adaptative
+    // disparaît de l'APK (`aapt2 dump resources` : plus de ligne `(anydpi)`),
+    // en silence, sans une erreur de build. Le `-v26` reste.
     lint {
         abortOnError = false
         warningsAsErrors = false
