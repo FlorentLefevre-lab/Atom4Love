@@ -369,6 +369,13 @@ private fun Lantern(
                         BitmapFactory.decodeFile(selfie.path)?.asImageBitmap()
                     }
                     if (face != null) {
+                        // ⚠ **Un visage ne s'efface pas au creux du battement.**
+                        // Le sceau descend à 30 % d'opacité, et c'est joli sur un
+                        // dessin ; sur la photo de quelqu'un, vu à l'écran le
+                        // 20/08, le creux le rend difficile à reconnaître — or
+                        // c'est exactement ce qu'on lui demande. Il respire donc
+                        // entre 78 % et 100 % : le rythme se voit encore, le
+                        // visage ne disparaît jamais.
                         Image(
                             bitmap = face,
                             contentDescription = null,
@@ -376,7 +383,7 @@ private fun Lantern(
                             modifier = Modifier
                                 .size(168.dp)
                                 .clip(CircleShape)
-                                .alpha(0.45f + 0.55f * glow),
+                                .alpha(0.78f + 0.22f * glow),
                         )
                     }
                 } else {
