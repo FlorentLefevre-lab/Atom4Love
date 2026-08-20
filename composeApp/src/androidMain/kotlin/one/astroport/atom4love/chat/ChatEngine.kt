@@ -751,6 +751,41 @@ class ChatEngine(context: Context) {
      * kilooctets fragmentés, elle double le temps d'antenne et fabrique
      * exactement le genre de panne qu'on vient de voir.
      */
+    /**
+     * ⚠⚠ **La lanterne ne parle qu'en Bluetooth. Règle de Florent, 20/08.**
+     *
+     * « L'expérience doit se faire uniquement en BT pour la recherche et
+     * l'envoi/réception LANTERNE — parce qu'en conditions réelles on n'aura
+     * pas forcément à disposition le Wi-Fi AP ou le P2P direct. »
+     *
+     * C'est la raison, et elle est de terrain : dans un bar, une gare, une
+     * salle de conférence, il n'y a **pas** de réseau local partagé entre deux
+     * inconnus, et le Wi-Fi Direct demande un accord système que personne ne
+     * donnera au milieu d'une rencontre. Le seul médium dont on soit certain,
+     * partout et sans rien demander, c'est la radio BLE. Une fonction qui
+     * marche au banc parce qu'un Wi-Fi traîne, et qui échoue dans la salle où
+     * elle sert, n'existe pas.
+     *
+     * Le banc ment donc ici : les trois appareils partagent une box, et le
+     * moteur montait naturellement vers le réseau local, plus rapide. On le lui
+     * interdit pour ce genre-ci.
+     *
+     * S'y ajoute, gratuitement, la justesse du geste : la portée BLE mesurée
+     * est de sept mètres, et la déclaration de recherche est déjà en BLE seul
+     * ([SeekingBeacon]). Les deux moitiés du même geste ont ainsi la même
+     * portée — celle d'une pièce, pas d'un bâtiment.
+     *
+     * ⚠ Conséquence assumée : **pas de lien BLE, pas de visage.** L'échec se
+     * dit à l'expéditeur, avec sa reprise — c'est un refus honnête, pas une
+     * panne. Et sur une puce qui lâche ses écritures sous charge (l'A5 de
+     * 2016), le visage échouera parfois. C'est le prix de la portée.
+     */
+    private fun bleOnlyRoute(routes: List<Link>): List<Link> {
+        val attested = routes.filter { it.peerNostrKey != null }
+        val considered = attested.ifEmpty { routes }
+        return listOfNotNull(considered.lastOrNull { it.medium == Medium.BLE })
+    }
+
     private fun bestAttachmentRoute(routes: List<Link>): List<Link> {
         val attested = routes.filter { it.peerNostrKey != null }
         val considered = attested.ifEmpty { routes }
@@ -1744,13 +1779,10 @@ class ChatEngine(context: Context) {
             // de kilooctets au lieu de quelques centaines.
             val read = Attachments.prepareSelfie(appContext, uri)
             withContext(dispatcher) {
-                // ⚠ La montée de médium vaut aussi pour un visage, et le banc
-                // l'a tranché dans les deux sens le 20/08 : sans elle, les six
-                // kilooctets partent sur le BLE de l'A5 — quatre liens ouverts
-                // sur une puce de 2016 — et l'écriture meurt en `status=133`.
-                // Avec elle (et le scellement attendu, cf. [raiseForAttachment]),
-                // ils passent par la socket du réseau local en une seconde.
-                raiseForAttachment()
+                // ⚠ **Aucune montée de médium** : elle irait chercher le réseau
+                // local, que la lanterne s'interdit — voir [bleOnlyRoute]. Six
+                // kilooctets passent en une à deux secondes sur le lien BLE
+                // déjà scellé, ce qui est exactement le temps d'un regard.
                 dispatchAttachment(ChatKind.SELFIE, ChatFrames.KIND_SELFIE, read, transferLimit(), to)
             }
         }
@@ -1770,7 +1802,6 @@ class ChatEngine(context: Context) {
                 Log.w(TAG, "visage à renvoyer introuvable : ${file.name}")
                 return@launch
             }
-            raiseForAttachment()
             dispatchAttachment(
                 ChatKind.SELFIE,
                 ChatFrames.KIND_SELFIE,
@@ -1949,10 +1980,11 @@ class ChatEngine(context: Context) {
         // contrôle de flux ni signal d'échec. Le gain n'était d'ailleurs pas au
         // rendez-vous : 16 Ko/s de bout en bout, dans la fourchette de
         // l'écriture. [routes] applique déjà cette préférence.
-        val targets = if (kind == ChatFrames.KIND_TEXT) {
-            perAddress
-        } else {
-            bestAttachmentRoute(perAddress)
+        val targets = when (kind) {
+            ChatFrames.KIND_TEXT -> perAddress
+            // Le visage de la lanterne ne sort JAMAIS du Bluetooth.
+            ChatFrames.KIND_SELFIE -> bleOnlyRoute(perAddress)
+            else -> bestAttachmentRoute(perAddress)
         }
         // Une seule lecture pour le CRC, ici, et non une par lien : sur un
         // fichier, le calculer dans chaque transfert relirait tout le contenu
