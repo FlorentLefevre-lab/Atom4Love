@@ -10,6 +10,9 @@
     <string name="radar_hex_unknown_service_off">Hexágono desconocido — la Ubicación del teléfono está desactivada: reactívala en los ajustes rápidos.</string>
     <string name="radar_hex_unknown_dead_end">Hexágono desconocido — se denegó la ubicación. Android ya no volverá a pedirla: se reabre desde los ajustes de la app. No enciende ninguna baliza.</string>
     <string name="radar_hex_unknown_permission">Hexágono desconocido — la ubicación resuelve tu celda. No enciende ninguna baliza.</string>
+    <string name="radar_hex_unknown_approximate">Hexágono desconocido — ha concedido la ubicación aproximada. Android la difumina a escala de kilómetro, mientras que un portal mide menos: hace falta la precisa para nombrarlo sin arriesgarse al vecino.</string>
+    <string name="radar_grant_precise">Cambiar a ubicación precisa</string>
+    <string name="radar_hex_unknown_imprecise">Portal desconocido — posición con ± %1$d m de margen, suficiente para señalar el hexágono contiguo. No se anuncia nada mientras no haya certeza. Al aire libre, con cielo despejado, se ajusta en segundos.</string>
     <string name="radar_hex_unknown_searching">Hexágono desconocido — buscando la posición…</string>
     <string name="radar_scan_needs_location">En este Android, la radio no escanea sin ubicación: tu baliza habla, pero no ves a nadie.</string>
 

@@ -23,6 +23,15 @@
          la cellule H3 — sur l'appareil uniquement : la position ne sort jamais du
          device, seule l'adresse 4D (D2) est diffusée (« pas de traçage de position »). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- ⚠ Déclarée, jamais suffisante. Depuis Android 12, une demande de FINE
+         qui ne porte pas AUSSI COARSE peut être ignorée en bloc par le système :
+         il faut donc la déclarer pour que le dialogue se pose. Mais accorder
+         « Approximative » ne donne qu'une position floutée à l'échelle du
+         kilomètre, quand un hexagone de résolution 8 fait 920 m de large. Le
+         portail se nomme à la précise ou ne se nomme pas — se tromper de
+         portail est pire que ne pas en avoir, le jeton de présence en étant
+         dérivé (geo/DeviceLocation.granted, proximity/CellLocator.certain). -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission
         android:name="android.permission.NEARBY_WIFI_DEVICES"
         android:usesPermissionFlags="neverForLocation" />

@@ -340,10 +340,14 @@ fun RadioSection(
     val locator = remember { CellLocator(context.applicationContext) }
     var fix by remember { mutableStateOf<CellLocator.Fix?>(null) }
     var locationBlocker by remember { mutableStateOf<CellLocator.Blocker?>(null) }
+    // La précision de la position refusée, pour la DIRE : « ± 1 400 m » se
+    // comprend, « pas de position » serait faux — elle est là, elle est floue.
+    var impreciseM by remember { mutableStateOf<Float?>(null) }
     LaunchedEffect(beaconRunning, locationAttempt) {
         while (true) {
             fix = locator.currentFix()
             locationBlocker = if (fix == null) locator.blocker() else null
+            impreciseM = locator.lastImpreciseM
             // La permission accordée efface l'impasse : si elle est révoquée
             // ensuite depuis les réglages, Android remet son compteur à zéro et
             // redonne droit au dialogue.
@@ -469,6 +473,12 @@ fun RadioSection(
                         } else {
                             stringResource(R.string.radar_hex_unknown_permission)
                         }
+                        CellLocator.Blocker.APPROXIMATE ->
+                            stringResource(R.string.radar_hex_unknown_approximate)
+                        CellLocator.Blocker.IMPRECISE -> stringResource(
+                            R.string.radar_hex_unknown_imprecise,
+                            (impreciseM ?: 0f).toInt(),
+                        )
                         null -> stringResource(R.string.radar_hex_unknown_searching)
                     },
                     style = A4LText.Caption,
@@ -484,13 +494,19 @@ fun RadioSection(
                         color = A4L.TextMuted,
                     )
                 }
-                if (locationBlocker == CellLocator.Blocker.PERMISSION) {
+                // ⚠ L'approximative garde une porte, et ce n'est pas la même
+                // phrase : redemander [LOCATION_PERMISSIONS] fait poser à
+                // Android sa question « passer à la position précise ? ».
+                val locationAsk = locationBlocker == CellLocator.Blocker.PERMISSION ||
+                    locationBlocker == CellLocator.Blocker.APPROXIMATE
+                if (locationAsk) {
                     Text(
                         stringResource(
-                            if (locationDeadEnd) {
-                                R.string.radar_open_app_settings
-                            } else {
-                                R.string.radar_grant_location
+                            when {
+                                locationBlocker == CellLocator.Blocker.APPROXIMATE ->
+                                    R.string.radar_grant_precise
+                                locationDeadEnd -> R.string.radar_open_app_settings
+                                else -> R.string.radar_grant_location
                             },
                         ),
                         style = A4LText.Caption,
@@ -498,6 +514,9 @@ fun RadioSection(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .clickable {
+                                // `locationDeadEnd` n'est vrai que sous
+                                // PERMISSION : la boucle l'efface pour tout
+                                // autre motif, l'approximative comprise.
                                 if (locationDeadEnd) {
                                     settingsLauncher.launch(appSettingsIntent(context))
                                 } else {

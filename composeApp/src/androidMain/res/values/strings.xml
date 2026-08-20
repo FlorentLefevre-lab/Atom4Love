@@ -30,6 +30,13 @@
     <string name="radar_hex_unknown_dead_end">Hexagone inconnu — la localisation a été refusée. Android ne la redemandera plus : elle se rouvre depuis les réglages de l\'app. Elle n\'allume aucune balise.</string>
     <string name="radar_hex_unknown_permission">Hexagone inconnu — la localisation résout votre cellule. Elle n\'allume aucune balise.</string>
     <string name="radar_hex_unknown_searching">Hexagone inconnu — recherche de position en cours…</string>
+    <!-- ⚠ Deux refus qui n\'ont rien à voir, et qui ne se corrigent pas du même
+         geste : n\'avoir rien accordé, et avoir accordé l\'approximative. La
+         seconde phrase dit POURQUOI elle ne suffit pas, sinon le geste demandé
+         passe pour un caprice. -->
+    <string name="radar_hex_unknown_approximate">Hexagone inconnu — vous avez accordé la position approximative. Android la floute à l\'échelle du kilomètre, quand un portail en fait moins d\'un : il faut la précise pour le nommer sans risquer le voisin.</string>
+    <string name="radar_grant_precise">Passer à la position précise</string>
+    <string name="radar_hex_unknown_imprecise">Portail inconnu — position à ± %1$d m, de quoi désigner l\'hexagone d\'à côté. Rien n\'est annoncé tant qu\'on n\'en est pas sûr. Dehors, le ciel dégagé resserre en quelques secondes.</string>
     <string name="radar_scan_needs_location">Sur cet Android, la radio ne balaye pas sans position : votre balise parle, mais vous ne voyez personne.</string>
 
     <string name="radar_here_you">vous</string>

@@ -109,6 +109,9 @@ class ProximityEngine(
 
         /** Cadence resserrée tant que la cellule n'a pas pu être résolue. */
         private const val CELL_RETRY_MS = 30_000L
+
+        /** Le ciel ne s'ouvre pas en trente secondes — voir la boucle. */
+        private const val CELL_IMPRECISE_RETRY_MS = 3 * 60_000L
         private const val SWEEP_INTERVAL_MS = 10_000L
         private const val ADVERTISE_START_TIMEOUT_MS = 10_000L
     }
@@ -261,7 +264,13 @@ class ProximityEngine(
                 // le motif de blocage que dans le cas contraire. La cadence
                 // resserrée de 30 s (CELL_RETRY_MS) vaut alors aussi pour cette
                 // ligne — c'est elle qui court tant que la cellule manque.
-                val blind = h3Cell == null && scanNeedsLocation() && locator.blocker() != null
+                // ⚠ **L'imprécision n'aveugle pas le scan.** Tout est accordé
+                // et allumé, la radio voit très bien : c'est le LIEU qu'on ne
+                // sait pas nommer. Le compter comme une cécité écrirait « il me
+                // manque la position » à quelqu'un qui vient de l'accorder.
+                val blocker = if (h3Cell == null) locator.blocker() else null
+                val blind = scanNeedsLocation() &&
+                    blocker != null && blocker != CellLocator.Blocker.IMPRECISE
                 if (blind != _state.value.scanBlind) {
                     Log.i(TAG, if (blind) "scan aveugle : pas de position" else "scan à nouveau voyant")
                 }
@@ -320,7 +329,16 @@ class ProximityEngine(
                 }
 
                 var waited = 0L
-                val refreshMs = if (cell4d == null) CELL_RETRY_MS else CELL_REFRESH_MS
+                // ⚠ Trois cadences, et la troisième est une question
+                // d'énergie : une position trop imprécise ne se corrige pas en
+                // trente secondes — on est à l'intérieur, et le ciel ne va pas
+                // s'ouvrir. Réessayer aussi vite y tiendrait le GNSS allumé en
+                // continu sur une balise qui, elle, tourne tout le temps.
+                val refreshMs = when {
+                    cell4d != null -> CELL_REFRESH_MS
+                    blocker == CellLocator.Blocker.IMPRECISE -> CELL_IMPRECISE_RETRY_MS
+                    else -> CELL_RETRY_MS
+                }
                 // l'attente se rompt sur demande de silence : attendre les 30 s
                 // du prochain rafraîchissement laisserait l'antenne occupée
                 // pendant tout le transfert

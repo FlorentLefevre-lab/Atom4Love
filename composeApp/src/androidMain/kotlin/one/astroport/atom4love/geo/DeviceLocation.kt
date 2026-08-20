@@ -32,8 +32,12 @@ import kotlin.coroutines.resume
  *  1. la dernière position connue, si elle est fraîche — gratuite ;
  *  2. le client fusionné en HAUTE précision — lui allume le GNSS ;
  *  3. le GPS de l'AOSP en direct — le seul chemin d'un appareil dégooglisé ;
- *  puis, faute de mieux, la dernière position connue quel que soit son âge :
- *  une cellule de ~460 m d'arête s'en contente.
+ *  puis, faute de mieux, la dernière position connue quel que soit son âge.
+ *
+ * ⚠ Ce dernier repli ne décide plus de rien tout seul : c'est [
+ * one.astroport.atom4love.proximity.CellLocator] qui juge si la précision
+ * annoncée permet de nommer un hexagone, et qui refuse d'en nommer un quand le
+ * cercle d'incertitude en déborde.
  *
  * Comme partout ailleurs, la position ne quitte pas l'appareil.
  */
@@ -47,16 +51,44 @@ object DeviceLocation {
     /** Ce qu'on laisse à une puce GNSS froide pour voir le ciel, par puits. */
     private const val FIX_TIMEOUT_MS = 15_000L
 
+    /**
+     * En deçà de quoi une position connue dispense d'allumer le ciel.
+     *
+     * ⚠ **La fraîcheur ne suffit pas.** Une position réseau vieille de dix
+     * secondes peut annoncer ± 2 km : fraîche, et hors d'état de nommer un
+     * hexagone de 920 m. Le raccourci demande donc les deux — récente **et**
+     * précise —, faute de quoi on va chercher un vrai fix.
+     */
+    private const val PRECISE_ENOUGH_M = 50f
+
+    /**
+     * ⚠ **Seule la position PRÉCISE nomme un portail** (règle de Florent, le
+     * 20/08). `ACCESS_COARSE_LOCATION` est déclarée au manifeste — Android 12
+     * l'exige pour que la demande de `FINE` ne soit pas ignorée —, mais elle
+     * n'est jamais suffisante ici : voir [approximateOnly].
+     */
     fun granted(context: Context): Boolean = ContextCompat.checkSelfPermission(
         context, Manifest.permission.ACCESS_FINE_LOCATION,
     ) == PackageManager.PERMISSION_GRANTED
+
+    /**
+     * La personne a dit oui, mais **approximative** : `COARSE` sans `FINE`.
+     * Le cas n'existe qu'à partir d'Android 12, où le dialogue offre le choix ;
+     * en deçà — Android 10 et 11, notre plancher — accorder, c'est accorder la
+     * précise. Il mérite sa propre phrase à l'écran : « rien accordé » et
+     * « accordé, mais flouté » ne se corrigent pas du même geste.
+     */
+    fun approximateOnly(context: Context): Boolean =
+        !granted(context) && ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_COARSE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
 
     /** null si la permission manque ou qu'aucun des trois puits ne donne. */
     suspend fun current(context: Context): Location? {
         if (!granted(context)) return null
 
         val known = lastKnown(context)
-        if (known != null && ageMs(known) < FRESH_ENOUGH_MS) {
+        if (known != null && ageMs(known) < FRESH_ENOUGH_MS && precise(known)) {
             Log.d(TAG, "position connue fraîche (${ageMs(known) / 1000} s, ${known.accuracy} m)")
             return known
         }
@@ -118,6 +150,10 @@ object DeviceLocation {
             .mapNotNull { runCatching { manager.getLastKnownLocation(it) }.getOrNull() }
             .maxByOrNull { it.elapsedRealtimeNanos }
     }
+
+    /** Assez précise pour se passer du ciel — voir [PRECISE_ENOUGH_M]. */
+    private fun precise(location: Location): Boolean =
+        location.hasAccuracy() && location.accuracy <= PRECISE_ENOUGH_M
 
     private fun ageMs(location: Location): Long =
         (SystemClock.elapsedRealtimeNanos() - location.elapsedRealtimeNanos) / 1_000_000

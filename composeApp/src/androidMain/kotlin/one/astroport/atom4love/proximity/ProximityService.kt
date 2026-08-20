@@ -134,6 +134,11 @@ class ProximityService : Service() {
          */
         fun runtimePermissions(): Array<String> = buildList {
             add(Manifest.permission.ACCESS_FINE_LOCATION)
+            // ⚠ Les deux, ou aucune : depuis Android 12, une demande qui porte
+            // FINE sans COARSE peut être ignorée en bloc — le dialogue ne se
+            // pose pas et rien n'est accordé. Seule la précise nomme un
+            // portail, mais c'est la demande qui doit porter les deux.
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 add(Manifest.permission.BLUETOOTH_ADVERTISE)
                 add(Manifest.permission.BLUETOOTH_SCAN)

@@ -9,6 +9,9 @@
     <string name="radar_hex_unknown_service_off">Hexagon unknown — the phone\'s Location is switched off: turn it back on from the quick settings.</string>
     <string name="radar_hex_unknown_dead_end">Hexagon unknown — location was denied. Android will not ask again: it reopens from the app settings. It turns on no beacon.</string>
     <string name="radar_hex_unknown_permission">Hexagon unknown — location resolves your cell. It turns on no beacon.</string>
+    <string name="radar_hex_unknown_approximate">Hexagon unknown — you granted approximate location. Android blurs it to about a kilometre, while a portal is smaller than that: naming it without risking the neighbouring one takes precise location.</string>
+    <string name="radar_grant_precise">Switch to precise location</string>
+    <string name="radar_hex_unknown_imprecise">Portal unknown — position accurate to ± %1$d m, enough to point at the hexagon next door. Nothing is announced until we are sure. Outdoors, a clear sky narrows this down in seconds.</string>
     <string name="radar_hex_unknown_searching">Hexagon unknown — looking for a position…</string>
     <string name="radar_scan_needs_location">On this Android, the radio does not scan without a position: your beacon speaks, but you see nobody.</string>
 
