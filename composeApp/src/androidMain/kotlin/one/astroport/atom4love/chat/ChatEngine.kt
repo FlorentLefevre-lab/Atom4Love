@@ -665,8 +665,23 @@ class ChatEngine(context: Context) {
             ?: return
         Log.i(TAG, "pièce jointe : montée automatique vers ${best.short}")
         enable(best)
+        // ⚠⚠ **On attend le SCELLEMENT, pas seulement le lien.**
+        //
+        // `ready` ne dit que « le tuyau existe » — la socket est ouverte, la
+        // caractéristique est là. Le handshake Noise, lui, court encore. Mesuré
+        // sur le banc le 20/08 : la trame START partait sur un lien monté de la
+        // seconde d'avant, arrivait en face AVANT la fin du scellement, et les
+        // fragments se perdaient ; la réception mourait 34 s plus tard sur
+        // « transfert interrompu », des deux côtés sans une erreur. Un tuyau
+        // ouvert n'est pas un tuyau qui porte.
         val raised = withTimeoutOrNull(RAISE_TIMEOUT_MS) {
-            while (links.values.none { it.medium == best && it.ready }) delay(RAISE_POLL_MS)
+            while (
+                links.values.none {
+                    it.medium == best && it.ready && it.noise?.established == true
+                }
+            ) {
+                delay(RAISE_POLL_MS)
+            }
             true
         }
         if (raised == null) {
@@ -1694,8 +1709,17 @@ class ChatEngine(context: Context) {
      */
     fun sendSelfie(uri: Uri, to: String) {
         scope.launch(Dispatchers.IO) {
-            val read = Attachments.prepareImage(appContext, uri)
+            // ⚠ `prepareSelfie` et non `prepareImage` : un visage se taille pour
+            // la radio, pas pour l'album — 448 px, qualité 45, quelques dizaines
+            // de kilooctets au lieu de quelques centaines.
+            val read = Attachments.prepareSelfie(appContext, uri)
             withContext(dispatcher) {
+                // ⚠ La montée de médium vaut aussi pour un visage, et le banc
+                // l'a tranché dans les deux sens le 20/08 : sans elle, les six
+                // kilooctets partent sur le BLE de l'A5 — quatre liens ouverts
+                // sur une puce de 2016 — et l'écriture meurt en `status=133`.
+                // Avec elle (et le scellement attendu, cf. [raiseForAttachment]),
+                // ils passent par la socket du réseau local en une seconde.
                 raiseForAttachment()
                 dispatchAttachment(ChatKind.SELFIE, ChatFrames.KIND_SELFIE, read, transferLimit(), to)
             }

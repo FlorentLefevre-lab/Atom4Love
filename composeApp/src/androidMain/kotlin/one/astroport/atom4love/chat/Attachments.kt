@@ -7,6 +7,7 @@ import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
+import android.util.Log
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
@@ -41,9 +42,26 @@ object Attachments {
     }
 
     /** En deçà, une image part telle quelle ; au-delà, recompression JPEG. */
+    private const val TAG = "ChatEngine"
     private const val IMAGE_KEEP_BYTES = 200_000
     private const val IMAGE_MAX_DIM = 1280
     private const val JPEG_QUALITY = 80
+
+    /**
+     * Le visage de reconnaissance, taillé **pour la radio**.
+     *
+     * ⚠ Ce n'est pas une photo qu'on garde : elle sert trois secondes, à
+     * reconnaître quelqu'un dans une salle, et elle passe par du BLE à 5-20
+     * ko/s. Une image de causerie ordinaire (1280 px, qualité 80) pèse 150 à
+     * 300 ko — vingt à soixante secondes d'antenne pour un coup d'œil. À
+     * 448 px et qualité 45, un visage reste reconnaissable à bout de bras et
+     * l'envoi tombe sous la poignée de secondes.
+     *
+     * La lanterne l'affiche dans un disque de 168 dp : 448 px couvrent encore
+     * un écran à 3× sans qu'on lise le grain.
+     */
+    private const val SELFIE_MAX_DIM = 448
+    private const val SELFIE_QUALITY = 45
     private const val DIR = "chat"
 
     /**
@@ -243,14 +261,37 @@ object Attachments {
      * ImageDecoder date de l'API 28, sous le plancher : c'est le seul chemin.
      * Il porte l'orientation EXIF, que `BitmapFactory` ignorait.
      */
-    private fun decodeScaled(context: Context, uri: Uri): Bitmap? = runCatching {
+    /**
+     * Le visage de reconnaissance : **toujours recompressé**, jamais la copie
+     * d'origine — voir [SELFIE_MAX_DIM]. Une photo d'appareil fait quatre
+     * mégaoctets, et ce qui doit traverser la radio en tient trente fois moins.
+     */
+    fun prepareSelfie(context: Context, uri: Uri): Read {
+        val bitmap = decodeScaled(context, uri, SELFIE_MAX_DIM) ?: return Read.Unreadable
+        val out = ByteArrayOutputStream()
+        val ok = bitmap.compress(Bitmap.CompressFormat.JPEG, SELFIE_QUALITY, out)
+        bitmap.recycle()
+        if (!ok) return Read.Unreadable
+        val bytes = out.toByteArray()
+        val name = "visage-${System.currentTimeMillis().toString(36)}.jpg"
+        val file = runCatching { saveCopy(context, name, bytes) }.getOrNull()
+            ?: return Read.Unreadable
+        Log.i(TAG, "visage préparé : ${bytes.size} o (${SELFIE_MAX_DIM} px, q$SELFIE_QUALITY)")
+        return Read.Ok(name, "image/jpeg", file, file.length().toInt())
+    }
+
+    private fun decodeScaled(
+        context: Context,
+        uri: Uri,
+        maxDim: Int = IMAGE_MAX_DIM,
+    ): Bitmap? = runCatching {
         val resolver = context.contentResolver
         ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri)) { decoder, info, _ ->
             // compress() lit les pixels : pas de bitmap matériel
             decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
             val largest = maxOf(info.size.width, info.size.height)
-            if (largest > IMAGE_MAX_DIM) {
-                val scale = IMAGE_MAX_DIM.toFloat() / largest
+            if (largest > maxDim) {
+                val scale = maxDim.toFloat() / largest
                 decoder.setTargetSize(
                     (info.size.width * scale).toInt().coerceAtLeast(1),
                     (info.size.height * scale).toInt().coerceAtLeast(1),
