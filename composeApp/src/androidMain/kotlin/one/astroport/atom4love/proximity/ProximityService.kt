@@ -49,16 +49,7 @@ class ProximityService : Service() {
          * on doit pouvoir taire les réveils sans éteindre la balise.
          */
         private const val PRESENCE_CHANNEL_ID = "presence"
-
-        /**
-         * ⚠ Canal NEUF et non le canal de présence : l'importance d'un canal
-         * existant appartient à la personne dès qu'il est créé (leçon du
-         * 19/08). Celui-ci doit pouvoir passer en tête d'écran — la personne
-         * qui vous cherche est dans la salle, maintenant.
-         */
-        private const val SEEK_CHANNEL_ID = "seek"
         private const val PRESENCE_NOTIFICATION_ID = 2
-        private const val SEEK_NOTIFICATION_ID = 3
 
         private val _running = MutableStateFlow(false)
         /** La balise tourne (service démarré et non détruit). */
@@ -192,14 +183,7 @@ class ProximityService : Service() {
         }
         getSystemService(NotificationManager::class.java).createNotificationChannel(presence)
 
-        val seek = NotificationChannel(
-            SEEK_CHANNEL_ID,
-            getString(R.string.seek_channel_name),
-            NotificationManager.IMPORTANCE_HIGH,
-        ).apply {
-            description = getString(R.string.seek_channel_description)
-        }
-        getSystemService(NotificationManager::class.java).createNotificationChannel(seek)
+        SeekNotification.ensureChannel(this)
     }
 
     /** Voisins qui montraient une carte au dernier balayage, et dernier réveil. */
@@ -251,31 +235,8 @@ class ProximityService : Service() {
         if (!wake) return
         runCatching {
             getSystemService(NotificationManager::class.java)
-                .notify(SEEK_NOTIFICATION_ID, buildSeekNotification())
+                .notify(SeekNotification.ID, SeekNotification.anonymous(this))
         }
-    }
-
-    /**
-     * ⚠ **Elle ne nomme personne.** Le Plateau, lui, nomme — on y est venu, et
-     * la carte porte « vous cherche ». Une notification se lit sur un écran
-     * verrouillé, posé sur une table, par-dessus l'épaule de n'importe qui.
-     */
-    private fun buildSeekNotification(): Notification {
-        val openApp = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val body = getString(R.string.seek_body)
-        return NotificationCompat.Builder(this, SEEK_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_beacon)
-            .setContentTitle(getString(R.string.seek_title))
-            .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setContentIntent(openApp)
-            .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_SOCIAL)
-            .build()
     }
 
     private fun buildPresenceNotification(): Notification {

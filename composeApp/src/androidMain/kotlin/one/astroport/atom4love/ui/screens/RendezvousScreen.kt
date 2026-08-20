@@ -1,5 +1,6 @@
 package one.astroport.atom4love.ui.screens
 
+import androidx.compose.material3.LinearProgressIndicator
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -144,6 +145,10 @@ fun RendezvousScreen(
     selfie: File? = null,
     /** La photo qu'on vient de prendre, à lui envoyer. */
     onSelfie: (Uri) -> Unit = {},
+    /** Où en est le visage qu'on lui envoie, s'il y en a un en route. */
+    sending: SelfieSend? = null,
+    /** Remettre le même visage sur le fil après un échec. */
+    onRetry: () -> Unit = {},
 ) {
     CompositionLocalProvider(LocalA4L provides A4LDark) {
         Lantern(
@@ -155,6 +160,8 @@ fun RendezvousScreen(
             pseudo = pseudo,
             selfie = selfie,
             onSelfie = onSelfie,
+            sending = sending,
+            onRetry = onRetry,
         )
     }
 }
@@ -169,6 +176,8 @@ private fun Lantern(
     pseudo: String?,
     selfie: File?,
     onSelfie: (Uri) -> Unit,
+    sending: SelfieSend?,
+    onRetry: () -> Unit,
 ) {
     // L'horloge murale, relue à chaque image — c'est elle qui décide de la
     // fenêtre en cours autant que du pas du motif.
@@ -486,6 +495,7 @@ private fun Lantern(
                     color = Color.White.copy(alpha = 0.86f),
                     textAlign = TextAlign.Center,
                 )
+                SelfieProgress(sending = sending, accent = accent, onRetry = onRetry)
             } else {
                 Text(
                     stringResource(R.string.rendezvous_no_phase),
@@ -624,4 +634,82 @@ private tailrec fun Context.activity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.activity()
     else -> null
+}
+
+/**
+ * Où en est le visage qu'on envoie — **ce que l'expéditeur ne voyait pas**.
+ *
+ * Signalé par Florent le 20/08 : la photo partait sans un mot. Comme elle
+ * n'entre dans aucune conversation, elle n'avait ni ✓✓ ni barre, et rien ne
+ * distinguait « c'est parti » de « c'est mort en route » — or le second cas
+ * arrive vraiment (un lien BLE qui tombe, une puce saturée).
+ */
+data class SelfieSend(
+    /** De 0 à 1. */
+    val progress: Float,
+    /** Le transfert est fini et reçu en face. */
+    val done: Boolean,
+    /** Il a échoué : la reprise est proposée. */
+    val failed: Boolean,
+)
+
+@Composable
+private fun SelfieProgress(
+    sending: SelfieSend?,
+    accent: Color,
+    onRetry: () -> Unit,
+) {
+    if (sending == null) return
+    Spacer(Modifier.height(20.dp))
+    when {
+        sending.failed -> {
+            Text(
+                stringResource(R.string.selfie_failed),
+                style = A4LText.Body,
+                color = A4L.Amber,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.selfie_retry),
+                style = A4LText.Body,
+                color = accent,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable(onClick = onRetry)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+
+        sending.done -> Text(
+            stringResource(R.string.selfie_sent),
+            style = A4LText.Body,
+            color = accent.copy(alpha = 0.85f),
+            textAlign = TextAlign.Center,
+        )
+
+        else -> {
+            // Le pourcentage EN CHIFFRES autant qu'en barre : sur un lien BLE à
+            // quelques kilooctets par seconde, une barre qui avance lentement
+            // se lit comme une barre bloquée. Le nombre, lui, bouge.
+            Text(
+                stringResource(R.string.selfie_sending, (sending.progress * 100).toInt()),
+                style = A4LText.Body,
+                color = Color.White.copy(alpha = 0.86f),
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { sending.progress.coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = accent,
+                trackColor = Color.White.copy(alpha = 0.12f),
+                gapSize = 0.dp,
+                drawStopIndicator = {},
+            )
+        }
+    }
 }

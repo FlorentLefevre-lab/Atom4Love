@@ -49,6 +49,7 @@ import java.security.SecureRandom
 import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.zip.CRC32
+import java.io.File
 import kotlin.random.Random
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -1723,6 +1724,31 @@ class ChatEngine(context: Context) {
                 raiseForAttachment()
                 dispatchAttachment(ChatKind.SELFIE, ChatFrames.KIND_SELFIE, read, transferLimit(), to)
             }
+        }
+    }
+
+    /**
+     * Renvoyer un visage déjà préparé, sans repasser par l'appareil photo.
+     *
+     * Un échec d'envoi n'est presque jamais la faute de la photo : c'est un
+     * lien qui est tombé, une puce saturée, un médium qui n'a pas répondu.
+     * Redemander à quelqu'un de reprendre la même photo pour ça serait lui
+     * faire payer un défaut de radio.
+     */
+    fun resendSelfie(file: File, to: String) {
+        scope.launch(dispatcher) {
+            if (!file.exists()) {
+                Log.w(TAG, "visage à renvoyer introuvable : ${file.name}")
+                return@launch
+            }
+            raiseForAttachment()
+            dispatchAttachment(
+                ChatKind.SELFIE,
+                ChatFrames.KIND_SELFIE,
+                Attachments.Read.Ok(file.name, "image/jpeg", file, file.length().toInt()),
+                transferLimit(),
+                to,
+            )
         }
     }
 

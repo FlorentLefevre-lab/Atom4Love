@@ -154,8 +154,17 @@
     <!-- 🤳 Le selfie de reconnaissance. ⚠ Le texte doit dire OÙ va la photo,
          parce que c'est la seule question qui compte au moment de la prendre :
          nulle part ailleurs que dans la lanterne de cette personne-là. -->
+    <!-- 🤳 Le bandeau du visage, DANS l\'application — jamais une notification
+         du système : un visage sur un écran verrouillé n\'appartient plus à
+         personne. Il ne dit pas d\'ouvrir sa lanterne : la photo est déjà là. -->
+    <string name="face_banner">vous montre son visage pour que vous la retrouviez</string>
+    <string name="face_banner_open">Voir</string>
     <string name="selfie_title">Montrer votre visage ?</string>
     <string name="selfie_body">Chercher au signal marche à quelques mètres, et se perd dans une salle pleine. Votre photo apparaîtra dans la lanterne de cette personne, et nulle part ailleurs : ni dans votre conversation, ni dans sa galerie, ni sur aucun serveur. Elle s\'efface en fermant.</string>
+    <string name="selfie_sending">Votre visage part… %1$d %%</string>
+    <string name="selfie_sent">Votre visage est arrivé.</string>
+    <string name="selfie_failed">Votre visage n\'est pas parti — le lien a lâché en route.</string>
+    <string name="selfie_retry">Recommencer</string>
     <string name="selfie_take">Prendre la photo</string>
     <string name="selfie_no">Pas maintenant</string>
     <string name="rendezvous_out_of_range">hors de portée à l\'instant</string>

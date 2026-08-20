@@ -1,5 +1,11 @@
 package one.astroport.atom4love.ui
 
+import one.astroport.atom4love.nostr.Hex
+import one.astroport.atom4love.data.Pseudo
+import one.astroport.atom4love.chat.Faces
+import android.app.NotificationManager
+import one.astroport.atom4love.chat.ChatStatus
+import one.astroport.atom4love.proximity.SeekNotification
 import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -165,7 +171,42 @@ class ChatHost(application: Application) : AndroidViewModel(application) {
         // donc il n'y a aucun transfert en cours à emporter.
         viewModelScope.launch(Dispatchers.IO) { Attachments.wipe(context) }
         notifier.ensureChannel()
+        SeekNotification.ensureChannel(context)
         watchUnread()
+        watchFaces()
+    }
+
+    /**
+     * **Le visage arrive : on le retient, on ne sonne pas.**
+     *
+     * ⚠ Corrigé le 20/08 sur remarque de Florent : la photo passait par une
+     * notification **Android**. Elle n'a rien à y faire — un visage sur un
+     * écran verrouillé, posé sur une table, est ce qu'il y a de plus
+     * reconnaissable au monde. Elle se dit **dans l'application** : un bandeau
+     * en haut, la carte du Plateau, la lanterne.
+     *
+     * Ici on fait donc une seule chose, mais celle qui doit survivre à l'écran
+     * : ranger le visage dans [Faces], par identité, en écrasant le précédent.
+     * Le reste est affaire de composition.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun watchFaces() = viewModelScope.launch {
+        engine.flatMapLatest { engine ->
+            combine(engine.peers, engine.messages) { peers, messages -> peers to messages }
+        }.collect { (peers, messages) ->
+            val labels = Pseudo.labels(peers.associate { it.npub to it.display })
+            val nameByHex = peers.associate { Hex.encode(it.nostrKey) to labels[it.npub] }
+            messages
+                .filter {
+                    !it.mine && it.kind == ChatKind.SELFIE && it.file != null &&
+                        it.status == ChatStatus.RECEIVED && it.peer != null
+                }
+                .sortedBy { it.atMs }
+                .forEach { Faces.show(it.peer!!, it.file!!, nameByHex[it.peer]) }
+            // Le pseudo arrive TOUJOURS après l'attestation : on complète les
+            // visages déjà rangés plutôt que de les laisser anonymes à jamais.
+            nameByHex.forEach { (hex, name) -> if (name != null) Faces.name(hex, name) }
+        }
     }
 
     /** Le fil est regardé maintenant : tout ce qu'il porte est lu. */
@@ -317,6 +358,10 @@ class ChatHost(application: Application) : AndroidViewModel(application) {
         // arriverait « déjà lu » s'il tombait dans la même milliseconde.
         _readAt.value = emptyMap()
         _unreadByPeer.value = emptyMap()
+        // ⚠ Les visages partent avec le reste : « fermer = effacer » ne
+        // souffrirait pas d'exception, et un visage est ce qu'on garderait le
+        // moins volontiers d'une soirée à l'autre.
+        Faces.clear()
     }
 
     /** L'activité s'en va pour de bon (et non pour se recréer). */

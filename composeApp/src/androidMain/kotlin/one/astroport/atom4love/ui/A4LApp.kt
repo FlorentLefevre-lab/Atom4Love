@@ -1,5 +1,9 @@
 package one.astroport.atom4love.ui
 
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.Image
+import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
@@ -59,6 +63,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -94,6 +99,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import one.astroport.atom4love.BuildConfig
 import one.astroport.atom4love.nostr.Hex
 import one.astroport.atom4love.chat.ChatKind
+import one.astroport.atom4love.chat.ChatStatus
+import one.astroport.atom4love.ui.screens.SelfieSend
+import one.astroport.atom4love.chat.Faces
 import one.astroport.atom4love.chat.ChatEngine
 import one.astroport.atom4love.chat.Medium
 import one.astroport.atom4love.data.BodyStore
@@ -765,17 +773,75 @@ private fun Station(
      * album, c'est le visage de maintenant. Ils vivent dans la liste des
      * messages, d'où [Conversations] les écarte, et meurent avec elle.
      */
-    val plateauSelfies = remember(cabinMessages, plateauPeers) {
+    /**
+     * Où en est le visage qu'on ENVOIE, par jeton — la moitié qui manquait.
+     *
+     * ⚠ Le message existe bien dans la liste du moteur (c'est lui qui porte
+     * les fragments, les acquittements et l'échec), il est simplement invisible
+     * des conversations. C'est donc là, et nulle part ailleurs, qu'on lit s'il
+     * part, s'il est arrivé ou s'il est mort en route.
+     */
+    val plateauSending = remember(cabinMessages, plateauPeers) {
         val lastByPeer = cabinMessages
-            .filter { !it.mine && it.kind == ChatKind.SELFIE && it.file != null && it.peer != null }
+            .filter { it.mine && it.kind == ChatKind.SELFIE && it.peer != null }
             .groupBy { it.peer!! }
-            .mapValues { (_, list) -> list.maxBy { it.atMs }.file!! }
+            .mapValues { (_, list) -> list.maxBy { it.atMs } }
         buildMap {
             for ((token, hex) in plateauPeers) {
-                val file = lastByPeer[hex] ?: continue
-                put(token, file)
+                val message = lastByPeer[hex] ?: continue
+                put(
+                    token,
+                    SelfieSend(
+                        progress = message.progress,
+                        done = message.status == ChatStatus.DELIVERED,
+                        failed = message.status == ChatStatus.FAILED,
+                    ),
+                )
             }
         }
+    }
+    /**
+     * Les visages reçus, par jeton de présence.
+     *
+     * ⚠ Ils viennent de [Faces] et **non de la liste des messages** : celle-ci
+     * se vide quand la cabine se ferme, et un visage doit pouvoir être
+     * réaffiché après (demandé le 20/08). Le registre est tenu par identité, et
+     * le dernier écrase le précédent.
+     */
+    val faces by Faces.faces.collectAsStateWithLifecycle()
+    val plateauSelfies = remember(faces, plateauPeers) {
+        buildMap {
+            for ((token, hex) in plateauPeers) {
+                val face = faces[hex] ?: continue
+                put(token, face.file)
+            }
+        }
+    }
+
+    /**
+     * **Le bandeau du visage** — la nouvelle se dit DANS l'application.
+     *
+     * ⚠ Elle est passée une heure par une notification Android, le 20/08, et
+     * Florent l'a coupée : un visage sur un écran verrouillé n'appartient plus
+     * à personne. Ici, il ne se montre qu'à qui tient le téléphone.
+     *
+     * Même règle que les autres bandeaux : il se lève sur une **nouveauté**
+     * (un fichier qu'on n'a pas encore annoncé), pas sur un état, et il
+     * redescend tout seul.
+     */
+    var faceBanner by remember { mutableStateOf<Faces.Face?>(null) }
+    val faceSeen = remember { mutableStateMapOf<String, String>() }
+    LaunchedEffect(faces) {
+        val fresh = faces.entries.firstOrNull { (hex, face) ->
+            faceSeen[hex] != face.file.path
+        } ?: return@LaunchedEffect
+        faceSeen[fresh.key] = fresh.value.file.path
+        faceBanner = fresh.value
+    }
+    LaunchedEffect(faceBanner) {
+        if (faceBanner == null) return@LaunchedEffect
+        delay(FACE_BANNER_MS)
+        faceBanner = null
     }
 
     /** Le journal ouvert en plein écran, à la place qu'occupait la cabine. */
@@ -1259,6 +1325,22 @@ private fun Station(
                                 onSelfie = { token, uri ->
                                     plateauPeers[token]?.let { cabin.sendSelfie(uri, it) }
                                 },
+                                sendings = plateauSending,
+                                // ⚠ On renvoie le MÊME fichier : un échec vient
+                                // presque toujours d'un lien tombé, pas de la
+                                // photo. Redemander de la reprendre ferait payer
+                                // un défaut de radio à la personne.
+                                onRetrySelfie = { token ->
+                                    val hex = plateauPeers[token] ?: return@BoardScreen
+                                    cabinMessages
+                                        .filter {
+                                            it.mine && it.kind == ChatKind.SELFIE &&
+                                                it.peer == hex && it.file != null
+                                        }
+                                        .maxByOrNull { it.atMs }
+                                        ?.file
+                                        ?.let { cabin.resendSelfie(it, hex) }
+                                },
                                 radio = { title ->
                                     RadioSection(
                                         relay = relayStatus,
@@ -1394,6 +1476,9 @@ private fun Station(
                                         // qui n'a jamais fêté personne.
                                         welcomeStore.clear()
                                     }
+                                    // Les visages qu'on nous a montrés ne sont
+                                    // pas ceux du noyau suivant.
+                                    Faces.clear()
                                 },
                             )
                             }
@@ -1499,6 +1584,14 @@ private fun Station(
         )
     }
 
+    FaceBanner(
+        face = faceBanner,
+        onOpen = {
+            faceBanner = null
+            tab = A4LTab.Board
+        },
+        modifier = Modifier.align(Alignment.TopCenter),
+    )
     ArrivalBanner(
         arrival = arrival,
         onOpen = {
@@ -1535,6 +1628,12 @@ private fun Station(
 /** Cinq secondes — le temps demandé pour lire un nom et trois mots. */
 private const val ARRIVAL_BANNER_MS = 5_000L
 
+/**
+ * Un visage se regarde un peu plus longtemps qu'une ligne de texte : le temps
+ * de lever les yeux vers la salle, pas seulement de lire un nom.
+ */
+private const val FACE_BANNER_MS = 8_000L
+
 private val PRESENCE_BANNER_LIFT = 76.dp
 
 /**
@@ -1563,6 +1662,91 @@ private val PRESENCE_BANNER_LIFT = 76.dp
  * geste, ou quand il n'y a plus rien à lire. Même règle que la présence : une
  * nouvelle qui s'efface toute seule n'a pas été donnée.
  */
+/**
+ * **Quelqu'un vous montre son visage.**
+ *
+ * ⚠ Le bandeau **de l'application**, et pas une notification du système : un
+ * visage est ce qu'il y a de plus reconnaissable au monde, et une notification
+ * se lit sur un écran verrouillé, par-dessus l'épaule de n'importe qui. Ici, il
+ * ne se montre qu'à qui tient le téléphone (Florent, 20/08).
+ *
+ * Il ne dit pas « ouvrez votre lanterne » : la photo est déjà là, ronde, à
+ * côté du nom. Toucher mène au Plateau, où sa carte la porte aussi — la
+ * personne n'a rien à ouvrir pour la revoir.
+ */
+@Composable
+private fun FaceBanner(
+    face: Faces.Face?,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val unnamed = stringResource(R.string.chat_from_unnamed)
+    AnimatedVisibility(
+        visible = face != null,
+        enter = slideInVertically { -it } + fadeIn(),
+        exit = slideOutVertically { -it } + fadeOut(),
+        modifier = modifier,
+    ) {
+        // Le dernier connu survit à la sortie, comme pour les autres bandeaux :
+        // sans lui, l'image se vide pendant que la bande remonte.
+        val shown = face ?: remember { Faces.Face(java.io.File(""), null) }
+        val bitmap = remember(shown.file.path, shown.file.lastModified()) {
+            runCatching { BitmapFactory.decodeFile(shown.file.path)?.asImageBitmap() }.getOrNull()
+        }
+        Row(
+            Modifier
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(A4L.Deep)
+                .background(A4L.Violet.tint(0.22f))
+                .border(1.dp, A4L.Violet.tint(0.45f), RoundedCornerShape(14.dp))
+                .clickable(onClick = onOpen)
+                .padding(start = 12.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape),
+                )
+            } else {
+                Text("🤳", fontSize = 17.sp)
+            }
+            Spacer(Modifier.width(11.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    shown.pseudo ?: unnamed,
+                    style = A4LText.Body.copy(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    color = A4L.TextHigh,
+                    maxLines = 1,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    stringResource(R.string.face_banner),
+                    style = A4LText.Body.copy(fontSize = 12.5.sp),
+                    color = A4L.TextStrong,
+                    maxLines = 1,
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Text(
+                stringResource(R.string.face_banner_open),
+                style = A4LText.Body.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                color = A4L.Violet,
+            )
+        }
+    }
+}
+
 @Composable
 private fun ArrivalBanner(
     arrival: ChatHost.Unread?,

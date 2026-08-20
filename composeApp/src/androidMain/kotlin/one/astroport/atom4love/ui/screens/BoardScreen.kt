@@ -1,5 +1,10 @@
 package one.astroport.atom4love.ui.screens
 
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.Image
+import android.graphics.BitmapFactory
 import one.astroport.atom4love.chat.ChatKind
 import android.net.Uri
 import java.io.File
@@ -148,6 +153,10 @@ fun BoardScreen(
     selfies: Map<Int, File> = emptyMap(),
     /** Un visage à envoyer à la carte qu'on regarde dans la lanterne. */
     onSelfie: (Int, Uri) -> Unit = { _, _ -> },
+    /** Où en est le visage qu'on envoie, par jeton de présence. */
+    sendings: Map<Int, SelfieSend> = emptyMap(),
+    /** Remettre le même visage sur le fil après un échec. */
+    onRetrySelfie: (Int) -> Unit = {},
 ) {
     val neighbors by ProximityService.neighbors.collectAsStateWithLifecycle()
     val own by ProximityService.signature.collectAsStateWithLifecycle()
@@ -239,6 +248,8 @@ fun BoardScreen(
             pseudo = card.token?.let { names[it] },
             selfie = card.token?.let { selfies[it] },
             onSelfie = { uri -> card.token?.let { onSelfie(it, uri) } },
+            sending = card.token?.let { sendings[it] },
+            onRetry = { card.token?.let { onRetrySelfie(it) } },
         )
         return
     }
@@ -376,6 +387,7 @@ fun BoardScreen(
                             // écrans battront.
                             seeksUs = neighbor.token != null && neighbor.token in seekers,
                             pseudo = neighbor.token?.let { names[it] },
+                            face = neighbor.token?.let { selfies[it] },
                             onSeek = { seekingId = neighbor.identity },
                         )
                     }
@@ -562,6 +574,15 @@ private fun DealtCard(
     seeksUs: Boolean = false,
     /** Son pseudo, quand un lien attesté nous l'a appris. */
     pseudo: String? = null,
+    /**
+     * Le visage qu'elle a envoyé pour se faire reconnaître.
+     *
+     * ⚠ **Il se montre ICI, sans qu'on ait à ouvrir sa lanterne** (Florent,
+     * 20/08). Quelqu'un qui vous cherche dans une salle ne peut pas attendre
+     * que vous pensiez à ouvrir un écran : sa photo prend la place du sceau sur
+     * la carte, là où l'œil passe de toute façon.
+     */
+    face: File? = null,
 ) {
     val theirs = neighbor.signature
     val classification = own.phase?.let { mine ->
@@ -608,7 +629,23 @@ private fun DealtCard(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(KinMaya.glyphEmoji(theirs.glyph), fontSize = 34.sp)
+        val faceBitmap = face?.let { file ->
+            remember(file.path, file.lastModified()) {
+                BitmapFactory.decodeFile(file.path)?.asImageBitmap()
+            }
+        }
+        if (faceBitmap != null) {
+            Image(
+                bitmap = faceBitmap,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape),
+            )
+        } else {
+            Text(KinMaya.glyphEmoji(theirs.glyph), fontSize = 34.sp)
+        }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(
