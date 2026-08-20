@@ -608,22 +608,33 @@ private fun DealtCard(
                 horizontalArrangement = Arrangement.spacedBy(7.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    KinMaya.glyphName(theirs.glyph) ?: stringResource(R.string.board_no_seal),
-                    style = A4LText.ItemTitle,
-                    color = A4L.TextHigh,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                // Le sceau d'abord, le pseudo ensuite : c'est le sceau qu'on
-                // cherche dans la salle, le nom n'est que ce qu'on en a appris.
+                // ⚠ **Le pseudo d'abord, en gras ; le sceau après, entre
+                // parenthèses** (Florent, 20/08). C'était l'inverse — le sceau
+                // en tête, au motif que c'est lui qu'on cherche dans la salle.
+                // Mais des quatre mots d'une carte, celui qui désigne quelqu'un
+                // est le pseudo : un sceau se partage à vingt personnes dans un
+                // bar, un pseudo non. La même règle tient le journal.
+                val seal = KinMaya.glyphName(theirs.glyph)
+                    ?: stringResource(R.string.board_no_seal)
                 pseudo?.let {
                     Text(
                         it,
-                        style = A4LText.Body.copy(fontSize = 12.5.sp),
-                        color = A4L.TextBody,
+                        style = A4LText.ItemTitle,
+                        color = A4L.TextHigh,
+                        fontWeight = FontWeight.Bold,
                         maxLines = 1,
                     )
                 }
+                Text(
+                    "($seal)",
+                    style = if (pseudo == null) {
+                        A4LText.ItemTitle
+                    } else {
+                        A4LText.Body.copy(fontSize = 12.5.sp)
+                    },
+                    color = if (pseudo == null) A4L.TextHigh else A4L.TextBody,
+                    fontWeight = if (pseudo == null) FontWeight.SemiBold else null,
+                )
                 if (seeksUs) {
                     Text(
                         stringResource(R.string.board_seeks_you),

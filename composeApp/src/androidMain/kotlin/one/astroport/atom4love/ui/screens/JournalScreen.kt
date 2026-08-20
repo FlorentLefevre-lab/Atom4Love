@@ -24,6 +24,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -41,6 +46,7 @@ import one.astroport.atom4love.ui.components.screenBackground
 import one.astroport.atom4love.ui.theme.A4L
 import one.astroport.atom4love.ui.theme.A4LText
 import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
 
 /**
@@ -67,7 +73,12 @@ import java.util.Date
  * chose, ce serait le signe qu'il en dit trop.
  */
 @Composable
-fun JournalScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
+fun JournalScreen(
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** Les pseudos appris par les liens attestés, par jeton de présence. */
+    names: Map<Int, String> = emptyMap(),
+) {
     val entries by Journal.entries.collectAsStateWithLifecycle()
     // Lu dans la composition et non dans le rappel : une ressource lue depuis un
     // lambda ne serait pas réévaluée si la langue change sous l'application.
@@ -142,7 +153,7 @@ fun JournalScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
         // chaque ouverture. Ce que le journal est se lit en le lisant.
         Spacer(Modifier.height(8.dp))
 
-        JournalList(Modifier.weight(1f))
+        JournalList(Modifier.weight(1f), names)
         if (entries.isNotEmpty()) CloseRow(onClose)
     }
 }
@@ -198,14 +209,26 @@ private fun CloseRow(onClose: () -> Unit) {
  * traverser à qui l'affiche.
  */
 @Composable
-fun JournalList(modifier: Modifier = Modifier) {
+fun JournalList(modifier: Modifier = Modifier, names: Map<Int, String> = emptyMap()) {
     val entries by Journal.entries.collectAsStateWithLifecycle()
     // ⚠ **Le format MOYEN, pas le court : il porte les secondes.** Le court
     // donnait 19:09, et deux lignes de la même minute devenaient
     // indiscernables — or c'est précisément ce que ce journal montre. Retenu
     // hors de la boucle : le construire par ligne coûterait un objet par
     // évènement à chaque défilement.
-    val clock = remember { DateFormat.getTimeInstance(DateFormat.MEDIUM) }
+    //
+    // ⚠ **Et les millièmes** (Florent, 20/08) : les secondes ne suffisaient pas
+    // non plus. Un balayage inscrit trois cartes dans la même seconde, et une
+    // attestation suit son arrivée de neuf millièmes — l'ordre des lignes le
+    // disait, l'heure le cachait. On part du motif de la langue plutôt que d'un
+    // « HH:mm:ss » écrit en dur : celui d'ici, celui d'ailleurs, chacun garde le
+    // sien, et les millièmes s'ajoutent après ses secondes.
+    val locale = LocalLocale.current.platformLocale
+    val clock = remember(locale) {
+        val base = DateFormat.getTimeInstance(DateFormat.MEDIUM, locale) as? SimpleDateFormat
+        val pattern = base?.toPattern()?.let { Regex("s+").replace(it) { m -> m.value + ".SSS" } }
+        SimpleDateFormat(pattern ?: "HH:mm:ss.SSS", locale)
+    }
 
     if (entries.isEmpty()) {
         Box(
@@ -232,43 +255,41 @@ fun JournalList(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         items(entries, key = { it.seq }) { entry ->
-            JournalRow(entry = entry, time = clock.format(Date(entry.atMs)))
+            JournalRow(entry = entry, time = clock.format(Date(entry.atMs)), names = names)
         }
     }
 }
 
 @Composable
-private fun JournalRow(entry: Journal.Entry, time: String) {
-    val (color, label) = entry.render()
-    Row(
+private fun JournalRow(entry: Journal.Entry, time: String, names: Map<Int, String>) {
+    val (color, label) = entry.render(names)
+    // ⚠ **L'heure au-dessus, l'évènement en dessous** (Florent, 20/08).
+    // L'heure et la pastille occupaient une colonne à gauche, et la phrase se
+    // pliait dans ce qui restait : « Balise allumée — elle annonce et elle
+    // écoute. » tenait sur deux lignes hautes et étroites, avec un tiers de la
+    // largeur perdu en blanc à droite de l'heure. Empilées, l'heure garde la
+    // place exacte de ses chiffres et la phrase prend toute la ligne.
+    Column(
         Modifier
             .fillMaxWidth()
             .padding(vertical = 5.dp),
-        verticalAlignment = Alignment.Top,
     ) {
-        // ⚠ **Pas de largeur imposée.** La colonne faisait 46 dp, taillée pour
-        // « 19:13 » ; avec les secondes, « 19:13:50 » passait à la ligne et
-        // chaque évènement occupait deux lignes. Une largeur en dur ne survit ni
-        // à un format qui s'allonge, ni à une langue qui écrit « 7:13:50 PM ».
-        //
-        // La police est à chasse fixe : toutes les heures d'une même langue font
-        // donc la même largeur, et la colonne s'aligne d'elle-même sans qu'on
-        // ait à la mesurer.
-        Text(
-            time,
-            style = A4LText.Data.copy(fontSize = 11.sp),
-            color = A4L.TextDim,
-            maxLines = 1,
-            softWrap = false,
-            modifier = Modifier.padding(end = 12.dp),
-        )
-        Box(
-            Modifier
-                .padding(top = 4.dp)
-                .size(6.dp)
-                .background(color, CircleShape),
-        )
-        Spacer(Modifier.width(11.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(6.dp)
+                    .background(color, CircleShape),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                time,
+                style = A4LText.Data.copy(fontSize = 11.sp),
+                color = A4L.TextDim,
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
+        Spacer(Modifier.height(1.dp))
         Text(label, style = A4LText.Caption, color = A4L.TextBody)
     }
 }
@@ -281,51 +302,107 @@ private fun JournalRow(entry: Journal.Entry, time: String) {
  * nouvelle, sans qu'une ligne ait été réécrite au moment où elle est arrivée.
  */
 @Composable
-private fun Journal.Entry.render(): Pair<androidx.compose.ui.graphics.Color, String> = when (this) {
+private fun Journal.Entry.render(
+    names: Map<Int, String>,
+): Pair<androidx.compose.ui.graphics.Color, AnnotatedString> = when (this) {
     is Journal.Entry.Beacon -> if (on) {
-        A4L.Mint to stringResource(R.string.journal_beacon_on)
+        A4L.Mint to plain(R.string.journal_beacon_on)
     } else {
-        A4L.Amber to stringResource(R.string.journal_beacon_off)
+        A4L.Amber to plain(R.string.journal_beacon_off)
     }
 
     is Journal.Entry.Cell -> if (cell4d != null) {
-        A4L.Mint to stringResource(R.string.journal_cell, cellHex(cell4d))
+        A4L.Mint to AnnotatedString(stringResource(R.string.journal_cell, cellHex(cell4d)))
     } else {
         // Ce n'est pas une panne : la balise annonce une présence, simplement
         // sans position. La couleur le dit — ambre, pas rouge.
-        A4L.Amber to stringResource(R.string.journal_cell_none)
+        A4L.Amber to plain(R.string.journal_cell_none)
     }
 
-    is Journal.Entry.CardSeen -> A4L.Violet to if (percent != null) {
-        stringResource(R.string.journal_card_seen_pct, sealName(glyph), percent)
-    } else {
-        stringResource(R.string.journal_card_seen, sealName(glyph))
+    is Journal.Entry.CardSeen -> {
+        val who = names[token]
+        val label = who.orEmpty() + sealLabel(glyph, spaced = who != null)
+        A4L.Violet to emphasise(
+            if (percent != null) {
+                stringResource(R.string.journal_card_seen_pct, label, percent)
+            } else {
+                stringResource(R.string.journal_card_seen, label)
+            },
+            who.orEmpty(),
+        )
     }
 
-    is Journal.Entry.CardGone -> A4L.TextDim to
-        stringResource(R.string.journal_card_gone, sealName(glyph))
-
-    is Journal.Entry.Meeting -> A4L.Gold to
-        stringResource(R.string.journal_meeting, sealName(glyph))
-
-    is Journal.Entry.Peer -> if (joined) {
-        A4L.Cyan to stringResource(
-            R.string.journal_peer_joined,
-            name ?: stringResource(R.string.chat_from_unnamed),
+    is Journal.Entry.CardGone -> {
+        val who = names[token]
+        A4L.TextDim to emphasise(
+            stringResource(
+                R.string.journal_card_gone,
+                who.orEmpty() + sealLabel(glyph, spaced = who != null),
+            ),
+            who.orEmpty(),
         )
-    } else {
-        A4L.TextDim to stringResource(
-            R.string.journal_peer_left,
-            name ?: stringResource(R.string.chat_from_unnamed),
+    }
+
+    is Journal.Entry.Meeting -> {
+        val who = names[token]
+        A4L.Gold to emphasise(
+            stringResource(
+                R.string.journal_meeting,
+                who.orEmpty() + sealLabel(glyph, spaced = who != null),
+            ),
+            who.orEmpty(),
         )
+    }
+
+    is Journal.Entry.Peer -> {
+        val who = name ?: stringResource(R.string.chat_from_unnamed)
+        val line = if (joined) R.string.journal_peer_joined else R.string.journal_peer_left
+        val color = if (joined) A4L.Cyan else A4L.TextDim
+        color to emphasise(stringResource(line, who), who)
     }
 
     is Journal.Entry.Relay -> if (online) {
-        A4L.Green to stringResource(R.string.journal_relay_on)
+        A4L.Green to plain(R.string.journal_relay_on)
     } else {
-        A4L.Amber to stringResource(R.string.journal_relay_off)
+        A4L.Amber to plain(R.string.journal_relay_off)
     }
 }
+
+/**
+ * ⚠ **Deux sortes de noms se croisent ici, et rien ne les distinguait.**
+ * « Akbal » est un sceau — ce que la radio entend de n'importe qui —,
+ * « Flower » est un pseudo — ce qu'une personne attestée s'est donné. Écrits
+ * pareil, ils se lisaient pareil, et une carte anonyme avait l'air d'être
+ * quelqu'un.
+ *
+ * Règle de Florent, le 20/08 : **le pseudo est l'information la plus
+ * importante, donc en gras ; le type de sceau maya vient après, entre
+ * parenthèses.** La forme porte la hiérarchie, sans un mot d'explication. Elle
+ * vaut ici comme au Plateau (`DealtCard`), pour qu'une carte se lise pareil des
+ * deux côtés.
+ *
+ * Le pseudo n'est connu que par le **jeton de présence** : une carte que rien
+ * n'a attestée n'a que son sceau, et c'est déjà une information — elle est là,
+ * on ne lui a pas encore parlé.
+ */
+private fun emphasise(full: String, part: String): AnnotatedString = buildAnnotatedString {
+    val at = if (part.isEmpty()) -1 else full.indexOf(part)
+    if (at < 0) {
+        append(full)
+        return@buildAnnotatedString
+    }
+    append(full.substring(0, at))
+    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(part) }
+    append(full.substring(at + part.length))
+}
+
+@Composable
+private fun plain(id: Int): AnnotatedString = AnnotatedString(stringResource(id))
+
+/** Le sceau, toujours entre parenthèses — voir [emphasise]. */
+@Composable
+private fun sealLabel(glyph: Int?, spaced: Boolean = false): String =
+    (if (spaced) " " else "") + "(${sealName(glyph)})"
 
 /** Le nom du sceau, ou le mot qui dit qu'il n'y en a pas. */
 @Composable

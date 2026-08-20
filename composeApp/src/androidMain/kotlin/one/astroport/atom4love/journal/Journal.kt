@@ -147,26 +147,34 @@ object Journal {
     fun noteCards(seen: Map<String, Card>) {
         val before = lastCards
         seen.forEach { (id, card) ->
-            if (id !in before) record(Entry.CardSeen(card.glyph, card.percent))
+            if (id !in before) record(Entry.CardSeen(card.glyph, card.percent, card.token))
         }
         before.keys.forEach { id ->
-            if (id !in seen) record(Entry.CardGone(lastGlyphs[id]))
+            if (id !in seen) record(Entry.CardGone(lastGlyphs[id], lastTokens[id]))
         }
         lastGlyphs = seen.mapValues { it.value.glyph }
+        lastTokens = seen.mapValues { it.value.token }
         lastCards = seen.mapValues { it.value.percent }
     }
 
     private var lastGlyphs: Map<String, Int?> = emptyMap()
+    private var lastTokens: Map<String, Int?> = emptyMap()
 
-    /** Ce qu'il faut savoir d'une carte pour l'inscrire. */
-    data class Card(val glyph: Int?, val percent: Int?)
+    /**
+     * Ce qu'il faut savoir d'une carte pour l'inscrire.
+     *
+     * [token] ne nomme personne par lui-même — c'est un hachage. Il permet à
+     * l'écran, et à lui seul, de retrouver le pseudo quand un lien attesté l'a
+     * appris : la valeur reste muette, la phrase se fait au dernier moment.
+     */
+    data class Card(val glyph: Int?, val percent: Int?, val token: Int? = null)
 
     /**
      * Les rencontres **mutuelles** : les jetons que l'on cherche et qui nous
      * cherchent. Un seul consentement ne produit rien, ici comme partout.
      */
     fun noteMeetings(mutual: Set<Int>, glyphOf: (Int) -> Int?) {
-        (mutual - lastMeetings).forEach { token -> record(Entry.Meeting(glyphOf(token))) }
+        (mutual - lastMeetings).forEach { token -> record(Entry.Meeting(glyphOf(token), token)) }
         lastMeetings = mutual
     }
 
@@ -245,6 +253,7 @@ object Journal {
         lastRelay = null
         lastCards = emptyMap()
         lastGlyphs = emptyMap()
+        lastTokens = emptyMap()
         lastMeetings = emptySet()
         lastPeers = emptySet()
         lastPeerNames = emptyMap()
@@ -298,6 +307,7 @@ object Journal {
         data class CardSeen(
             val glyph: Int?,
             val percent: Int?,
+            val token: Int? = null,
             override val atMs: Long = now(),
             override val seq: Long = next(),
         ) : Entry
@@ -305,6 +315,7 @@ object Journal {
         /** Elle s'éloigne. La salle bouge, et ça se voit. */
         data class CardGone(
             val glyph: Int?,
+            val token: Int? = null,
             override val atMs: Long = now(),
             override val seq: Long = next(),
         ) : Entry
@@ -320,6 +331,7 @@ object Journal {
          */
         data class Meeting(
             val glyph: Int?,
+            val token: Int? = null,
             override val atMs: Long = now(),
             override val seq: Long = next(),
         ) : Entry

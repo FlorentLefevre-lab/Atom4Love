@@ -76,6 +76,7 @@ fun JournalRecorder(chat: ChatEngine?, relayOnline: Boolean) {
                 card.identity to Journal.Card(
                     glyph = card.signature.glyph,
                     percent = percentOf(own, card),
+                    token = card.token,
                 )
             }
     }
