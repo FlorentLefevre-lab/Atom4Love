@@ -358,7 +358,10 @@ private fun Lantern(
         ) {
 
             // ── Le signal ─────────────────────────────────────────────────
-            Box(Modifier.size(230.dp), contentAlignment = Alignment.Center) {
+            // ⚠ 230 dp à l'origine : sur un 16:9, le halo poussait la consigne
+            // et le bouton hors de l'écran. Ce qu'on regarde ici bat aussi bien
+            // à 196.
+            Box(Modifier.size(196.dp), contentAlignment = Alignment.Center) {
                 Halo(glow = glow, accent = accent)
                 // ⚠ **Un visage bat aussi.** Quand il est arrivé, il prend la
                 // place du sceau : c'est lui qu'on cherche dans la salle, et
@@ -485,7 +488,7 @@ private fun Lantern(
             }
 
             // ── La figure, pour la comparer d'un coup d'œil ───────────────
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(20.dp))
             if (beat != null) {
                 RhythmStrip(beat = beat, slot = slot, accent = accent)
                 // ⚠ « Levez votre écran. Cherchez dans la salle celui qui bat
@@ -493,7 +496,7 @@ private fun Lantern(
                 // Elle disait à voix haute ce que l'écran fait déjà voir : un
                 // glyphe qui bat, une figure à comparer. Le geste est celui
                 // qu'on invente en tenant l'appareil, pas celui qu'on lit.
-                Spacer(Modifier.height(26.dp))
+                Spacer(Modifier.height(18.dp))
                 // Ce n'est plus une note en bas de page mais la consigne : elle
                 // reprend la place, et le poids, de la phrase retirée au-dessus.
                 Text(
@@ -502,13 +505,33 @@ private fun Lantern(
                     color = Color.White.copy(alpha = 0.86f),
                     textAlign = TextAlign.Center,
                 )
-                // ⚠ **La proposition est le bouton lui-même** (Florent, 20/08).
-                // « Se reconnaître » était un titre déguisé en geste : deux mots
-                // qui ne disaient ni ce qu'on allait faire ni pourquoi. La
-                // question entière tient sur le bouton, et le dialogue qui suit
-                // ne sert plus qu'à dire où la photo va — c'est-à-dire nulle
-                // part ailleurs que chez cette personne.
-                Spacer(Modifier.height(22.dp))
+            } else {
+                Text(
+                    stringResource(R.string.rendezvous_no_phase),
+                    style = A4LText.Body,
+                    color = A4L.TextDim,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+
+        // ⚠⚠ **Épinglés SOUS le défilement, donc toujours visibles.** Ils ont
+        // vécu deux vies dans le corps défilant, et deux fois l'A5 les a
+        // envoyés sous la ligne de flottaison : l'expéditeur ne voyait ni sa
+        // barre d'envoi ni le bouton qui l'aurait déclenchée. Ce qu'on peut
+        // FAIRE d'un écran n'a rien à faire dans ce qui défile.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                // ⚠ `padding` n'a pas d'overload qui mélange `horizontal` et
+                // `bottom` : deux appels, et le compilateur cesse de râler.
+                .padding(horizontal = 28.dp)
+                .padding(bottom = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            SelfieProgress(sending = sending, accent = accent, onRetry = onRetry)
+            if (beat != null) {
+                Spacer(Modifier.height(14.dp))
                 Text(
                     stringResource(R.string.selfie_offer),
                     style = A4LText.Body,
@@ -519,14 +542,6 @@ private fun Lantern(
                         .border(1.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(13.dp))
                         .clickable { asking = true }
                         .padding(horizontal = 18.dp, vertical = 12.dp),
-                )
-                SelfieProgress(sending = sending, accent = accent, onRetry = onRetry)
-            } else {
-                Text(
-                    stringResource(R.string.rendezvous_no_phase),
-                    style = A4LText.Body,
-                    color = A4L.TextDim,
-                    textAlign = TextAlign.Center,
                 )
             }
         }

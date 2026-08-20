@@ -731,6 +731,35 @@ class ChatEngine(context: Context) {
      * fabrique sans cesse, et les laisser compter ferait osciller le plafond de
      * pièce jointe entre 2 et 10 Mo sous les yeux de l'utilisateur.
      */
+    /**
+     * ⚠⚠ **Une seule route par personne, et c'est la meilleure.**
+     *
+     * [attachmentTargets] rend les liens en flux **et** un lien BLE : c'est
+     * juste pour calculer un plafond sur toute la salle, ce n'est pas une
+     * liste d'envois. Utilisée telle quelle pour expédier vers UNE personne,
+     * elle envoyait la même pièce **deux fois** — une copie par le réseau
+     * local, une copie par la radio.
+     *
+     * Mesuré le 20/08, trois fois de suite : la copie Wi-Fi arrivait, la copie
+     * BLE de l'A5 mourait en route (sa puce lâche ses écritures sous charge),
+     * et le réassemblage d'en face — qui voit un seul identifiant de message —
+     * expirait sur « transfert interrompu ». **Le visage n'arrivait jamais
+     * alors qu'un chemin sain existait.**
+     *
+     * Une pièce jointe prend donc le médium le plus rapide qui porte, et lui
+     * seul. La redondance a du sens pour un texte de vingt octets ; pour six
+     * kilooctets fragmentés, elle double le temps d'antenne et fabrique
+     * exactement le genre de panne qu'on vient de voir.
+     */
+    private fun bestAttachmentRoute(routes: List<Link>): List<Link> {
+        val attested = routes.filter { it.peerNostrKey != null }
+        val considered = attested.ifEmpty { routes }
+        considered.filter { it.medium != Medium.BLE }
+            .maxByOrNull { it.medium.rank }
+            ?.let { return listOf(it) }
+        return listOfNotNull(considered.lastOrNull { it.medium == Medium.BLE })
+    }
+
     private fun attachmentTargets(routes: List<Link>): List<Link> {
         val attested = routes.filter { it.peerNostrKey != null }
         val considered = attested.ifEmpty { routes }
@@ -1920,7 +1949,11 @@ class ChatEngine(context: Context) {
         // contrôle de flux ni signal d'échec. Le gain n'était d'ailleurs pas au
         // rendez-vous : 16 Ko/s de bout en bout, dans la fourchette de
         // l'écriture. [routes] applique déjà cette préférence.
-        val targets = if (kind == ChatFrames.KIND_TEXT) perAddress else attachmentTargets(perAddress)
+        val targets = if (kind == ChatFrames.KIND_TEXT) {
+            perAddress
+        } else {
+            bestAttachmentRoute(perAddress)
+        }
         // Une seule lecture pour le CRC, ici, et non une par lien : sur un
         // fichier, le calculer dans chaque transfert relirait tout le contenu
         // autant de fois qu'il y a de pairs.
