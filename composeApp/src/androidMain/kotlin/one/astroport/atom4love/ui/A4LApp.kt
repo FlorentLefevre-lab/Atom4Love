@@ -464,6 +464,8 @@ private fun Station(
         }
     }
     val relayStatus by relay.status.collectAsState()
+    /** Le détail par adresse, pour la liste déroulante du carreau 🕸️. */
+    val relayList by relay.relays.collectAsState()
 
 
     // ── La cabine, au-dessus des onglets ──────────────────────────────────
@@ -1125,6 +1127,7 @@ private fun Station(
                                 radio = { title ->
                                     RadioSection(
                                         relay = relayStatus,
+                                        relays = relayList,
                                         salon = salon,
                                         reachable = conversations.count { it.inRange },
                                         onOpenJournal = { journalShown = true },

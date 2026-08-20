@@ -54,10 +54,34 @@ class RelayStation(
     data class Status(val connected: Int, val total: Int, val local: Boolean = false) {
         val online: Boolean get() = connected > 0
         val label: String get() = (if (local) "relais local" else "relay") + " · $connected / $total"
+
+        /**
+         * Le même état, pour un tiers de largeur d'écran.
+         *
+         * Il vit dans le carreau 🕸️ du Plateau depuis le 20/08, à côté de ce
+         * que le relais rapporte du lieu — c'est-à-dire à côté de ce qu'il
+         * conditionne, au lieu d'une ligne d'état en haut de page. Le mot y
+         * tient en cinq lettres : le pictogramme et le libellé du carreau
+         * disent déjà de quoi il s'agit.
+         */
+        val short: String get() = (if (local) "local" else "relay") + " $connected/$total"
     }
 
     private val _status = MutableStateFlow(Status(0, defaultUrls.size))
     val status: StateFlow<Status> = _status.asStateFlow()
+
+    /**
+     * Un relais et son état, **par adresse** — de quoi ouvrir la liste du
+     * carreau 🕸️ du Plateau.
+     *
+     * ⚠ Le compteur « 1/1 » ne dit pas *lequel*, et l'adresse est justement ce
+     * qu'on veut voir quand on doute : le relais par défaut d'Internet ou la
+     * passerelle d'une station à côté de soi ne se distinguent que par elle.
+     */
+    data class Relay(val url: String, val online: Boolean)
+
+    private val _relays = MutableStateFlow<List<Relay>>(emptyList())
+    val relays: StateFlow<List<Relay>> = _relays.asStateFlow()
 
     /**
      * Le client du relais local quand l'antenne y est accrochée, null sinon.
@@ -178,5 +202,10 @@ class RelayStation(
             total = currentUrls.size,
             local = usingLocal,
         )
+        // La même vérité, adresse par adresse : le compteur en est la somme, et
+        // ils sont recalculés d'un seul tenant pour qu'ils ne divergent jamais.
+        _relays.value = clients.map {
+            Relay(it.url, it.state.value is RelayClient.State.Connected)
+        }
     }
 }

@@ -258,10 +258,16 @@ fun BoardScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🎴", fontSize = 13.sp)
+                    // ⚠ **Ce n'était pas cette ligne-là.** Elle portait le nom du
+                    // jeu — « Qui est-ce ? » — au-dessus de trois carreaux qui
+                    // ne parlent pas du jeu mais de l'étendue de ce que la
+                    // station touche. Retiré par Florent le 20/08 : la ligne
+                    // annonce désormais ce qui la suit immédiatement, et le jeu
+                    // se nomme là où il commence, à « votre carte ».
+                    Text("📊", fontSize = 13.sp)
                     Spacer(Modifier.width(7.dp))
                     Text(
-                        stringResource(R.string.board_title),
+                        stringResource(R.string.board_counters_title),
                         style = A4LText.Title,
                         color = A4L.TextHigh,
                     )

@@ -21,30 +21,17 @@ class NeighborRegistry(
         /** ~3 intervalles d'annonce en mode BALANCED manqués avant d'évincer. */
         const val DEFAULT_TTL_MILLIS = 30_000L
 
-        /**
-         * Combien de **personnes** annoncent cette cellule — pas combien
-         * d'adresses. Une adresse qui vient de tourner et l'ancienne, pas
-         * encore évincée par le TTL, portent le même jeton et ne comptent
-         * qu'une fois.
-         *
-         * ⚠ **Le regroupement est celui de [Neighbor.identity], et il doit
-         * l'être.** Ce compteur avait le sien — jeton, sinon adresse — écrit la
-         * veille du jour où la signature est devenue le second recours (13/08).
-         * Il n'a pas suivi, et la marche manquante est atteignable : entre le
-         * moment où la fiche a une date et un lieu et celui où le noyau est
-         * forgé, un appareil annonce **une cellule et une signature mais pas de
-         * jeton** — le jeton se dérive de la clé, qui n'existe pas encore. Ses
-         * adresses tournent toutes les 20 à 40 s sous un TTL de 30 : la main du
-         * Plateau le voyait une fois, ce compteur deux. Deux nombres de la même
-         * salle, sur le même écran, qui se contredisent.
-         */
-        fun countIn(neighbors: List<Neighbor>, cell4d: Long?): Int {
-            if (cell4d == null) return 0
-            return neighbors
-                .filter { it.cell4d == cell4d }
-                .distinctBy { it.identity }
-                .size
-        }
+        // ⚠ **`countIn` a vécu ici et n'y est plus.** Il comptait les voisins
+        // annonçant notre cellule, pour le carreau ⛩️ du Plateau. Retiré le
+        // 20/08 avec ce carreau : un portail fait 900 m de large et le BLE
+        // porte à 7 m — le compte voyait deux dix-millièmes du lieu qu'il
+        // prétendait mesurer, différait d'un écran à l'autre (la détection
+        // n'est pas symétrique) et tombait à zéro dès que les liens de
+        // causerie tenaient. Le carreau dit désormais QUEL portail.
+        //
+        // Ne pas le réécrire : compter les gens d'un lieu suppose que chacun
+        // s'y déclare, ce qui est le travail du relais, pas du scan.
+
     }
 
     data class Neighbor(

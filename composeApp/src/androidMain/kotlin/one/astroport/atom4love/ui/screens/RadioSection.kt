@@ -7,9 +7,11 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.animation.animateContentSize
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,6 +41,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,7 +59,6 @@ import one.astroport.atom4love.chat.ChatEngine
 import one.astroport.atom4love.nostr.HexagonSalon
 import one.astroport.atom4love.nostr.RelayStation
 import one.astroport.atom4love.proximity.CellLocator
-import one.astroport.atom4love.proximity.NeighborRegistry
 import one.astroport.atom4love.proximity.ProximityService
 import one.astroport.atom4love.ui.components.StatusDot
 import one.astroport.atom4love.ui.components.dashedGlass
@@ -102,6 +113,23 @@ private val LOCATION_PERMISSIONS = arrayOf(
  * la traîne de « f » des chiffres inutilisés. Affichage uniquement — jamais
  * reparsé.
  */
+/**
+ * Le nom du portail, tel qu'on le lit dans son carreau.
+ *
+ * ⚠ **Le `88` de tête ne dit rien de l'endroit** : c'est le marqueur de mode
+ * et de résolution d'un index H3, le même pour toute cellule de résolution 8,
+ * partout sur Terre. Le retirer est aussi neutre que le `FFFF…` de queue que
+ * [cellHex] enlève déjà — et ça n'est pas un caprice : à 13 sp dans un tiers de
+ * largeur, l'A5 coupait le **dernier** caractère et affichait `881FB5B86` pour
+ * `881FB5B861`. Un identifiant tronqué est un identifiant faux, et deux
+ * personnes du même portail auraient pu lire deux noms différents.
+ *
+ * ⚠ À n'utiliser que pour l'écran. La chaîne qui part sur le relais — le tag
+ * `h` du salon — reste [cellHex], entière : ce qui circule ne se raccourcit
+ * pas pour tenir dans une bulle.
+ */
+internal fun portalLabel(cell: Long): String = cellHex(cell).removePrefix("88")
+
 internal fun cellHex(cell: Long): String =
     cell.toULong().toString(16).uppercase().trimEnd('F')
 
@@ -172,6 +200,11 @@ private fun appSettingsIntent(context: Context): Intent =
 @Composable
 fun RadioSection(
     relay: RelayStation.Status?,
+    /**
+     * Les relais un par un, avec leur adresse — la liste que déroule le
+     * carreau 🕸️. Vide en aperçu, où l'antenne n'existe pas.
+     */
+    relays: List<RelayStation.Relay> = emptyList(),
     salon: HexagonSalon?,
     /** Combien de conversations sont joignables — le compteur « ici ». */
     reachable: Int,
@@ -268,12 +301,76 @@ fun RadioSection(
     val salonActive = relay?.local == true && relay.online
     val pensees = salon?.pensees?.collectAsStateWithLifecycle()?.value.orEmpty()
     var salonOpen by remember { mutableStateOf(false) }
+    var relaysOpen by remember { mutableStateOf(false) }
+    /** Le tiroir du journal — fermé au départ, cf. son commentaire. */
+    var journalOpen by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(fix?.cell) { fix?.let { salon?.setCell(cellHex(it.cell)) } }
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-        // ── La balise ─────────────────────────────────────────────────────
-        Row(
+        // ── Le journal, en tiroir ─────────────────────────────────────────
+        //
+        // ⚠ **C'est la rangée qui ouvrait la cabine**, à la même place et avec
+        // le même geste. Elle battait en orange tant que la cabine était
+        // fermée, parce qu'ouvrir était le seul appel de la page. Elle ne bat
+        // plus : il n'y a plus rien à ouvrir pour parler.
+        //
+        // ⚠ **Et elle ne prend plus toute la largeur.** Une bande pleine pour
+        // une fenêtre qu'on consulte deux fois par soirée coûtait le haut de
+        // l'écran à ce qui s'y passe vraiment. Repliée, elle n'est qu'un
+        // pictogramme contre le bord gauche ; le doigt sur le pictogramme la
+        // déroule, le texte qu'elle découvre ouvre le journal. Demandé par
+        // Florent le 20/08. Le tiroir part fermé : ce qui se consulte ne
+        // s'impose pas.
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier
+                    .then(if (journalOpen) Modifier.weight(1f) else Modifier)
+                    .dashedGlass(12.dp, A4L.GlassFaint, A4L.Cyan.copy(alpha = 0.22f))
+                    .animateContentSize()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "🧾",
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { journalOpen = !journalOpen }
+                        .padding(2.dp),
+                )
+                if (journalOpen) {
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        stringResource(R.string.radar_journal_row),
+                        style = A4LText.Caption,
+                        color = A4L.Cyan,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable(onClick = onOpenJournal)
+                            .padding(vertical = 2.dp),
+                    )
+                    Text("›", fontSize = 15.sp, color = A4L.TextFaint)
+                }
+            }
+        }
+
+        // ── Le portail, et l'état de la balise avec lui ────────────────────
+        //
+        // ⚠⚠ **La rangée « Balise active » n'existe plus ; elle est ici.**
+        // Tranché par Florent le 20/08, et c'est cohérent : la balise n'avait
+        // plus rien à dire d'elle-même depuis qu'elle ne s'allume ni ne s'éteint
+        // à la main. Ce qu'elle avait à dire, c'était **où l'on est** — et
+        // quand elle ne peut pas le dire, pourquoi.
+        //
+        // ⚠ **Elle garde le geste de permission, et ce n'est pas négociable.**
+        // Cette rangée est la seule porte vers [RADIO_PERMISSIONS] de toute
+        // l'application, notifications comprises. La dissoudre sans reprendre
+        // son `clickable` rendrait le Bluetooth inaccordable à qui l'a refusé
+        // une fois — exactement la faute corrigée le 19/08 pour les
+        // notifications. **Toute permission garde une porte atteignable.**
+        Column(
             Modifier
                 .fillMaxWidth()
                 .dashedGlass(
@@ -281,120 +378,98 @@ fun RadioSection(
                     A4L.GlassFaint,
                     (if (beaconRunning) A4L.Mint else A4L.Stroke).copy(alpha = 0.2f),
                 )
-                // Plus d'interrupteur : la balise est le socle, elle tourne dès
-                // qu'elle le peut. Ne reste à toucher que ce qui lui manque.
                 .clickable(enabled = !beaconRunning) {
                     permissionFor = PermissionIntent.BEACON
                     permissionLauncher.launch(RADIO_PERMISSIONS)
                 }
                 .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            StatusDot(if (beaconRunning) A4L.Mint else A4L.TextDim)
-            Spacer(Modifier.width(10.dp))
-            Text(
-                when {
-                    beaconRunning && ownCell4d != null ->
-                        stringResource(R.string.radar_beacon_with_cell, cellHex(ownCell4d!!))
-                    beaconRunning -> stringResource(R.string.radar_beacon_presence_only)
-                    else -> stringResource(R.string.radar_beacon_needs_bluetooth)
-                },
-                style = A4LText.Caption,
-                color = if (beaconRunning) A4L.Mint else A4L.TextMuted,
-                modifier = Modifier.weight(1f),
-            )
-            relay?.let {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StatusDot(if (beaconRunning) A4L.Mint else A4L.TextDim)
+                Spacer(Modifier.width(10.dp))
+                Text("⛩️", fontSize = 13.sp)
                 Spacer(Modifier.width(8.dp))
-                StatusDot(if (it.online) A4L.Green else A4L.TextGhost)
-                Spacer(Modifier.width(3.dp))
-                Text(
-                    it.label,
-                    style = A4LText.Data.copy(fontSize = 10.sp),
-                    color = A4L.TextDim,
-                )
+                if (beaconRunning) {
+                    StatLabel(stringResource(R.string.radar_stat_in_portal), A4L.TextMuted)
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        ownCell4d?.let { portalLabel(it) } ?: "—",
+                        style = A4LText.Metric.copy(fontSize = 14.sp),
+                        color = if (ownCell4d != null) A4L.Mint else A4L.TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Text(
+                        stringResource(R.string.radar_beacon_needs_bluetooth),
+                        style = A4LText.Caption,
+                        color = A4L.TextMuted,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
-        }
 
-        // ── Le journal ────────────────────────────────────────────────────
-        //
-        // ⚠ **C'est la rangée qui ouvrait la cabine**, à la même place et avec
-        // le même geste. Elle battait en orange tant que la cabine était fermée,
-        // parce qu'ouvrir était le seul appel de la page et qu'il ne se voyait
-        // pas. Elle ne bat plus : il n'y a plus rien à ouvrir pour parler — les
-        // conversations existent d'elles-mêmes, dans leur onglet. Ce qui reste
-        // ici est une fenêtre qu'on consulte, et une fenêtre n'appelle pas.
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .dashedGlass(12.dp, A4L.GlassFaint, A4L.Cyan.copy(alpha = 0.22f))
-                .clickable(onClick = onOpenJournal)
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("🧾", fontSize = 12.sp)
-            Spacer(Modifier.width(10.dp))
-            Text(
-                stringResource(R.string.radar_journal_row),
-                style = A4LText.Caption,
-                color = A4L.Cyan,
-                modifier = Modifier.weight(1f),
-            )
-            Text("›", fontSize = 15.sp, color = A4L.TextFaint)
-        }
-
-        title()
-
-        // ── Sans position : dire pourquoi, et où le corriger ───────────────
-        if (fix == null) {
-            Text(
-                when (locationBlocker) {
-                    CellLocator.Blocker.SERVICE_OFF ->
-                        stringResource(R.string.radar_hex_unknown_service_off)
-                    CellLocator.Blocker.PERMISSION -> if (locationDeadEnd) {
-                        stringResource(R.string.radar_hex_unknown_dead_end)
-                    } else {
-                        stringResource(R.string.radar_hex_unknown_permission)
-                    }
-                    null -> stringResource(R.string.radar_hex_unknown_searching)
-                },
-                style = A4LText.Caption,
-                color = A4L.TextMuted,
-            )
-            // La conséquence, et elle n'est pas la même partout : ce qui n'est
-            // qu'une cellule manquante sur un téléphone récent est une salle
-            // entière qu'on ne voit pas sur un ancien.
-            if (scanBlind) {
+            // ⚠ **Pourquoi il n'y a pas de portail se lit SOUS le portail.**
+            // Ces trois lignes vivaient sous le titre des compteurs, à deux
+            // blocs de l'endroit qu'elles expliquaient — on lisait « — » ici et
+            // la raison quinze centimètres plus bas. Déplacé par Florent le
+            // 20/08. La balise éteinte les tait : ce qui manque alors n'est pas
+            // la position, c'est le Bluetooth, et une question à la fois.
+            if (beaconRunning && fix == null) {
                 Text(
-                    stringResource(R.string.radar_scan_needs_location),
+                    when (locationBlocker) {
+                        CellLocator.Blocker.SERVICE_OFF ->
+                            stringResource(R.string.radar_hex_unknown_service_off)
+                        CellLocator.Blocker.PERMISSION -> if (locationDeadEnd) {
+                            stringResource(R.string.radar_hex_unknown_dead_end)
+                        } else {
+                            stringResource(R.string.radar_hex_unknown_permission)
+                        }
+                        null -> stringResource(R.string.radar_hex_unknown_searching)
+                    },
                     style = A4LText.Caption,
                     color = A4L.TextMuted,
                 )
-            }
-            if (locationBlocker == CellLocator.Blocker.PERMISSION) {
-                Text(
-                    stringResource(
-                        if (locationDeadEnd) {
-                            R.string.radar_open_app_settings
-                        } else {
-                            R.string.radar_grant_location
-                        },
-                    ),
-                    style = A4LText.Caption,
-                    color = A4L.Mint,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable {
+                // La conséquence, et elle n'est pas la même partout : ce qui
+                // n'est qu'une cellule manquante sur un téléphone récent est
+                // une salle entière qu'on ne voit pas sur un ancien.
+                if (scanBlind) {
+                    Text(
+                        stringResource(R.string.radar_scan_needs_location),
+                        style = A4LText.Caption,
+                        color = A4L.TextMuted,
+                    )
+                }
+                if (locationBlocker == CellLocator.Blocker.PERMISSION) {
+                    Text(
+                        stringResource(
                             if (locationDeadEnd) {
-                                settingsLauncher.launch(appSettingsIntent(context))
+                                R.string.radar_open_app_settings
                             } else {
-                                permissionFor = PermissionIntent.LOCATION
-                                permissionLauncher.launch(LOCATION_PERMISSIONS)
+                                R.string.radar_grant_location
+                            },
+                        ),
+                        style = A4LText.Caption,
+                        color = A4L.Mint,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                if (locationDeadEnd) {
+                                    settingsLauncher.launch(appSettingsIntent(context))
+                                } else {
+                                    permissionFor = PermissionIntent.LOCATION
+                                    permissionLauncher.launch(LOCATION_PERMISSIONS)
+                                }
                             }
-                        }
-                        .padding(vertical = 4.dp),
-                )
+                            .padding(vertical = 4.dp),
+                    )
+                }
             }
         }
+
+        title()
 
         // ── Les trois fenêtres, de la plus proche à la plus lointaine ──────
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -415,37 +490,97 @@ fun RadioSection(
                 glyph = "📍",
                 value = if (beaconRunning) (reachable + 1).toString() else "—",
                 label = stringResource(R.string.radar_stat_here_no_relay),
+                // Les trois blocs portent maintenant le même dessin : titre en
+                // haut contre le bord gauche, pictogramme en face, valeur
+                // dessous. Un carreau qui range ses parties autrement se lit
+                // comme s'il disait autre chose.
+                labelOnTop = true,
                 modifier = Modifier.weight(1f),
                 accent = if (reachable > 0) A4L.Mint else null,
             )
-            // Approximation en attendant la logique de portail D2 : les noyaux
-            // qui annoncent la même cellule que la nôtre. Comptés par jeton de
-            // présence et non par adresse — une adresse qui tourne pendant que
-            // l'ancienne survit à son TTL faisait compter deux fois le même
-            // appareil.
-            // ⚠ Même règle : on est dans son propre portail. Le tiret reste
-            // quand la cellule est inconnue — on y est, mais on ne sait pas
-            // duquel il s'agit, et « 1 » y serait une réponse à une autre
-            // question.
-            RadioStat(
-                glyph = "⛩️",
-                value = if (beaconRunning && ownCell4d != null) {
-                    (NeighborRegistry.countIn(neighbors, ownCell4d) + 1).toString()
-                } else {
-                    "—"
-                },
-                label = stringResource(R.string.radar_stat_in_portal),
-                modifier = Modifier.weight(1f),
-            )
+            // ⚠ **Ce carreau comptait des pensées et compte des relais.**
+            // Tranché par Florent le 20/08. Son tiret avait deux causes qu'on
+            // ne distinguait pas — pas de relais, ou un relais qui ne rapporte
+            // rien — et la première commande la seconde : sans relais joignable
+            // il n'y a rien à savoir du lointain, quoi qu'il s'y passe. Le
+            // carreau dit donc d'abord ce qui porte, et le compte des pensées
+            // se lit dans le salon, qu'un doigt ouvre toujours ici.
+            // ⚠ **Le compteur ne dit pas LEQUEL, et c'est ce qu'on veut savoir.**
+            // « 1/1 » vaut pour le relais par défaut d'Internet comme pour la
+            // passerelle d'une station à trois mètres ; seules les adresses les
+            // distinguent. Le carreau les déroule, les vivantes en vert.
+            // Demandé par Florent le 20/08.
+            //
+            // ⚠ **Le salon garde sa porte.** Elle était le geste de ce
+            // carreau ; sans cette dernière ligne du menu, l'hexagone
+            // deviendrait inatteignable — même règle que pour les permissions.
+            Box(Modifier.weight(1f)) {
             RadioStat(
                 glyph = "🕸️",
-                value = if (salonActive) pensees.size.toString() else "—",
-                label = stringResource(R.string.radar_stat_in_hexagon),
+                value = relay?.let { "${it.connected}/${it.total}" } ?: "—",
+                label = stringResource(R.string.radar_stat_relays_active),
+                // Même dessin que le portail : ces deux carreaux-là portent un
+                // état, pas une population, et un état se présente avant de se
+                // lire. Le carreau « ici » garde son grand nombre en tête —
+                // c'est le seul qui compte des gens.
+                labelOnTop = true,
                 modifier = Modifier
-                    .weight(1f)
-                    .clickable { salonOpen = !salonOpen },
-                accent = if (salonOpen) A4L.Green else null,
+                    .fillMaxWidth()
+                    .clickable { relaysOpen = !relaysOpen },
+                accent = when {
+                    salonOpen -> A4L.Green
+                    relay?.online == true -> A4L.Green
+                    else -> null
+                },
             )
+            DropdownMenu(
+                expanded = relaysOpen,
+                onDismissRequest = { relaysOpen = false },
+                containerColor = A4L.Deep,
+            ) {
+                relays.forEach { r ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                r.url,
+                                style = A4LText.Data.copy(fontSize = 11.sp),
+                                color = if (r.online) A4L.Green else A4L.TextMuted,
+                            )
+                        },
+                        leadingIcon = {
+                            StatusDot(if (r.online) A4L.Green else A4L.TextGhost, size = 5.dp)
+                        },
+                        onClick = { relaysOpen = false },
+                    )
+                }
+                if (relays.isEmpty()) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.radar_no_relay),
+                                style = A4LText.Caption,
+                                color = A4L.TextMuted,
+                            )
+                        },
+                        onClick = { relaysOpen = false },
+                    )
+                }
+                if (salonActive) {
+                    HorizontalDivider(color = A4L.StrokeSoft)
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(R.string.radar_open_salon),
+                                style = A4LText.Caption,
+                                color = A4L.Cyan,
+                            )
+                        },
+                        leadingIcon = { Text("🕸️", fontSize = 13.sp) },
+                        onClick = { relaysOpen = false; salonOpen = !salonOpen },
+                    )
+                }
+            }
+            }
         }
 
         if (salonOpen && salon != null) {
@@ -490,6 +625,39 @@ fun RadioSection(
  * écran. Un même glyphe qui dit deux choses sur une seule page est exactement
  * l'incohérence qu'on chasse ici.
  */
+/**
+ * Le titre d'un carreau : **gras, souligné, deux-points, contre le bord
+ * gauche**. Demandé par Florent le 20/08, et valable partout — c'est ce qui
+ * fait qu'on lit une étiquette et pas une phrase. Le deux-points vit dans les
+ * chaînes traduites : le français met une espace devant, l'anglais non, et
+ * c'est le genre de détail qu'un `+ " :"` en Kotlin détruit dans deux langues
+ * sur trois.
+ */
+@Composable
+private fun StatLabel(text: String, color: Color, modifier: Modifier = Modifier) {
+    Text(
+        // ⚠ **Le trait passe sous le mot, pas sous le deux-points.** Souligner
+        // la chaîne entière fait courir le trait sous la ponctuation, et l'œil
+        // lit alors un mot d'une lettre de plus. D'où l'annotation plutôt qu'un
+        // `textDecoration` sur tout le style — et d'où le deux-points séparé
+        // des libellés dans les ressources : le français met une espace devant,
+        // l'anglais non, ce qu'un `+ " :"` en Kotlin détruirait.
+        buildAnnotatedString {
+            withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) { append(text) }
+            append(stringResource(R.string.stat_label_suffix))
+        },
+        style = A4LText.Caption.copy(
+            fontSize = 11.sp,
+            lineHeight = 13.sp,
+            fontWeight = FontWeight.Bold,
+        ),
+        color = color,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
+}
+
 @Composable
 private fun RadioStat(
     glyph: String,
@@ -497,6 +665,19 @@ private fun RadioStat(
     label: String,
     modifier: Modifier = Modifier,
     accent: Color? = null,
+    /** Un chiffre se lit gros ; un nom de dix caractères, non. */
+    valueStyle: TextStyle = A4LText.Metric,
+    /** Ce qui conditionne la valeur, sous elle — l'état du relais pour 🕸️. */
+    footer: (@Composable () -> Unit)? = null,
+    /**
+     * Le libellé passe **au-dessus**, à gauche du pictogramme.
+     *
+     * Pour un carreau dont la valeur n'est pas un nombre mais un nom : un
+     * chiffre se comprend seul et se fait annoncer après, un identifiant a
+     * besoin d'être présenté avant d'être lu. Demandé par Florent le 20/08
+     * pour le portail.
+     */
+    labelOnTop: Boolean = false,
 ) {
     Column(
         modifier
@@ -513,15 +694,47 @@ private fun RadioStat(
         // deux se lisent et une se regarde. À droite il quitte la colonne de
         // lecture et devient ce qu'il est — l'étiquette de la bulle, posée dans
         // son coin, que l'œil prend d'un balayage sans traverser le texte.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Row(
+            Modifier.fillMaxWidth(),
+            // Le titre contre le bord gauche, le pictogramme contre le droit :
+            // l'œil trouve l'étiquette là où il trouve toutes les autres.
+            horizontalArrangement = if (labelOnTop) {
+                Arrangement.SpaceBetween
+            } else {
+                Arrangement.End
+            },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (labelOnTop) {
+                // ⚠ **Un mot, parce qu'un carreau fait un tiers d'écran.**
+                // « Portail Géo. » tenait sur le Pixel et sortait en
+                // « Portail … » sur l'A5 (360 dp de large, pictogramme
+                // compris). Le libellé a été raccourci plutôt que la police
+                // rabotée ; les deux lignes restent autorisées comme filet,
+                // pour une police système agrandie.
+                StatLabel(
+                    label,
+                    accent?.copy(alpha = 0.65f) ?: A4L.TextMuted,
+                    Modifier.weight(1f, fill = false),
+                )
+                Spacer(Modifier.width(4.dp))
+            }
             Text(glyph, fontSize = 19.sp)
         }
-        Text(value, style = A4LText.Metric, color = accent ?: A4L.TextHigh.copy(alpha = 0.88f))
         Text(
-            label,
-            style = A4LText.Caption.copy(fontSize = 11.sp),
-            color = accent?.copy(alpha = 0.65f) ?: A4L.TextMuted,
+            value,
+            style = valueStyle,
+            color = accent ?: A4L.TextHigh.copy(alpha = 0.88f),
+            maxLines = 1,
+            // ⚠ Sans ça, une valeur trop longue se coupe **en silence** : l'A5
+            // a affiché un identifiant amputé de son dernier caractère sans que
+            // rien ne le signale. Les points de suite le diraient.
+            overflow = TextOverflow.Ellipsis,
         )
+        if (!labelOnTop) {
+            StatLabel(label, accent?.copy(alpha = 0.65f) ?: A4L.TextMuted)
+        }
+        footer?.invoke()
     }
 }
 

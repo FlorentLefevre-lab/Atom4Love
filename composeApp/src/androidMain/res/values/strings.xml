@@ -31,13 +31,20 @@
     <string name="radar_hex_unknown_searching">Hexagone inconnu — recherche de position en cours…</string>
     <string name="radar_scan_needs_location">Sur cet Android, la radio ne balaye pas sans position : votre balise parle, mais vous ne voyez personne.</string>
 
+    <string name="radar_no_relay">aucun relais configuré</string>
+    <string name="radar_open_salon">Salon de l\'hexagone</string>
     <string name="radar_open_app_settings">Ouvrir les réglages de l\'app</string>
     <string name="radar_grant_location">Accorder la localisation</string>
 
 
-    <string name="radar_stat_in_hexagon">dans l\'hexagone</string>
-    <string name="radar_stat_in_portal">dans le portail</string>
-    <string name="radar_stat_here_no_relay">ici, sans relais</string>
+    <string name="radar_stat_relays_active">Relais</string>
+    <string name="radar_stat_in_portal">Portail géo.</string>
+    <string name="radar_stat_here_no_relay">Ici</string>
+    <!-- ⚠ Espace INSÉCABLE, et écrite en entité : Android élague les blancs
+         de tête d'une ressource, si bien qu'un simple " :" arrivait à
+         l'écran collé au mot. L'insécable tient aussi la règle française —
+         le deux-points ne part jamais seul à la ligne. -->
+    <string name="stat_label_suffix">&#160;:</string>
 
     <!-- Les résonances : ce que la balise lit dans l'annonce des voisins.
          « k » est le nom que Fred lui donne partout — on ne le traduit pas, et
@@ -48,7 +55,6 @@
          fusionné en PRIORITY_BALANCED_POWER_ACCURACY, qui évite exprès le
          satellite quand le Wi-Fi et les antennes suffisent — donc presque
          toujours en intérieur. C\'est aussi le mot de la permission Android. -->
-    <string name="radar_beacon_with_cell">Balise active — hexagone %1$s</string>
     <string name="radar_beacon_presence_only">Balise active — sans position</string>
     <string name="radar_beacon_needs_bluetooth">Balise de proximité — Bluetooth requis</string>
     <!-- L'hôte d'un groupe Wi-Fi Direct. Dit en entier : « propriétaire » ne
@@ -110,6 +116,7 @@
 
     <!-- ─── 03 · Plateau « Qui est-ce ? » ─────────────────────────────── -->
     <string name="board_title">Qui est-ce ?</string>
+    <string name="board_counters_title">Compteurs (local et distant)</string>
     <string name="board_your_card">Votre carte</string>
     <string name="board_in_range">À portée (%1$d)</string>
     <string name="board_nobody">Personne ne montre sa carte pour l\'instant. La partie se joue à deux téléphones dans la même salle.</string>

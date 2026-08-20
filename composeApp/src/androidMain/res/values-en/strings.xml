@@ -12,17 +12,19 @@
     <string name="radar_hex_unknown_searching">Hexagon unknown — looking for a position…</string>
     <string name="radar_scan_needs_location">On this Android, the radio does not scan without a position: your beacon speaks, but you see nobody.</string>
 
+    <string name="radar_no_relay">no relay configured</string>
+    <string name="radar_open_salon">Hexagon lounge</string>
     <string name="radar_open_app_settings">Open the app settings</string>
     <string name="radar_grant_location">Grant location</string>
 
 
-    <string name="radar_stat_in_hexagon">in the hexagon</string>
-    <string name="radar_stat_in_portal">in the portal</string>
-    <string name="radar_stat_here_no_relay">here, no relay</string>
+    <string name="radar_stat_relays_active">Relays</string>
+    <string name="radar_stat_in_portal">Geo portal</string>
+    <string name="radar_stat_here_no_relay">Here</string>
+    <string name="stat_label_suffix">:</string>
 
 
 
-    <string name="radar_beacon_with_cell">Beacon on — hexagon %1$s</string>
     <string name="radar_beacon_presence_only">Beacon on — no position</string>
     <string name="radar_beacon_needs_bluetooth">Proximity beacon — Bluetooth required</string>
 
@@ -66,6 +68,7 @@
 
     <!-- ─── 03 · The "Who is it?" board ───────────────────────────────── -->
     <string name="board_title">Who is it?</string>
+    <string name="board_counters_title">Counters (local and remote)</string>
     <string name="board_your_card">Your card</string>
     <string name="board_in_range">In range (%1$d)</string>
     <string name="board_nobody">Nobody is showing a card yet. The game is played by two phones in the same room.</string>

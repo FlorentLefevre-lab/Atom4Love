@@ -47,29 +47,20 @@ class NeighborRegistryTest {
     /** Le cas mesuré le 2026-08-12 : un appareil dont l'adresse tourne pendant
      *  que l'ancienne survit à son TTL comptait pour deux. */
     @Test
-    fun `deux adresses d'un meme jeton ne comptent qu'une personne`() {
+    fun `deux adresses d'un meme jeton ne font qu'une personne`() {
         registry.report("AA:BB", cell4d = 7L, token = 42, rssi = -60)
         now = 5_000
         registry.report("CC:DD", cell4d = 7L, token = 42, rssi = -62)
 
         assertEquals(2, registry.neighbors.value.size)
-        assertEquals(1, NeighborRegistry.countIn(registry.neighbors.value, 7L))
+        assertEquals(1, registry.neighbors.value.distinctBy { it.identity }.size)
     }
 
     @Test
-    fun `deux jetons distincts comptent deux personnes`() {
+    fun `deux jetons distincts font deux personnes`() {
         registry.report("AA:BB", cell4d = 7L, token = 42, rssi = -60)
         registry.report("CC:DD", cell4d = 7L, token = 43, rssi = -62)
-        assertEquals(2, NeighborRegistry.countIn(registry.neighbors.value, 7L))
-    }
-
-    /** Un pair sans jeton (version antérieure) compte pour lui-même : mieux
-     *  vaut le compter deux fois que le faire disparaître. */
-    @Test
-    fun `sans jeton on retombe sur l'adresse`() {
-        registry.report("AA:BB", cell4d = 7L, token = null, rssi = -60)
-        registry.report("CC:DD", cell4d = 7L, token = null, rssi = -62)
-        assertEquals(2, NeighborRegistry.countIn(registry.neighbors.value, 7L))
+        assertEquals(2, registry.neighbors.value.distinctBy { it.identity }.size)
     }
 
     /** La signature traverse le registre : c'est elle que le Radar affiche. */
@@ -128,38 +119,5 @@ class NeighborRegistryTest {
         registry.report("AA:BB", cell4d = 7L, token = 42, rssi = -60)
         val neighbor = registry.neighbors.value.single()
         assertEquals(ProximityPayload.Signature.Unknown, neighbor.signature)
-        assertEquals(1, NeighborRegistry.countIn(registry.neighbors.value, 7L))
-    }
-
-    /**
-     * ⚠ Le défaut trouvé en contrôlant le compteur le 20/08 : entre la fiche
-     * remplie et le noyau forgé, un appareil annonce **cellule + signature,
-     * sans jeton** — le jeton se dérive de la clé, qui n'existe pas encore. Ses
-     * adresses tournent, et le portail le comptait une fois par adresse pendant
-     * que la main du Plateau, elle, le regroupait. Le regroupement doit être le
-     * même des deux côtés : c'est [NeighborRegistry.Neighbor.identity].
-     */
-    @Test
-    fun `sans jeton, la signature regroupe aussi dans le portail`() {
-        val signature = ProximityPayload.Signature(sex = 0, glyph = 2, phase = 4.852)
-        registry.report("AA:BB", cell4d = 7L, token = null, rssi = -60, signature = signature)
-        now = 25_000
-        registry.report("CC:DD", cell4d = 7L, token = null, rssi = -62, signature = signature)
-        assertEquals(2, registry.neighbors.value.size)
-        assertEquals(1, NeighborRegistry.countIn(registry.neighbors.value, 7L))
-        // Et le portail dit exactement ce que dit la main du Plateau.
-        assertEquals(
-            registry.neighbors.value.distinctBy { it.identity }.size,
-            NeighborRegistry.countIn(registry.neighbors.value, 7L),
-        )
-    }
-
-    @Test
-    fun `une autre cellule ne compte pas, et la cellule inconnue non plus`() {
-        registry.report("AA:BB", cell4d = 7L, token = 42, rssi = -60)
-        registry.report("CC:DD", cell4d = 8L, token = 43, rssi = -62)
-        registry.report("EE:FF", cell4d = null, token = null, rssi = -70)
-        assertEquals(1, NeighborRegistry.countIn(registry.neighbors.value, 7L))
-        assertEquals(0, NeighborRegistry.countIn(registry.neighbors.value, null))
     }
 }

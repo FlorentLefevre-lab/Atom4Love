@@ -13,17 +13,19 @@
     <string name="radar_hex_unknown_searching">Hexágono desconocido — buscando la posición…</string>
     <string name="radar_scan_needs_location">En este Android, la radio no escanea sin ubicación: tu baliza habla, pero no ves a nadie.</string>
 
+    <string name="radar_no_relay">ningún relé configurado</string>
+    <string name="radar_open_salon">Salón del hexágono</string>
     <string name="radar_open_app_settings">Abrir los ajustes de la app</string>
     <string name="radar_grant_location">Conceder la ubicación</string>
 
 
-    <string name="radar_stat_in_hexagon">en el hexágono</string>
-    <string name="radar_stat_in_portal">en el portal</string>
-    <string name="radar_stat_here_no_relay">aquí, sin relé</string>
+    <string name="radar_stat_relays_active">Relés</string>
+    <string name="radar_stat_in_portal">Portal geo.</string>
+    <string name="radar_stat_here_no_relay">Aquí</string>
+    <string name="stat_label_suffix">:</string>
 
 
 
-    <string name="radar_beacon_with_cell">Baliza activa — hexágono %1$s</string>
     <string name="radar_beacon_presence_only">Baliza activa — sin posición</string>
     <string name="radar_beacon_needs_bluetooth">Baliza de proximidad — se requiere Bluetooth</string>
 
@@ -67,6 +69,7 @@
 
     <!-- ─── 03 · El tablero «¿Quién es?» ──────────────────────────────── -->
     <string name="board_title">¿Quién es?</string>
+    <string name="board_counters_title">Contadores (local y remoto)</string>
     <string name="board_your_card">Tu carta</string>
     <string name="board_in_range">Al alcance (%1$d)</string>
     <string name="board_nobody">Nadie muestra su carta por ahora. La partida se juega con dos teléfonos en la misma sala.</string>
