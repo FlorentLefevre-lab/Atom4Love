@@ -10,9 +10,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.res.pluralStringResource
 import android.Manifest
 import android.app.Activity
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -1608,6 +1612,16 @@ private fun RadioLine(
     val status by cabin.status.collectAsState()
     val peers by cabin.peers.collectAsState()
     val medium = status.medium
+    // ⚠⚠ **« Allumée » ne regardait pas la radio.** Le mot ne suivait que
+    // [ChatHost.open] — c'est-à-dire « une clé existe, les permissions sont
+    // accordées, et `start()` a été appelé » —, ce qui est vrai en permanence
+    // depuis que la refonte a retiré le geste d'ouverture. Bluetooth coupé, la
+    // ligne continuait d'annoncer une radio allumée ; seule sa **couleur**
+    // passait au gris, parce que le médium tombe avec les liens. Un état de
+    // machine qui ne change pas quand la machine change n'est pas un état.
+    // Relevé par Florent le 20/08, en lisant le code plutôt que l'écran.
+    val bluetoothOn = bluetoothEnabled()
+    val radioOn = open && bluetoothOn
 
     Row(
         Modifier
@@ -1618,7 +1632,7 @@ private fun RadioLine(
     ) {
         StatusDot(
             when {
-                !open -> A4L.TextGhost
+                !radioOn -> A4L.TextGhost
                 medium != null -> A4L.Mint
                 else -> A4L.TextDim
             },
@@ -1634,9 +1648,9 @@ private fun RadioLine(
         // dire ce qu'aucun écran ne dit — l'état de la machine — et se taire sur
         // le reste, sinon elle double tout sans rien ajouter.
         Text(
-            stringResource(if (open) R.string.header_radio_on else R.string.header_radio_off),
+            stringResource(if (radioOn) R.string.header_radio_on else R.string.header_radio_off),
             style = A4LText.Data.copy(fontSize = 10.sp),
-            color = if (open && medium != null) A4L.Mint else A4L.TextMuted,
+            color = if (radioOn && medium != null) A4L.Mint else A4L.TextMuted,
         )
         Spacer(Modifier.width(8.dp))
         // ⚠ **Le journal a fini par monter ici, et c'est sa place.** Il a été
@@ -1677,6 +1691,41 @@ private fun RadioLine(
         // le dessine en cercle à rayons — une roue de bateau, pas un engrenage.
         HeaderButton("⚙️", R.string.tab_settings, A4L.TextStrong, onSettings)
     }
+}
+
+/**
+ * **L'adaptateur Bluetooth est-il allumé ?** — et il change sous nos pieds.
+ *
+ * Lire `isEnabled` une fois ne suffit pas : l'interrupteur du système se coupe
+ * d'un effleurement dans les réglages rapides, sans que l'application soit
+ * touchée. On écoute donc la diffusion du système, qui est protégée — d'où le
+ * `RECEIVER_NOT_EXPORTED` : personne d'autre que le système n'a à nous parler
+ * par cette porte.
+ */
+@Composable
+private fun bluetoothEnabled(): Boolean {
+    val context = LocalContext.current
+    val adapter = remember(context) {
+        context.getSystemService(BluetoothManager::class.java)?.adapter
+    }
+    var enabled by remember { mutableStateOf(adapter?.isEnabled == true) }
+    DisposableEffect(context, adapter) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                enabled = adapter?.isEnabled == true
+            }
+        }
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        // Le relevé d'entrée : l'état a pu changer pendant qu'on était ailleurs.
+        enabled = adapter?.isEnabled == true
+        onDispose { runCatching { context.unregisterReceiver(receiver) } }
+    }
+    return enabled
 }
 
 /**
