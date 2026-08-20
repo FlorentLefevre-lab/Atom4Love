@@ -104,8 +104,6 @@
     <string name="rendezvous_title">Reconocerse</string>
     <string name="rendezvous_mutual">Vaya a buscar su resonancia desplazándose físicamente.</string>
     <string name="rendezvous_out_of_range">fuera de alcance ahora mismo</string>
-    <string name="rendezvous_searching">Llevas %1$d segundos buscando.</string>
-    <string name="rendezvous_patience">La estación no puede saber si la otra pantalla late: nada circula. Su silencio no es un rechazo — puede que el Tablero simplemente no esté abierto del otro lado.</string>
     <string name="rendezvous_no_phase">No hay ritmo sin fase. El sello viene de la fecha, la fase pide el lugar de nacimiento — y hace falta en ambos lados.</string>
 
     <!-- ─── La conversación: burbujas, adjuntos, estados de envío ─────── -->
@@ -478,6 +476,10 @@
         <item quantity="other">%1$d cartas se muestran al alcance.</item>
     </plurals>
     <string name="presence_banner_open">Ver</string>
+    <string name="seek_channel_name">Alguien le busca</string>
+    <string name="seek_channel_description">Cuando alguien en la sala quiere reconocerle y su linterna está cerrada.</string>
+    <string name="seek_title">Alguien quiere reconocerle</string>
+    <string name="seek_body">Una carta al alcance ha abierto su linterna sobre la suya. Abra el Tablero y toque su carta: ambas pantallas latirán al mismo ritmo, y se encontrarán con la mirada.</string>
     <string name="presence_channel_name">Alguien al alcance</string>
     <string name="presence_channel_description">Cuando una carta se muestra a tu alrededor</string>
     <string name="presence_title">Alguien muestra su carta</string>

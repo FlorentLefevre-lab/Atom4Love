@@ -197,7 +197,6 @@ private fun Lantern(
     // L'instant où l'on est parti chercher cette carte-ci. Clé sur l'identité :
     // fermer et rouvrir sur quelqu'un d'autre repart de zéro, un trou de radio
     // sur la même personne ne remet pas le compteur à plat.
-    val startedAt = remember(card.identity) { System.currentTimeMillis() }
 
     ScreenAsLantern()
     beat?.let { PulseInTheHand(it, slot) }
@@ -371,7 +370,6 @@ private fun Lantern(
                     color = Color.White.copy(alpha = 0.86f),
                     textAlign = TextAlign.Center,
                 )
-                SearchClock(startedAt = startedAt, now = now)
             } else {
                 Text(
                     stringResource(R.string.rendezvous_no_phase),
@@ -504,50 +502,6 @@ private fun PulseInTheHand(beat: Rendezvous.Beat, slot: Int) {
     }
 }
 
-/**
- * Depuis combien de temps on cherche — et **rien de plus que ça**.
- *
- * ⚠ La station ne peut pas dire « rien ne répond » : elle n'a aucun moyen de
- * savoir si l'écran d'en face bat. C'est le principe même de [Rendezvous] —
- * le motif ne circule pas, il se recalcule de chaque côté. Afficher un « pas de
- * réponse » serait inventer une information qu'aucun octet ne porte, et pire :
- * ce serait faire passer pour un refus ce qui n'est peut-être qu'un téléphone
- * resté dans une poche.
- *
- * Ce qu'elle sait, c'est l'heure. Un compteur ne dénonce personne, ne conclut
- * rien, et rend à celui qui cherche la seule chose qui lui manquait : une
- * échelle. Trente secondes de recherche et deux minutes ne se ressemblent pas,
- * et sans repère on ne sait pas si l'on est patient ou entêté.
- *
- * Le rappel n'apparaît qu'après [PATIENCE_MS], une fois passé le temps où il
- * est normal de ne pas encore avoir trouvé.
- */
-@Composable
-private fun SearchClock(startedAt: Long, now: Long) {
-    val elapsed = (now - startedAt).coerceAtLeast(0L)
-    if (elapsed < PATIENCE_MS) return
-    Spacer(Modifier.height(18.dp))
-    Text(
-        stringResource(R.string.rendezvous_searching, elapsed / 1000),
-        style = A4LText.Caption,
-        color = Color.White.copy(alpha = 0.55f),
-        textAlign = TextAlign.Center,
-    )
-    Spacer(Modifier.height(6.dp))
-    Text(
-        stringResource(R.string.rendezvous_patience),
-        style = A4LText.Caption,
-        color = Color.White.copy(alpha = 0.32f),
-        textAlign = TextAlign.Center,
-    )
-}
-
-/**
- * Quarante secondes avant de dire quoi que ce soit. Le temps de lever l'écran,
- * de faire le tour d'une salle du regard, et de recommencer une fois — au-delà,
- * on a le droit de savoir depuis combien de temps on cherche.
- */
-private const val PATIENCE_MS = 40_000L
 
 /** Le contexte d'un composable est un empilement d'enveloppes ; l'activité est dessous. */
 private tailrec fun Context.activity(): Activity? = when (this) {

@@ -9,13 +9,17 @@ package one.astroport.atom4love.proximity
  * simplement rien ouvert. C'est le cas « l'un des deux a oublié », et il n'a
  * aucune solution de son côté à lui.
  *
- * ⚠ **Ce qu'on annonce est une PRÉSENCE, jamais une recherche.** La distinction
- * est tout : « quelqu'un vous cherche » révélerait le chercheur — dans une salle
- * à deux, ça le nomme — et ruinerait le silence sur lequel repose le
- * consentement de [Rendezvous]. « Quelqu'un montre sa carte à portée » serait
- * tout aussi vrai si personne ne cherchait, ne désigne personne, et laisse
- * l'endormi ouvrir le Plateau et choisir librement — y compris quelqu'un
- * d'autre, ou personne.
+ * ⚠ **Ce qu'ON annonce ICI est une PRÉSENCE, jamais une recherche.**
+ * « Quelqu'un montre sa carte à portée » serait tout aussi vrai si personne ne
+ * cherchait, ne désigne personne, et laisse l'endormi ouvrir le Plateau et
+ * choisir librement — y compris quelqu'un d'autre, ou personne.
+ *
+ * ⚠ La recherche, elle, a fini par se dire — mais **ailleurs et à sa manière** :
+ * [SeekAlert], depuis le 20/08. Ce n'est pas un revirement de cette règle-ci,
+ * c'est l'autre moitié du cas « l'un des deux a oublié » : celui qui ouvre sa
+ * lanterne **se déclare**, en connaissance de cause, comme il le fait déjà sur
+ * la carte du Plateau depuis le 19/08. Le réveil de [SeekAlert] ne nomme
+ * personne non plus, pour la même raison qu'ici.
  *
  * Deux garde-fous, sans quoi un bar sonnerait toute la soirée :
  *

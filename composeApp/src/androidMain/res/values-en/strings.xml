@@ -103,8 +103,6 @@
     <string name="rendezvous_title">Recognise each other</string>
     <string name="rendezvous_mutual">Go and find your resonance by moving, physically.</string>
     <string name="rendezvous_out_of_range">out of range right now</string>
-    <string name="rendezvous_searching">You have been searching for %1$d seconds.</string>
-    <string name="rendezvous_patience">The station cannot know whether the other screen is beating: nothing travels. Its silence is not a refusal — the Board may simply not be open on the other side.</string>
     <string name="rendezvous_no_phase">No rhythm without a phase. The seal comes from the date, the phase needs a birthplace — and both sides need one.</string>
 
     <!-- ─── The chat: bubbles, attachments, send states ───────────────── -->
@@ -474,6 +472,10 @@
         <item quantity="other">%1$d cards are showing in range.</item>
     </plurals>
     <string name="presence_banner_open">See</string>
+    <string name="seek_channel_name">Someone is looking for you</string>
+    <string name="seek_channel_description">When someone in the room wants to recognise you and your lantern is closed.</string>
+    <string name="seek_title">Someone wants to recognise you</string>
+    <string name="seek_body">A card within range has opened its lantern on yours. Open the Board and touch their card: both screens will beat to the same rhythm, and you will find each other by eye.</string>
     <string name="presence_channel_name">Someone in range</string>
     <string name="presence_channel_description">When a card shows itself around you</string>
     <string name="presence_title">Someone is showing their card</string>

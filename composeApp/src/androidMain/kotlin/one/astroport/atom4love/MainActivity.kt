@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import one.astroport.atom4love.ui.AppVisibility
 import one.astroport.atom4love.ui.A4LApp
 import one.astroport.atom4love.ui.ChatHost
 import one.astroport.atom4love.ui.AppTheme
@@ -40,11 +41,15 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         chatHost.foreground(true)
+        // ⚠ Deux destinataires, deux durées de vie : `chatHost` meurt avec
+        // l'activité, [AppVisibility] est lu par la balise, qui lui survit.
+        AppVisibility.onScreen = true
     }
 
     override fun onStop() {
         super.onStop()
         chatHost.foreground(false)
+        AppVisibility.onScreen = false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -152,8 +152,6 @@
          La chaleur au-dessus se lit en marchant, pas en lisant. -->
     <string name="rendezvous_mutual">Allez chercher votre résonance en vous déplaçant physiquement.</string>
     <string name="rendezvous_out_of_range">hors de portée à l\'instant</string>
-    <string name="rendezvous_searching">Vous cherchez depuis %1$d secondes.</string>
-    <string name="rendezvous_patience">La station ne peut pas savoir si l\'autre écran bat : rien ne circule. Son silence n\'est pas un refus — il se peut simplement que le Plateau ne soit pas ouvert en face.</string>
     <string name="rendezvous_no_phase">Pas de rythme sans phase. Le sceau vient de la date, la phase demande le lieu de naissance — et il en faut un des deux côtés.</string>
     <!-- « 18 % » en français, « 18% » en anglais : l'espace est une règle de
          langue. Le %% est un pour cent littéral, pas un format. -->
@@ -572,6 +570,13 @@
         <item quantity="other">%1$d cartes se montrent à portée.</item>
     </plurals>
     <string name="presence_banner_open">Voir</string>
+    <!-- 🔦 Quelqu\'un a ouvert sa lanterne sur vous, et la vôtre est fermée.
+         ⚠ Le texte ne nomme personne : une notification se lit sur un écran
+         verrouillé, posé sur une table. Le Plateau, lui, nomme — on y est venu. -->
+    <string name="seek_channel_name">On vous cherche</string>
+    <string name="seek_channel_description">Quand quelqu\'un dans la salle veut vous reconnaître et que votre lanterne est fermée.</string>
+    <string name="seek_title">Quelqu\'un veut vous reconnaître</string>
+    <string name="seek_body">Une carte à portée a ouvert sa lanterne sur la vôtre. Ouvrez le Plateau et touchez sa carte : vos deux écrans battront du même rythme, et vous vous trouverez des yeux.</string>
     <string name="presence_channel_name">Quelqu\'un à portée</string>
     <string name="presence_channel_description">Quand une carte se montre autour de vous</string>
     <string name="presence_title">Quelqu\'un montre sa carte</string>

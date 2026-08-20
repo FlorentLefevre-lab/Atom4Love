@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import one.astroport.atom4love.ui.AppVisibility
 import one.astroport.atom4love.MainActivity
 import one.astroport.atom4love.R
 
@@ -48,7 +49,16 @@ class ProximityService : Service() {
          * on doit pouvoir taire les réveils sans éteindre la balise.
          */
         private const val PRESENCE_CHANNEL_ID = "presence"
+
+        /**
+         * ⚠ Canal NEUF et non le canal de présence : l'importance d'un canal
+         * existant appartient à la personne dès qu'il est créé (leçon du
+         * 19/08). Celui-ci doit pouvoir passer en tête d'écran — la personne
+         * qui vous cherche est dans la salle, maintenant.
+         */
+        private const val SEEK_CHANNEL_ID = "seek"
         private const val PRESENCE_NOTIFICATION_ID = 2
+        private const val SEEK_NOTIFICATION_ID = 3
 
         private val _running = MutableStateFlow(false)
         /** La balise tourne (service démarré et non détruit). */
@@ -181,6 +191,15 @@ class ProximityService : Service() {
             description = getString(R.string.presence_channel_description)
         }
         getSystemService(NotificationManager::class.java).createNotificationChannel(presence)
+
+        val seek = NotificationChannel(
+            SEEK_CHANNEL_ID,
+            getString(R.string.seek_channel_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = getString(R.string.seek_channel_description)
+        }
+        getSystemService(NotificationManager::class.java).createNotificationChannel(seek)
     }
 
     /** Voisins qui montraient une carte au dernier balayage, et dernier réveil. */
@@ -204,6 +223,59 @@ class ProximityService : Service() {
             }
         }
         showingBefore = showing
+    }
+
+    /** Dernier réveil par jeton — le temps de garde de [SeekAlert] est par personne. */
+    private val lastSeekWakeMs = HashMap<Int, Long>()
+
+    /**
+     * Quelqu'un a ouvert sa lanterne sur nous, et la nôtre est fermée : on le
+     * dit. La règle et ses trois conditions sont dans [SeekAlert] — surtout la
+     * troisième, qui explique pourquoi ceci ne sonne pas dans la main.
+     */
+    private fun maybeWakeForSeekers(seekers: Set<Int>) {
+        // Les jetons périment avec les voisins : ce qui n'est plus annoncé
+        // s'efface aussi de la mémoire des réveils, sans quoi elle enflerait
+        // d'une soirée à l'autre.
+        lastSeekWakeMs.keys.retainAll(seekers)
+        val wanted = SeekingBeacon.targets.value
+        val now = System.currentTimeMillis()
+        val wake = seekers.any { token ->
+            SeekAlert.shouldWake(
+                seekingBack = token in wanted,
+                onScreen = AppVisibility.onScreen,
+                lastWokeMs = lastSeekWakeMs[token] ?: 0L,
+                nowMs = now,
+            ).also { if (it) lastSeekWakeMs[token] = now }
+        }
+        if (!wake) return
+        runCatching {
+            getSystemService(NotificationManager::class.java)
+                .notify(SEEK_NOTIFICATION_ID, buildSeekNotification())
+        }
+    }
+
+    /**
+     * ⚠ **Elle ne nomme personne.** Le Plateau, lui, nomme — on y est venu, et
+     * la carte porte « vous cherche ». Une notification se lit sur un écran
+     * verrouillé, posé sur une table, par-dessus l'épaule de n'importe qui.
+     */
+    private fun buildSeekNotification(): Notification {
+        val openApp = PendingIntent.getActivity(
+            this, 0, Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val body = getString(R.string.seek_body)
+        return NotificationCompat.Builder(this, SEEK_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_beacon)
+            .setContentTitle(getString(R.string.seek_title))
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentIntent(openApp)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_SOCIAL)
+            .build()
     }
 
     private fun buildPresenceNotification(): Notification {
@@ -257,7 +329,12 @@ class ProximityService : Service() {
                     _scanBlind.value = it.scanBlind
                 }
             }
-            scope.launch { registry.seekers.collect { _seekers.value = it } }
+            scope.launch {
+                registry.seekers.collect {
+                    _seekers.value = it
+                    maybeWakeForSeekers(it)
+                }
+            }
             scope.launch {
                 registry.neighbors.collect { list ->
                     _neighbors.value = list
